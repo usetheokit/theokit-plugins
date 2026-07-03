@@ -1,82 +1,94 @@
 # Roadmap — theokit-plugins
 
-> Strategy: **moderate** — 3 plugins committed, 6 demand-gated. See [ADR-0011 in TheoKit core](https://github.com/usetheodev/theokit/blob/main/docs/adr/0011-moderate-plugin-roadmap-strategy.md) for the rationale + temporal gates.
+> **Reconciled with the ecosystem ROADMAP (2026-07-03, milestone M6).** The
+> canonical cross-pillar roadmap lives at `theokit-tools/ROADMAP.md` (M0–M8);
+> this repo is **subsumed** by it as part of the Harness cluster that M6 (cluster
+> consolidation) aligns to the hardened `@theokit/sdk` 2.18.0 Harness. This file
+> tracks the plugins-specific status only.
 
-## Committed (will ship)
+## Status — 11 first-party plugins shipped, aligned to `@theokit/sdk` 2.18.0
 
-| Plugin                   | Status               | Target                                           | ADR                                                                                                           |
-| ------------------------ | -------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `@theokit/plugin-cors`   | ✅ Shipping (v0.1.0) | 2026-Q3                                          | [ADR-0011](https://github.com/usetheodev/theokit/blob/main/docs/adr/0011-moderate-plugin-roadmap-strategy.md) |
-| `@theokit/plugin-sentry` | 🟡 Proposed          | Start ≤ 2 weeks after cors release; ship 2026-Q3 | [ADR-0012](./docs/adr/0012-plugin-sentry-proposed.md)                                                         |
-| `@theokit/plugin-i18n`   | 🟡 Proposed          | Start ≤ 6 weeks after cors release; ship 2026-Q4 | [ADR-0013](./docs/adr/0013-plugin-i18n-proposed.md)                                                           |
+The earlier "empty by design" posture is retired. The repo ships **11 first-party
+plugins**, all building + testing green against the M0–M3 Harness (`@theokit/sdk`
+2.18.0) as of M6.
 
-Temporal gates from ADR-0011 D4 — slipping these triggers an explicit follow-up ADR (downgrade "moderate" → "conservative" OR explain the delay).
+### Auth providers (consume `@theokit/sdk/server/auth`)
 
-## Demand-gated (won't ship until evidence)
+| Package | Version | Purpose |
+| --- | --- | --- |
+| `@theokit/auth-github` | 0.1.0 | GitHub OAuth 2.0 provider (state-only CSRF) |
+| `@theokit/auth-google` | 0.1.0 | Google OIDC provider + SSRF hardening |
+| `@theokit/auth-magic-link` | 0.1.0 | Passwordless email provider (pluggable store) |
 
-Gates per plugin (ALL must hold):
+### Capability plugins
+
+| Package | Version | Purpose | SDK coupling |
+| --- | --- | --- | --- |
+| `@theokit/plugin-canvas` | 0.3.0 | Artifact protocol (markdown/code/svg/diff/mermaid/html/image) + DOMPurify CSP-safe render | soft (types) |
+| `@theokit/plugin-copilot` | 0.1.0 | AI Copilot runtime (presence-aware, budget bridge, voice/canvas bridges) | soft (types) |
+| `@theokit/plugin-realtime` | 0.1.0 | Multiplayer (presence/room/broadcast, Yjs CRDT opt-in) | soft (`subscribe`) |
+| `@theokit/plugin-db-drizzle` | 0.1.0 | Drizzle ORM wrapper (7-verb CLI, studio passthrough) | none (`@theokit/orm`) |
+| `@theokit/plugin-email` | 0.1.0 | Email (Resend default, React-Email opt-in) | none |
+| `@theokit/plugin-forms` | 0.1.2 | Form binding (zod + react-hook-form + useAction) | none (`@theokit/react`) |
+| `@theokit/plugin-payments` | 0.1.0 | Stripe (webhook dispatcher, signature verify, idempotency) | none |
+| `@theokit/plugin-voice` | 0.7.0 | STT/TTS bridge (browser MediaRecorder, timeout wiring) | none |
+
+**M6 alignment (2026-07-03):** every `@theokit/sdk` peer/dev pin bumped from the
+stale 1.x ranges (`>=1.6.0` / `>=1.0.0` / `>=1.7.0` / `npm:@theokit/sdk@next`) to
+`^2.18.0` / `>=2.18.0`. The consumed surface (`AuthProvider` / `AuthResult` /
+`OAuthTransaction` from `@theokit/sdk/server/auth`; `subscribe` for realtime) is
+stable across 1.x→2.x, so the alignment is a pin bump, not a migration. Validated:
+11/11 packages typecheck + build + test green (661 tests). The phantom
+`@theokit/plugin-rate-limit` peer dep (no such package exists) was removed from
+`plugin-copilot` — its rate-limit config is a documented type-only opt-in
+(`no-stubs-no-mocks-no-wired` clean).
+
+## Future plugins — demand-gated (unchanged philosophy)
+
+New plugins beyond the 11 above still follow the moderate demand-gate. A plugin
+ships only when ALL hold:
 
 1. 1+ app in production using a draft/community version
 2. 3+ requests in GitHub discussions
-3. Doesn't duplicate a TheoKit core primitive (see [exclusions table below](#exclusions-already-in-core))
+3. Doesn't duplicate a Harness core primitive (see exclusions below)
 4. Maintainable: <100 LOC OR <1 week of maintenance per year
 5. Tests + fixture project
 
-| Plugin                                         | Demand evidence today | Why considered (eventually)                                                                                      |
-| ---------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `@theokit/plugin-otel`                         | 0 apps / 0 requests   | TheoKit has trace context (`x-trace-id` propagation) but no OpenTelemetry exporter — bridge would close that gap |
-| `@theokit/plugin-resend`                       | 0 / 0                 | Common SaaS need (transactional email); SDK wrapping pattern                                                     |
-| `@theokit/plugin-stripe-webhooks`              | 0 / 0                 | Sugar over `defineWebhook` adding Stripe signature verification ergonomics                                       |
-| `@theokit/plugin-clerk` / `-auth0` / `-workos` | 0 / 0 (each)          | Hosted auth bridges; TheoKit ships session + RFC primitives, not vendor bridges                                  |
-| `@theokit/plugin-feature-flags`                | 0 / 0                 | GrowthBook / LaunchDarkly / Posthog bridges                                                                      |
-| `@theokit/plugin-inngest` / `-trigger-dev`     | 0 / 0                 | Workflow engine bridges; TheoKit has `defineJob` + outbox, not workflow orchestration                            |
+Previously-proposed `@theokit/plugin-cors` / `-sentry` / `-i18n` are NOT in this
+repo; they remain demand-gated proposals to revisit under the ecosystem roadmap
+when demand is evidenced. Other demand-gated candidates: `plugin-otel`,
+`plugin-resend`, `plugin-stripe-webhooks`, `plugin-clerk`/`-auth0`/`-workos`,
+`plugin-feature-flags`, `plugin-inngest`/`-trigger-dev` (0 apps / 0 requests each).
 
-## Exclusions — already in core (don't propose these as plugins)
+## Exclusions — already in the Harness (don't propose as plugins)
 
-| Need                                  | Already in TheoKit                            |
-| ------------------------------------- | --------------------------------------------- |
-| Security headers (CSP/HSTS/X-Frame)   | Built-in via security-hardening defaults      |
-| Cookies                               | `getCookie` / `setCookie` / `deleteCookie`    |
-| Rate limit                            | `createRateLimiter` + pluggable store         |
-| Multipart upload                      | `parseRequestBody` + busboy                   |
-| Postgres / Redis                      | `usePostgres` / `useRedis` + `StorageManager` |
-| KV (Redis/S3/CF KV/Vercel KV)         | `useUnstorage` (20+ unstorage drivers)        |
-| SQL non-PG (libSQL/D1/MySQL/SQLite)   | `useDatabase` (db0 connectors)                |
-| Custom client (Mongo/DynamoDB)        | `useStorage<T>` generic                       |
-| WebSocket                             | `defineWebSocket`                             |
-| Cron                                  | `defineCron`                                  |
-| Webhooks (generic)                    | `defineWebhook`                               |
-| OpenAPI generation                    | Auto from `defineRoute` + Zod                 |
-| Auth (PKCE/OAuth state/TOTP/sessions) | RFC-aligned primitives in core                |
-
-## TheoKit compatibility matrix
-
-Per ADR-0011 D5 + edge-case EC-13, every plugin declares an explicit TheoKit peer-dep range. When TheoKit ships a major bump, each plugin updates its range via a Changeset PR (range broadening is NOT automatic — security default).
-
-| Plugin version               | TheoKit range tested | Notes                                     |
-| ---------------------------- | -------------------- | ----------------------------------------- |
-| `@theokit/plugin-cors@0.1.x` | `>=0.1.0-alpha.5`    | Initial; aligned to current TheoKit alpha |
-
-When `@theokit/plugin-sentry` and `@theokit/plugin-i18n` ship, they extend this table with their own row.
+| Need | Already in `@theokit/sdk` |
+| --- | --- |
+| Security headers (CSP/HSTS/X-Frame) | security-hardening defaults |
+| Cookies | `getCookie` / `setCookie` / `deleteCookie` |
+| Rate limit | `createRateLimiter` + pluggable store |
+| Secret redaction | `Security.redact` (ADR D68) |
+| Multipart upload | `parseRequestBody` + busboy |
+| Postgres / Redis | `usePostgres` / `useRedis` + `StorageManager` |
+| KV / SQL / custom client | `useUnstorage` / `useDatabase` / `useStorage<T>` |
+| WebSocket / Cron / Webhooks | `defineWebSocket` / `defineCron` / `defineWebhook` |
+| Auth (PKCE/OAuth state/TOTP/sessions) | RFC-aligned primitives in core |
 
 ## How to propose a new plugin
 
-For first-party (under `@theokit/plugin-*` scope):
+First-party (under `@theokit/plugin-*`): open a discussion at
+https://github.com/usetheodev/theokit/discussions titled `[plugin proposal] <name>`,
+show a real production use case + 3+ requests + why it can't be a core primitive;
+if a maintainer accepts, a package skeleton lands in `packages/`. Community (under
+`@<your-scope>/theokit-plugin-*`): publish anywhere, add the `theokit-plugin`
+keyword. See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
-1. Open a discussion at https://github.com/usetheodev/theokit/discussions titled `[plugin proposal] <name>`
-2. Show: real production use case, 3+ requests from others, why it can't be a core primitive
-3. If accepted by a maintainer, a package skeleton lands in this repo's `packages/`
+## Release
 
-For community (under `@<your-scope>/theokit-plugin-*`):
-
-1. Publish wherever — no permission needed
-2. Add the `theokit-plugin` keyword in your `package.json`
-3. (Optional, later) Apply for inclusion in a "community plugins" page once 5+ community plugins exist
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full process.
+Independent per-package Changesets, coordinated with the ecosystem release train
+(M6). The cluster releases together with the `@theokit/sdk` 2.18.0 Harness it pins.
 
 ## Status legend
 
-- ✅ Shipping — published to npm, accepting PRs
-- 🟡 Proposed — ADR drafted with `proposed` status; implementation pending
-- ⏳ Demand-gated — won't enter Committed until gates clear
+- ✅ Shipped — published to npm, aligned to `@theokit/sdk` 2.18.0
+- ⏳ Demand-gated — won't enter the shipped set until the gates clear

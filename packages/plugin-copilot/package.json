@@ -28,9 +28,8 @@
   },
   "peerDependencies": {
     "theokit": ">=0.4.0-beta.0",
-    "@theokit/sdk": ">=1.6.0",
+    "@theokit/sdk": ">=2.18.0",
     "@theokit/plugin-realtime": ">=0.1.0",
-    "@theokit/plugin-rate-limit": ">=0.1.0",
     "zod": "^3.25.0 || ^4.0.0",
     "@theokit/ui": "^0.14.2",
     "react": ">=18 || >=19",
@@ -61,7 +60,7 @@
   "devDependencies": {
     "@testing-library/dom": "^10.0.0",
     "@testing-library/react": "^16.0.0",
-    "@theokit/sdk": "^1.6.0",
+    "@theokit/sdk": "^2.18.0",
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.0",
     "jsdom": "^25.0.0",
