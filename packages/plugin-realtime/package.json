@@ -1,6 +1,6 @@
 {
   "name": "@theokit/plugin-realtime",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Multiplayer realtime plugin for TheoKit — presence + room + broadcast + Yjs CRDT (opt-in). Form 4 Hybrid: RealtimeProvider interface + MemoryRealtimeProvider default + YjsRealtimeProvider + defineRealtimeProvider extension. Consumes @theokit/sdk@>=1.7.0 subscribe for WS transport. React hooks at /react sub-path. Per plan p9-plugin-realtime v1.0.",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,7 +15,12 @@
       "import": "./dist/react/index.js"
     }
   },
-  "files": ["dist", "README.md", "CHANGELOG.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
@@ -32,11 +37,21 @@
     "@types/react": ">=18 || >=19"
   },
   "peerDependenciesMeta": {
-    "yjs": { "optional": true },
-    "y-protocols": { "optional": true },
-    "lib0": { "optional": true },
-    "react": { "optional": true },
-    "@types/react": { "optional": true }
+    "yjs": {
+      "optional": true
+    },
+    "y-protocols": {
+      "optional": true
+    },
+    "lib0": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "@types/react": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@testing-library/dom": "^10.0.0",

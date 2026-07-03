@@ -1,5 +1,39 @@
 # @theokit/plugin-copilot
 
+## 0.1.1
+
+### Patch Changes
+
+- b9f9ea3: Charge actual usage instead of a fixed estimate (#174). The agent `complete` event may now carry `usage.costUsd`; when present, the runtime reconciles the budget reservation to that actual cost so `getUsage()` reflects real spend rather than the flat `estimatedCostPerInvocationUsd`. When the provider reports no cost, the estimate is used as the documented fallback. The `CopilotAgentLike` complete-event type gains an optional `usage` field (additive, backward-compatible).
+- 34202f8: Make copilot budget accounting race-safe and guard idle triggers (#219, #223, #221). Idle-trigger `runAgent` now goes through the same per-copilot serialization queue as broadcasts, so an idle invocation can no longer run concurrently with a broadcast and double-spend. The budget preflight is replaced by an atomic `reserve` (check + hold the estimate in one synchronous step, single window read), reconciled to the actual cost on success and released on failure/cancellation — closing the TOCTOU/double-spend (#219), the non-atomic window-reset-then-charge (#223), and ensuring a failed invocation does not leak reserved budget (EC-2). An idle trigger that fires during or after `deactivate()` is now a no-op (an `active` flag is flipped first and checked inside every queued task) (#221). Internal `@internal` machinery only — no public API change.
+- 3cd718a: Strip forged fence markers from untrusted agent input to a fixpoint (review finding F-sec-2, OWASP LLM01). `frameUntrusted` previously stripped the `<<<UNTRUSTED_USER_INPUT>>>` / `<<<END_UNTRUSTED_USER_INPUT>>>` markers in a single pass, so a nested payload such as `<<<UNTRUSTED_USER<<<UNTRUSTED_USER_INPUT>>>_INPUT>>>` reconstructed a marker after the strip and could escape the untrusted-data fence. The strip now loops until the string stops changing (each pass strictly shrinks it, so it terminates). No public API change.
+- 6a6eb0f: Log queued-task failures with copilot/room context instead of swallowing them in an empty catch (#222). The per-copilot queue's error handler now emits a structured `console.error` with `copilotId` + `roomId` + the error, keeping the chain alive while making frame/idle failures observable. No public API change.
+- 33dbbb9: Isolate untrusted room text from the agent system prompt to mitigate prompt injection (#218, OWASP LLM01). `framePrompt` no longer prepends the system prompt onto the user message; it returns only a fenced user-role prompt that marks the user's text as untrusted data (and strips any forged fence markers), while the trusted system prompt is passed separately via `streamObject({ systemPrompt })`. Malicious instructions in a broadcast can no longer contaminate the system role. No public API change.
+- 9c35fc8: Prune per-room round-robin dispatcher state when a room empties (review finding F-arch-2). `roundRobinCursor` and `roundRobinDecision` are keyed by room id and were never deleted, growing unbounded across long-running processes that cycle through many transient rooms. `unregisterCopilot` now deletes both maps' entries for a room — but only when `copilotsInRoom` is empty after the removal, so a room with remaining copilots keeps its fair-rotation state. No public API change.
+- 49aa923: Reconcile the README Quick start with the implemented, tested API (#172, #173). `CopilotProvider` is documented with `userConnectionId` (the real prop) instead of the non-existent `localConnectionId`/`runtime` props, and the headless hooks are shown with their real object-argument signatures (`useCopilotReadable({ description, value })`, `useCopilotTool({ name, description, handler })`) instead of the old positional / `{name, schema}` forms. A new test mirrors the documented Quick start so it compiles and runs against the real API, preventing future doc drift. Docs + test only — no code/API change.
+- 70464c5: Release the budget reservation when `setTyping(true)` throws (review finding F-conc-2). The initial typing-indicator update was awaited outside the try block that holds the reservation's reconcile/release, so a throw propagated past the release and left the estimated cost held until the budget window reset. The call is now inside the try, so a failed typing update routes through catch → `release(reservation)`. No public API change.
+- d04d3bb: Fix the `round-robin` dispatcher so it rotates fairly across copilots in a room (#220). The cursor is now keyed by room id (not by `frame.connectionId`), and — because `_handleFrame` runs once per copilot — the dispatch decision is memoized per (room, frame) so the cursor advances exactly once per frame. Previously the cursor advanced once per copilot per frame, so every copilot selected itself and round-robin degraded to `all`; it was also keyed by connection, so connections never shared a rotation. Now exactly one copilot responds per frame, rotating across all copilots in the room regardless of which connection sent the frame. No public API change.
+- 877a6ee: Pass a real validation schema to `Agent.streamObject` (#224). The runtime previously supplied a passthrough schema (`safeParse` always succeeded), disabling output validation. It now passes `z.object({ text: z.string() })`, so the agent rejects a non-conforming completion instead of silently coercing it. No public API change.
+- d9a8e30: Align the plugin cluster to the hardened `@theokit/sdk` 2.18.0 Harness (ecosystem M6). Bumped the `@theokit/sdk` peer + dev dependency from the stale 1.x ranges (`>=1.6.0` / `>=1.0.0` / `>=1.7.0` / `npm:@theokit/sdk@next`) to `^2.18.0` / `>=2.18.0`. The consumed surface (`AuthProvider` / `AuthResult` / `OAuthTransaction` from `@theokit/sdk/server/auth`; `subscribe` for realtime) is stable across 1.x→2.x, so the alignment is a pin bump, not a migration. Also removed the phantom `@theokit/plugin-rate-limit` peer dependency from `plugin-copilot` (no such package exists; its rate-limit config is a type-only opt-in — `no-stubs-no-mocks-no-wired` clean). Validated: all 11 packages typecheck + build + test green against 2.18.0 (661 tests).
+- 342239f: Reduce the cyclomatic complexity of eight audit-flagged functions (CC 16–24) by extracting behavior-preserving named helpers (#182–#189). No behavior change and no public API change — all existing tests stay green. Touched: `github()`'s callback (auth-github); `createInMemoryArtifactStore`, `serializeArtifactForCopy`, and `classifyRemoved` (plugin-canvas); `defineCopilot` (plugin-copilot); the realtime subscription effect (plugin-realtime); and `handleSttRequest`/`handleTtsRequest` (plugin-voice). Six functions now measure CC ≤ 10; `serializeArtifactForCopy` (a 9-kind discriminated-union exhaustive switch) and the in-memory `memList` sit at the idiomatic floor — `lizard`'s TypeScript parser mis-merges their adjacent module helpers into one range, overstating the per-function number, but each real function is ≤ 10.
+- Updated dependencies [d173838]
+- Updated dependencies [d9a8e30]
+- Updated dependencies [3e7af67]
+- Updated dependencies [be6ec38]
+- Updated dependencies [962b42e]
+- Updated dependencies [ca041df]
+- Updated dependencies [342239f]
+- Updated dependencies [db271df]
+- Updated dependencies [1d8ee52]
+- Updated dependencies [856c667]
+- Updated dependencies [c3f3a35]
+- Updated dependencies [243e7a6]
+- Updated dependencies [9208043]
+- Updated dependencies [18fc976]
+  - @theokit/plugin-canvas@0.3.1
+  - @theokit/plugin-realtime@0.1.1
+  - @theokit/plugin-voice@0.7.1
+
 ## [Unreleased]
 
 ## [0.1.0] - 2026-06-04 (initial; unpublished — gated on @theokit/sdk@1.7.0 + @theokit/plugin-realtime@0.1.0 @next promote cohort)
@@ -47,14 +81,14 @@ Per plan [`p11-plugin-copilot-plan.md`](../../../.claude/knowledge-base/plans/p1
 
 ### Security threats addressed
 
-| Threat | Mitigation |
-|---|---|
-| Cost runaway via copilot-to-copilot loop | `TriggerEvaluator` filters `copilot:*` connectionId frames (EC-4). |
+| Threat                                   | Mitigation                                                                                                  |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Cost runaway via copilot-to-copilot loop | `TriggerEvaluator` filters `copilot:*` connectionId frames (EC-4).                                          |
 | Copilot impersonation by malicious human | `copilot:` connection-id prefix reserved; runtime never accepts `copilot:*` frame as trigger source (EC-8). |
-| Per-request cost spike | Opt-in `budget.perRoom.perRequestUsd` preflight emits typed `budget-exceeded` frame instead of agent call. |
-| Rolling cost overrun | `budget.perRoom.{dailyUsd, monthlyUsd}` rolling windows reset at UTC day/month boundaries. |
-| Tool/knowledge registry injection | `useCopilotReadable` / `useCopilotTool` broadcast as events; copilot agent decides — no implicit trust. |
-| Trigger ReDoS via malicious event names | Trigger event names matched via exact-string equality (no regex). |
+| Per-request cost spike                   | Opt-in `budget.perRoom.perRequestUsd` preflight emits typed `budget-exceeded` frame instead of agent call.  |
+| Rolling cost overrun                     | `budget.perRoom.{dailyUsd, monthlyUsd}` rolling windows reset at UTC day/month boundaries.                  |
+| Tool/knowledge registry injection        | `useCopilotReadable` / `useCopilotTool` broadcast as events; copilot agent decides — no implicit trust.     |
+| Trigger ReDoS via malicious event names  | Trigger event names matched via exact-string equality (no regex).                                           |
 
 ### Quality gates
 

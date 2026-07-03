@@ -1,5 +1,16 @@
 # @theokit/plugin-realtime
 
+## 0.1.1
+
+### Patch Changes
+
+- d9a8e30: Align the plugin cluster to the hardened `@theokit/sdk` 2.18.0 Harness (ecosystem M6). Bumped the `@theokit/sdk` peer + dev dependency from the stale 1.x ranges (`>=1.6.0` / `>=1.0.0` / `>=1.7.0` / `npm:@theokit/sdk@next`) to `^2.18.0` / `>=2.18.0`. The consumed surface (`AuthProvider` / `AuthResult` / `OAuthTransaction` from `@theokit/sdk/server/auth`; `subscribe` for realtime) is stable across 1.x→2.x, so the alignment is a pin bump, not a migration. Also removed the phantom `@theokit/plugin-rate-limit` peer dependency from `plugin-copilot` (no such package exists; its rate-limit config is a type-only opt-in — `no-stubs-no-mocks-no-wired` clean). Validated: all 11 packages typecheck + build + test green against 2.18.0 (661 tests).
+- 3e7af67: Harden the server subscription bridge against mid-stream aborts and slow consumers (#195, #198). The abort listener is now registered before the `handleConnection` await (and an already-aborted signal is handled up front), so an abort during connection setup is observed instead of leaving the generator blocked forever and leaking the connection handle + listener; the listener is removed on both the error and normal/abort exit paths. The per-subscription frame queue is now bounded (`MAX_QUEUED_FRAMES`): on overflow the connection is disconnected (close code 1013, "try again later") so the client reconnects and resyncs rather than the server buffering without limit, and `onFrame` drops frames once stopped/aborted. No public API change.
+- be6ec38: Guard the Yjs provider against applying an update to a destroyed/garbage-collected `Y.Doc` (#194). In-flight `applyYjsUpdate`/`applyYjsAwareness` ops now hold a per-room refcount; `gcIfEmpty` defers both doc destruction and room eviction while the count is non-zero, so a concurrent `leaveRoom` can no longer destroy the doc mid-apply. An apply that still races room eviction is a safe no-op (post-await membership re-check) instead of touching a destroyed doc. This also closes the orphan where a room GC'd while its doc was still initializing leaked the `Y.Doc` (never destroyed). No public API change.
+- 962b42e: Fix a check-then-act race in the Yjs provider where concurrent `applyYjsUpdate`/`applyYjsAwareness` calls on a fresh room could each construct a `Y.Doc`, orphaning the first (and its `Awareness`) (#193). Doc creation is now memoized with a per-room single-flight promise so concurrent applies share exactly one `Y.Doc`; if init fails, the memo is cleared so a later apply can recreate it (no permanently bricked room). The redundant second `loadYjs()` per apply is also removed — `ensureYjs` returns the loaded modules in its bundle (#196). No public API change.
+- ca041df: Fail loudly when a room declares `storage: "yjs"` but is wired to a provider without Yjs support (#197). Dispatching a Yjs update/awareness frame to such a room now throws `RealtimeError` (`yjs_provider_unsupported`) instead of silently dropping the frame and losing CRDT document state — the misconfiguration surfaces immediately. Rooms that do not declare `storage: "yjs"` are unaffected: a stray Yjs frame remains a no-op. No public API change.
+- 342239f: Reduce the cyclomatic complexity of eight audit-flagged functions (CC 16–24) by extracting behavior-preserving named helpers (#182–#189). No behavior change and no public API change — all existing tests stay green. Touched: `github()`'s callback (auth-github); `createInMemoryArtifactStore`, `serializeArtifactForCopy`, and `classifyRemoved` (plugin-canvas); `defineCopilot` (plugin-copilot); the realtime subscription effect (plugin-realtime); and `handleSttRequest`/`handleTtsRequest` (plugin-voice). Six functions now measure CC ≤ 10; `serializeArtifactForCopy` (a 9-kind discriminated-union exhaustive switch) and the in-memory `memList` sit at the idiomatic floor — `lizard`'s TypeScript parser mis-merges their adjacent module helpers into one range, overstating the per-function number, but each real function is ≤ 10.
+
 ## [Unreleased]
 
 ## [0.1.0] - 2026-06-04 (initial; unpublished — gated on @theokit/sdk@1.7.0 @next)
@@ -40,14 +51,14 @@ Per plan [`p9-plugin-realtime-plan.md`](../../../.claude/knowledge-base/plans/p9
 
 ### Security threats addressed
 
-| Threat | Mitigation |
-|---|---|
-| Unauthorized broadcast | `defineRoom({authorize?: (ctx) => boolean})` per-room hook; G11 `defineAuth` runs at WS upgrade boundary |
-| Presence flooding | Consumer wires P#10 plugin-rate-limit at upgrade; `RealtimeRuntime.getPresence()` for ops visibility |
-| Yjs update poisoning | `maxUpdateBytes` cap (default 1 MB); throws `RealtimeError({code:'yjs_update_oversized'})` |
-| Y.Awareness oversized | Same `maxUpdateBytes` cap via `applyYjsAwareness` |
-| Cross-room data leakage | Runtime enforces `roomId` scoping; isolation test in `tests/memory-provider.test.ts:44` |
-| PII leakage in presence | Zod schema at `defineRoom` boundary; README recommends opt-in fields |
+| Threat                  | Mitigation                                                                                               |
+| ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| Unauthorized broadcast  | `defineRoom({authorize?: (ctx) => boolean})` per-room hook; G11 `defineAuth` runs at WS upgrade boundary |
+| Presence flooding       | Consumer wires P#10 plugin-rate-limit at upgrade; `RealtimeRuntime.getPresence()` for ops visibility     |
+| Yjs update poisoning    | `maxUpdateBytes` cap (default 1 MB); throws `RealtimeError({code:'yjs_update_oversized'})`               |
+| Y.Awareness oversized   | Same `maxUpdateBytes` cap via `applyYjsAwareness`                                                        |
+| Cross-room data leakage | Runtime enforces `roomId` scoping; isolation test in `tests/memory-provider.test.ts:44`                  |
+| PII leakage in presence | Zod schema at `defineRoom` boundary; README recommends opt-in fields                                     |
 
 ### Quality gates
 

@@ -1,5 +1,16 @@
 # @theokit/plugin-payments
 
+## 0.2.0
+
+### Minor Changes
+
+- 0756375: **BREAKING (pre-1.0):** `IdempotencyStore` now requires a `release(eventId)` method, and `IdempotencyRepository` now requires `delete(eventId)`. This makes the webhook dispatcher exactly-once on success AND retry-on-failure (#167): an event is claimed before dispatch and released if the handler throws, so Stripe's retry re-runs it instead of silently deduping a failed delivery. Consumers providing a custom `IdempotencyStore`/`IdempotencyRepository` must implement the new method(s). Webhook handlers must be idempotent (multi-handler partial failure re-runs succeeded handlers on retry).
+- 7baea9d: **BREAKING (pre-1.0):** `WebhookResult`'s `handler_error` variant now carries a sanitized `error: { code: string; message: string }` instead of the raw thrown error (`error: unknown`). This prevents handler errors — which may contain PII/secrets (DB DSNs, API keys) — from leaking to the HTTP layer (#201). The full error is logged server-side with known secret shapes redacted. Additionally, `WebhookRegistry.dispatch` now throws a single `AggregateError` carrying every failed handler's error instead of only the first (#208). Consumers reading `result.error` must switch from the raw error to `result.error.code` / `result.error.message`; consumers calling `registry.dispatch` directly should expect `AggregateError`.
+
+### Patch Changes
+
+- c43d8e6: Redact secrets in the idempotency-claim release-failure log (review finding F-dom-pay-5). When a webhook handler throws, `processWebhook` best-effort releases the idempotency claim; if that `release()` itself throws, the error was previously logged raw, so a `release()` failure carrying credentials (e.g. a DB connection string) could leak into the server log. The error is now passed through `redactSecrets()` before logging, matching the handler-error log path. No public API change.
+
 ## [Unreleased]
 
 ## [0.1.0] - 2026-06-04 (initial publish on `@next`)
@@ -30,13 +41,13 @@ Per plan [`p6-plugin-payments-plan.md`](../../../.claude/knowledge-base/plans/p6
 
 ### Security threats addressed
 
-| Threat | Mitigation |
-|---|---|
-| Replay attacks | Idempotency store rejects duplicate `event.id` via atomic UNIQUE constraint |
-| Signature forgery | HMAC-SHA256 via `stripe.webhooks.constructEvent()` |
-| Body tampering | Signature verification consumes raw body BEFORE JSON parsing |
-| Secret leakage | Env-var defaults; plugin never logs secrets |
-| Double-processing | Idempotency table guarantees exactly-once per `event.id` |
+| Threat            | Mitigation                                                                  |
+| ----------------- | --------------------------------------------------------------------------- |
+| Replay attacks    | Idempotency store rejects duplicate `event.id` via atomic UNIQUE constraint |
+| Signature forgery | HMAC-SHA256 via `stripe.webhooks.constructEvent()`                          |
+| Body tampering    | Signature verification consumes raw body BEFORE JSON parsing                |
+| Secret leakage    | Env-var defaults; plugin never logs secrets                                 |
+| Double-processing | Idempotency table guarantees exactly-once per `event.id`                    |
 
 ### Quality gates
 

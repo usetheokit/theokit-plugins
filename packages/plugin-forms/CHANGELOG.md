@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3
+
+### Patch Changes
+
+- 9c99e77: Extract `TheoForm`'s error routing into exported pure helpers — `extractFieldsFromError` and `routeActionError` — so it can be unit-tested against the single source the component actually uses (#227). Previously the test duplicated the catch-block logic, so it could pass even if the component diverged. `TheoForm`'s behavior is unchanged (ActionInputError `fields` → RHF `setError`; any other error re-thrown). Additive exports.
+
 All notable changes to `@theokit/plugin-forms` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
