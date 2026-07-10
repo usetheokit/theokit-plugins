@@ -2,10 +2,7 @@ import { Alert } from '@theokit/ui'
 
 import type { Artifact } from '../schema.js'
 import { DEFAULT_RENDERERS } from './renderers/index.js'
-import type {
-  ArtifactRendererComponent,
-  ArtifactRendererRegistry,
-} from './renderers/types.js'
+import type { ArtifactRendererComponent, ArtifactRendererRegistry } from './renderers/types.js'
 
 export interface ArtifactRendererProps {
   artifact: Artifact

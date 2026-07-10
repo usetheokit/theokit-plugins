@@ -5,7 +5,7 @@
  * Blueprint ADR D1 — interface-based abstraction.
  */
 
-import type { EmailProvider } from "./types.js";
+import type { EmailProvider } from './types.js'
 
 /**
  * Helper for consumer-custom email providers. Pass-through that exists for
@@ -26,14 +26,14 @@ import type { EmailProvider } from "./types.js";
 export function defineEmailProvider(impl: EmailProvider): EmailProvider {
   // Fail-fast at wiring time — a malformed provider should crash at boot, not on
   // the first send(). Mirrors defineRealtimeProvider's boundary validation.
-  if (impl === null || typeof impl !== "object") {
-    throw new TypeError("defineEmailProvider: provider implementation is required");
+  if (impl === null || typeof impl !== 'object') {
+    throw new TypeError('defineEmailProvider: provider implementation is required')
   }
-  if (typeof impl.name !== "string" || impl.name.length === 0) {
-    throw new TypeError("defineEmailProvider: impl.name must be a non-empty string");
+  if (typeof impl.name !== 'string' || impl.name.length === 0) {
+    throw new TypeError('defineEmailProvider: impl.name must be a non-empty string')
   }
-  if (typeof impl.send !== "function") {
-    throw new TypeError("defineEmailProvider: impl.send must be a function");
+  if (typeof impl.send !== 'function') {
+    throw new TypeError('defineEmailProvider: impl.send must be a function')
   }
-  return impl;
+  return impl
 }

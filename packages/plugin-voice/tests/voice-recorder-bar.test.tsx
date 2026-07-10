@@ -22,14 +22,18 @@ import { VoiceRecorderBar } from '../src/ui/voice-recorder-bar.js'
 function fakeRecorder(overrides: Partial<Recorder> = {}): Recorder & {
   resolveStop: (blob: Blob) => void
   rejectStop: (err: unknown) => void
+  startSpy: ReturnType<typeof vi.fn>
 } {
   let resolveStop: (blob: Blob) => void = () => undefined
   let rejectStop: (err: unknown) => void = () => undefined
   let phase: 'idle' | 'recording' | 'stopped' = 'idle'
+  const startSpy = vi.fn(() => {
+    phase = 'recording'
+    return Promise.resolve()
+  })
   return {
-    start: vi.fn(async () => {
-      phase = 'recording'
-    }),
+    start: startSpy,
+    startSpy,
     stop: vi.fn(
       () =>
         new Promise<Blob>((resolve, reject) => {
@@ -40,12 +44,12 @@ function fakeRecorder(overrides: Partial<Recorder> = {}): Recorder & {
           rejectStop = reject
         }),
     ),
-    state: () => phase as 'idle',
+    state: () => phase,
     release: vi.fn(),
     resolveStop: (blob) => resolveStop(blob),
     rejectStop: (err) => rejectStop(err),
     ...overrides,
-  } as Recorder & { resolveStop: (blob: Blob) => void; rejectStop: (err: unknown) => void }
+  }
 }
 
 function jsonResponse(body: unknown, init: ResponseInit = { status: 200 }) {
@@ -62,7 +66,9 @@ afterEach(() => {
 describe('T3.4 — VoiceRecorderBar', () => {
   it('bar_toggles_recording_state — idle → recording → idle', async () => {
     const rec = fakeRecorder()
-    const fetchImpl = vi.fn(async () => jsonResponse({ transcript: 'hi', durationMs: 100 }))
+    const fetchImpl = vi.fn(() =>
+      Promise.resolve(jsonResponse({ transcript: 'hi', durationMs: 100 })),
+    )
     const onTranscript = vi.fn()
     render(
       <VoiceRecorderBar
@@ -75,19 +81,19 @@ describe('T3.4 — VoiceRecorderBar', () => {
     const btn = screen.getByTestId('voice-recorder-button')
     expect(btn.getAttribute('data-phase')).toBe('idle')
 
-    await act(async () => {
+    act(() => {
       fireEvent.click(btn)
     })
     await waitFor(() => expect(btn.getAttribute('data-phase')).toBe('recording'))
-    expect(rec.start).toHaveBeenCalledOnce()
+    expect(rec.startSpy).toHaveBeenCalledOnce()
 
-    await act(async () => {
+    act(() => {
       fireEvent.click(btn)
     })
     // The bar is now waiting on the recorder.stop() promise we control
     await waitFor(() => expect(btn.getAttribute('data-phase')).toBe('processing'))
 
-    await act(async () => {
+    act(() => {
       rec.resolveStop(new Blob([new Uint8Array([1, 2, 3])], { type: 'audio/webm' }))
     })
     await waitFor(() => expect(btn.getAttribute('data-phase')).toBe('idle'))
@@ -95,8 +101,8 @@ describe('T3.4 — VoiceRecorderBar', () => {
 
   it('transcript_propagates_to_handler with language + durationMs metadata', async () => {
     const rec = fakeRecorder()
-    const fetchImpl = vi.fn(async () =>
-      jsonResponse({ transcript: 'olá mundo', language: 'pt', durationMs: 423 }),
+    const fetchImpl = vi.fn(() =>
+      Promise.resolve(jsonResponse({ transcript: 'olá mundo', language: 'pt', durationMs: 423 })),
     )
     const onTranscript = vi.fn()
     render(
@@ -108,14 +114,14 @@ describe('T3.4 — VoiceRecorderBar', () => {
     )
     const btn = screen.getByTestId('voice-recorder-button')
 
-    await act(async () => {
+    act(() => {
       fireEvent.click(btn)
     })
     await waitFor(() => expect(btn.getAttribute('data-phase')).toBe('recording'))
-    await act(async () => {
+    act(() => {
       fireEvent.click(btn)
     })
-    await act(async () => {
+    act(() => {
       rec.resolveStop(new Blob([new Uint8Array([1])], { type: 'audio/webm' }))
     })
 
@@ -126,9 +132,9 @@ describe('T3.4 — VoiceRecorderBar', () => {
   it('sends FormData to the STT endpoint with CSRF header by default', async () => {
     const rec = fakeRecorder()
     let capturedInit: RequestInit | null = null
-    const fetchImpl = vi.fn(async (_url: string | URL, init: RequestInit) => {
+    const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
       capturedInit = init
-      return jsonResponse({ transcript: 'x', durationMs: 1 })
+      return Promise.resolve(jsonResponse({ transcript: 'x', durationMs: 1 }))
     })
     render(
       <VoiceRecorderBar
@@ -138,14 +144,14 @@ describe('T3.4 — VoiceRecorderBar', () => {
       />,
     )
     const btn = screen.getByTestId('voice-recorder-button')
-    await act(async () => {
+    act(() => {
       fireEvent.click(btn)
     })
     await waitFor(() => expect(btn.getAttribute('data-phase')).toBe('recording'))
-    await act(async () => {
+    act(() => {
       fireEvent.click(btn)
     })
-    await act(async () => {
+    act(() => {
       rec.resolveStop(new Blob([new Uint8Array([1])], { type: 'audio/webm' }))
     })
 
@@ -158,9 +164,7 @@ describe('T3.4 — VoiceRecorderBar', () => {
 
   it('permission_denied_renders_auth_alert (EC-4) and routes through onError', async () => {
     const rec = fakeRecorder({
-      start: vi.fn(async () => {
-        throw new VoicePermissionDeniedError('denied')
-      }),
+      start: vi.fn(() => Promise.reject(new VoicePermissionDeniedError('denied'))),
     })
     const onError = vi.fn()
     render(
@@ -172,7 +176,7 @@ describe('T3.4 — VoiceRecorderBar', () => {
     )
 
     const btn = screen.getByTestId('voice-recorder-button')
-    await act(async () => {
+    act(() => {
       fireEvent.click(btn)
     })
 
@@ -186,16 +190,12 @@ describe('T3.4 — VoiceRecorderBar', () => {
 
   it('error_state_renders_red_indicator and click_retry clears the error', async () => {
     const rec = fakeRecorder({
-      start: vi.fn(async () => {
-        throw new VoicePluginError('boom')
-      }),
+      start: vi.fn(() => Promise.reject(new VoicePluginError('boom'))),
     })
-    render(
-      <VoiceRecorderBar onTranscript={() => undefined} recorderFactory={() => rec} />,
-    )
+    render(<VoiceRecorderBar onTranscript={() => undefined} recorderFactory={() => rec} />)
 
     const btn = screen.getByTestId('voice-recorder-button')
-    await act(async () => {
+    act(() => {
       fireEvent.click(btn)
     })
     await waitFor(() => expect(btn.getAttribute('data-phase')).toBe('error'))
@@ -203,7 +203,7 @@ describe('T3.4 — VoiceRecorderBar', () => {
 
     // Retry click — clears the alert and returns to idle without
     // starting a new recording (user must click again to record).
-    await act(async () => {
+    act(() => {
       fireEvent.click(btn)
     })
     expect(btn.getAttribute('data-phase')).toBe('idle')
@@ -219,25 +219,23 @@ describe('T3.4 — VoiceRecorderBar', () => {
         }),
     )
     const rec = fakeRecorder({ start: startSpy })
-    render(
-      <VoiceRecorderBar onTranscript={() => undefined} recorderFactory={() => rec} />,
-    )
+    render(<VoiceRecorderBar onTranscript={() => undefined} recorderFactory={() => rec} />)
     const btn = screen.getByTestId('voice-recorder-button')
 
-    await act(async () => {
+    act(() => {
       fireEvent.click(btn)
     })
     // While the start promise is pending, additional clicks must be a
     // no-op. The bar disables the button during `requesting`.
     expect(btn.hasAttribute('disabled')).toBe(true)
-    await act(async () => {
+    act(() => {
       fireEvent.click(btn)
       fireEvent.click(btn)
       fireEvent.click(btn)
     })
     expect(startSpy).toHaveBeenCalledOnce()
 
-    await act(async () => {
+    act(() => {
       resolveStart()
     })
     await waitFor(() => expect(btn.getAttribute('data-phase')).toBe('recording'))
@@ -245,7 +243,7 @@ describe('T3.4 — VoiceRecorderBar', () => {
 
   it('STT non-2xx surfaces as upstream alert (renderError default)', async () => {
     const rec = fakeRecorder()
-    const fetchImpl = vi.fn(async () => new Response('Unauthorized', { status: 401 }))
+    const fetchImpl = vi.fn(() => Promise.resolve(new Response('Unauthorized', { status: 401 })))
     render(
       <VoiceRecorderBar
         onTranscript={() => undefined}
@@ -254,14 +252,14 @@ describe('T3.4 — VoiceRecorderBar', () => {
       />,
     )
     const btn = screen.getByTestId('voice-recorder-button')
-    await act(async () => {
+    act(() => {
       fireEvent.click(btn)
     })
     await waitFor(() => expect(btn.getAttribute('data-phase')).toBe('recording'))
-    await act(async () => {
+    act(() => {
       fireEvent.click(btn)
     })
-    await act(async () => {
+    act(() => {
       rec.resolveStop(new Blob([new Uint8Array([1])], { type: 'audio/webm' }))
     })
 
@@ -272,9 +270,7 @@ describe('T3.4 — VoiceRecorderBar', () => {
 
   it('renderError prop wins over the default <VoiceAlert>', async () => {
     const rec = fakeRecorder({
-      start: vi.fn(async () => {
-        throw new VoicePermissionDeniedError('denied')
-      }),
+      start: vi.fn(() => Promise.reject(new VoicePermissionDeniedError('denied'))),
     })
     render(
       <VoiceRecorderBar
@@ -284,7 +280,7 @@ describe('T3.4 — VoiceRecorderBar', () => {
       />,
     )
     const btn = screen.getByTestId('voice-recorder-button')
-    await act(async () => {
+    act(() => {
       fireEvent.click(btn)
     })
     await waitFor(() => expect(screen.getByTestId('custom-alert')).toBeTruthy())

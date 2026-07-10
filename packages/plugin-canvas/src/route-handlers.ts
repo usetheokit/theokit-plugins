@@ -27,6 +27,7 @@ import {
   CanvasPluginError,
 } from './errors.js'
 import { ARTIFACT_KINDS, enforceArtifactSecurity, validateArtifact } from './schema.js'
+import type { Artifact } from './schema.js'
 import type { ArtifactListFilter, ArtifactStore } from './store.js'
 
 export interface ArtifactRouteHandlerOptions {
@@ -36,7 +37,7 @@ export interface ArtifactRouteHandlerOptions {
    * audit logging. Errors here are logged but do not fail the
    * response (the artifact is already persisted).
    */
-  onAfterInsert?: (artifact: import('./schema.js').Artifact) => void | Promise<void>
+  onAfterInsert?: (artifact: Artifact) => void | Promise<void>
 }
 
 export interface ArtifactRouteHandlers {

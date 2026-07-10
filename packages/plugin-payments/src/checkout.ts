@@ -7,14 +7,14 @@
  * (returns redirect URL); Elements/embedded deferred to v0.x.
  */
 
-import type Stripe from "stripe";
+import type Stripe from 'stripe'
 
 /** Envelope returned by `createCheckoutSession`. */
 export interface CheckoutSessionResult {
   /** URL the consumer should redirect the user to (Stripe-hosted page). */
-  readonly url: string;
+  readonly url: string
   /** Stripe-assigned session ID for downstream lookup / webhook correlation. */
-  readonly sessionId: string;
+  readonly sessionId: string
 }
 
 /**
@@ -22,7 +22,7 @@ export interface CheckoutSessionResult {
  * misconfiguration of `success_url` / `cancel_url` in hosted mode.
  */
 export class CheckoutSessionMisconfigError extends Error {
-  override readonly name = "CheckoutSessionMisconfigError";
+  override readonly name = 'CheckoutSessionMisconfigError'
 }
 
 /**
@@ -40,11 +40,11 @@ export async function createCheckoutSession(
   client: Stripe,
   params: Stripe.Checkout.SessionCreateParams,
 ): Promise<CheckoutSessionResult> {
-  const session = await client.checkout.sessions.create(params);
+  const session = await client.checkout.sessions.create(params)
   if (!session.url) {
     throw new CheckoutSessionMisconfigError(
       "Stripe Checkout session was created without a URL. Ensure success_url and cancel_url are set for hosted-page mode (ui_mode='hosted' default).",
-    );
+    )
   }
-  return { url: session.url, sessionId: session.id };
+  return { url: session.url, sessionId: session.id }
 }

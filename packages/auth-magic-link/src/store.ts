@@ -10,13 +10,13 @@
  *     lives in the Repository contract, NOT here.
  */
 
-import { createHash } from "node:crypto";
+import { createHash } from 'node:crypto'
 
-import type { MagicLinkStore, MagicLinkTokenRecord } from "./types.js";
+import type { MagicLinkStore, MagicLinkTokenRecord } from './types.js'
 
 interface MemoryEntry {
-  email: string;
-  expiresAt: Date;
+  email: string
+  expiresAt: Date
 }
 
 /**
@@ -27,44 +27,46 @@ interface MemoryEntry {
  * then exposes only hashes, not live credentials. The raw token never rests.
  */
 function hashToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
+  return createHash('sha256').update(token).digest('hex')
 }
 
 export function createMemoryStore(): MagicLinkStore {
   // Keyed by sha256(token) — the raw token is never stored (#191).
-  const tokens = new Map<string, MemoryEntry>();
+  const tokens = new Map<string, MemoryEntry>()
 
   return {
-    async createToken({ email, token, expiresAt }) {
-      tokens.set(hashToken(token), { email, expiresAt });
+    createToken({ email, token, expiresAt }) {
+      tokens.set(hashToken(token), { email, expiresAt })
+      return Promise.resolve()
     },
-    async consumeToken({ token }) {
+    consumeToken({ token }) {
       // EC-11 atomicity: read + delete in a single sync turn — JS event loop
       // guarantees no interleave between two concurrent consumeToken calls
       // on the in-memory adapter. Lookup is by hash (#191).
-      const key = hashToken(token);
-      const entry = tokens.get(key);
-      if (!entry) return null;
-      tokens.delete(key);
-      if (entry.expiresAt.getTime() <= Date.now()) return null;
-      const record: MagicLinkTokenRecord = { email: entry.email, expiresAt: entry.expiresAt };
-      return record;
+      const key = hashToken(token)
+      const entry = tokens.get(key)
+      if (!entry) return Promise.resolve(null)
+      tokens.delete(key)
+      if (entry.expiresAt.getTime() <= Date.now()) return Promise.resolve(null)
+      const record: MagicLinkTokenRecord = { email: entry.email, expiresAt: entry.expiresAt }
+      return Promise.resolve(record)
     },
-    async revokeToken({ token }) {
-      tokens.delete(hashToken(token));
+    revokeToken({ token }) {
+      tokens.delete(hashToken(token))
+      return Promise.resolve()
     },
-    async cleanupExpired() {
-      const now = Date.now();
-      let removed = 0;
+    cleanupExpired() {
+      const now = Date.now()
+      let removed = 0
       for (const [key, entry] of tokens) {
         if (entry.expiresAt.getTime() <= now) {
-          tokens.delete(key);
-          removed += 1;
+          tokens.delete(key)
+          removed += 1
         }
       }
-      return removed;
+      return Promise.resolve(removed)
     },
-  };
+  }
 }
 
 /**
@@ -74,15 +76,20 @@ export function createMemoryStore(): MagicLinkStore {
  * satisfying this surface works (Drizzle, Prisma, hand-rolled SQL).
  */
 export interface MagicLinkRepository {
-  insert(row: { token: string; email: string; expiresAt: Date; consumedAt: Date | null }): Promise<void>;
+  insert(row: {
+    token: string
+    email: string
+    expiresAt: Date
+    consumedAt: Date | null
+  }): Promise<void>
   /**
    * Atomically mark the token consumed and return the row. MUST be a single
    * SQL UPDATE...RETURNING (or equivalent) so concurrent callers race on
    * the row lock and only one observes consumedAt === null.
    */
-  consumeAtomically(token: string, now: Date): Promise<{ email: string; expiresAt: Date } | null>;
-  delete(token: string): Promise<void>;
-  deleteExpired(now: Date): Promise<number>;
+  consumeAtomically(token: string, now: Date): Promise<{ email: string; expiresAt: Date } | null>
+  delete(token: string): Promise<void>
+  deleteExpired(now: Date): Promise<number>
 }
 
 export function createOrmStore(repo: MagicLinkRepository): MagicLinkStore {
@@ -92,19 +99,19 @@ export function createOrmStore(repo: MagicLinkRepository): MagicLinkStore {
   // unchanged (only the matched key differs).
   return {
     async createToken({ email, token, expiresAt }) {
-      await repo.insert({ token: hashToken(token), email, expiresAt, consumedAt: null });
+      await repo.insert({ token: hashToken(token), email, expiresAt, consumedAt: null })
     },
     async consumeToken({ token }) {
-      const row = await repo.consumeAtomically(hashToken(token), new Date());
-      if (!row) return null;
-      if (row.expiresAt.getTime() <= Date.now()) return null;
-      return { email: row.email, expiresAt: row.expiresAt };
+      const row = await repo.consumeAtomically(hashToken(token), new Date())
+      if (!row) return null
+      if (row.expiresAt.getTime() <= Date.now()) return null
+      return { email: row.email, expiresAt: row.expiresAt }
     },
     async revokeToken({ token }) {
-      await repo.delete(hashToken(token));
+      await repo.delete(hashToken(token))
     },
     async cleanupExpired() {
-      return repo.deleteExpired(new Date());
+      return repo.deleteExpired(new Date())
     },
-  };
+  }
 }

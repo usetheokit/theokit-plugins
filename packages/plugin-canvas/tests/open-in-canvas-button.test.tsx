@@ -7,18 +7,13 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { OpenInCanvasButton } from '../src/ui/open-in-canvas-button.js'
+import type { Artifact } from '../src/schema.js'
 
 describe('OpenInCanvasButton', () => {
   it('one candidate → click publishes immediately (no picker)', () => {
-    const onPublish = vi.fn()
+    const onPublish = vi.fn<(artifact: Artifact) => void>()
     const code = '```ts\nconst x = 1\n```'
-    render(
-      <OpenInCanvasButton
-        messageContent={code}
-        messageId="msg-1"
-        onPublish={onPublish}
-      />,
-    )
+    render(<OpenInCanvasButton messageContent={code} messageId="msg-1" onPublish={onPublish} />)
     const trigger = screen.getByTestId('open-in-canvas-msg-1')
     expect(trigger.getAttribute('data-candidates')).toBe('1')
     fireEvent.click(trigger)
@@ -28,7 +23,7 @@ describe('OpenInCanvasButton', () => {
   })
 
   it('multiple candidates → keyboard opens picker; choosing publishes (EC-5)', () => {
-    const onPublish = vi.fn()
+    const onPublish = vi.fn<(artifact: Artifact) => void>()
     render(
       <OpenInCanvasButton
         messageContent={'```ts\nA\n```\nintro\n```mermaid\ngraph TD; X-->Y\n```'}
@@ -53,13 +48,7 @@ describe('OpenInCanvasButton', () => {
 
   it('zero candidates → button rendered but disabled', () => {
     const onPublish = vi.fn()
-    render(
-      <OpenInCanvasButton
-        messageContent="   "
-        messageId="msg-3"
-        onPublish={onPublish}
-      />,
-    )
+    render(<OpenInCanvasButton messageContent="   " messageId="msg-3" onPublish={onPublish} />)
     const trigger = screen.getByTestId('open-in-canvas-msg-3')
     expect(trigger).toBeDisabled()
     fireEvent.click(trigger)

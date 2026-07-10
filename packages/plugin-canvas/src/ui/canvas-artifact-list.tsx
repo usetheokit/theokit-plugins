@@ -7,7 +7,7 @@ const NOOP = () => undefined
 
 export interface CanvasArtifactListProps {
   artifact: Artifact | null
-  versions: ReadonlyArray<Artifact> | undefined
+  versions: readonly Artifact[] | undefined
   onVersionSelect: ((artifact: Artifact) => void) | undefined
   renderers: ArtifactRendererRegistry | undefined
 }

@@ -37,11 +37,7 @@ const sttSchema = z.object({
   apiKey: z.string().min(1).optional(),
   envVar: z.string().min(1).optional(),
   model: z.string().min(1).optional(),
-  endpoint: z
-    .string()
-    .min(1)
-    .regex(/^\//, 'endpoint must start with /')
-    .default('/api/voice/stt'),
+  endpoint: z.string().min(1).regex(/^\//, 'endpoint must start with /').default('/api/voice/stt'),
 })
 
 const ttsSchema = z.object({
@@ -50,11 +46,7 @@ const ttsSchema = z.object({
   envVar: z.string().min(1).optional(),
   model: z.string().min(1).default('tts-1'),
   voice: z.enum(VALID_VOICES).default('alloy'),
-  endpoint: z
-    .string()
-    .min(1)
-    .regex(/^\//, 'endpoint must start with /')
-    .default('/api/voice/tts'),
+  endpoint: z.string().min(1).regex(/^\//, 'endpoint must start with /').default('/api/voice/tts'),
 })
 
 export const voiceOptionsSchema = z.object({

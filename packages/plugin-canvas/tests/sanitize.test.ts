@@ -8,9 +8,7 @@ import { sanitizeHtmlSrcdoc, sanitizeSvg } from '../src/ui/renderers/sanitize.js
 
 describe('sanitizeSvg', () => {
   it('strips <script> tags and reports', () => {
-    const { output, report } = sanitizeSvg(
-      '<svg><script>alert(1)</script><rect /></svg>',
-    )
+    const { output, report } = sanitizeSvg('<svg><script>alert(1)</script><rect /></svg>')
     expect(output).not.toMatch(/<script/i)
     expect(output).toMatch(/<rect/)
     expect(report.removedScript).toBe(true)
@@ -62,43 +60,34 @@ describe('sanitizeSvg', () => {
   })
 
   it('strips case-mixed javascript: URIs', () => {
-    const { output } = sanitizeSvg(
-      '<svg><a href="jAvAsCrIpT:alert(1)">x</a></svg>',
-    )
+    const { output } = sanitizeSvg('<svg><a href="jAvAsCrIpT:alert(1)">x</a></svg>')
     expect(output).not.toMatch(/javascript:/i)
   })
 
   it('strips nested script inside <defs>', () => {
-    const { output } = sanitizeSvg(
-      '<svg><defs><script>bad()</script></defs><rect/></svg>',
-    )
+    const { output } = sanitizeSvg('<svg><defs><script>bad()</script></defs><rect/></svg>')
     expect(output).not.toMatch(/<script/i)
     expect(output).toMatch(/<rect/)
   })
 
   it('strips CSS expression() in style attributes', () => {
-    const { output } = sanitizeSvg(
-      '<svg><rect style="width:expression(alert(1))"/></svg>',
-    )
+    const { output } = sanitizeSvg('<svg><rect style="width:expression(alert(1))"/></svg>')
     expect(output).not.toMatch(/expression\s*\(/i)
   })
 
   it('strips <use> with external xlink:href', () => {
-    const { output } = sanitizeSvg(
-      '<svg><use xlink:href="http://evil.com/payload.svg#x"/></svg>',
-    )
+    const { output } = sanitizeSvg('<svg><use xlink:href="http://evil.com/payload.svg#x"/></svg>')
     expect(output).not.toMatch(/evil\.com/)
   })
 
   it('strips on-event with newline evasion', () => {
-    const { output } = sanitizeSvg(
-      '<svg><rect on\nmouseover="alert(1)" /></svg>',
-    )
+    const { output } = sanitizeSvg('<svg><rect on\nmouseover="alert(1)" /></svg>')
     expect(output).not.toMatch(/alert/)
   })
 
   it('is a no-op for clean SVG', () => {
-    const clean = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"></rect></svg>'
+    const clean =
+      '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"></rect></svg>'
     const { output, report } = sanitizeSvg(clean)
     expect(output).toContain('<rect')
     expect(output).toContain('<svg')
@@ -139,9 +128,7 @@ describe('sanitizeHtmlSrcdoc', () => {
   // #F-arch-1/F-sec-1: verdict must come from DOMPurify removals, not a regex
   // that requires quoted http-equiv (unquoted meta-refresh bypassed it).
   it('test_unquoted_meta_refresh_srcdoc_is_flagged (#F-arch-1)', () => {
-    const { output, report } = sanitizeHtmlSrcdoc(
-      '<meta http-equiv=refresh content=0><p>hi</p>',
-    )
+    const { output, report } = sanitizeHtmlSrcdoc('<meta http-equiv=refresh content=0><p>hi</p>')
     expect(report.removedScript).toBe(true) // dangerous removal → enforceArtifactSecurity throws
     expect(output).not.toMatch(/<meta/i)
   })

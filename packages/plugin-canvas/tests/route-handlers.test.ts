@@ -3,10 +3,7 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 
-import {
-  createArtifactRouteHandlers,
-  createInMemoryArtifactStore,
-} from '../src/index.js'
+import { createArtifactRouteHandlers, createInMemoryArtifactStore } from '../src/index.js'
 import type { Artifact } from '../src/schema.js'
 
 const env = {
@@ -95,8 +92,7 @@ describe('createArtifactRouteHandlers', () => {
         'http://x/artifacts',
         md({
           kind: 'svg',
-          content:
-            '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+          content: '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
         }),
       ),
     )
@@ -115,8 +111,7 @@ describe('createArtifactRouteHandlers', () => {
         version: 1,
         createdAt: '2026-05-29T00:00:00Z',
         kind: 'html',
-        srcdoc:
-          '<!doctype html><meta http-equiv="refresh" content="0;url=https://evil.example">',
+        srcdoc: '<!doctype html><meta http-equiv="refresh" content="0;url=https://evil.example">',
       }),
     )
     expect(res.status).toBe(400)
@@ -130,7 +125,7 @@ describe('createArtifactRouteHandlers', () => {
       jsonRequest(
         'POST',
         'http://x/artifacts',
-        md({ kind: 'code', content: 'const x = 1', language: 'ts' } as Partial<Artifact>),
+        md({ kind: 'code', content: 'const x = 1', language: 'ts' }),
       ),
     )
     expect(res.status).toBe(201)
@@ -138,7 +133,7 @@ describe('createArtifactRouteHandlers', () => {
 
   it('POST fires onAfterInsert with the stored artifact', async () => {
     const store = createInMemoryArtifactStore()
-    const onAfterInsert = vi.fn()
+    const onAfterInsert = vi.fn<(artifact: Artifact) => void>()
     const handlers = createArtifactRouteHandlers({ store, onAfterInsert })
     await handlers.create(jsonRequest('POST', 'http://x/artifacts', md()))
     expect(onAfterInsert).toHaveBeenCalledOnce()
@@ -150,10 +145,9 @@ describe('createArtifactRouteHandlers', () => {
     await store.insert(md({ version: 1 }))
     await store.insert(md({ version: 2 }))
     const handlers = createArtifactRouteHandlers({ store })
-    const res = await handlers.getOne(
-      new Request('http://x/artifacts/a1', { method: 'GET' }),
-      { id: 'a1' },
-    )
+    const res = await handlers.getOne(new Request('http://x/artifacts/a1', { method: 'GET' }), {
+      id: 'a1',
+    })
     expect(res.status).toBe(200)
     const json = (await res.json()) as { artifact: Artifact }
     expect(json.artifact.version).toBe(2)
@@ -184,9 +178,7 @@ describe('createArtifactRouteHandlers', () => {
     await store.insert(md({ id: 'a', sessionId: 's1' }))
     await store.insert(md({ id: 'b', sessionId: 's2' }))
     const handlers = createArtifactRouteHandlers({ store })
-    const res = await handlers.list(
-      new Request('http://x/artifacts?session=s1', { method: 'GET' }),
-    )
+    const res = await handlers.list(new Request('http://x/artifacts?session=s1', { method: 'GET' }))
     expect(res.status).toBe(200)
     const json = (await res.json()) as { artifacts: Artifact[] }
     expect(json.artifacts.map((a) => a.id)).toEqual(['a'])
@@ -206,9 +198,7 @@ describe('createArtifactRouteHandlers', () => {
   it('GET /artifacts?kind=bogus returns 400 INVALID_KIND', async () => {
     const store = createInMemoryArtifactStore()
     const handlers = createArtifactRouteHandlers({ store })
-    const res = await handlers.list(
-      new Request('http://x/artifacts?kind=bogus', { method: 'GET' }),
-    )
+    const res = await handlers.list(new Request('http://x/artifacts?kind=bogus', { method: 'GET' }))
     expect(res.status).toBe(400)
     const json = (await res.json()) as { error: { code: string; message: string } }
     expect(json.error.code).toBe('INVALID_KIND')
@@ -230,10 +220,13 @@ describe('createArtifactRouteHandlers', () => {
   it('DELETE returns 404 when not found', async () => {
     const store = createInMemoryArtifactStore()
     const handlers = createArtifactRouteHandlers({ store })
-    const res = await handlers.remove(new Request('http://x/artifacts/nope', { method: 'DELETE' }), {
-      id: 'nope',
-      version: 1,
-    })
+    const res = await handlers.remove(
+      new Request('http://x/artifacts/nope', { method: 'DELETE' }),
+      {
+        id: 'nope',
+        version: 1,
+      },
+    )
     expect(res.status).toBe(404)
   })
 
@@ -244,9 +237,7 @@ describe('createArtifactRouteHandlers', () => {
       throw new Error('SQLITE_ERROR: no such table')
     }
     const handlers = createArtifactRouteHandlers({ store })
-    const res = await handlers.list(
-      new Request('http://x/artifacts', { method: 'GET' }),
-    )
+    const res = await handlers.list(new Request('http://x/artifacts', { method: 'GET' }))
     expect(res.status).toBe(500)
     const text = await res.text()
     expect(text).toContain('Internal Server Error')
@@ -255,7 +246,9 @@ describe('createArtifactRouteHandlers', () => {
 
   it('T3.1: onAfterInsert error is logged but response is still 201', async () => {
     const store = createInMemoryArtifactStore()
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+      /* intentionally empty — silence the expected error log in this test */
+    })
     const handlers = createArtifactRouteHandlers({
       store,
       onAfterInsert: () => {
@@ -267,7 +260,7 @@ describe('createArtifactRouteHandlers', () => {
     expect(consoleSpy).toHaveBeenCalledWith(
       expect.stringContaining('onAfterInsert'),
       expect.objectContaining({
-        error: expect.any(Error),
+        error: expect.any(Error) as unknown,
       }),
     )
     consoleSpy.mockRestore()

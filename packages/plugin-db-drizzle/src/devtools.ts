@@ -9,20 +9,20 @@
  * call `app.registerDevtoolsTab` when the overlay package is missing).
  */
 
-import type { ResolvedDrizzleDbOptions } from "./options.js";
+import type { ResolvedDrizzleDbOptions } from './options.js'
 
 /** Descriptor shape consumed by theokit's devtools overlay (G4). */
 export interface DrizzleDevtoolsTab {
-  readonly id: "db-studio";
-  readonly label: "Database";
+  readonly id: 'db-studio'
+  readonly label: 'Database'
   /** Suggested IFRAME URL pointing at drizzle-kit studio. */
-  readonly studioUrl: string;
+  readonly studioUrl: string
   /**
    * Mount the tab content into a host container. Builds an IFRAME pointing
    * at `studioUrl`. The overlay decides when to call this (e.g., when the
    * tab becomes visible).
    */
-  mount(container: HTMLElement): void;
+  mount: (container: HTMLElement) => void
 }
 
 /**
@@ -33,23 +33,23 @@ export interface DrizzleDevtoolsTab {
 export function buildDevtoolsTab(opts: ResolvedDrizzleDbOptions): DrizzleDevtoolsTab {
   // #207: build the studio URL from the resolved host/port (default
   // localhost:4983) instead of a hardcoded constant.
-  const studioUrl = `http://${opts.studioHost}:${opts.studioPort}`;
+  const studioUrl = `http://${opts.studioHost}:${opts.studioPort}`
   return {
-    id: "db-studio",
-    label: "Database",
+    id: 'db-studio',
+    label: 'Database',
     studioUrl,
     mount(container: HTMLElement): void {
-      const iframe = container.ownerDocument.createElement("iframe");
-      iframe.src = studioUrl;
+      const iframe = container.ownerDocument.createElement('iframe')
+      iframe.src = studioUrl
       // #206: do NOT pair `allow-scripts` with `allow-same-origin` — that lets
       // the framed studio remove its own sandbox and escape. Studio is a
       // separate origin (its own host:port), so same-origin is unnecessary.
-      iframe.setAttribute("sandbox", "allow-scripts");
-      iframe.style.border = "0";
-      iframe.style.width = "100%";
-      iframe.style.height = "100%";
-      iframe.title = "Drizzle Studio";
-      container.replaceChildren(iframe);
+      iframe.setAttribute('sandbox', 'allow-scripts')
+      iframe.style.border = '0'
+      iframe.style.width = '100%'
+      iframe.style.height = '100%'
+      iframe.title = 'Drizzle Studio'
+      container.replaceChildren(iframe)
     },
-  };
+  }
 }

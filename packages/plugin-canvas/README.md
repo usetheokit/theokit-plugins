@@ -12,13 +12,13 @@ pnpm add @theokit/plugin-canvas @usetheo/ui @theokit/ui
 
 ### Required peer dependencies
 
-| Package | Version | Why |
-|---|---|---|
-| `@usetheo/ui` | `>= 0.14.0` | Generic UI primitives (`Button`, `Card`, `CopyButton`, `Tooltip`, `DropdownMenu`, `Alert`, `CodeBlock`, etc.) |
-| `@theokit/ui` | `>= 1.0.0` | AI surfaces + engines (`DiffViewer`, `@theokit/ui/whiteboard`, `@theokit/ui/slide-deck`) |
-| `@theokit/sdk` | `>= 1.0.0` | Agent tool runtime / schema validation |
-| `theokit` | `>= 0.1.0-alpha.5` | `defineAgentTool`, `defineAgentEndpoint`, route handlers |
-| `react` | `^18 \|\| ^19` | UI components |
+| Package        | Version            | Why                                                                                                           |
+| -------------- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `@usetheo/ui`  | `>= 0.14.0`        | Generic UI primitives (`Button`, `Card`, `CopyButton`, `Tooltip`, `DropdownMenu`, `Alert`, `CodeBlock`, etc.) |
+| `@theokit/ui`  | `>= 1.0.0`         | AI surfaces + engines (`DiffViewer`, `@theokit/ui/whiteboard`, `@theokit/ui/slide-deck`)                      |
+| `@theokit/sdk` | `>= 1.0.0`         | Agent tool runtime / schema validation                                                                        |
+| `theokit`      | `>= 0.1.0-alpha.5` | `defineAgentTool`, `defineAgentEndpoint`, route handlers                                                      |
+| `react`        | `^18 \|\| ^19`     | UI components                                                                                                 |
 
 ### Optional peer dependencies
 
@@ -30,7 +30,12 @@ pnpm add @theokit/plugin-canvas @usetheo/ui @theokit/ui
 
 ```ts
 // server/routes/chat.ts
-import { defineAgentEndpoint, defineAgentTool, streamAgentRun, createConversationHistory } from 'theokit/server'
+import {
+  defineAgentEndpoint,
+  defineAgentTool,
+  streamAgentRun,
+  createConversationHistory,
+} from 'theokit/server'
 import { defineArtifactTool, createArtifactBus } from '@theokit/plugin-canvas'
 import { createSqliteArtifactStore } from '@theokit/plugin-canvas'
 
@@ -133,7 +138,9 @@ export default function Page() {
 import { createArtifactBus } from '@theokit/plugin-canvas/server'
 
 const bus = createArtifactBus()
-bus.subscribe('conversation-123', (artifact) => { /* … */ })
+bus.subscribe('conversation-123', (artifact) => {
+  /* … */
+})
 bus.emit('conversation-123', artifact)
 ```
 
@@ -145,17 +152,17 @@ bus.emit('conversation-123', artifact)
 
 ## Artifact kinds & security caps
 
-| Kind | Max bytes | Notes |
-|---|---|---|
-| `markdown` | 1 MB | Caseiro parser (no GFM tables/strikethrough) |
-| `code` | 1 MB | Syntax highlight via `CodeBlock` (Shiki). `terminal: true` skips highlighting |
-| `svg` | 256 KB | Schema + render-time sanitization (strip `<script>`) |
-| `html` | 256 KB | `<iframe sandbox>` with closed enum: `'minimal' \| 'scripts' \| 'forms'` |
-| `mermaid` | 64 KB | Optional `mermaid` peer dep for SVG; falls back to `<CodeBlock>` if missing |
-| `diff` | per hunk | Renders via `DiffViewer` primitive |
-| `whiteboard-scene` | n/a | Lazy-loads `@theokit/ui/whiteboard` |
-| `slide-deck` | n/a | Lazy-loads `@theokit/ui/slide-deck` |
-| `image` | 5 MB | `data:` URL with MIME prefix OR `https://` URL |
+| Kind               | Max bytes | Notes                                                                         |
+| ------------------ | --------- | ----------------------------------------------------------------------------- |
+| `markdown`         | 1 MB      | Caseiro parser (no GFM tables/strikethrough)                                  |
+| `code`             | 1 MB      | Syntax highlight via `CodeBlock` (Shiki). `terminal: true` skips highlighting |
+| `svg`              | 256 KB    | Schema + render-time sanitization (strip `<script>`)                          |
+| `html`             | 256 KB    | `<iframe sandbox>` with closed enum: `'minimal' \| 'scripts' \| 'forms'`      |
+| `mermaid`          | 64 KB     | Optional `mermaid` peer dep for SVG; falls back to `<CodeBlock>` if missing   |
+| `diff`             | per hunk  | Renders via `DiffViewer` primitive                                            |
+| `whiteboard-scene` | n/a       | Lazy-loads `@theokit/ui/whiteboard`                                           |
+| `slide-deck`       | n/a       | Lazy-loads `@theokit/ui/slide-deck`                                           |
+| `image`            | 5 MB      | `data:` URL with MIME prefix OR `https://` URL                                |
 
 ## License
 

@@ -18,13 +18,13 @@ import {
   type RealtimeFrame,
   type RealtimeProvider,
   type RealtimeUnsubscribe,
-} from "./types.js";
+} from './types.js'
 
 interface RoomState {
   /** Per-connection presence Map (LWW). */
-  readonly presences: Map<string, Presence>;
+  readonly presences: Map<string, Presence>
   /** Active room listeners (subscribeRoom). */
-  readonly listeners: Set<(frame: RealtimeFrame) => void>;
+  readonly listeners: Set<(frame: RealtimeFrame) => void>
 }
 
 /**
@@ -34,23 +34,23 @@ interface RoomState {
  * @public
  */
 export function createMemoryRealtimeProvider(): RealtimeProvider {
-  const rooms = new Map<string, RoomState>();
+  const rooms = new Map<string, RoomState>()
 
   const ensureRoom = (roomId: string): RoomState => {
-    let state = rooms.get(roomId);
+    let state = rooms.get(roomId)
     if (state === undefined) {
-      state = { presences: new Map(), listeners: new Set() };
-      rooms.set(roomId, state);
+      state = { presences: new Map(), listeners: new Set() }
+      rooms.set(roomId, state)
     }
-    return state;
-  };
+    return state
+  }
 
   const fanout = (roomId: string, frame: RealtimeFrame): void => {
-    const state = rooms.get(roomId);
-    if (state === undefined) return;
+    const state = rooms.get(roomId)
+    if (state === undefined) return
     for (const listener of state.listeners) {
       try {
-        listener(frame);
+        listener(frame)
       } catch (listenerErr) {
         console.error('[plugin-realtime] listener error in fanout:', {
           event: frame.type ?? 'unknown',
@@ -58,84 +58,88 @@ export function createMemoryRealtimeProvider(): RealtimeProvider {
         })
       }
     }
-  };
+  }
 
   return {
-    name: "memory",
+    name: 'memory',
 
-    async joinRoom(roomId, connection, initialPresence): Promise<void> {
-      const state = ensureRoom(roomId);
-      const presence: Presence = initialPresence ?? {};
-      state.presences.set(connection.connectionId, presence);
+    joinRoom(roomId, connection, initialPresence): Promise<void> {
+      const state = ensureRoom(roomId)
+      const presence: Presence = initialPresence ?? {}
+      state.presences.set(connection.connectionId, presence)
       fanout(roomId, {
-        type: "joined",
+        type: 'joined',
         connectionId: connection.connectionId,
         presence,
-      });
+      })
+      return Promise.resolve()
     },
 
-    async leaveRoom(roomId, connectionId): Promise<void> {
-      const state = rooms.get(roomId);
-      if (state === undefined) return;
-      const had = state.presences.delete(connectionId);
-      if (!had) return;
-      fanout(roomId, { type: "left", connectionId });
+    leaveRoom(roomId, connectionId): Promise<void> {
+      const state = rooms.get(roomId)
+      if (state === undefined) return Promise.resolve()
+      const had = state.presences.delete(connectionId)
+      if (!had) return Promise.resolve()
+      fanout(roomId, { type: 'left', connectionId })
       // Garbage-collect empty rooms with no listeners to keep memory bounded.
       if (state.presences.size === 0 && state.listeners.size === 0) {
-        rooms.delete(roomId);
+        rooms.delete(roomId)
       }
+      return Promise.resolve()
     },
 
-    async broadcast(roomId, connectionId, event, payload): Promise<void> {
+    broadcast(roomId, connectionId, event, payload): Promise<void> {
       // Broadcast does NOT require the sender to be in the room — runtime can
       // emit server-originated events via a synthetic connectionId. But we
       // still want a registered room before fanning out.
-      const state = rooms.get(roomId);
-      if (state === undefined) return;
+      const state = rooms.get(roomId)
+      if (state === undefined) return Promise.resolve()
       fanout(roomId, {
-        type: "broadcast",
+        type: 'broadcast',
         connectionId,
         event,
         payload,
-      });
+      })
+      return Promise.resolve()
     },
 
-    async updatePresence(roomId, connectionId, patch): Promise<void> {
-      const state = rooms.get(roomId);
-      if (state === undefined) return;
-      const current = state.presences.get(connectionId);
-      if (current === undefined) return;
-      const next = { ...current, ...patch } as Presence;
-      state.presences.set(connectionId, next);
+    updatePresence(roomId, connectionId, patch): Promise<void> {
+      const state = rooms.get(roomId)
+      if (state === undefined) return Promise.resolve()
+      const current = state.presences.get(connectionId)
+      if (current === undefined) return Promise.resolve()
+      const next = { ...current, ...patch } as Presence
+      state.presences.set(connectionId, next)
       fanout(roomId, {
-        type: "presence-changed",
+        type: 'presence-changed',
         connectionId,
         presence: next,
-      });
+      })
+      return Promise.resolve()
     },
 
-    async getPresence(roomId): Promise<Record<string, Presence>> {
-      const state = rooms.get(roomId);
-      if (state === undefined) return {};
+    getPresence(roomId): Promise<Record<string, Presence>> {
+      const state = rooms.get(roomId)
+      if (state === undefined) return Promise.resolve({})
       // Return a snapshot (shallow copy) so callers can't mutate internal state.
-      const snapshot: Record<string, Presence> = {};
+      const snapshot: Record<string, Presence> = {}
       for (const [connId, p] of state.presences) {
-        snapshot[connId] = { ...p };
+        snapshot[connId] = { ...p }
       }
-      return snapshot;
+      return Promise.resolve(snapshot)
     },
 
     subscribeRoom(roomId, listener): RealtimeUnsubscribe {
-      const state = ensureRoom(roomId);
-      state.listeners.add(listener);
+      const state = ensureRoom(roomId)
+      state.listeners.add(listener)
       return () => {
-        state.listeners.delete(listener);
+        state.listeners.delete(listener)
         if (state.presences.size === 0 && state.listeners.size === 0) {
-          rooms.delete(roomId);
+          rooms.delete(roomId)
         }
-      };
+      }
     },
-  };
+  }
 }
 
 /**
@@ -144,4 +148,4 @@ export function createMemoryRealtimeProvider(): RealtimeProvider {
  *
  * @public
  */
-export type { ConnectionInfo, BroadcastPayload };
+export type { ConnectionInfo, BroadcastPayload }

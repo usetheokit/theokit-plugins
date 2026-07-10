@@ -6,19 +6,19 @@
  * type-safe `Stripe.Event` narrowing via discriminated union on `event.type`.
  */
 
-import type Stripe from "stripe";
+import type Stripe from 'stripe'
 
-import type { IdempotencyStore } from "./idempotency-store.js";
-import type { StripeWebhookHandler } from "./types.js";
+import type { IdempotencyStore } from './idempotency-store.js'
+import type { StripeWebhookHandler } from './types.js'
 
 /**
  * Error thrown when webhook signature verification fails OR raw-body access
  * is malformed.
  */
 export class StripeSignatureError extends Error {
-  override readonly name = "StripeSignatureError";
+  override readonly name = 'StripeSignatureError'
   constructor(message: string) {
-    super(message);
+    super(message)
   }
 }
 
@@ -48,11 +48,11 @@ export class StripeSignatureError extends Error {
  * (at-least-once). Design handlers to tolerate re-execution (e.g. upsert, not
  * blind insert).
  */
-export function defineStripeWebhook<T extends Stripe.Event["type"]>(
+export function defineStripeWebhook<T extends Stripe.Event['type']>(
   eventType: T,
   handle: (event: Extract<Stripe.Event, { type: T }>) => Promise<void>,
 ): StripeWebhookHandler<T> {
-  return { eventType, handle };
+  return { eventType, handle }
 }
 
 /**
@@ -75,51 +75,51 @@ export function defineStripeWebhook<T extends Stripe.Event["type"]>(
  * dispatcher guarantees event.type matches eventType before calling handle).
  */
 interface ErasedHandler {
-  readonly eventType: string;
-  readonly handle: (event: Stripe.Event) => Promise<void>;
+  readonly eventType: string
+  readonly handle: (event: Stripe.Event) => Promise<void>
 }
 
 export class WebhookRegistry {
-  private readonly handlers = new Map<string, ErasedHandler[]>();
+  private readonly handlers = new Map<string, ErasedHandler[]>()
 
-  register<T extends Stripe.Event["type"]>(handler: StripeWebhookHandler<T>): void {
-    const bucket = this.handlers.get(handler.eventType) ?? [];
+  register<T extends Stripe.Event['type']>(handler: StripeWebhookHandler<T>): void {
+    const bucket = this.handlers.get(handler.eventType) ?? []
     const erased: ErasedHandler = {
       eventType: handler.eventType,
       handle: handler.handle as (event: Stripe.Event) => Promise<void>,
-    };
-    bucket.push(erased);
-    this.handlers.set(handler.eventType, bucket);
+    }
+    bucket.push(erased)
+    this.handlers.set(handler.eventType, bucket)
   }
 
   async dispatch(event: Stripe.Event): Promise<void> {
-    const bucket = this.handlers.get(event.type);
-    if (!bucket || bucket.length === 0) return;
+    const bucket = this.handlers.get(event.type)
+    if (!bucket || bucket.length === 0) return
     // LIFO: most-recently-registered handler runs first. ALL handlers run even
     // if some throw; every error is collected and surfaced together as an
     // AggregateError (#208) — no failure is reduced to a lost console.error.
-    const errors: unknown[] = [];
+    const errors: unknown[] = []
     for (let i = bucket.length - 1; i >= 0; i--) {
-      const handler = bucket[i];
-      if (!handler) continue;
+      const handler = bucket[i]
+      if (!handler) continue
       try {
-        await handler.handle(event);
+        await handler.handle(event)
       } catch (err) {
-        errors.push(err);
+        errors.push(err)
       }
     }
     if (errors.length > 0) {
       throw new AggregateError(
         errors,
         `${errors.length} webhook handler(s) failed for event "${event.type}".`,
-      );
+      )
     }
   }
 
   /** Test-only introspection. */
-  hasHandlersFor(eventType: Stripe.Event["type"]): boolean {
-    const bucket = this.handlers.get(eventType);
-    return bucket !== undefined && bucket.length > 0;
+  hasHandlersFor(eventType: Stripe.Event['type']): boolean {
+    const bucket = this.handlers.get(eventType)
+    return bucket !== undefined && bucket.length > 0
   }
 }
 
@@ -140,14 +140,14 @@ export function verifyAndParseWebhook(
 ): Stripe.Event {
   if (!signatureHeader) {
     throw new StripeSignatureError(
-      "Missing stripe-signature header. Webhook MUST include the signature in the request headers.",
-    );
+      'Missing stripe-signature header. Webhook MUST include the signature in the request headers.',
+    )
   }
   try {
-    return stripe.webhooks.constructEvent(rawBody, signatureHeader, webhookSecret);
+    return stripe.webhooks.constructEvent(rawBody, signatureHeader, webhookSecret)
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown signature error";
-    throw new StripeSignatureError(`Webhook signature verification failed: ${message}`);
+    const message = err instanceof Error ? err.message : 'Unknown signature error'
+    throw new StripeSignatureError(`Webhook signature verification failed: ${message}`)
   }
 }
 
@@ -170,14 +170,14 @@ export function verifyAndParseWebhook(
  * server-side (redacted) by `processWebhook`.
  */
 export interface SanitizedWebhookError {
-  code: string;
-  message: string;
+  code: string
+  message: string
 }
 
 export type WebhookResult =
-  | { status: "ok"; eventId: string; duplicate: boolean }
-  | { status: "signature_invalid"; message: string }
-  | { status: "handler_error"; eventId: string; error: SanitizedWebhookError };
+  | { status: 'ok'; eventId: string; duplicate: boolean }
+  | { status: 'signature_invalid'; message: string }
+  | { status: 'handler_error'; eventId: string; error: SanitizedWebhookError }
 
 /**
  * Redact known secret shapes (Stripe keys, basic-auth credentials in URLs) from
@@ -189,70 +189,73 @@ function redactSecrets(value: unknown): string {
     value instanceof AggregateError
       ? `AggregateError: ${value.message} [${value.errors
           .map((e) => (e instanceof Error ? e.message : String(e)))
-          .join(" | ")}]`
+          .join(' | ')}]`
       : value instanceof Error
         ? `${value.name}: ${value.message}`
-        : String(value);
+        : String(value)
   return text
-    .replace(/\b(whsec|sk_live|sk_test|pk_live|pk_test|rk_live|rk_test)_[A-Za-z0-9]+/g, "$1_***REDACTED***")
-    .replace(/\/\/[^:/@\s]+:[^@/\s]+@/g, "//***:***@");
+    .replace(
+      /\b(whsec|sk_live|sk_test|pk_live|pk_test|rk_live|rk_test)_[A-Za-z0-9]+/g,
+      '$1_***REDACTED***',
+    )
+    .replace(/\/\/[^:/@\s]+:[^@/\s]+@/g, '//***:***@')
 }
 
 export async function processWebhook(opts: {
-  stripe: Stripe;
-  rawBody: string;
-  signatureHeader: string | undefined;
-  webhookSecret: string;
-  registry: WebhookRegistry;
-  store: IdempotencyStore;
+  stripe: Stripe
+  rawBody: string
+  signatureHeader: string | undefined
+  webhookSecret: string
+  registry: WebhookRegistry
+  store: IdempotencyStore
 }): Promise<WebhookResult> {
-  let event: Stripe.Event;
+  let event: Stripe.Event
   try {
     event = verifyAndParseWebhook(
       opts.stripe,
       opts.rawBody,
       opts.signatureHeader,
       opts.webhookSecret,
-    );
+    )
   } catch (err) {
     if (err instanceof StripeSignatureError) {
-      return { status: "signature_invalid", message: err.message };
+      return { status: 'signature_invalid', message: err.message }
     }
-    throw err;
+    throw err
   }
   // Claim the event BEFORE dispatch so duplicates and concurrent deliveries
   // dedupe (markProcessed is atomic). The claim is COMMITTED only if dispatch
   // succeeds; on failure it is released so Stripe's retry re-runs (#167).
-  const isNew = await opts.store.markProcessed(event.id);
+  const isNew = await opts.store.markProcessed(event.id)
   if (!isNew) {
-    return { status: "ok", eventId: event.id, duplicate: true };
+    return { status: 'ok', eventId: event.id, duplicate: true }
   }
   try {
-    await opts.registry.dispatch(event);
+    await opts.registry.dispatch(event)
   } catch (error) {
     // #167: release the claim so the retry re-runs the handler. Best-effort —
     // if release itself fails the claim persists (retry would dedupe); log it.
     try {
-      await opts.store.release(event.id);
+      await opts.store.release(event.id)
     } catch (releaseError) {
       // #F-dom-pay-5: redact before logging — a release() failure (e.g. a DB
       // error) may carry credentials, same as the handler-error path below.
-      console.error(
-        "[plugin-payments] failed to release idempotency claim after handler error:",
-        { eventId: event.id, releaseError: redactSecrets(releaseError) },
-      );
+      console.error('[plugin-payments] failed to release idempotency claim after handler error:', {
+        eventId: event.id,
+        releaseError: redactSecrets(releaseError),
+      })
     }
     // #201: log the FULL error server-side (redacted), expose only a sanitized
     // {code,message} at the HTTP boundary so secrets/PII never leak to the caller.
-    console.error("[plugin-payments] webhook handler error:", {
+    console.error('[plugin-payments] webhook handler error:', {
       eventId: event.id,
       error: redactSecrets(error),
-    });
+    })
     return {
-      status: "handler_error",
+      status: 'handler_error',
       eventId: event.id,
-      error: { code: "handler_error", message: "One or more webhook handlers failed." },
-    };
+      error: { code: 'handler_error', message: 'One or more webhook handlers failed.' },
+    }
   }
-  return { status: "ok", eventId: event.id, duplicate: false };
+  return { status: 'ok', eventId: event.id, duplicate: false }
 }

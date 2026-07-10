@@ -51,24 +51,32 @@ export function createInMemoryArtifactStore(): ArtifactStore {
   // keep cyclomatic complexity low (behavior unchanged). `byId` is id → versions
   // ordered ascending by version.
   const byId = new Map<string, Artifact[]>()
+  // Each helper below can throw synchronously (validation, version
+  // conflict, not-found). The store contract is Promise-based, so a
+  // throw MUST surface as a rejected promise — never a synchronous
+  // throw. `Promise.resolve().then(fn)` both defers the call (so throws
+  // reject) and keeps the method non-`async` (no bare `await`, satisfies
+  // require-await without changing the Promise contract).
   return {
-    async insert(artifact) {
-      return memInsert(byId, artifact)
+    insert(artifact) {
+      return Promise.resolve().then(() => memInsert(byId, artifact))
     },
-    async get(id, version) {
-      return memGet(byId, id, version)
+    get(id, version) {
+      return Promise.resolve().then(() => memGet(byId, id, version))
     },
-    async getVersions(id) {
-      return byId.get(id)?.slice() ?? []
+    getVersions(id) {
+      return Promise.resolve().then(() => byId.get(id)?.slice() ?? [])
     },
-    async list(filter = {}) {
-      return memList(byId, filter)
+    list(filter = {}) {
+      return Promise.resolve().then(() => memList(byId, filter))
     },
-    async nextVersion(id) {
-      return memNextVersion(byId, id)
+    nextVersion(id) {
+      return Promise.resolve().then(() => memNextVersion(byId, id))
     },
-    async delete(id, version) {
-      memDelete(byId, id, version)
+    delete(id, version) {
+      return Promise.resolve().then(() => {
+        memDelete(byId, id, version)
+      })
     },
   }
 }
@@ -129,11 +137,7 @@ function memNextVersion(byId: Map<string, Artifact[]>, id: string): number {
   return (versions[versions.length - 1]?.version ?? 0) + 1
 }
 
-function memDelete(
-  byId: Map<string, Artifact[]>,
-  id: string,
-  version: number | undefined,
-): void {
+function memDelete(byId: Map<string, Artifact[]>, id: string, version: number | undefined): void {
   const versions = byId.get(id)
   if (versions === undefined) {
     if (version === undefined) return
@@ -213,9 +217,7 @@ export function createSqliteArtifactStore(
 ): ArtifactStore {
   const table = options.table ?? 'canvas_artifacts'
   if (!VALID_TABLE_NAME.test(table)) {
-    throw new TypeError(
-      `Invalid table name: "${table}". Must match ${VALID_TABLE_NAME}.`,
-    )
+    throw new TypeError(`Invalid table name: "${table}". Must match ${VALID_TABLE_NAME}.`)
   }
   const { db } = options
   // `.bind(db)` is mandatory — better-sqlite3 exposes `exec` as a
@@ -264,62 +266,62 @@ function migrate(exec: (sql: string) => void, table: string): void {
   exec(`CREATE INDEX IF NOT EXISTS idx_${table}_id ON ${table}(id, version)`)
 }
 
-async function insertArtifact(
-  db: SqliteDb,
-  table: string,
-  artifact: Artifact,
-): Promise<Artifact> {
-  const validation = validateArtifact(artifact)
-  if (!validation.ok) throw validation.error
-  const a = validation.artifact
-  const payload = JSON.stringify(stripEnvelope(a))
-  try {
-    db.prepare(
-      `INSERT INTO ${table} (id, version, session_id, kind, title, payload, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    ).run(
-      a.id,
-      a.version,
-      a.sessionId ?? null,
-      a.kind,
-      a.title,
-      payload,
-      typeof a.createdAt === 'string' ? a.createdAt : new Date(a.createdAt).toISOString(),
-    )
-  } catch (err) {
-    throw new CanvasPluginError(
-      `Insert failed for artifact "${a.id}@v${a.version}".`,
-      { cause: err },
-    )
-  }
-  return a
+// SQLite CRUD helpers: the store contract is Promise-based. Deferring
+// the synchronous body through `Promise.resolve().then(...)` turns any
+// synchronous throw (validation, driver error, not-found) into a
+// rejected promise — the exact behavior the previous `async` functions
+// had — while keeping the function non-`async` (satisfies require-await).
+function insertArtifact(db: SqliteDb, table: string, artifact: Artifact): Promise<Artifact> {
+  return Promise.resolve().then(() => {
+    const validation = validateArtifact(artifact)
+    if (!validation.ok) throw validation.error
+    const a = validation.artifact
+    const payload = JSON.stringify(stripEnvelope(a))
+    try {
+      db.prepare(
+        `INSERT INTO ${table} (id, version, session_id, kind, title, payload, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        a.id,
+        a.version,
+        a.sessionId ?? null,
+        a.kind,
+        a.title,
+        payload,
+        typeof a.createdAt === 'string' ? a.createdAt : new Date(a.createdAt).toISOString(),
+      )
+    } catch (err) {
+      throw new CanvasPluginError(`Insert failed for artifact "${a.id}@v${a.version}".`, {
+        cause: err,
+      })
+    }
+    return a
+  })
 }
 
-async function getArtifact(
+function getArtifact(
   db: SqliteDb,
   table: string,
   id: string,
   version?: number,
 ): Promise<Artifact | null> {
-  const row =
-    version === undefined
-      ? db
-          .prepare(`SELECT * FROM ${table} WHERE id = ? ORDER BY version DESC LIMIT 1`)
-          .get(id)
-      : db.prepare(`SELECT * FROM ${table} WHERE id = ? AND version = ?`).get(id, version)
-  if (row === undefined || row === null) return null
-  return rowToArtifact(row as ArtifactRow)
+  return Promise.resolve().then(() => {
+    const row =
+      version === undefined
+        ? db.prepare(`SELECT * FROM ${table} WHERE id = ? ORDER BY version DESC LIMIT 1`).get(id)
+        : db.prepare(`SELECT * FROM ${table} WHERE id = ? AND version = ?`).get(id, version)
+    if (row === undefined || row === null) return null
+    return rowToArtifact(row as ArtifactRow)
+  })
 }
 
-async function getArtifactVersions(
-  db: SqliteDb,
-  table: string,
-  id: string,
-): Promise<Artifact[]> {
-  const rows = db
-    .prepare(`SELECT * FROM ${table} WHERE id = ? ORDER BY version ASC`)
-    .all(id) as ArtifactRow[]
-  return rows.map(rowToArtifact)
+function getArtifactVersions(db: SqliteDb, table: string, id: string): Promise<Artifact[]> {
+  return Promise.resolve().then(() => {
+    const rows = db
+      .prepare(`SELECT * FROM ${table} WHERE id = ? ORDER BY version ASC`)
+      .all(id) as ArtifactRow[]
+    return rows.map(rowToArtifact)
+  })
 }
 
 function buildWhereClause(filter: ArtifactListFilter): { whereClause: string; params: unknown[] } {
@@ -337,63 +339,62 @@ function buildWhereClause(filter: ArtifactListFilter): { whereClause: string; pa
   return { whereClause, params }
 }
 
-async function listArtifacts(
+function listArtifacts(
   db: SqliteDb,
   table: string,
   filter: ArtifactListFilter,
 ): Promise<Artifact[]> {
-  const mode = filter.mode ?? 'latest'
-  const offset = filter.offset ?? 0
-  const limit = filter.limit ?? 200
-  const { whereClause, params } = buildWhereClause(filter)
-  const sql =
-    mode === 'latest'
-      ? `
-        SELECT t.* FROM ${table} t
-        INNER JOIN (
-          SELECT id, MAX(version) AS max_version
-          FROM ${table} ${whereClause}
-          GROUP BY id
-        ) m ON m.id = t.id AND m.max_version = t.version
-        ORDER BY t.created_at DESC
-        LIMIT ? OFFSET ?
-      `
-      : `
-        SELECT * FROM ${table} ${whereClause}
-        ORDER BY created_at DESC, version DESC
-        LIMIT ? OFFSET ?
-      `
-  const rows = db.prepare(sql).all(...params, limit, offset) as ArtifactRow[]
-  return rows.map(rowToArtifact)
+  return Promise.resolve().then(() => {
+    const mode = filter.mode ?? 'latest'
+    const offset = filter.offset ?? 0
+    const limit = filter.limit ?? 200
+    const { whereClause, params } = buildWhereClause(filter)
+    const sql =
+      mode === 'latest'
+        ? `
+          SELECT t.* FROM ${table} t
+          INNER JOIN (
+            SELECT id, MAX(version) AS max_version
+            FROM ${table} ${whereClause}
+            GROUP BY id
+          ) m ON m.id = t.id AND m.max_version = t.version
+          ORDER BY t.created_at DESC
+          LIMIT ? OFFSET ?
+        `
+        : `
+          SELECT * FROM ${table} ${whereClause}
+          ORDER BY created_at DESC, version DESC
+          LIMIT ? OFFSET ?
+        `
+    const rows = db.prepare(sql).all(...params, limit, offset) as ArtifactRow[]
+    return rows.map(rowToArtifact)
+  })
 }
 
-async function queryNextVersion(
-  db: SqliteDb,
-  table: string,
-  id: string,
-): Promise<number> {
-  const row = db
-    .prepare(`SELECT MAX(version) AS max_v FROM ${table} WHERE id = ?`)
-    .get(id) as { max_v: number | null } | undefined
-  const max = row?.max_v ?? null
-  return max === null ? 1 : max + 1
+function queryNextVersion(db: SqliteDb, table: string, id: string): Promise<number> {
+  return Promise.resolve().then(() => {
+    const row = db.prepare(`SELECT MAX(version) AS max_v FROM ${table} WHERE id = ?`).get(id) as
+      | { max_v: number | null }
+      | undefined
+    const max = row?.max_v ?? null
+    return max === null ? 1 : max + 1
+  })
 }
 
-async function deleteArtifact(
-  db: SqliteDb,
-  table: string,
-  id: string,
-  version?: number,
-): Promise<void> {
-  const stmt =
-    version === undefined
-      ? db.prepare(`DELETE FROM ${table} WHERE id = ?`)
-      : db.prepare(`DELETE FROM ${table} WHERE id = ? AND version = ?`)
-  const result =
-    version === undefined ? (stmt.run(id) as { changes?: number }) : (stmt.run(id, version) as { changes?: number })
-  if ((result.changes ?? 0) === 0) {
-    throw new CanvasArtifactNotFoundError(version === undefined ? id : `${id}@v${version}`)
-  }
+function deleteArtifact(db: SqliteDb, table: string, id: string, version?: number): Promise<void> {
+  return Promise.resolve().then(() => {
+    const stmt =
+      version === undefined
+        ? db.prepare(`DELETE FROM ${table} WHERE id = ?`)
+        : db.prepare(`DELETE FROM ${table} WHERE id = ? AND version = ?`)
+    const result =
+      version === undefined
+        ? (stmt.run(id) as { changes?: number })
+        : (stmt.run(id, version) as { changes?: number })
+    if ((result.changes ?? 0) === 0) {
+      throw new CanvasArtifactNotFoundError(version === undefined ? id : `${id}@v${version}`)
+    }
+  })
 }
 
 function stripEnvelope(a: Artifact): Record<string, unknown> {

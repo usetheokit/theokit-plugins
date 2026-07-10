@@ -1,6 +1,6 @@
 {
   "name": "@theokit/plugin-realtime",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Multiplayer realtime plugin for TheoKit — presence + room + broadcast + Yjs CRDT (opt-in). Form 4 Hybrid: RealtimeProvider interface + MemoryRealtimeProvider default + YjsRealtimeProvider + defineRealtimeProvider extension. Consumes @theokit/sdk@>=1.7.0 subscribe for WS transport. React hooks at /react sub-path. Per plan p9-plugin-realtime v1.0.",
   "type": "module",
   "main": "./dist/index.js",

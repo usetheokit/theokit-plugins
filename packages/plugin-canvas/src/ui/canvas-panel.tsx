@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 import type { Artifact } from '../schema.js'
-import {
-  artifactToBlob,
-  filenameFor,
-  serializeArtifactForCopy,
-} from './artifact-actions.js'
+import { artifactToBlob, filenameFor, serializeArtifactForCopy } from './artifact-actions.js'
 import { CanvasToolbar } from './canvas-toolbar.js'
 import { CanvasArtifactList } from './canvas-artifact-list.js'
 import type { ArtifactRendererRegistry } from './renderers/types.js'
@@ -16,7 +12,7 @@ export interface CanvasPanelProps {
   onOpenChange: (open: boolean) => void
   artifact: Artifact | null
   /** All versions of the current artifact id, ordered ascending. */
-  versions?: ReadonlyArray<Artifact>
+  versions?: readonly Artifact[]
   /** Called when the user picks a version pill. */
   onVersionSelect?: (artifact: Artifact) => void
   /** Per-kind renderer overrides (forwards to ArtifactRenderer). */
@@ -32,7 +28,7 @@ export interface CanvasPanelProps {
    * underlying capability is available (e.g. fork only renders when
    * `onFork` is provided regardless of this prop).
    */
-  hideActions?: ReadonlyArray<CanvasPanelToolbarAction>
+  hideActions?: readonly CanvasPanelToolbarAction[]
   className?: string
   /** Override the inner aria-label for the artifact title region. */
   'aria-label'?: string

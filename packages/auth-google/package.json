@@ -1,6 +1,6 @@
 {
   "name": "@theokit/auth-google",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Google OAuth (OIDC) provider for @theokit/sdk/server/auth. Plugs into defineAuth({ providers: [google({...})] }).",
   "type": "module",
   "main": "./dist/index.js",

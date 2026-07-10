@@ -3,7 +3,7 @@
  *
  * T4.5 — useCanvas state machine + optimistic publish flow.
  */
-import { act, renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { CanvasPluginError } from '../src/errors.js'
@@ -17,12 +17,13 @@ const env = {
   createdAt: '2026-05-29T00:00:00Z',
 }
 
-const md = (overrides: Partial<Artifact> = {}): Artifact => ({
-  ...env,
-  kind: 'markdown',
-  content: '# hello',
-  ...overrides,
-}) as Artifact
+const md = (overrides: Partial<Artifact> = {}): Artifact =>
+  ({
+    ...env,
+    kind: 'markdown',
+    content: '# hello',
+    ...overrides,
+  }) as Artifact
 
 describe('useCanvas — initial state', () => {
   it('starts empty / closed', () => {
@@ -113,7 +114,11 @@ describe('useCanvas — publish (local only)', () => {
     await act(async () => {
       try {
         // missing title
-        await result.current.publish({ id: 'a', kind: 'markdown', content: 'x' } as unknown as Artifact)
+        await result.current.publish({
+          id: 'a',
+          kind: 'markdown',
+          content: 'x',
+        } as unknown as Artifact)
       } catch {
         threw = true
       }
@@ -126,17 +131,17 @@ describe('useCanvas — publish (local only)', () => {
 describe('useCanvas — publish (with endpoint)', () => {
   it('POSTs JSON with the CSRF default header, optimistic-inserts, then replaces with server response', async () => {
     let capturedInit: RequestInit | null = null
-    const fetchImpl = vi.fn(async (_url: string | URL, init: RequestInit) => {
+    const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
       capturedInit = init
       const serverShape: Artifact = { ...md(), version: 7 }
-      return new Response(JSON.stringify({ artifact: serverShape }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      return Promise.resolve(
+        new Response(JSON.stringify({ artifact: serverShape }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
     })
-    const { result } = renderHook(() =>
-      useCanvas({ endpoint: '/api/canvas/artifacts', fetchImpl }),
-    )
+    const { result } = renderHook(() => useCanvas({ endpoint: '/api/canvas/artifacts', fetchImpl }))
     await act(async () => {
       await result.current.publish(md())
     })
@@ -147,10 +152,8 @@ describe('useCanvas — publish (with endpoint)', () => {
   })
 
   it('rolls back the optimistic insert on a non-2xx response', async () => {
-    const fetchImpl = vi.fn(async () => new Response('Unauthorized', { status: 401 }))
-    const { result } = renderHook(() =>
-      useCanvas({ endpoint: '/api/canvas/artifacts', fetchImpl }),
-    )
+    const fetchImpl = vi.fn(() => Promise.resolve(new Response('Unauthorized', { status: 401 })))
+    const { result } = renderHook(() => useCanvas({ endpoint: '/api/canvas/artifacts', fetchImpl }))
     let threw = false
     await act(async () => {
       try {
@@ -166,9 +169,9 @@ describe('useCanvas — publish (with endpoint)', () => {
 
   it('omits CSRF header when csrfHeader=null', async () => {
     let capturedInit: RequestInit | null = null
-    const fetchImpl = vi.fn(async (_url: string | URL, init: RequestInit) => {
+    const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
       capturedInit = init
-      return new Response(JSON.stringify({ artifact: md() }), { status: 200 })
+      return Promise.resolve(new Response(JSON.stringify({ artifact: md() }), { status: 200 }))
     })
     const { result } = renderHook(() =>
       useCanvas({ endpoint: '/api/canvas/artifacts', fetchImpl, csrfHeader: null }),
@@ -181,10 +184,10 @@ describe('useCanvas — publish (with endpoint)', () => {
   })
 
   it('accepts a server response without an `artifact` envelope', async () => {
-    const fetchImpl = vi.fn(async () => new Response(JSON.stringify(md()), { status: 200 }))
-    const { result } = renderHook(() =>
-      useCanvas({ endpoint: '/api/canvas/artifacts', fetchImpl }),
+    const fetchImpl = vi.fn(() =>
+      Promise.resolve(new Response(JSON.stringify(md()), { status: 200 })),
     )
+    const { result } = renderHook(() => useCanvas({ endpoint: '/api/canvas/artifacts', fetchImpl }))
     await act(async () => {
       await result.current.publish(md())
     })
@@ -233,12 +236,8 @@ describe('useCanvas — remove', () => {
 describe('useCanvas — derived selectors', () => {
   it('history is sorted by createdAt descending', () => {
     const { result } = renderHook(() => useCanvas())
-    act(() =>
-      result.current.show({ ...md({ id: 'a', createdAt: '2026-05-29T00:00:01Z' }) }),
-    )
-    act(() =>
-      result.current.show({ ...md({ id: 'b', createdAt: '2026-05-29T00:00:02Z' }) }),
-    )
+    act(() => result.current.show({ ...md({ id: 'a', createdAt: '2026-05-29T00:00:01Z' }) }))
+    act(() => result.current.show({ ...md({ id: 'b', createdAt: '2026-05-29T00:00:02Z' }) }))
     expect(result.current.history.map((a) => a.id)).toEqual(['b', 'a'])
   })
 

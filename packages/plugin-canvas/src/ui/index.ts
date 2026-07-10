@@ -7,15 +7,9 @@
  *   - schema + error re-exports so consumers don't need both subpaths
  */
 export { ArtifactRenderer, type ArtifactRendererProps } from './artifact-renderer.js'
-export {
-  CanvasPanel,
-  type CanvasPanelProps,
-} from './canvas-panel.js'
+export { CanvasPanel, type CanvasPanelProps } from './canvas-panel.js'
 export type { CanvasPanelToolbarAction } from './canvas-panel-actions.js'
-export {
-  ArtifactVersionRail,
-  type ArtifactVersionRailProps,
-} from './artifact-version-rail.js'
+export { ArtifactVersionRail, type ArtifactVersionRailProps } from './artifact-version-rail.js'
 export {
   serializeArtifactForCopy,
   artifactToBlob,
@@ -23,15 +17,8 @@ export {
   pickExtension,
   slugifyFilename,
 } from './artifact-actions.js'
-export {
-  useCanvas,
-  type UseCanvasOptions,
-  type UseCanvasState,
-} from './use-canvas.js'
-export {
-  OpenInCanvasButton,
-  type OpenInCanvasButtonProps,
-} from './open-in-canvas-button.js'
+export { useCanvas, type UseCanvasOptions, type UseCanvasState } from './use-canvas.js'
+export { OpenInCanvasButton, type OpenInCanvasButtonProps } from './open-in-canvas-button.js'
 export {
   extractArtifactCandidates,
   type ArtifactCandidate,

@@ -8,15 +8,20 @@
  * @public
  */
 
-import * as React from "react";
-import { CopilotContext, type CopilotContextValue, type CopilotMessage, type CopilotPresenceEntry } from "./copilot-context.js";
+import * as React from 'react'
+import {
+  CopilotContext,
+  type CopilotContextValue,
+  type CopilotMessage,
+  type CopilotPresenceEntry,
+} from './copilot-context.js'
 
 function useCopilotContextOrThrow(hook: string): CopilotContextValue {
-  const ctx = React.useContext(CopilotContext);
+  const ctx = React.useContext(CopilotContext)
   if (ctx === null) {
-    throw new Error(`${hook}: must be called inside <CopilotProvider>`);
+    throw new Error(`${hook}: must be called inside <CopilotProvider>`)
   }
-  return ctx;
+  return ctx
 }
 
 /**
@@ -25,7 +30,7 @@ function useCopilotContextOrThrow(hook: string): CopilotContextValue {
  * @public
  */
 export function useCopilot(): CopilotContextValue {
-  return useCopilotContextOrThrow("useCopilot");
+  return useCopilotContextOrThrow('useCopilot')
 }
 
 /**
@@ -34,16 +39,18 @@ export function useCopilot(): CopilotContextValue {
  *
  * @public
  */
-export function useCopilotPresence(localConnectionId?: string): Record<string, CopilotPresenceEntry> {
-  const ctx = useCopilotContextOrThrow("useCopilotPresence");
+export function useCopilotPresence(
+  localConnectionId?: string,
+): Record<string, CopilotPresenceEntry> {
+  const ctx = useCopilotContextOrThrow('useCopilotPresence')
   return React.useMemo(() => {
-    if (localConnectionId === undefined) return ctx.presence;
-    const out: Record<string, CopilotPresenceEntry> = {};
+    if (localConnectionId === undefined) return ctx.presence
+    const out: Record<string, CopilotPresenceEntry> = {}
     for (const [id, p] of Object.entries(ctx.presence)) {
-      if (id !== localConnectionId) out[id] = p;
+      if (id !== localConnectionId) out[id] = p
     }
-    return out;
-  }, [ctx.presence, localConnectionId]);
+    return out
+  }, [ctx.presence, localConnectionId])
 }
 
 /**
@@ -57,16 +64,16 @@ export function useCopilotPresence(localConnectionId?: string): Record<string, C
  * @public
  */
 export function useCopilotReadable<T>(opts: { description: string; value: T }): void {
-  const ctx = useCopilotContextOrThrow("useCopilotReadable");
+  const ctx = useCopilotContextOrThrow('useCopilotReadable')
   React.useEffect(() => {
-    ctx.sendBroadcast("register-knowledge", {
+    ctx.sendBroadcast('register-knowledge', {
       description: opts.description,
-      value: opts.value as unknown as Record<string, unknown>,
-    });
+      value: opts.value,
+    })
     return () => {
-      ctx.sendBroadcast("deregister-knowledge", { description: opts.description });
-    };
-  }, [ctx, opts.description, opts.value]);
+      ctx.sendBroadcast('deregister-knowledge', { description: opts.description })
+    }
+  }, [ctx, opts.description, opts.value])
 }
 
 /**
@@ -76,21 +83,21 @@ export function useCopilotReadable<T>(opts: { description: string; value: T }): 
  * @public
  */
 export function useCopilotTool<TArgs extends Record<string, unknown>>(opts: {
-  name: string;
-  description: string;
-  handler: (args: TArgs) => Promise<unknown>;
-  authorize?: () => boolean | Promise<boolean>;
+  name: string
+  description: string
+  handler: (args: TArgs) => Promise<unknown>
+  authorize?: () => boolean | Promise<boolean>
 }): void {
-  const ctx = useCopilotContextOrThrow("useCopilotTool");
+  const ctx = useCopilotContextOrThrow('useCopilotTool')
   React.useEffect(() => {
-    ctx.sendBroadcast("register-tool", {
+    ctx.sendBroadcast('register-tool', {
       name: opts.name,
       description: opts.description,
-    });
+    })
     return () => {
-      ctx.sendBroadcast("deregister-tool", { name: opts.name });
-    };
-  }, [ctx, opts.name, opts.description]);
+      ctx.sendBroadcast('deregister-tool', { name: opts.name })
+    }
+  }, [ctx, opts.name, opts.description])
 }
 
 /**
@@ -98,8 +105,8 @@ export function useCopilotTool<TArgs extends Record<string, unknown>>(opts: {
  *
  * @public
  */
-export function useCopilotMessages(): ReadonlyArray<CopilotMessage> {
-  return useCopilotContextOrThrow("useCopilotMessages").messages;
+export function useCopilotMessages(): readonly CopilotMessage[] {
+  return useCopilotContextOrThrow('useCopilotMessages').messages
 }
 
 /**
@@ -108,5 +115,5 @@ export function useCopilotMessages(): ReadonlyArray<CopilotMessage> {
  * @public
  */
 export function useCopilotTyping(): boolean {
-  return useCopilotContextOrThrow("useCopilotTyping").isAnyCopilotTyping;
+  return useCopilotContextOrThrow('useCopilotTyping').isAnyCopilotTyping
 }

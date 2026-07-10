@@ -31,7 +31,7 @@ let createObjectURL: ReturnType<typeof vi.fn>
 let revokeObjectURL: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
-  writeText = vi.fn(async () => undefined)
+  writeText = vi.fn(() => Promise.resolve(undefined))
   Object.defineProperty(globalThis.navigator, 'clipboard', {
     configurable: true,
     value: { writeText },
@@ -89,9 +89,7 @@ describe('CanvasPanel — open / close behaviour', () => {
 
   it('Esc listener is unbound after close (no leak)', () => {
     const onOpenChange = vi.fn()
-    const { rerender } = render(
-      <CanvasPanel open onOpenChange={onOpenChange} artifact={md} />,
-    )
+    const { rerender } = render(<CanvasPanel open onOpenChange={onOpenChange} artifact={md} />)
     rerender(<CanvasPanel open={false} onOpenChange={onOpenChange} artifact={md} />)
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(onOpenChange).not.toHaveBeenCalled()
@@ -122,9 +120,7 @@ describe('CanvasPanel — toolbar actions', () => {
 
   it('Fork button visible + dispatches when onFork provided', () => {
     const onFork = vi.fn()
-    render(
-      <CanvasPanel open onOpenChange={() => undefined} artifact={md} onFork={onFork} />,
-    )
+    render(<CanvasPanel open onOpenChange={() => undefined} artifact={md} onFork={onFork} />)
     fireEvent.click(screen.getByTestId('canvas-toolbar-fork'))
     expect(onFork).toHaveBeenCalledWith(md)
   })
@@ -172,13 +168,7 @@ describe('CanvasPanel — a11y', () => {
   })
 
   it('shows kind + version in the header', () => {
-    render(
-      <CanvasPanel
-        open
-        onOpenChange={() => undefined}
-        artifact={{ ...code, version: 3 }}
-      />,
-    )
+    render(<CanvasPanel open onOpenChange={() => undefined} artifact={{ ...code, version: 3 }} />)
     expect(screen.getByTestId('canvas-panel')).toHaveTextContent('code')
     expect(screen.getByTestId('canvas-panel')).toHaveTextContent('v3')
   })
@@ -191,22 +181,14 @@ describe('ArtifactVersionRail', () => {
 
   it('renders nothing when only one version', () => {
     const { container } = render(
-      <ArtifactVersionRail
-        versions={[v1]}
-        currentVersion={1}
-        onSelect={() => undefined}
-      />,
+      <ArtifactVersionRail versions={[v1]} currentVersion={1} onSelect={() => undefined} />,
     )
     expect(container.firstChild).toBeNull()
   })
 
   it('renders pills for every version', () => {
     render(
-      <ArtifactVersionRail
-        versions={[v1, v2, v3]}
-        currentVersion={3}
-        onSelect={() => undefined}
-      />,
+      <ArtifactVersionRail versions={[v1, v2, v3]} currentVersion={3} onSelect={() => undefined} />,
     )
     expect(screen.getByTestId('version-pill-1')).toBeInTheDocument()
     expect(screen.getByTestId('version-pill-2')).toBeInTheDocument()
@@ -215,11 +197,7 @@ describe('ArtifactVersionRail', () => {
 
   it('marks the current version with aria-current + data-active', () => {
     render(
-      <ArtifactVersionRail
-        versions={[v1, v2, v3]}
-        currentVersion={2}
-        onSelect={() => undefined}
-      />,
+      <ArtifactVersionRail versions={[v1, v2, v3]} currentVersion={2} onSelect={() => undefined} />,
     )
     const current = screen.getByTestId('version-pill-2')
     expect(current.getAttribute('aria-current')).toBe('true')
@@ -229,9 +207,7 @@ describe('ArtifactVersionRail', () => {
 
   it('click dispatches onSelect with the chosen artifact', () => {
     const onSelect = vi.fn()
-    render(
-      <ArtifactVersionRail versions={[v1, v2]} currentVersion={2} onSelect={onSelect} />,
-    )
+    render(<ArtifactVersionRail versions={[v1, v2]} currentVersion={2} onSelect={onSelect} />)
     fireEvent.click(screen.getByTestId('version-pill-1'))
     expect(onSelect).toHaveBeenCalledWith(v1)
   })
@@ -241,14 +217,7 @@ describe('CanvasPanel — version rail integration', () => {
   it('renders the rail when 2+ versions provided', () => {
     const v1: Artifact = { ...env, version: 1, kind: 'markdown', content: 'a' }
     const v2: Artifact = { ...env, version: 2, kind: 'markdown', content: 'b' }
-    render(
-      <CanvasPanel
-        open
-        onOpenChange={() => undefined}
-        artifact={v2}
-        versions={[v1, v2]}
-      />,
-    )
+    render(<CanvasPanel open onOpenChange={() => undefined} artifact={v2} versions={[v1, v2]} />)
     expect(screen.getByTestId('artifact-version-rail')).toBeInTheDocument()
   })
 

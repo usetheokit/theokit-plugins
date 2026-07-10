@@ -23,20 +23,20 @@ export {
   type CopilotTrigger,
   CopilotTriggerError,
   type CopilotVoiceConfig,
-} from "./types.js";
+} from './types.js'
 
-export { defineCopilot, type DefineCopilotOptions } from "./define-copilot.js";
+export { defineCopilot, type DefineCopilotOptions } from './define-copilot.js'
 
-export { defineCopilotRealtimeProvider } from "./provider.js";
+export { defineCopilotRealtimeProvider } from './provider.js'
 
-export { AgentRoomMember, COPILOT_CONNECTION_PREFIX } from "./agent-room-member.js";
+export { AgentRoomMember, COPILOT_CONNECTION_PREFIX } from './agent-room-member.js'
 
-export { CopilotRuntime, type CopilotRuntimeOptions } from "./internal/runtime.js";
+export { CopilotRuntime, type CopilotRuntimeOptions } from './internal/runtime.js'
 
-export { TriggerEvaluator, type TriggerMatch } from "./internal/trigger-evaluator.js";
+export { TriggerEvaluator, type TriggerMatch } from './internal/trigger-evaluator.js'
 
-export { BudgetBridge } from "./internal/budget-bridge.js";
+export { BudgetBridge } from './internal/budget-bridge.js'
 
-export { ensureVoicePeer } from "./internal/voice-bridge.js";
+export { ensureVoicePeer } from './internal/voice-bridge.js'
 
-export { ensureCanvasPeer } from "./internal/canvas-bridge.js";
+export { ensureCanvasPeer } from './internal/canvas-bridge.js'

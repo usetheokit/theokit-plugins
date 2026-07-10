@@ -5,7 +5,7 @@
  */
 
 /** Canonical driver names — covered by drizzle-kit + @theokit/orm. */
-export type DrizzleDriver = "sqlite" | "postgres" | "mysql";
+export type DrizzleDriver = 'sqlite' | 'postgres' | 'mysql'
 
 /**
  * User-facing options for the `drizzleDb()` factory. Extends @theokit/orm's
@@ -14,43 +14,43 @@ export type DrizzleDriver = "sqlite" | "postgres" | "mysql";
  */
 export interface DrizzleDbOptions {
   /** Canonical driver name. Required. */
-  driver: DrizzleDriver;
+  driver: DrizzleDriver
   /**
    * Connection URL. Defaults to `process.env.DATABASE_URL` when omitted at
    * register-time. Plugin does not read env here — caller chooses.
    */
-  url?: string;
+  url?: string
   /**
    * Path to the user's schema file (consumed by drizzle-kit).
    * Default: `./db/schema.ts`.
    */
-  schemaPath?: string;
+  schemaPath?: string
   /**
    * Path to the migrations directory (consumed by drizzle-kit).
    * Default: `./db/migrations`.
    */
-  migrationsPath?: string;
+  migrationsPath?: string
   /**
    * Enable devtools-tab registration when @theokit overlay (G4) is detected.
    * Default: `true`. Pass `false` to suppress the tab entirely.
    */
-  devtoolsTab?: boolean;
+  devtoolsTab?: boolean
   /**
    * Host for the drizzle-kit studio devtools iframe (#207). Default `localhost`.
    */
-  studioHost?: string;
+  studioHost?: string
   /**
    * Port for the drizzle-kit studio devtools iframe (#207). Default `4983`
    * (drizzle-kit's default) — only used when unset.
    */
-  studioPort?: number;
+  studioPort?: number
   /**
    * Path to the user's seed script run by `db seed` (#170). `drizzle-kit` has
    * no `seed` verb, so seeding runs THIS script. Typically resolved at
    * register-time from `package.json#theokit.db.seed`; can also be set here.
    * When unset, `db seed` errors instead of invoking a nonexistent subcommand.
    */
-  seedScript?: string;
+  seedScript?: string
 }
 
 /**
@@ -58,18 +58,18 @@ export interface DrizzleDbOptions {
  * so tests + downstream consumers (CLI, register) can introspect.
  */
 export interface ResolvedDrizzleDbOptions {
-  readonly driver: DrizzleDriver | undefined;
-  readonly url: string | undefined;
-  readonly schemaPath: string;
-  readonly migrationsPath: string;
-  readonly devtoolsTab: boolean;
-  readonly seedScript: string | undefined;
-  readonly studioHost: string;
-  readonly studioPort: number;
+  readonly driver: DrizzleDriver | undefined
+  readonly url: string | undefined
+  readonly schemaPath: string
+  readonly migrationsPath: string
+  readonly devtoolsTab: boolean
+  readonly seedScript: string | undefined
+  readonly studioHost: string
+  readonly studioPort: number
 }
 
-const DEFAULT_SCHEMA_PATH = "./db/schema.ts";
-const DEFAULT_MIGRATIONS_PATH = "./db/migrations";
+const DEFAULT_SCHEMA_PATH = './db/schema.ts'
+const DEFAULT_MIGRATIONS_PATH = './db/migrations'
 
 /**
  * Apply defaults to user-provided options. Pure; no I/O.
@@ -88,7 +88,7 @@ export function resolveOptions(opts: DrizzleDbOptions): ResolvedDrizzleDbOptions
     migrationsPath: opts.migrationsPath ?? DEFAULT_MIGRATIONS_PATH,
     devtoolsTab: opts.devtoolsTab ?? true,
     seedScript: opts.seedScript,
-    studioHost: opts.studioHost ?? "localhost",
+    studioHost: opts.studioHost ?? 'localhost',
     studioPort: opts.studioPort ?? 4983,
-  };
+  }
 }

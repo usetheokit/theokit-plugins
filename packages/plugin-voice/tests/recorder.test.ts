@@ -17,7 +17,7 @@ import {
 } from '../src/index.js'
 
 interface FakeStream {
-  getTracks(): Array<{ stop: ReturnType<typeof vi.fn> }>
+  getTracks(): { stop: ReturnType<typeof vi.fn> }[]
 }
 
 interface FakeMediaRecorderConstructor {
@@ -124,7 +124,7 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
     let mr: FakeMediaRecorderConstructor
 
     beforeEach(() => {
-      installMediaDevices(async () => makeFakeStream() as unknown as MediaStream)
+      installMediaDevices(() => Promise.resolve(makeFakeStream()))
       mr = installMediaRecorder()
     })
 
@@ -151,7 +151,7 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
       // Use a fresh stream + tracks pair so the assertion observes the
       // same vi.fn() spies the recorder closed over.
       const fakeStream = makeFakeStream()
-      installMediaDevices(async () => fakeStream as unknown as MediaStream)
+      installMediaDevices(() => Promise.resolve(fakeStream))
       installMediaRecorder()
       const recorder = createRecorder()
       await recorder.start()
@@ -165,9 +165,7 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
 
   describe('EC-4 — error mapping (DOMException → typed errors)', () => {
     it('NotAllowedError → VoicePermissionDeniedError', async () => {
-      installMediaDevices(async () => {
-        throw makeDomException('NotAllowedError', 'user denied')
-      })
+      installMediaDevices(() => Promise.reject(makeDomException('NotAllowedError', 'user denied')))
       installMediaRecorder()
       const recorder = createRecorder()
       await expect(recorder.start()).rejects.toBeInstanceOf(VoicePermissionDeniedError)
@@ -175,27 +173,23 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
     })
 
     it('SecurityError also maps to VoicePermissionDeniedError', async () => {
-      installMediaDevices(async () => {
-        throw makeDomException('SecurityError', 'sandboxed')
-      })
+      installMediaDevices(() => Promise.reject(makeDomException('SecurityError', 'sandboxed')))
       installMediaRecorder()
       const recorder = createRecorder()
       await expect(recorder.start()).rejects.toBeInstanceOf(VoicePermissionDeniedError)
     })
 
     it('NotFoundError → VoiceNoDeviceError', async () => {
-      installMediaDevices(async () => {
-        throw makeDomException('NotFoundError', 'no mic')
-      })
+      installMediaDevices(() => Promise.reject(makeDomException('NotFoundError', 'no mic')))
       installMediaRecorder()
       const recorder = createRecorder()
       await expect(recorder.start()).rejects.toBeInstanceOf(VoiceNoDeviceError)
     })
 
     it('OverconstrainedError also maps to VoiceNoDeviceError', async () => {
-      installMediaDevices(async () => {
-        throw makeDomException('OverconstrainedError', 'no match')
-      })
+      installMediaDevices(() =>
+        Promise.reject(makeDomException('OverconstrainedError', 'no match')),
+      )
       installMediaRecorder()
       const recorder = createRecorder()
       await expect(recorder.start()).rejects.toBeInstanceOf(VoiceNoDeviceError)
@@ -203,9 +197,7 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
 
     it('unknown DOMException name falls back to VoicePluginError with cause preserved', async () => {
       const original = makeDomException('AbortError', 'aborted')
-      installMediaDevices(async () => {
-        throw original
-      })
+      installMediaDevices(() => Promise.reject(original))
       installMediaRecorder()
       const recorder = createRecorder()
       await expect(recorder.start()).rejects.toMatchObject({
@@ -215,7 +207,7 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
     })
 
     it('MediaRecorder runtime error propagates via stop() rejection', async () => {
-      installMediaDevices(async () => makeFakeStream() as unknown as MediaStream)
+      installMediaDevices(() => Promise.resolve(makeFakeStream()))
       const mr = installMediaRecorder()
       const recorder = createRecorder()
       await recorder.start()
@@ -248,9 +240,7 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
     })
 
     it('calling start() while already recording is a no-op', async () => {
-      const getUserMedia = installMediaDevices(
-        async () => makeFakeStream() as unknown as MediaStream,
-      )
+      const getUserMedia = installMediaDevices(() => Promise.resolve(makeFakeStream()))
       installMediaRecorder()
       const recorder = createRecorder()
       await recorder.start()
@@ -272,7 +262,7 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
     })
 
     it('throws VoicePluginConfigError when MediaRecorder is missing', async () => {
-      installMediaDevices(async () => makeFakeStream() as unknown as MediaStream)
+      installMediaDevices(() => Promise.resolve(makeFakeStream()))
       delete (globalThis as { MediaRecorder?: unknown }).MediaRecorder
       const recorder = createRecorder()
       await expect(recorder.start()).rejects.toBeInstanceOf(VoicePluginConfigError)
@@ -285,7 +275,7 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
       // release the stream AND surface via onError — not be silently dropped
       // with a leaked stream.
       const fakeStream = makeFakeStream()
-      installMediaDevices(async () => fakeStream as unknown as MediaStream)
+      installMediaDevices(() => Promise.resolve(fakeStream))
       const mr = installMediaRecorder()
       const onError = vi.fn()
       const recorder = createRecorder({ onError })
@@ -304,7 +294,7 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
 
   describe('state machine guards', () => {
     it('stop() called before start() rejects without crashing', async () => {
-      installMediaDevices(async () => makeFakeStream() as unknown as MediaStream)
+      installMediaDevices(() => Promise.resolve(makeFakeStream()))
       installMediaRecorder()
       const recorder = createRecorder()
       await expect(recorder.stop()).rejects.toBeInstanceOf(VoicePluginError)

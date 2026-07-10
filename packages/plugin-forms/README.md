@@ -14,15 +14,15 @@ pnpm add @usetheo/ui
 
 Peer-dep matrix:
 
-| Package | Range | Required? |
-|---|---|---|
-| `react` | `>=19.0.0` | yes |
-| `react-hook-form` | `^7.50.0` | yes |
-| `@hookform/resolvers` | `^5.0.0` | yes |
-| `zod` | `^3.25.0 \|\| ^4.0.0` | yes (matches `@theokit/sdk` peer range) |
-| `theokit` | `>=0.2.3` | yes (G3 `__zodSchema` extension) |
-| `@theokit/react` | `>=1.1.0` | yes (`useAction` hook) |
-| `@usetheo/ui` | `>=0.14.0` | **optional** (only for the styled `<TheoField>` tier) |
+| Package               | Range                 | Required?                                             |
+| --------------------- | --------------------- | ----------------------------------------------------- |
+| `react`               | `>=19.0.0`            | yes                                                   |
+| `react-hook-form`     | `^7.50.0`             | yes                                                   |
+| `@hookform/resolvers` | `^5.0.0`              | yes                                                   |
+| `zod`                 | `^3.25.0 \|\| ^4.0.0` | yes (matches `@theokit/sdk` peer range)               |
+| `theokit`             | `>=0.2.3`             | yes (G3 `__zodSchema` extension)                      |
+| `@theokit/react`      | `>=1.1.0`             | yes (`useAction` hook)                                |
+| `@usetheo/ui`         | `>=0.14.0`            | **optional** (only for the styled `<TheoField>` tier) |
 
 ## Convention — shared schemas
 
@@ -30,26 +30,26 @@ Author each action's input schema in an **isomorphic** file under `server/action
 
 ```ts
 // server/actions/schemas/save-memory.ts
-import { z } from "zod";
+import { z } from 'zod'
 export const schema = z.object({
   conversationId: z.string().min(1),
   content: z.string().min(1),
-});
+})
 ```
 
 Then import it from the action handler:
 
 ```ts
 // server/actions/save-memory.ts
-import { defineAction } from "theokit/server";
-import { schema } from "./schemas/save-memory.js";
+import { defineAction } from 'theokit/server'
+import { schema } from './schemas/save-memory.js'
 export const saveMemory = defineAction({
   input: schema,
   handler: async ({ input }) => {
     // persist input.content under input.conversationId
-    return { id: "mem_..." };
+    return { id: 'mem_...' }
   },
-});
+})
 ```
 
 The TheoKit Vite plugin detects the convention and exposes the schema at runtime as `actions.saveMemory.__zodSchema`. `<TheoForm>` reads it to drive RHF's `zodResolver` — no client re-declaration.
@@ -57,22 +57,22 @@ The TheoKit Vite plugin detects the convention and exposes the schema at runtime
 ## Cookbook 1 — basic form with `<TheoForm.Field>` (styled tier)
 
 ```tsx
-"use client";
-import { actions } from "@theo/actions";
-import { TheoForm, TheoField, useTheoFieldRegister } from "@theokit/plugin-forms";
-import { FormField, Input, Button } from "@usetheo/ui";
+'use client'
+import { actions } from '@theo/actions'
+import { TheoForm, TheoField, useTheoFieldRegister } from '@theokit/plugin-forms'
+import { FormField, Input, Button } from '@usetheo/ui'
 
 function InputForCurrentField() {
-  const register = useTheoFieldRegister();
-  return <Input {...register} placeholder="Type something..." />;
+  const register = useTheoFieldRegister()
+  return <Input {...register} placeholder="Type something..." />
 }
 
 export default function MemoryPage() {
   return (
     <TheoForm
       action={actions.saveMemory}
-      defaultValues={{ conversationId: "default", content: "" }}
-      onSuccess={(data) => console.log("Saved:", data)}
+      defaultValues={{ conversationId: 'default', content: '' }}
+      onSuccess={(data) => console.log('Saved:', data)}
     >
       <input type="hidden" name="conversationId" value="default" readOnly />
       <TheoField name="content">
@@ -84,11 +84,12 @@ export default function MemoryPage() {
       </TheoField>
       <Button type="submit">Save</Button>
     </TheoForm>
-  );
+  )
 }
 ```
 
 What's happening:
+
 - `<TheoForm action={actions.saveMemory}>` wires `useAction` + RHF `useForm({resolver: zodResolver(actions.saveMemory.__zodSchema)})` + provides Context.
 - `<TheoField name="content">` reads RHF state for the field; renders `<FormField invalid={hasError}>` from `@usetheo/ui`.
 - `useTheoFieldRegister()` inside the descendant input pulls RHF's `register` props and spreads them onto the `<Input>`.
@@ -99,19 +100,19 @@ What's happening:
 Submit buttons (and any descendant) read pending/error/data via Context:
 
 ```tsx
-import { useTheoFormState } from "@theokit/plugin-forms";
-import { Button } from "@usetheo/ui";
+import { useTheoFormState } from '@theokit/plugin-forms'
+import { Button } from '@usetheo/ui'
 
 function SubmitButton() {
-  const { isPending, isError, error } = useTheoFormState();
+  const { isPending, isError, error } = useTheoFormState()
   return (
     <>
-      {isError && <p role="alert">{error?.message ?? "Submission failed"}</p>}
+      {isError && <p role="alert">{error?.message ?? 'Submission failed'}</p>}
       <Button type="submit" disabled={isPending}>
-        {isPending ? "Saving..." : "Save"}
+        {isPending ? 'Saving...' : 'Save'}
       </Button>
     </>
-  );
+  )
 }
 ```
 
@@ -120,29 +121,32 @@ function SubmitButton() {
 For consumers who don't use `@usetheo/ui` (shadcn primitives, MUI, raw HTML):
 
 ```tsx
-"use client";
-import { actions } from "@theo/actions";
-import { TheoForm, useTheoField } from "@theokit/plugin-forms";
+'use client'
+import { actions } from '@theo/actions'
+import { TheoForm, useTheoField } from '@theokit/plugin-forms'
 
 function MyField({ name, label }: { name: string; label: string }) {
-  const field = useTheoField(name);
+  const field = useTheoField(name)
   return (
     <label>
       {label}
       <input {...field.register} />
       {field.error && <span role="alert">{field.error.message}</span>}
     </label>
-  );
+  )
 }
 
 export default function MyForm() {
   return (
-    <TheoForm action={actions.saveMemory} defaultValues={{ conversationId: "default", content: "" }}>
+    <TheoForm
+      action={actions.saveMemory}
+      defaultValues={{ conversationId: 'default', content: '' }}
+    >
       <input type="hidden" name="conversationId" value="default" readOnly />
       <MyField name="content" label="Memory content" />
       <button type="submit">Save</button>
     </TheoForm>
-  );
+  )
 }
 ```
 
@@ -153,16 +157,16 @@ The headless tier has **no `@usetheo/ui` dependency** — keeps the plugin usabl
 `<TheoForm>` calls this internally on submit failure, but it's exported for advanced use:
 
 ```ts
-import { applyActionErrorsToForm } from "@theokit/plugin-forms";
-import { useForm } from "react-hook-form";
+import { applyActionErrorsToForm } from '@theokit/plugin-forms'
+import { useForm } from 'react-hook-form'
 
-const form = useForm();
+const form = useForm()
 // After a custom mutation:
 applyActionErrorsToForm(form.setError, {
-  "user.name": ["Required"],
-  "items.0.qty": ["Must be >= 1"],
-  "": ["Form-level error"],  // root → 'root' per RHF convention
-});
+  'user.name': ['Required'],
+  'items.0.qty': ['Must be >= 1'],
+  '': ['Form-level error'], // root → 'root' per RHF convention
+})
 // → errors.user.name.message === 'Required'
 // → errors.items[0].qty.message === 'Must be >= 1'
 // → errors.root.message === 'Form-level error'
@@ -181,16 +185,16 @@ First message per field wins (HTML5 single `aria-describedby` convention). For m
 
 ## API surface
 
-| Export | Kind | Notes |
-|---|---|---|
-| `TheoForm` | Component | Root + `Object.assign` sub-part `TheoForm.Field` |
-| `TheoField` | Component | Styled tier (peer `@usetheo/ui`); same as `TheoForm.Field` |
-| `useTheoField(name)` | Hook | Headless tier — returns `{value, error, isInvalid, register, setValue}` |
-| `useTheoFieldRegister()` | Hook | Inside `<TheoField>` descendants — spread onto your input |
-| `useTheoFieldScope()` | Hook | Inside `<TheoField>` descendants — full field state |
-| `useTheoFormState()` | Hook | Form-level state (isPending, isSuccess, isError, error, data, reset) |
-| `applyActionErrorsToForm(setError, fields)` | Function | Pure adapter — maps `ActionInputError.fields` → RHF `setError` calls |
-| `TheoFormContext` | Context | Exported for advanced override |
+| Export                                      | Kind      | Notes                                                                   |
+| ------------------------------------------- | --------- | ----------------------------------------------------------------------- |
+| `TheoForm`                                  | Component | Root + `Object.assign` sub-part `TheoForm.Field`                        |
+| `TheoField`                                 | Component | Styled tier (peer `@usetheo/ui`); same as `TheoForm.Field`              |
+| `useTheoField(name)`                        | Hook      | Headless tier — returns `{value, error, isInvalid, register, setValue}` |
+| `useTheoFieldRegister()`                    | Hook      | Inside `<TheoField>` descendants — spread onto your input               |
+| `useTheoFieldScope()`                       | Hook      | Inside `<TheoField>` descendants — full field state                     |
+| `useTheoFormState()`                        | Hook      | Form-level state (isPending, isSuccess, isError, error, data, reset)    |
+| `applyActionErrorsToForm(setError, fields)` | Function  | Pure adapter — maps `ActionInputError.fields` → RHF `setError` calls    |
+| `TheoFormContext`                           | Context   | Exported for advanced override                                          |
 
 Plus types: `TheoFormProps`, `TheoFormAction`, `TheoFieldProps`, `UseTheoFieldResult`, `TheoFormContextValue`, `TheoFormErrorLike`, `ActionInputErrorLike`, `SetErrorCallback`.
 

@@ -35,12 +35,12 @@ function makeBlobInput(bytes: number[] = [1, 2, 3, 4, 5]): SttInput {
 describe('handleSttRequest', () => {
   describe('happy path', () => {
     it('forwards audio buffer to upstream and returns transcript JSON', async () => {
-      const fetchImpl = vi.fn(async (url: string | URL, init: RequestInit) => {
+      const fetchImpl = vi.fn((url: string | URL, init: RequestInit) => {
         expect(String(url)).toBe('https://api.openai.com/v1/audio/transcriptions')
         expect(init.method).toBe('POST')
         const auth = (init.headers as Record<string, string>).Authorization
         expect(auth).toBe('Bearer sk-test-key')
-        return jsonResponse({ text: 'hello world', language: 'en' })
+        return Promise.resolve(jsonResponse({ text: 'hello world', language: 'en' }))
       })
 
       const res = await handleSttRequest(makeBlobInput(), sttConfig, { fetchImpl })
@@ -56,9 +56,9 @@ describe('handleSttRequest', () => {
 
     it('forwards optional language and prompt fields upstream', async () => {
       let capturedForm: FormData | null = null
-      const fetchImpl = vi.fn(async (_url: string | URL, init: RequestInit) => {
+      const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
         capturedForm = init.body as FormData
-        return jsonResponse({ text: 'olá', language: 'pt' })
+        return Promise.resolve(jsonResponse({ text: 'olá', language: 'pt' }))
       })
       const input: SttInput = {
         ...makeBlobInput(),
@@ -67,7 +67,7 @@ describe('handleSttRequest', () => {
       }
       await handleSttRequest(input, sttConfig, { fetchImpl })
       expect(capturedForm).not.toBeNull()
-      const form = capturedForm! as FormData
+      const form = capturedForm!
       expect(form.get('language')).toBe('pt')
       expect(form.get('prompt')).toBe('Theokit, dogfood')
       expect(form.get('model')).toBe('whisper-1')
@@ -76,9 +76,9 @@ describe('handleSttRequest', () => {
 
     it('routes to Groq URL when provider is "groq"', async () => {
       let calledUrl = ''
-      const fetchImpl = vi.fn(async (url: string | URL) => {
+      const fetchImpl = vi.fn((url: string | URL) => {
         calledUrl = String(url)
-        return jsonResponse({ text: 'hi' })
+        return Promise.resolve(jsonResponse({ text: 'hi' }))
       })
       await handleSttRequest(
         makeBlobInput(),
@@ -90,7 +90,7 @@ describe('handleSttRequest', () => {
 
     it('accepts a Blob directly as audio', async () => {
       const blob = new Blob([new Uint8Array([1, 2, 3])], { type: 'audio/webm' })
-      const fetchImpl = vi.fn(async () => jsonResponse({ text: 'ok' }))
+      const fetchImpl = vi.fn(() => Promise.resolve(jsonResponse({ text: 'ok' })))
       const res = await handleSttRequest({ audio: blob }, sttConfig, { fetchImpl })
       expect(res.status).toBe(200)
     })
@@ -110,35 +110,36 @@ describe('handleSttRequest', () => {
 
   describe('upstream failures', () => {
     it('upstream 401 maps to 401 with UPSTREAM_ERROR', async () => {
-      const fetchImpl = vi.fn(async () => new Response('Unauthorized', { status: 401 }))
+      const fetchImpl = vi.fn(() => Promise.resolve(new Response('Unauthorized', { status: 401 })))
       const res = await handleSttRequest(makeBlobInput(), sttConfig, { fetchImpl })
       expect(res.status).toBe(401)
       expect(await res.text()).toMatch(/UPSTREAM_ERROR/)
     })
 
     it('upstream 500 maps to 502 (treat as bad gateway)', async () => {
-      const fetchImpl = vi.fn(async () => new Response('Internal Error', { status: 500 }))
+      const fetchImpl = vi.fn(() =>
+        Promise.resolve(new Response('Internal Error', { status: 500 })),
+      )
       const res = await handleSttRequest(makeBlobInput(), sttConfig, { fetchImpl })
       expect(res.status).toBe(502)
       expect(await res.text()).toMatch(/UPSTREAM_ERROR/)
     })
 
     it('network failure maps to 502 UPSTREAM_NETWORK', async () => {
-      const fetchImpl = vi.fn(async () => {
-        throw new Error('ECONNRESET')
-      })
+      const fetchImpl = vi.fn(() => Promise.reject(new Error('ECONNRESET')))
       const res = await handleSttRequest(makeBlobInput(), sttConfig, { fetchImpl })
       expect(res.status).toBe(502)
       expect(await res.text()).toMatch(/UPSTREAM_NETWORK/)
     })
 
     it('upstream non-JSON body maps to 502 UPSTREAM_PARSE', async () => {
-      const fetchImpl = vi.fn(
-        async () =>
+      const fetchImpl = vi.fn(() =>
+        Promise.resolve(
           new Response('<html>oops</html>', {
             status: 200,
             headers: { 'Content-Type': 'text/html' },
           }),
+        ),
       )
       const res = await handleSttRequest(makeBlobInput(), sttConfig, { fetchImpl })
       expect(res.status).toBe(502)
@@ -176,7 +177,10 @@ describe('handleSttRequest', () => {
       // UPSTREAM_TIMEOUT, and the handler MUST pass an AbortSignal to fetch.
       const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
         if (init.signal?.aborted) {
-          return Promise.reject(init.signal.reason ?? new DOMException('aborted', 'AbortError'))
+          const reason: unknown = init.signal.reason
+          return Promise.reject(
+            reason instanceof Error ? reason : new DOMException('aborted', 'AbortError'),
+          )
         }
         // Pre-fix code passes no signal → reaches here → 200 → test fails fast.
         return Promise.resolve(
@@ -193,8 +197,9 @@ describe('handleSttRequest', () => {
         signal: controller.signal,
       })
       expect(res.status).toBe(504)
-      expect((await res.json()).error.code).toBe('UPSTREAM_TIMEOUT')
-      expect(fetchImpl.mock.calls[0]![1]!.signal).toBeInstanceOf(AbortSignal)
+      const body = (await res.json()) as { error: { code: string } }
+      expect(body.error.code).toBe('UPSTREAM_TIMEOUT')
+      expect(fetchImpl.mock.calls[0]![1].signal).toBeInstanceOf(AbortSignal)
     })
 
     it('test_stt_client_signal_propagated_to_fetch', async () => {

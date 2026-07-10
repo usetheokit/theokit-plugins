@@ -5,11 +5,11 @@
  * Blueprint Recommendations § concrete plugin shape.
  */
 
-import type Stripe from "stripe";
-import type { IdempotencyStore } from "./idempotency-store.js";
+import type Stripe from 'stripe'
+import type { IdempotencyStore } from './idempotency-store.js'
 
 /** Stripe API version pin. Defaults to "2023-10-16" (Stripe Node SDK 14.x default). */
-export type StripeApiVersion = Stripe.LatestApiVersion | "2023-10-16";
+export type StripeApiVersion = Stripe.LatestApiVersion
 
 /**
  * User-facing options for the `payments()` factory.
@@ -20,24 +20,24 @@ export type StripeApiVersion = Stripe.LatestApiVersion | "2023-10-16";
  */
 export interface PaymentsOptions {
   /** Stripe secret key. Defaults to `process.env.STRIPE_SECRET_KEY`. */
-  secretKey?: string;
+  secretKey?: string
   /** Stripe webhook signing secret. Defaults to `process.env.STRIPE_WEBHOOK_SECRET`. */
-  webhookSecret?: string;
+  webhookSecret?: string
   /** Stripe API version pin. Default: `"2023-10-16"`. */
-  apiVersion?: StripeApiVersion;
+  apiVersion?: StripeApiVersion
   /** Idempotency store. Default: memory store created lazily. */
-  idempotencyStore?: IdempotencyStore;
+  idempotencyStore?: IdempotencyStore
 }
 
 /** Fully-resolved options shape. */
 export interface ResolvedPaymentsOptions {
-  readonly secretKey: string | undefined;
-  readonly webhookSecret: string | undefined;
-  readonly apiVersion: StripeApiVersion;
-  readonly idempotencyStore: IdempotencyStore | undefined;
+  readonly secretKey: string | undefined
+  readonly webhookSecret: string | undefined
+  readonly apiVersion: StripeApiVersion
+  readonly idempotencyStore: IdempotencyStore | undefined
 }
 
-const DEFAULT_API_VERSION: StripeApiVersion = "2023-10-16";
+const DEFAULT_API_VERSION: StripeApiVersion = '2023-10-16'
 
 /**
  * Apply defaults + env-var fallbacks to user-provided options.
@@ -55,5 +55,5 @@ export function resolveOptions(opts: PaymentsOptions = {}): ResolvedPaymentsOpti
     webhookSecret: opts.webhookSecret ?? process.env.STRIPE_WEBHOOK_SECRET,
     apiVersion: opts.apiVersion ?? DEFAULT_API_VERSION,
     idempotencyStore: opts.idempotencyStore,
-  };
+  }
 }

@@ -18,9 +18,11 @@ vi.mock('mermaid', () => ({
     initialize: vi.fn(),
     // Simulate a mermaid render that emits a script-bearing SVG (the
     // securityLevel:'strict' bypass scenario the finding guards against).
-    render: vi.fn(async () => ({
-      svg: '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><rect width="10" height="10"/></svg>',
-    })),
+    render: vi.fn(() =>
+      Promise.resolve({
+        svg: '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><rect width="10" height="10"/></svg>',
+      }),
+    ),
   },
 }))
 

@@ -21,10 +21,7 @@
  */
 import { useCallback, useMemo, useReducer, useRef } from 'react'
 
-import {
-  CanvasArtifactValidationError,
-  CanvasPluginError,
-} from '../errors.js'
+import { CanvasArtifactValidationError, CanvasPluginError } from '../errors.js'
 import { type Artifact, validateArtifact } from '../schema.js'
 import { reducer, type CanvasState } from './canvas-reducer-handlers.js'
 
@@ -49,16 +46,16 @@ export interface UseCanvasOptions {
   /** Test seam for fetch. */
   fetchImpl?: typeof fetch
   /** Seed the history with pre-loaded artifacts (e.g. server-side hydration). */
-  initialArtifacts?: ReadonlyArray<Artifact>
+  initialArtifacts?: readonly Artifact[]
 }
 
 export interface UseCanvasState {
   /** The currently displayed artifact (latest version selected). */
   current: Artifact | null
   /** All versions of the current artifact id, ascending. */
-  versions: ReadonlyArray<Artifact>
+  versions: readonly Artifact[]
   /** Latest version of EVERY artifact id in the session, sorted by createdAt desc. */
-  history: ReadonlyArray<Artifact>
+  history: readonly Artifact[]
   /** Controlled `open` state for `<CanvasPanel>`. */
   open: boolean
   /** Last publish/fork error, null when none. */
@@ -88,13 +85,15 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasState {
       for (const a of initialArtifacts) {
         const existing = history.get(a.id) ?? []
         existing.push(a)
-        history.set(a.id, existing.sort((x, y) => x.version - y.version))
+        history.set(
+          a.id,
+          existing.sort((x, y) => x.version - y.version),
+        )
       }
     }
     return { history, pointer: null, open: false, error: null }
     // initialArtifacts is captured once on mount by design — the hook
     // is for live state, not for swapping seeds at runtime.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const [state, dispatch] = useReducer(reducer, initialState)
@@ -113,7 +112,10 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasState {
   }, [])
 
   const hide = useCallback(() => dispatch({ type: 'hide' }), [])
-  const setOpen = useCallback((nextOpen: boolean) => dispatch({ type: 'set-open', open: nextOpen }), [])
+  const setOpen = useCallback(
+    (nextOpen: boolean) => dispatch({ type: 'set-open', open: nextOpen }),
+    [],
+  )
   const clearError = useCallback(() => dispatch({ type: 'clear-error' }), [])
   const remove = useCallback((id: string, version?: number) => {
     dispatch({ type: 'remove', id, version })
@@ -200,7 +202,7 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasState {
   )
 
   // Derived selectors.
-  const versions = useMemo<ReadonlyArray<Artifact>>(() => {
+  const versions = useMemo<readonly Artifact[]>(() => {
     if (state.pointer === null) return []
     return state.history.get(state.pointer.id) ?? []
   }, [state.pointer, state.history])
@@ -216,7 +218,7 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasState {
     )
   }, [state.pointer, state.history])
 
-  const history = useMemo<ReadonlyArray<Artifact>>(() => {
+  const history = useMemo<readonly Artifact[]>(() => {
     const out: Artifact[] = []
     for (const versions of state.history.values()) {
       const latest = versions[versions.length - 1]

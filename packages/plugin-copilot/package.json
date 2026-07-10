@@ -1,6 +1,6 @@
 {
   "name": "@theokit/plugin-copilot",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "AI Copilot pattern for TheoKit — defineCopilot factory + AgentRoomMember (P#9 RoomMember) + CopilotRuntime + React hooks family + <CopilotChat /> composição theo-ui composites. Differentiator: copilot is presence-visible to other users (multi-user awareness — CopilotKit doesn't have this). Form 4 Hybrid per plan p11-plugin-copilot v1.0.",
   "type": "module",
   "main": "./dist/index.js",
@@ -29,13 +29,13 @@
   "peerDependencies": {
     "theokit": ">=0.4.0-beta.0",
     "@theokit/sdk": ">=2.18.0",
-    "@theokit/plugin-realtime": ">=0.1.1",
+    "@theokit/plugin-realtime": ">=0.1.2",
     "zod": "^3.25.0 || ^4.0.0",
     "@theokit/ui": "^0.14.2",
     "react": ">=18 || >=19",
     "@types/react": ">=18 || >=19",
-    "@theokit/plugin-canvas": ">=0.3.1",
-    "@theokit/plugin-voice": ">=0.7.1"
+    "@theokit/plugin-canvas": ">=0.3.3",
+    "@theokit/plugin-voice": ">=0.7.3"
   },
   "peerDependenciesMeta": {
     "zod": {

@@ -118,10 +118,7 @@ export function OpenInCanvasButton({
             {label}
           </Button>
         </DropdownMenu.Trigger>
-        <DropdownMenu.Content
-          align="end"
-          data-testid="open-in-canvas-picker"
-        >
+        <DropdownMenu.Content align="end" data-testid="open-in-canvas-picker">
           {candidates.map((c) => (
             <DropdownMenu.Item
               key={c.id}

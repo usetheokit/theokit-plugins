@@ -31,99 +31,104 @@ pnpm add @theokit/plugin-canvas # canvas artifact emission
 
 ```ts
 // app/copilots/support.ts
-import { defineCopilot } from "@theokit/plugin-copilot";
-import { z } from "zod";
+import { defineCopilot } from '@theokit/plugin-copilot'
+import { z } from 'zod'
 
 export default defineCopilot({
-  id: "support-bot",
+  id: 'support-bot',
   room: {
-    id: "support-room",
+    id: 'support-room',
     presence: z.object({
       name: z.string().optional(),
       cursor: z.tuple([z.number(), z.number()]).optional(),
     }),
     broadcast: z.object({
-      kind: z.enum(["question", "answer", "tool-call"]).optional(),
+      kind: z.enum(['question', 'answer', 'tool-call']).optional(),
       text: z.string().optional(),
     }),
   },
   agent: {
-    name: "SupportBot",
-    model: "openai/gpt-4o-mini",
-    systemPrompt: "You are SupportBot. Be concise and helpful.",
+    name: 'SupportBot',
+    model: 'openai/gpt-4o-mini',
+    systemPrompt: 'You are SupportBot. Be concise and helpful.',
   },
   identity: {
-    name: "Support Bot",
-    avatar: "/avatars/support.png",
-    color: "#7c3aed",
+    name: 'Support Bot',
+    avatar: '/avatars/support.png',
+    color: '#7c3aed',
   },
   triggers: [
-    { on: "broadcast:question", action: "respond" },
-    { on: "presence:idle", action: "suggest", idleMs: 30_000 },
+    { on: 'broadcast:question', action: 'respond' },
+    { on: 'presence:idle', action: 'suggest', idleMs: 30_000 },
   ],
   budget: {
     perRoom: {
       perRequestUsd: 0.01,
-      dailyUsd: 1.00,
+      dailyUsd: 1.0,
     },
   },
-});
+})
 ```
 
 ```ts
 // server bootstrap
-import { Agent } from "@theokit/sdk";
-import { createMemoryRealtimeProvider } from "@theokit/plugin-realtime";
-import { CopilotRuntime } from "@theokit/plugin-copilot";
-import supportCopilot from "./copilots/support.js";
+import { Agent } from '@theokit/sdk'
+import { createMemoryRealtimeProvider } from '@theokit/plugin-realtime'
+import { CopilotRuntime } from '@theokit/plugin-copilot'
+import supportCopilot from './copilots/support.js'
 
-const provider = createMemoryRealtimeProvider();
+const provider = createMemoryRealtimeProvider()
 
 // Bridge SDK Agent (static methods) to CopilotAgentLike (instance shape).
 const agent = {
   async *streamObject(opts: {
-    schema: unknown;
-    prompt: string;
-    model: string | { id: string };
-    systemPrompt?: string;
+    schema: unknown
+    prompt: string
+    model: string | { id: string }
+    systemPrompt?: string
   }) {
-    const modelSel = typeof opts.model === "string" ? { id: opts.model } : opts.model;
-    const sys = opts.systemPrompt ?? "";
-    const fullPrompt = sys ? `${sys}\n\n${opts.prompt}` : opts.prompt;
+    const modelSel = typeof opts.model === 'string' ? { id: opts.model } : opts.model
+    const sys = opts.systemPrompt ?? ''
+    const fullPrompt = sys ? `${sys}\n\n${opts.prompt}` : opts.prompt
     const result = await Agent.prompt(fullPrompt, {
       model: modelSel,
-      apiKey: process.env.OPENROUTER_API_KEY ?? "",
+      apiKey: process.env.OPENROUTER_API_KEY ?? '',
       local: { settingSources: [] },
       providers: {
-        routes: [{ capability: "chat", provider: "openrouter" }],
-        fallback: ["openrouter"],
+        routes: [{ capability: 'chat', provider: 'openrouter' }],
+        fallback: ['openrouter'],
       },
-    });
-    if (result.status !== "finished") {
-      throw new Error(`Agent failed: ${JSON.stringify((result as { error?: unknown }).error)}`);
+    })
+    if (result.status !== 'finished') {
+      throw new Error(`Agent failed: ${JSON.stringify((result as { error?: unknown }).error)}`)
     }
-    const text = typeof result.result === "string" ? result.result : "";
-    yield { type: "partial", partial: { text }, attempt: 0 } as const;
-    yield { type: "complete", object: { text } } as const;
+    const text = typeof result.result === 'string' ? result.result : ''
+    yield { type: 'partial', partial: { text }, attempt: 0 } as const
+    yield { type: 'complete', object: { text } } as const
   },
-};
+}
 
 const runtime = new CopilotRuntime({
   provider,
   agent,
   copilots: [supportCopilot],
   estimatedCostPerInvocationUsd: 0.001,
-});
+})
 
-await runtime.activate("support-bot");
+await runtime.activate('support-bot')
 ```
 
 ## React composição
 
 ```tsx
 // app/page.tsx
-import { CopilotProvider, CopilotChat, useCopilot, useCopilotPresence } from "@theokit/plugin-copilot/react";
-import { provider } from "./bootstrap";
+import {
+  CopilotProvider,
+  CopilotChat,
+  useCopilot,
+  useCopilotPresence,
+} from '@theokit/plugin-copilot/react'
+import { provider } from './bootstrap'
 
 export default function Page() {
   return (
@@ -135,7 +140,7 @@ export default function Page() {
     >
       <CopilotChat />
     </CopilotProvider>
-  );
+  )
 }
 ```
 
@@ -148,20 +153,20 @@ import {
   useCopilotTyping,
   useCopilotReadable,
   useCopilotTool,
-} from "@theokit/plugin-copilot/react";
+} from '@theokit/plugin-copilot/react'
 
 function MyCustomChat() {
-  const messages = useCopilotMessages();
-  const presence = useCopilotPresence();      // human peers (filtered)
-  const typing = useCopilotTyping();          // {copilotId, progress?} | null
-  useCopilotReadable({ description: "currentPage", value: { url: "/dashboard" } }); // broadcasts context to copilot
+  const messages = useCopilotMessages()
+  const presence = useCopilotPresence() // human peers (filtered)
+  const typing = useCopilotTyping() // {copilotId, progress?} | null
+  useCopilotReadable({ description: 'currentPage', value: { url: '/dashboard' } }) // broadcasts context to copilot
   useCopilotTool({
-    name: "create-task",
-    description: "Create a task",
+    name: 'create-task',
+    description: 'Create a task',
     handler: async (args) => {
       /* … */
     },
-  }); // exposes a tool to copilot
+  }) // exposes a tool to copilot
   // …render however you want
 }
 ```
@@ -170,11 +175,11 @@ function MyCustomChat() {
 
 Three declarative trigger families per ADR D3:
 
-| Trigger | When it fires | Action types |
-|---|---|---|
-| `broadcast:<event>` | Any human broadcasts a frame with `event === <event>` | `respond` / `execute-tool` |
-| `presence:idle` | No human activity in the room for `idleMs` | `suggest` |
-| `custom` | Custom filter function returns `true` for a frame | `respond` / `suggest` / `execute-tool` |
+| Trigger             | When it fires                                         | Action types                           |
+| ------------------- | ----------------------------------------------------- | -------------------------------------- |
+| `broadcast:<event>` | Any human broadcasts a frame with `event === <event>` | `respond` / `execute-tool`             |
+| `presence:idle`     | No human activity in the room for `idleMs`            | `suggest`                              |
+| `custom`            | Custom filter function returns `true` for a frame     | `respond` / `suggest` / `execute-tool` |
 
 The CopilotRuntime filters out frames originating from any connection id starting with `copilot:` BEFORE evaluating triggers (EC-4 + EC-8 — cost-runaway and copilot impersonation guards).
 
@@ -182,12 +187,12 @@ The CopilotRuntime filters out frames originating from any connection id startin
 
 When multiple copilots are registered in the same room, the `dispatcher` field of each `CopilotDescriptor` (or `defaultDispatcher` on the runtime) decides who responds:
 
-| Policy | Behaviour |
-|---|---|
-| `"first-wins"` *(default)* | Only the first registered copilot in the room responds. Prevents cost runaway by default. |
-| `"round-robin"` | Cursor cycles through copilots one frame at a time. |
-| `"all"` | Every copilot in the room responds to every triggering frame. Opt-in only — expensive. |
-| `(copilots, frame) => string[]` | Custom function returns the array of copilot ids that should respond. |
+| Policy                          | Behaviour                                                                                 |
+| ------------------------------- | ----------------------------------------------------------------------------------------- |
+| `"first-wins"` _(default)_      | Only the first registered copilot in the room responds. Prevents cost runaway by default. |
+| `"round-robin"`                 | Cursor cycles through copilots one frame at a time.                                       |
+| `"all"`                         | Every copilot in the room responds to every triggering frame. Opt-in only — expensive.    |
+| `(copilots, frame) => string[]` | Custom function returns the array of copilot ids that should respond.                     |
 
 ## Budget integration — opt-in cost guard (ADR D7)
 
@@ -198,7 +203,10 @@ Each copilot can declare `budget.perRoom: { perRequestUsd, dailyUsd, monthlyUsd 
   "type": "broadcast",
   "connectionId": "copilot:support-bot",
   "event": "budget-exceeded",
-  "payload": { "message": "Per-request budget exceeded: $0.05 limit, would consume $0.10", "code": "budget_per_request_exceeded" }
+  "payload": {
+    "message": "Per-request budget exceeded: $0.05 limit, would consume $0.10",
+    "code": "budget_per_request_exceeded"
+  }
 }
 ```
 
@@ -207,45 +215,57 @@ Each copilot can declare `budget.perRoom: { perRequestUsd, dailyUsd, monthlyUsd 
 ## Custom provider (Liveblocks / PartyKit / Redis / TheoCloud)
 
 ```ts
-import { defineCopilotRealtimeProvider } from "@theokit/plugin-copilot";
+import { defineCopilotRealtimeProvider } from '@theokit/plugin-copilot'
 
 const myProvider = defineCopilotRealtimeProvider({
-  async joinRoom(roomId, conn, initialPresence) { /* ... */ },
-  async leaveRoom(roomId, connectionId) { /* ... */ },
-  async broadcast(roomId, connectionId, event, payload) { /* ... */ },
-  async updatePresence(roomId, connectionId, patch) { /* ... */ },
-  async getPresence(roomId) { return {}; },
-  subscribeRoom(roomId, listener) { return () => {}; },
-});
+  async joinRoom(roomId, conn, initialPresence) {
+    /* ... */
+  },
+  async leaveRoom(roomId, connectionId) {
+    /* ... */
+  },
+  async broadcast(roomId, connectionId, event, payload) {
+    /* ... */
+  },
+  async updatePresence(roomId, connectionId, patch) {
+    /* ... */
+  },
+  async getPresence(roomId) {
+    return {}
+  },
+  subscribeRoom(roomId, listener) {
+    return () => {}
+  },
+})
 ```
 
 The helper validates that all 6 required methods are present at construction.
 
 ## Security threats addressed
 
-| Threat | Mitigation |
-|---|---|
-| **Cost runaway** via copilot loop (copilot A triggers copilot B which triggers copilot A) | `TriggerEvaluator` filters out frames where `connectionId.startsWith("copilot:")` BEFORE matching triggers (EC-4). Default dispatcher `"first-wins"` further bounds same-room cost. |
-| **Copilot impersonation** by a malicious human client | The `copilot:` connection-id prefix is reserved; humans cannot claim a `copilot:*` connection id when joining via the realtime layer (EC-8 — enforced by the consumer's wire layer; the copilot runtime never accepts a frame from a `copilot:*` connectionId as a trigger source). |
-| **Per-request cost spike** (large prompt, model hallucination loop) | Optional `budget.perRoom.perRequestUsd` preflight — exceeds emit typed `budget-exceeded` frame instead of invoking the agent. |
-| **Rolling daily / monthly cost overrun** | `budget.perRoom.{dailyUsd, monthlyUsd}` rolling windows reset at UTC day / month boundaries. |
-| **Tool/knowledge registry injection** via React hooks | `useCopilotReadable` / `useCopilotTool` broadcast register / deregister events scoped to the local connection; the copilot runtime decides whether to use them — never assumes trust. |
-| **Trigger ReDoS** via malicious `broadcast:` event names | Trigger event names are matched via exact-string equality (no regex). Custom-filter triggers run in the consumer's process — consumer responsibility. |
+| Threat                                                                                    | Mitigation                                                                                                                                                                                                                                                                          |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cost runaway** via copilot loop (copilot A triggers copilot B which triggers copilot A) | `TriggerEvaluator` filters out frames where `connectionId.startsWith("copilot:")` BEFORE matching triggers (EC-4). Default dispatcher `"first-wins"` further bounds same-room cost.                                                                                                 |
+| **Copilot impersonation** by a malicious human client                                     | The `copilot:` connection-id prefix is reserved; humans cannot claim a `copilot:*` connection id when joining via the realtime layer (EC-8 — enforced by the consumer's wire layer; the copilot runtime never accepts a frame from a `copilot:*` connectionId as a trigger source). |
+| **Per-request cost spike** (large prompt, model hallucination loop)                       | Optional `budget.perRoom.perRequestUsd` preflight — exceeds emit typed `budget-exceeded` frame instead of invoking the agent.                                                                                                                                                       |
+| **Rolling daily / monthly cost overrun**                                                  | `budget.perRoom.{dailyUsd, monthlyUsd}` rolling windows reset at UTC day / month boundaries.                                                                                                                                                                                        |
+| **Tool/knowledge registry injection** via React hooks                                     | `useCopilotReadable` / `useCopilotTool` broadcast register / deregister events scoped to the local connection; the copilot runtime decides whether to use them — never assumes trust.                                                                                               |
+| **Trigger ReDoS** via malicious `broadcast:` event names                                  | Trigger event names are matched via exact-string equality (no regex). Custom-filter triggers run in the consumer's process — consumer responsibility.                                                                                                                               |
 
 ## Comparison vs CopilotKit
 
-| Feature | CopilotKit | @theokit/plugin-copilot |
-|---|---|---|
-| Frontend SDK | ✓ extensive (React + custom) | ✓ React hooks family + `<CopilotChat />` |
-| Agent runtime | bridge via runtime tier (AG-UI) | direct binding to `@theokit/sdk` `Agent.streamObject` / `Agent.prompt` |
-| Tool registration | `useCopilotAction` | `useCopilotTool` (registers via broadcast event) |
-| Context registration | `useCopilotReadable` | `useCopilotReadable` (registers via broadcast event) |
-| **Multi-user awareness** | ✗ copilot is invisible to other users | ✓ copilot is a `RoomMember` — visible in presence Map with name + avatar + color + typing |
-| Multi-copilot in same room | ✗ | ✓ dispatcher policy: `first-wins` / `round-robin` / `all` / custom fn |
-| Budget per-room | ✗ | ✓ `perRequestUsd` + `dailyUsd` + `monthlyUsd` rolling windows + typed `budget-exceeded` frame |
-| Provider abstraction | ✗ specific runtime | ✓ any P#9 `RealtimeProvider` (Memory + Yjs + Liveblocks + PartyKit + TheoCloud) |
-| Voice (STT + TTS) | ✗ | opt-in via `@theokit/plugin-voice` peer |
-| Canvas (artifacts) | ✗ | opt-in via `@theokit/plugin-canvas` peer |
+| Feature                    | CopilotKit                            | @theokit/plugin-copilot                                                                       |
+| -------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Frontend SDK               | ✓ extensive (React + custom)          | ✓ React hooks family + `<CopilotChat />`                                                      |
+| Agent runtime              | bridge via runtime tier (AG-UI)       | direct binding to `@theokit/sdk` `Agent.streamObject` / `Agent.prompt`                        |
+| Tool registration          | `useCopilotAction`                    | `useCopilotTool` (registers via broadcast event)                                              |
+| Context registration       | `useCopilotReadable`                  | `useCopilotReadable` (registers via broadcast event)                                          |
+| **Multi-user awareness**   | ✗ copilot is invisible to other users | ✓ copilot is a `RoomMember` — visible in presence Map with name + avatar + color + typing     |
+| Multi-copilot in same room | ✗                                     | ✓ dispatcher policy: `first-wins` / `round-robin` / `all` / custom fn                         |
+| Budget per-room            | ✗                                     | ✓ `perRequestUsd` + `dailyUsd` + `monthlyUsd` rolling windows + typed `budget-exceeded` frame |
+| Provider abstraction       | ✗ specific runtime                    | ✓ any P#9 `RealtimeProvider` (Memory + Yjs + Liveblocks + PartyKit + TheoCloud)               |
+| Voice (STT + TTS)          | ✗                                     | opt-in via `@theokit/plugin-voice` peer                                                       |
+| Canvas (artifacts)         | ✗                                     | opt-in via `@theokit/plugin-canvas` peer                                                      |
 
 ## License
 

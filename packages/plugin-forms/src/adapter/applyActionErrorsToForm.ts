@@ -21,17 +21,14 @@
  * level — consumers can pass any function matching this shape (real RHF setError
  * works; mocks for testing work; alternative form libs work).
  */
-export type SetErrorCallback = (
-  name: string,
-  error: { type: string; message: string },
-) => void;
+export type SetErrorCallback = (name: string, error: { type: string; message: string }) => void
 
 /**
  * Shape of TheoKit's `ActionInputError.fields` after `buildFieldsMap` runs.
  * Root errors use empty-string key per the G3 contract at
  * `theokit/packages/theo/src/core/contracts/action-protocol.ts:165`.
  */
-export type ActionInputErrorLike = Record<string, string[]>;
+export type ActionInputErrorLike = Record<string, string[]>
 
 /**
  * Map every entry of `fields` to a `setError(key, {type:'server', message})` call.
@@ -51,8 +48,8 @@ export function applyActionErrorsToForm(
   fields: ActionInputErrorLike,
 ): void {
   for (const [key, messages] of Object.entries(fields)) {
-    if (messages.length === 0) continue;
-    const rhfKey = key === "" ? "root" : key;
-    setError(rhfKey, { type: "server", message: messages[0]! });
+    if (messages.length === 0) continue
+    const rhfKey = key === '' ? 'root' : key
+    setError(rhfKey, { type: 'server', message: messages[0]! })
   }
 }

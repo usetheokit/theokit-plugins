@@ -12,11 +12,8 @@
  * @public
  */
 
-import * as React from "react";
-import type {
-  BroadcastPayload,
-  Presence,
-} from "../types.js";
+import * as React from 'react'
+import type { BroadcastPayload, Presence } from '../types.js'
 
 /**
  * G8-compatible subscription client shape (structural, NOT imported from SDK).
@@ -27,8 +24,8 @@ export interface RealtimeSubscribeClient {
   subscribe<TInput, TOutput>(
     name: string,
     input: TInput,
-    opts: { baseUrl: string; transport?: "ws" | "sse" | "auto" },
-  ): AsyncGenerator<TOutput, void, void>;
+    opts: { baseUrl: string; transport?: 'ws' | 'sse' | 'auto' },
+  ): AsyncGenerator<TOutput, void, void>
 }
 
 /**
@@ -36,31 +33,34 @@ export interface RealtimeSubscribeClient {
  *
  * @public
  */
-export interface RoomState<P extends Presence = Presence, E extends BroadcastPayload = BroadcastPayload> {
-  readonly roomId: string;
-  readonly others: Record<string, P>;
-  readonly myPresence: P;
-  readonly connectionId: string | null;
-  updateMyPresence(patch: Partial<P>): void;
-  broadcast(event: string, payload: E): void;
+export interface RoomState<
+  P extends Presence = Presence,
+  E extends BroadcastPayload = BroadcastPayload,
+> {
+  readonly roomId: string
+  readonly others: Record<string, P>
+  readonly myPresence: P
+  readonly connectionId: string | null
+  updateMyPresence(patch: Partial<P>): void
+  broadcast(event: string, payload: E): void
 }
 
 interface InternalRoomState {
-  others: Record<string, Presence>;
-  myPresence: Presence;
-  connectionId: string | null;
+  others: Record<string, Presence>
+  myPresence: Presence
+  connectionId: string | null
 }
 
 /** #185: a single inbound realtime frame (presence/broadcast wire shape). */
 interface RealtimeOutFrame {
-  type: string;
-  connectionId?: string;
-  presence?: Presence;
-  event?: string;
-  payload?: BroadcastPayload;
+  type: string
+  connectionId?: string
+  presence?: Presence
+  event?: string
+  payload?: BroadcastPayload
 }
 
-type SetStateAndNotify = (next: InternalRoomState) => void;
+type SetStateAndNotify = (next: InternalRoomState) => void
 
 /** #185: reduce one inbound frame into room state (extracted to cap effect CC). */
 function applyRealtimeFrame(
@@ -69,21 +69,21 @@ function applyRealtimeFrame(
   setStateAndNotify: SetStateAndNotify,
 ): void {
   switch (out.type) {
-    case "joined":
-      applyJoinedFrame(out, stateRef, setStateAndNotify);
-      break;
-    case "left":
+    case 'joined':
+      applyJoinedFrame(out, stateRef, setStateAndNotify)
+      break
+    case 'left':
       if (out.connectionId !== undefined) {
-        const { [out.connectionId]: _removed, ...rest } = stateRef.current.others;
-        setStateAndNotify({ ...stateRef.current, others: rest });
+        const { [out.connectionId]: _removed, ...rest } = stateRef.current.others
+        setStateAndNotify({ ...stateRef.current, others: rest })
       }
-      break;
-    case "presence-changed":
-      applyPresenceChangedFrame(out, stateRef, setStateAndNotify);
-      break;
-    case "broadcast":
+      break
+    case 'presence-changed':
+      applyPresenceChangedFrame(out, stateRef, setStateAndNotify)
+      break
+    case 'broadcast':
       // Broadcast events surface via useBroadcast subscription, not state.
-      break;
+      break
   }
 }
 
@@ -92,18 +92,18 @@ function applyJoinedFrame(
   stateRef: { current: InternalRoomState },
   setStateAndNotify: SetStateAndNotify,
 ): void {
-  const isSelf = stateRef.current.connectionId === null;
+  const isSelf = stateRef.current.connectionId === null
   if (isSelf && out.connectionId !== undefined) {
     setStateAndNotify({
       others: { ...stateRef.current.others },
       myPresence: out.presence ?? stateRef.current.myPresence,
       connectionId: out.connectionId,
-    });
+    })
   } else if (out.connectionId !== undefined) {
     setStateAndNotify({
       ...stateRef.current,
       others: { ...stateRef.current.others, [out.connectionId]: out.presence ?? {} },
-    });
+    })
   }
 }
 
@@ -112,26 +112,26 @@ function applyPresenceChangedFrame(
   stateRef: { current: InternalRoomState },
   setStateAndNotify: SetStateAndNotify,
 ): void {
-  if (out.connectionId === undefined || out.presence === undefined) return;
+  if (out.connectionId === undefined || out.presence === undefined) return
   if (out.connectionId === stateRef.current.connectionId) {
-    setStateAndNotify({ ...stateRef.current, myPresence: out.presence });
+    setStateAndNotify({ ...stateRef.current, myPresence: out.presence })
   } else {
     setStateAndNotify({
       ...stateRef.current,
       others: { ...stateRef.current.others, [out.connectionId]: out.presence },
-    });
+    })
   }
 }
 
 interface RoomContextValue {
-  state: InternalRoomState;
-  emit(out: { kind: "presence-update"; patch: Partial<Presence> }): void;
-  emitBroadcast(event: string, payload: BroadcastPayload): void;
-  subscribe(listener: () => void): () => void;
-  roomId: string;
+  state: InternalRoomState
+  emit(out: { kind: 'presence-update'; patch: Partial<Presence> }): void
+  emitBroadcast(event: string, payload: BroadcastPayload): void
+  subscribe(listener: () => void): () => void
+  roomId: string
 }
 
-const RoomContext = React.createContext<RoomContextValue | null>(null);
+const RoomContext = React.createContext<RoomContextValue | null>(null)
 
 /**
  * Options for {@link RoomProvider}.
@@ -140,16 +140,16 @@ const RoomContext = React.createContext<RoomContextValue | null>(null);
  */
 export interface RoomProviderProps {
   /** Room id (must match a server-registered `defineRoom({id})`). */
-  roomId: string;
+  roomId: string
   /** Initial presence for THIS client when joining the room. */
-  initialPresence?: Presence;
+  initialPresence?: Presence
   /** G8-compatible subscribe client. */
-  client: RealtimeSubscribeClient;
+  client: RealtimeSubscribeClient
   /** Base URL for the realtime endpoint (defaults to `''` = relative). */
-  baseUrl?: string;
+  baseUrl?: string
   /** Optional subscription name override (defaults to `realtime:{roomId}`). */
-  subscriptionName?: string;
-  readonly children?: React.ReactNode;
+  subscriptionName?: string
+  readonly children?: React.ReactNode
 }
 
 /**
@@ -158,64 +158,68 @@ export interface RoomProviderProps {
  * @public
  */
 export function RoomProvider(props: RoomProviderProps): React.ReactElement {
-  const { roomId, initialPresence, client, baseUrl, subscriptionName, children } = props;
+  const { roomId, initialPresence, client, baseUrl, subscriptionName, children } = props
   const [state, setState] = React.useState<InternalRoomState>(() => ({
     others: {},
     myPresence: { ...(initialPresence ?? {}) },
     connectionId: null,
-  }));
+  }))
 
-  const listenersRef = React.useRef<Set<() => void>>(new Set());
-  const stateRef = React.useRef(state);
-  stateRef.current = state;
+  const listenersRef = React.useRef<Set<() => void>>(new Set())
+  const stateRef = React.useRef(state)
+  stateRef.current = state
 
   const notify = React.useCallback((): void => {
-    for (const cb of listenersRef.current) cb();
-  }, []);
+    for (const cb of listenersRef.current) cb()
+  }, [])
 
   const setStateAndNotify = React.useCallback(
     (next: InternalRoomState): void => {
-      stateRef.current = next;
-      setState(next);
-      notify();
+      stateRef.current = next
+      setState(next)
+      notify()
     },
     [notify],
-  );
+  )
 
   // Subscription lifecycle.
   React.useEffect(() => {
-    let cancelled = false;
-    const ac = new AbortController();
-    const name = subscriptionName ?? `realtime:${roomId}`;
-    const url = baseUrl ?? "";
+    let cancelled = false
+    const ac = new AbortController()
+    const name = subscriptionName ?? `realtime:${roomId}`
+    const url = baseUrl ?? ''
     void (async () => {
       try {
         const iter = client.subscribe<
           { initialPresence?: Presence },
           {
-            type: string;
-            connectionId?: string;
-            presence?: Presence;
-            event?: string;
-            payload?: BroadcastPayload;
+            type: string
+            connectionId?: string
+            presence?: Presence
+            event?: string
+            payload?: BroadcastPayload
           }
-        >(name, { initialPresence: stateRef.current.myPresence }, { baseUrl: url, transport: "auto" });
+        >(
+          name,
+          { initialPresence: stateRef.current.myPresence },
+          { baseUrl: url, transport: 'auto' },
+        )
         for await (const out of iter) {
-          if (cancelled) return;
+          if (cancelled) return
           // #185: per-frame state reduction extracted to keep this effect's
           // cyclomatic complexity low (behavior unchanged).
-          applyRealtimeFrame(out, stateRef, setStateAndNotify);
+          applyRealtimeFrame(out, stateRef, setStateAndNotify)
         }
       } catch {
         // Subscription failure — leave state intact; consumer can retry by
         // unmounting/remounting the provider.
       }
-    })();
+    })()
     return () => {
-      cancelled = true;
-      ac.abort();
-    };
-  }, [roomId, baseUrl, subscriptionName, client, setStateAndNotify]);
+      cancelled = true
+      ac.abort()
+    }
+  }, [roomId, baseUrl, subscriptionName, client, setStateAndNotify])
 
   const value = React.useMemo<RoomContextValue>(
     () => ({
@@ -227,32 +231,30 @@ export function RoomProvider(props: RoomProviderProps): React.ReactElement {
         // local state optimistically; the wire-up to send via client is a
         // post-MVP enhancement once G8 `subscribe` upstream `.send()` API
         // stabilizes (currently AsyncGenerator is read-only).
-        const merged = { ...state.myPresence, ..._out.patch } as Presence;
-        setStateAndNotify({ ...state, myPresence: merged });
+        const merged = { ...state.myPresence, ..._out.patch } as Presence
+        setStateAndNotify({ ...state, myPresence: merged })
       },
       emitBroadcast(_event, _payload) {
         // Same upstream constraint as `emit`; broadcasts are tracked locally
         // until upstream support lands.
       },
       subscribe(cb) {
-        listenersRef.current.add(cb);
-        return () => listenersRef.current.delete(cb);
+        listenersRef.current.add(cb)
+        return () => listenersRef.current.delete(cb)
       },
     }),
     [state, roomId, setStateAndNotify],
-  );
+  )
 
-  return React.createElement(RoomContext.Provider, { value }, children);
+  return React.createElement(RoomContext.Provider, { value }, children)
 }
 
 function useRoomContext(): RoomContextValue {
-  const ctx = React.useContext(RoomContext);
+  const ctx = React.useContext(RoomContext)
   if (ctx === null) {
-    throw new Error(
-      "useRoom/useOthers/usePresence: must be called inside <RoomProvider>",
-    );
+    throw new Error('useRoom/useOthers/usePresence: must be called inside <RoomProvider>')
   }
-  return ctx;
+  return ctx
 }
 
 /**
@@ -260,16 +262,19 @@ function useRoomContext(): RoomContextValue {
  *
  * @public
  */
-export function useRoom<P extends Presence = Presence, E extends BroadcastPayload = BroadcastPayload>(): RoomState<P, E> {
-  const ctx = useRoomContext();
+export function useRoom<
+  P extends Presence = Presence,
+  E extends BroadcastPayload = BroadcastPayload,
+>(): RoomState<P, E> {
+  const ctx = useRoomContext()
   return {
     roomId: ctx.roomId,
     others: ctx.state.others as Record<string, P>,
     myPresence: ctx.state.myPresence as P,
     connectionId: ctx.state.connectionId,
-    updateMyPresence: (patch) => ctx.emit({ kind: "presence-update", patch }),
-    broadcast: (event, payload) => ctx.emitBroadcast(event, payload as BroadcastPayload),
-  };
+    updateMyPresence: (patch) => ctx.emit({ kind: 'presence-update', patch }),
+    broadcast: (event, payload) => ctx.emitBroadcast(event, payload),
+  }
 }
 
 /**
@@ -278,8 +283,8 @@ export function useRoom<P extends Presence = Presence, E extends BroadcastPayloa
  * @public
  */
 export function useOthers<P extends Presence = Presence>(): Record<string, P> {
-  const ctx = useRoomContext();
-  return ctx.state.others as Record<string, P>;
+  const ctx = useRoomContext()
+  return ctx.state.others as Record<string, P>
 }
 
 /**
@@ -288,8 +293,8 @@ export function useOthers<P extends Presence = Presence>(): Record<string, P> {
  * @public
  */
 export function usePresence<P extends Presence = Presence>(): P {
-  const ctx = useRoomContext();
-  return ctx.state.myPresence as P;
+  const ctx = useRoomContext()
+  return ctx.state.myPresence as P
 }
 
 /**
@@ -298,8 +303,8 @@ export function usePresence<P extends Presence = Presence>(): P {
  * @public
  */
 export function useUpdateMyPresence<P extends Presence = Presence>(): (patch: Partial<P>) => void {
-  const ctx = useRoomContext();
-  return (patch) => ctx.emit({ kind: "presence-update", patch });
+  const ctx = useRoomContext()
+  return (patch) => ctx.emit({ kind: 'presence-update', patch })
 }
 
 /**
@@ -309,9 +314,12 @@ export function useUpdateMyPresence<P extends Presence = Presence>(): (patch: Pa
  *
  * @public
  */
-export function useBroadcast<E extends BroadcastPayload = BroadcastPayload>(): (event: string, payload: E) => void {
-  const ctx = useRoomContext();
-  return (event, payload) => ctx.emitBroadcast(event, payload as BroadcastPayload);
+export function useBroadcast<E extends BroadcastPayload = BroadcastPayload>(): (
+  event: string,
+  payload: E,
+) => void {
+  const ctx = useRoomContext()
+  return (event, payload) => ctx.emitBroadcast(event, payload)
 }
 
 /**
@@ -325,5 +333,5 @@ export function useBroadcast<E extends BroadcastPayload = BroadcastPayload>(): (
 export function useYDoc(): never {
   throw new Error(
     "useYDoc: Y.Doc auto-wiring requires room descriptor `storage: 'yjs'` + YjsRealtimeProvider server-side. v0.1 ships the provider but auto-wiring through the React Context is deferred to v0.x. Use the YjsRealtimeProvider directly server-side and consume Y.Doc updates via useBroadcast for now.",
-  );
+  )
 }
