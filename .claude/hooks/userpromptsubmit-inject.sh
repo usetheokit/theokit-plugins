@@ -21,8 +21,21 @@
 
 set -eu
 
-# shellcheck source=lib/detect-layout.sh
-source "$(dirname "$0")/lib/detect-layout.sh"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+cd "$PROJECT_DIR" || exit 0
+
+# Detect ecosystem layout: standalone (./) or plugin install (./.claude/).
+# Inlined to match the sibling hooks (sessionstart-context.sh, stop-validation.sh,
+# public-copy-lint.sh, precompact-preserve.sh). The former lib/detect-layout.sh
+# helper was never committed, so sourcing it aborted this hook under `set -eu`
+# before any context (even the always-on parsimony ladder) could be emitted.
+if [ -d ".claude/skills" ] && [ -d ".claude/rules" ] && [ -d ".claude/hooks" ]; then
+  ECO=".claude"
+elif [ -d "skills" ] && [ -d "rules" ] && [ -d "hooks" ]; then
+  ECO="."
+else
+  exit 0
+fi
 
 SLUG_RE='^[A-Za-z0-9_][A-Za-z0-9._-]*$'
 
