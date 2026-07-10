@@ -73,7 +73,12 @@ section above.
 
 **Top risks:** retired — milestone complete.
 
-## M1 — [ ] Architecture remediation (audit 2026-07-10)
+## M1 — [x] Architecture remediation (audit 2026-07-10)
+
+> **Delivered 2026-07-10** — voice 0.7.2, canvas 0.3.2, email 0.1.1. All functional
+> gates green: build 11/11, test 665/665, typecheck 0 errors, madge 0 cycles. Review:
+> READY_TO_MERGE (2 independent reviewers). Also repaired the pre-existing broken root
+> typecheck gate and added a `check:cycles` CI regression guard.
 
 **Objective:** Resolve the single critical structural defect and apply the surgical,
 behavior-preserving normalizations surfaced by the 2026-07-10 architecture audit
