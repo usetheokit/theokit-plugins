@@ -1,7 +1,7 @@
 import { Button, CopyButton, Tooltip } from '@theokit/ui'
 
 import type { Artifact } from '../schema.js'
-import type { CanvasPanelToolbarAction } from './canvas-panel.js'
+import type { CanvasPanelToolbarAction } from './canvas-panel-actions.js'
 
 export interface CanvasToolbarProps {
   artifact: Artifact | null

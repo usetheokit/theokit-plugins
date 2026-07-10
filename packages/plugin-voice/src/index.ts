@@ -25,21 +25,22 @@
  *   honest and to give the user observable, framework-aware routing,
  *   we lean on `defineRoute` shims instead of a framework patch.
  */
-import { defineTheoPlugin, type TheoPlugin } from 'theokit/server'
+// theokit M31: `defineTheoPlugin` (value) is internalized; the `TheoPlugin` type
+// remains public on the `theokit/server` barrel. Type-only import is erased at
+// build, so it carries no runtime coupling to the deprecated umbrella entry.
+import type { TheoPlugin } from 'theokit/server'
 
-import { handleSttRequest } from './stt-server.js'
-import { handleTtsRequest } from './tts-server.js'
 import { validateVoiceOptions, type VoiceConfig, type VoiceOptions } from './options.js'
 
-export { handleSttRequest } from './stt-server.js'
-export { handleTtsRequest } from './tts-server.js'
+export { handleSttRequest } from './server/stt-server.js'
+export { handleTtsRequest } from './server/tts-server.js'
 export type {
   SttAudio,
   SttHandlerOptions,
   SttInput,
   SttResponseBody,
-} from './stt-server.js'
-export type { TtsHandlerOptions, TtsInput } from './tts-server.js'
+} from './server/stt-server.js'
+export type { TtsHandlerOptions, TtsInput } from './server/tts-server.js'
 
 export {
   createRecorder,
@@ -80,12 +81,16 @@ export function resolveVoiceConfig(options: VoiceOptions = {}): VoiceConfig {
 export default function voicePlugin(options: VoiceOptions = {}): TheoPlugin {
   // EC-6: validate synchronously — boot-time crash beats mid-request 500.
   validateVoiceOptions(options)
-  return defineTheoPlugin({
+  // theokit M31 internalized defineTheoPlugin (the `plugin()` builder is the
+  // public surface). The wrapper was a pure identity, so return the typed
+  // object directly — no runtime dependency on the deprecated umbrella export.
+  const plugin: TheoPlugin = {
     name: '@theokit/plugin-voice',
     register() {
       // intentionally empty — see file docstring
     },
-  })
+  }
+  return plugin
 }
 
 // Re-exported helper signatures for runtime parity with the prior API.

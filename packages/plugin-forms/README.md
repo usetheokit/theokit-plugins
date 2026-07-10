@@ -9,7 +9,7 @@ Declarative form binding for TheoKit. Glues `zod` + `react-hook-form` + `useActi
 ```bash
 pnpm add @theokit/plugin-forms react-hook-form @hookform/resolvers zod
 # Optional (recommended) for the styled <TheoField> tier:
-pnpm add @theokit/ui
+pnpm add @usetheo/ui
 ```
 
 Peer-dep matrix:
@@ -22,7 +22,7 @@ Peer-dep matrix:
 | `zod` | `^3.25.0 \|\| ^4.0.0` | yes (matches `@theokit/sdk` peer range) |
 | `theokit` | `>=0.2.3` | yes (G3 `__zodSchema` extension) |
 | `@theokit/react` | `>=1.1.0` | yes (`useAction` hook) |
-| `@theokit/ui` | `>=0.13.0` | **optional** (only for the styled `<TheoField>` tier) |
+| `@usetheo/ui` | `>=0.14.0` | **optional** (only for the styled `<TheoField>` tier) |
 
 ## Convention — shared schemas
 
@@ -60,7 +60,7 @@ The TheoKit Vite plugin detects the convention and exposes the schema at runtime
 "use client";
 import { actions } from "@theo/actions";
 import { TheoForm, TheoField, useTheoFieldRegister } from "@theokit/plugin-forms";
-import { FormField, Input, Button } from "@theokit/ui";
+import { FormField, Input, Button } from "@usetheo/ui";
 
 function InputForCurrentField() {
   const register = useTheoFieldRegister();
@@ -90,7 +90,7 @@ export default function MemoryPage() {
 
 What's happening:
 - `<TheoForm action={actions.saveMemory}>` wires `useAction` + RHF `useForm({resolver: zodResolver(actions.saveMemory.__zodSchema)})` + provides Context.
-- `<TheoField name="content">` reads RHF state for the field; renders `<FormField invalid={hasError}>` from `@theokit/ui`.
+- `<TheoField name="content">` reads RHF state for the field; renders `<FormField invalid={hasError}>` from `@usetheo/ui`.
 - `useTheoFieldRegister()` inside the descendant input pulls RHF's `register` props and spreads them onto the `<Input>`.
 - On submit failure with `ActionInputError`, `<FormField.Error/>` populates from `errors.content.message` via the internal adapter.
 
@@ -100,7 +100,7 @@ Submit buttons (and any descendant) read pending/error/data via Context:
 
 ```tsx
 import { useTheoFormState } from "@theokit/plugin-forms";
-import { Button } from "@theokit/ui";
+import { Button } from "@usetheo/ui";
 
 function SubmitButton() {
   const { isPending, isError, error } = useTheoFormState();
@@ -115,9 +115,9 @@ function SubmitButton() {
 }
 ```
 
-## Cookbook 3 — headless `useTheoField` (no `@theokit/ui`)
+## Cookbook 3 — headless `useTheoField` (no `@usetheo/ui`)
 
-For consumers who don't use `@theokit/ui` (shadcn primitives, MUI, raw HTML):
+For consumers who don't use `@usetheo/ui` (shadcn primitives, MUI, raw HTML):
 
 ```tsx
 "use client";
@@ -146,7 +146,7 @@ export default function MyForm() {
 }
 ```
 
-The headless tier has **no `@theokit/ui` dependency** — keeps the plugin usable in any React stack.
+The headless tier has **no `@usetheo/ui` dependency** — keeps the plugin usable in any React stack.
 
 ## Field-error adapter — `applyActionErrorsToForm`
 
@@ -175,7 +175,7 @@ First message per field wins (HTML5 single `aria-describedby` convention). For m
 - **Requires JavaScript on the client.** No progressive-enhancement path in v0.1 — forms will not submit without JS. FormData wire (PE) is targeted for v0.2.
 - **No file uploads in v0.1.** `multipart/form-data` deferred to v0.2.
 - **No form arrays / wizards.** RHF `useFieldArray` works inside `<TheoForm>` but plugin sub-parts don't ship special UX for it.
-- **`<TheoField>` (styled tier) throws at first render if `@theokit/ui` is not installed**, not at module import. Use `useTheoField` (headless) when `@theokit/ui` is not in the dep tree.
+- **`<TheoField>` (styled tier) throws at first render if `@usetheo/ui` is not installed**, not at module import. Use `useTheoField` (headless) when `@usetheo/ui` is not in the dep tree.
 - **Async zod refinements (`.refine(async)`) are stripped client-side.** RHF cannot handle async resolvers cleanly; rely on the server's `ActionInputError` for those.
 - **Shared-schema convention is required for `__zodSchema` auto-detection.** If you keep `input: z.object({...})` inline in `defineAction(...)`, `actions.X.__zodSchema` is `undefined` and `<TheoForm>` falls back to no client-side validation (server-side `ActionInputError` still hydrates).
 
@@ -184,7 +184,7 @@ First message per field wins (HTML5 single `aria-describedby` convention). For m
 | Export | Kind | Notes |
 |---|---|---|
 | `TheoForm` | Component | Root + `Object.assign` sub-part `TheoForm.Field` |
-| `TheoField` | Component | Styled tier (peer `@theokit/ui`); same as `TheoForm.Field` |
+| `TheoField` | Component | Styled tier (peer `@usetheo/ui`); same as `TheoForm.Field` |
 | `useTheoField(name)` | Hook | Headless tier — returns `{value, error, isInvalid, register, setValue}` |
 | `useTheoFieldRegister()` | Hook | Inside `<TheoField>` descendants — spread onto your input |
 | `useTheoFieldScope()` | Hook | Inside `<TheoField>` descendants — full field state |

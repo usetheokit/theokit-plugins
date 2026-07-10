@@ -1,7 +1,7 @@
 {
   "name": "@theokit/plugin-voice",
-  "version": "0.7.0",
-  "description": "Voice plugin for TheoKit \u2014 STT + TTS bridge with browser MediaRecorder helper + UI components.",
+  "version": "0.7.2",
+  "description": "Voice plugin for TheoKit — STT + TTS bridge with browser MediaRecorder helper + UI components.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

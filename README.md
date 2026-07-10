@@ -4,15 +4,13 @@
 
 ## Status
 
-**Empty by design.** Per [ADR-0008](https://github.com/usetheodev/theokit/blob/main/docs/adr/0008-theoplugin-is-the-canonical-sdk.md) and CLAUDE.md macro-roadmap R0.6.5, the TheoKit team waits for genuine community demand before shipping plugins. The first plugin lands when it has **all** of:
-
-- 1+ app in production using it
-- 3+ GitHub issues / discussions requesting it
-- Doesn't duplicate a primitive that already exists in TheoKit core
-- <100 LOC OR <1 week of maintenance per year (single-maintainer reality)
-- Tests + fixture project
-
-This repo is the **container** ready to receive the first plugin when those gates clear. Until then: zero packages, zero promises.
+**11 first-party plugins shipped, aligned to `@theokit/sdk` 2.18.0** (ecosystem
+milestone M6). Three auth providers (`auth-github`, `auth-google`, `auth-magic-link`)
+plus eight capability plugins (`plugin-canvas`, `plugin-copilot`, `plugin-realtime`,
+`plugin-db-drizzle`, `plugin-email`, `plugin-forms`, `plugin-payments`, `plugin-voice`).
+All build + test green against the hardened M0–M3 Harness (661 tests). See
+[`ROADMAP.md`](./ROADMAP.md) for the full table and the demand-gate criteria that
+still govern **future** plugins beyond these 11.
 
 ## What's already in TheoKit core (don't propose these as plugins)
 
@@ -92,4 +90,4 @@ MIT — same as the TheoKit core. See [LICENSE](./LICENSE).
 
 - [TheoKit framework](https://github.com/usetheodev/theokit) — the core
 - [TheoKit SDK](https://github.com/usetheodev/theokit-sdk) — agent runtime
-- [@theokit/ui](https://github.com/usetheodev/theo-ui) — React component library
+- [@theokit/ui](https://github.com/usetheodev/theokit-ui) — AI-native React component library (chat + coding-agent surfaces); depends on [@usetheo/ui](https://www.npmjs.com/package/@usetheo/ui) for generic primitives + cloud-ops components

@@ -167,7 +167,9 @@ export function renderMarkdown(source: string): ReactNode[] {
           : level === 2
             ? 'mt-3 mb-2 text-xl font-semibold'
             : 'mt-2 mb-1 text-base font-semibold'
-      const Tag = (`h${Math.min(level, 6)}` as 'h1') ?? 'h1'
+      // `h${1..6}` is always a valid heading tag (level ≥ 1, capped at 6); the
+      // template literal is never nullish, so no `?? 'h1'` fallback is needed.
+      const Tag = `h${Math.min(level, 6)}` as 'h1'
       nodes.push(
         <Tag key={`h-${i}`} className={cls}>
           {inline}

@@ -9,8 +9,7 @@ import {
 import { CanvasToolbar } from './canvas-toolbar.js'
 import { CanvasArtifactList } from './canvas-artifact-list.js'
 import type { ArtifactRendererRegistry } from './renderers/types.js'
-
-export type CanvasPanelToolbarAction = 'copy' | 'download' | 'fork' | 'close'
+import type { CanvasPanelToolbarAction } from './canvas-panel-actions.js'
 
 export interface CanvasPanelProps {
   open: boolean

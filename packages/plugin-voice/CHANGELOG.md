@@ -1,0 +1,25 @@
+# @theokit/plugin-voice
+
+## 0.7.2
+
+### Patch Changes
+
+- de5df40: Fix boot-time crash under `@theokit/sdk` M31: `voicePlugin()` no longer imports the
+  removed `defineTheoPlugin` value from the deprecated `theokit/server` umbrella — it
+  returns a `TheoPlugin`-typed object directly (the old wrapper was a pure identity, so
+  behavior is unchanged). Server-only handlers (`stt-server`, `tts-server`) moved to
+  `src/server/` (internal only — no public subpath change), and the `fetchImpl` seam is
+  typed to the exact subset the handlers use (`globalThis.fetch` is still assignable).
+
+## 0.7.1
+
+### Patch Changes
+
+- 342239f: Reduce the cyclomatic complexity of eight audit-flagged functions (CC 16–24) by extracting behavior-preserving named helpers (#182–#189). No behavior change and no public API change — all existing tests stay green. Touched: `github()`'s callback (auth-github); `createInMemoryArtifactStore`, `serializeArtifactForCopy`, and `classifyRemoved` (plugin-canvas); `defineCopilot` (plugin-copilot); the realtime subscription effect (plugin-realtime); and `handleSttRequest`/`handleTtsRequest` (plugin-voice). Six functions now measure CC ≤ 10; `serializeArtifactForCopy` (a 9-kind discriminated-union exhaustive switch) and the in-memory `memList` sit at the idiomatic floor — `lizard`'s TypeScript parser mis-merges their adjacent module helpers into one range, overstating the per-function number, but each real function is ≤ 10.
+- db271df: Stop reflecting raw upstream provider error bodies to the client in the STT/TTS handlers (#214). On an upstream error, the body is now logged server-side under a generated correlation id and the client receives a generic `UPSTREAM_ERROR` message carrying the same id (status code unchanged: 5xx→502, 4xx passed through). This prevents leaking provider internals while keeping the failure debuggable via the shared reference id. No public API change.
+- 1d8ee52: Guard the STT success-response JSON parse in `<VoiceRecorderBar>` (#217). A `200` response whose body is not valid JSON previously threw an opaque `SyntaxError`; it now surfaces a specific `VoicePluginError` ("Invalid STT response…", with the parse error as `cause`) through the component's `onError` path. No public API change.
+- 856c667: Wire `<VoiceRecorderBar>`'s `onError` into the recorder (review finding F-wire-1). The bar previously called `createRecorder()` with no arguments, so the `onError` option (added for in-recording errors) was never passed — a `MediaRecorder` error mid-recording released the stream but left the bar stuck in the recording state with the error lost. The bar now passes `{ onError }` to `createRecorder`; the `recorderFactory` prop is widened to receive the recorder options so injected factories see the same wiring. No breaking change (the zero-arg factory form remains assignable).
+- c3f3a35: Recorder errors during recording no longer leak the media stream or get swallowed (#213). When `MediaRecorder` fires an `error` event with no `stop()` pending, `createRecorder` now always calls `releaseStream()` (stopping the mic tracks) and surfaces the typed error through a new optional `onError` callback. Errors during `stop()` still reject the `stop()` promise as before. The `onError` option is additive; the `Recorder` interface is unchanged.
+- 243e7a6: Bound the STT/TTS upstream provider calls with a timeout and wire client aborts (#211, #212). `handleSttRequest`/`handleTtsRequest` now accept `timeoutMs` (default 30s) and a `signal` on their options; the per-request timeout is composed with the caller's signal (`AbortSignal.any`) and passed to `fetch`, so a stalled upstream no longer hangs the handler — a timeout or client abort returns `504 UPSTREAM_TIMEOUT` (genuine network errors remain `502 UPSTREAM_NETWORK`). Passing the signal to the real `fetch` also cancels the TTS streamed `audio/mpeg` body when the client disconnects mid-stream. Both options are additive; handler signatures are unchanged.
+- 9208043: Unify the TTS voice list into a single source of truth (#215). `options.ts` now exports `VALID_VOICES` and the `tts.voice` schema is `z.enum(VALID_VOICES)` (default `alloy`), so a misconfigured default voice is rejected at construction (and is now a compile-time type error) instead of slipping through `z.string()` and only failing as a 400 on the first request. `tts-server.ts` derives its per-request voice validation from the same `VALID_VOICES`, eliminating the schema/server divergence. The valid set is unchanged (the six OpenAI tts-1 voices).
+- 18fc976: Fix a `useTts` playback race where a stale `speak()` whose `audio.play()` resolved late could override a newer `speak()`/`stop()` (#216). Each `speak()` now captures its own `AbortController` and, after every await, checks identity (`abortRef.current !== controller`) rather than only `signal.aborted`. When a call discovers it has been superseded after `play()` resolves, it tears down only its own audio element, blob URL, and event listeners — never the newer call's shared refs or phase. No public API change.

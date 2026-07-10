@@ -7,14 +7,15 @@ Render 9 artifact kinds (markdown, code, svg, diff, whiteboard-scene, slide-deck
 ## Installation
 
 ```bash
-pnpm add @theokit/plugin-canvas @theokit/ui
+pnpm add @theokit/plugin-canvas @usetheo/ui @theokit/ui
 ```
 
 ### Required peer dependencies
 
 | Package | Version | Why |
 |---|---|---|
-| `@theokit/ui` | `>= 0.13.0` | UI primitives (`Button`, `Card`, `CopyButton`, `Tooltip`, `DropdownMenu`, `Alert`, `CodeBlock`, `DiffViewer`, etc.) |
+| `@usetheo/ui` | `>= 0.14.0` | Generic UI primitives (`Button`, `Card`, `CopyButton`, `Tooltip`, `DropdownMenu`, `Alert`, `CodeBlock`, etc.) |
+| `@theokit/ui` | `>= 1.0.0` | AI surfaces + engines (`DiffViewer`, `@theokit/ui/whiteboard`, `@theokit/ui/slide-deck`) |
 | `@theokit/sdk` | `>= 1.0.0` | Agent tool runtime / schema validation |
 | `theokit` | `>= 0.1.0-alpha.5` | `defineAgentTool`, `defineAgentEndpoint`, route handlers |
 | `react` | `^18 \|\| ^19` | UI components |

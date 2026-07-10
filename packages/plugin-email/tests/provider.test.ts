@@ -27,6 +27,35 @@ describe("defineEmailProvider (P#7 T1.2)", () => {
     expect(provider.name).toBe("stub");
   });
 
+  // Negative cases (fail-fast at wiring time) — mirror defineRealtimeProvider.
+  it("throws a typed error when the implementation is null", () => {
+    expect(() => defineEmailProvider(null as never)).toThrow(TypeError);
+    expect(() => defineEmailProvider(null as never)).toThrow(
+      "defineEmailProvider: provider implementation is required",
+    );
+  });
+
+  it("throws a typed error when the implementation is not an object", () => {
+    expect(() => defineEmailProvider(undefined as never)).toThrow(
+      "defineEmailProvider: provider implementation is required",
+    );
+  });
+
+  it("throws a typed error when name is missing or empty", () => {
+    expect(() => defineEmailProvider({} as never)).toThrow(
+      "defineEmailProvider: impl.name must be a non-empty string",
+    );
+    expect(() => defineEmailProvider({ name: "" } as never)).toThrow(
+      "defineEmailProvider: impl.name must be a non-empty string",
+    );
+  });
+
+  it("throws a typed error when send is not a function", () => {
+    expect(() => defineEmailProvider({ name: "x" } as never)).toThrow(
+      "defineEmailProvider: impl.send must be a function",
+    );
+  });
+
   it("returns a provider that can be invoked", async () => {
     const calls: EmailMessage[] = [];
     const provider = defineEmailProvider({

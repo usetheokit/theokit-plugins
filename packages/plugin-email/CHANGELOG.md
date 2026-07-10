@@ -1,5 +1,14 @@
 # @theokit/plugin-email
 
+## 0.1.1
+
+### Patch Changes
+
+- de5df40: `defineEmailProvider` now validates its argument and fails fast with a typed `TypeError`
+  when the provider is null/not-an-object, has a missing/empty `name`, or a non-function
+  `send` — a malformed provider crashes at wiring time instead of on the first `send()`.
+  Mirrors `defineRealtimeProvider`. Valid providers are unaffected (still returned unchanged).
+
 ## [Unreleased]
 
 ## [0.1.0] - 2026-06-04 (initial publish on `@next`)
@@ -30,12 +39,12 @@ Per plan [`p7-plugin-email-plan.md`](../../../.claude/knowledge-base/plans/p7-pl
 
 ### Security threats addressed
 
-| Threat | Mitigation |
-|---|---|
-| Replay attacks | Idempotency-Key header dedup via Resend |
-| Secret leakage | API key from env vars; plugin never logs |
-| XSS in templates | Default magic-link template HTML-escapes user-controlled appName |
-| Error swallowing | EmailSendError typed errors propagate; never silenced |
+| Threat           | Mitigation                                                             |
+| ---------------- | ---------------------------------------------------------------------- |
+| Replay attacks   | Idempotency-Key header dedup via Resend                                |
+| Secret leakage   | API key from env vars; plugin never logs                               |
+| XSS in templates | Default magic-link template HTML-escapes user-controlled appName       |
+| Error swallowing | EmailSendError typed errors propagate; never silenced                  |
 | Provider lock-in | EmailProvider interface — swap transports without rewriting call sites |
 
 ### Quality gates

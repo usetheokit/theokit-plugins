@@ -42,6 +42,8 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      - name: Check for circular dependencies (regression guard for the M1 canvas cycle fix)
+        run: pnpm check:cycles
       - name: Build all packages
         run: pnpm build
 

@@ -1,6 +1,6 @@
 {
   "name": "@theokit/plugin-payments",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Stripe-only payments plugin for TheoKit — defineStripeWebhook typed dispatcher + signature verification + idempotency (memory or @theokit/orm-backed) + createCheckoutSession helper (Stripe-hosted page passthrough). Form 4 Hybrid per plan p6-plugin-payments v1.0.",
   "type": "module",
   "main": "./dist/index.js",
@@ -29,9 +29,15 @@
     "theokit": ">=0.2.3"
   },
   "peerDependenciesMeta": {
-    "@theokit/orm": { "optional": true },
-    "drizzle-orm": { "optional": true },
-    "reflect-metadata": { "optional": true }
+    "@theokit/orm": {
+      "optional": true
+    },
+    "drizzle-orm": {
+      "optional": true
+    },
+    "reflect-metadata": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -1,5 +1,15 @@
 # @theokit/plugin-db-drizzle
 
+## 0.1.1
+
+### Patch Changes
+
+- e91aefe: Make the CLI `db`-namespace conflict guard effective (#171). Previously both branches of the `hasCliCommand("db")` check called `registerCliCommand` identically (a no-op guard). Now the conflict path warns the operator that it is extending an already-registered `db` namespace (e.g. one owned by `@theokit/orm`) before merging the drizzle verbs, so a silent namespace collision is observable. No public API change.
+- 2c2b237: Harden the studio devtools iframe and make its URL configurable (#206, #207). The iframe `sandbox` no longer combines `allow-scripts` with `allow-same-origin` (that pairing lets the framed page remove its own sandbox and escape) — it is now `allow-scripts` only, which is safe because studio runs on its own origin (#206). The `studioUrl` is now built from new `studioHost`/`studioPort` options (default `localhost:4983`) instead of a hardcoded constant, so a custom studio host/port is honored (#207). Both options are additive.
+- fb9ab0c: Forward the configured connection options to drizzle-kit (#169). For the verbs that open a database connection (`migrate`, `push`, `studio`, `check`), `buildDbCommands` now emits `--dialect <postgresql|mysql|sqlite>` (mapped from the configured `driver` — drizzle-kit's flag is `--dialect`, not `--driver`) and `--url <url>`. Previously these documented options were accepted but never reached the CLI invocation. `generate` (schema-diff only) does not receive them, and each flag is omitted when its source option is undefined (no corrupt arg vector).
+- 30efd06: Add the documented destructive-op guard for `db reset` (#168). The `reset` command descriptor now carries `requiresForce: true`, so the CLI runner refuses to execute it unless the user passes `--force`. The `DbCommand` interface gains an optional `requiresForce` field (additive). Note: the descriptor declares the requirement; the actual refusal is enforced by the CLI runner (which has the user's argv) — the pure `buildDbCommands` factory has no access to invocation flags.
+- 1ba8408: `db seed` now runs the user's seed script instead of a nonexistent `drizzle-kit seed` subcommand (#170). `DbCommand` gains a `kind: "drizzle-kit" | "user-script"` discriminant; `seed` is `kind: "user-script"` and its `buildArgs` returns the configured `seedScript` path (the runner executes it as a script). A new optional `seedScript` option (settable on `drizzleDb(...)` or resolved at register-time from `package.json#theokit.db.seed`) supplies the path; when none is configured, `db seed` throws a clear error rather than spawning a subcommand that does not exist. Additive — every other verb stays `kind: "drizzle-kit"`.
+
 ## [Unreleased]
 
 ## [0.1.0] - 2026-06-04 (initial publish on `@next`)

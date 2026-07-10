@@ -16,9 +16,12 @@ pnpm add @theokit/plugin-rate-limit
 pnpm add zod
 # Optional React peer for the /react sub-path:
 pnpm add react react-dom
-# Optional theo-ui composites (only when using <CopilotChat /> or
-# the headless hooks alongside @theokit/ui):
+# Optional UI composites — @theokit/ui for AI chat surfaces
+# (<CopilotChat /> builds on ChatComposer/ChatMessage/ChatThread);
+# add @usetheo/ui too if you wire the usage-meter (getUsage) into
+# generic primitives (MetricCard/StatTile), which moved there:
 pnpm add @theokit/ui
+pnpm add @usetheo/ui  # only if using generic primitives (usage-meter, etc.)
 # Opt-in capability integrations:
 pnpm add @theokit/plugin-voice  # voice STT/TTS
 pnpm add @theokit/plugin-canvas # canvas artifact emission
@@ -199,7 +202,7 @@ Each copilot can declare `budget.perRoom: { perRequestUsd, dailyUsd, monthlyUsd 
 }
 ```
 
-`runtime.getUsage(copilotId)` returns `{ dailyUsedUsd, monthlyUsedUsd }` for theo-ui usage-meter integration.
+`runtime.getUsage(copilotId)` returns `{ dailyUsedUsd, monthlyUsedUsd }` for usage-meter integration (`@usetheo/ui` `MetricCard` / `StatTile`).
 
 ## Custom provider (Liveblocks / PartyKit / Redis / TheoCloud)
 

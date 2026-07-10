@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.2
+
+### Patch Changes
+
+- de5df40: Break the `canvas-panel` ↔ `canvas-toolbar` circular dependency by extracting the shared
+  `CanvasPanelToolbarAction` union into a leaf module (`ui/canvas-panel-actions`). The public
+  `@theokit/plugin-canvas/ui` export surface is unchanged. Also removed a dead `?? 'h1'`
+  fallback in the markdown renderer (the template literal is never nullish).
+
+## 0.3.1
+
+### Patch Changes
+
+- d173838: Harden the HTML `srcdoc` security verdict (review findings F-arch-1, F-sec-1). `sanitizeHtmlSrcdoc` previously decided whether to flag a meta-refresh with a regex that only matched a **quoted** `http-equiv`, so an unquoted `<meta http-equiv=refresh>` bypassed `enforceArtifactSecurity` and the artifact passed as clean. The verdict now derives from what DOMPurify actually removed — parsed as a whole document (the way a browser renders an iframe `srcdoc`, hoisting `<meta>` into `<head>` where the refresh fires) — and folds every dangerous-removal signal (meta-refresh, iframe, object, embed, on-handler, `javascript:`/`data:` URLs) into the `removedScript` flag the boundary checks. No public API change.
+- d9a8e30: Align the plugin cluster to the hardened `@theokit/sdk` 2.18.0 Harness (ecosystem M6). Bumped the `@theokit/sdk` peer + dev dependency from the stale 1.x ranges (`>=1.6.0` / `>=1.0.0` / `>=1.7.0` / `npm:@theokit/sdk@next`) to `^2.18.0` / `>=2.18.0`. The consumed surface (`AuthProvider` / `AuthResult` / `OAuthTransaction` from `@theokit/sdk/server/auth`; `subscribe` for realtime) is stable across 1.x→2.x, so the alignment is a pin bump, not a migration. Also removed the phantom `@theokit/plugin-rate-limit` peer dependency from `plugin-copilot` (no such package exists; its rate-limit config is a type-only opt-in — `no-stubs-no-mocks-no-wired` clean). Validated: all 11 packages typecheck + build + test green against 2.18.0 (661 tests).
+- 342239f: Reduce the cyclomatic complexity of eight audit-flagged functions (CC 16–24) by extracting behavior-preserving named helpers (#182–#189). No behavior change and no public API change — all existing tests stay green. Touched: `github()`'s callback (auth-github); `createInMemoryArtifactStore`, `serializeArtifactForCopy`, and `classifyRemoved` (plugin-canvas); `defineCopilot` (plugin-copilot); the realtime subscription effect (plugin-realtime); and `handleSttRequest`/`handleTtsRequest` (plugin-voice). Six functions now measure CC ≤ 10; `serializeArtifactForCopy` (a 9-kind discriminated-union exhaustive switch) and the in-memory `memList` sit at the idiomatic floor — `lizard`'s TypeScript parser mis-merges their adjacent module helpers into one range, overstating the per-function number, but each real function is ≤ 10.
+
 All notable changes to `@theokit/plugin-canvas` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -9,10 +26,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 > First GA release of the canvas plugin. Promotes `0.3.0-next.0` to stable. The BREAKING change against `@theokit/ui >= 0.13.0` listed below was already shipped in `0.3.0-next.0`; no further API changes.
 
 ### Added
+
 - `createArtifactBus()` exported from `@theokit/plugin-canvas/server` subpath — process-local pub/sub for SSE-driven artifact emit. Replaces ad-hoc bus wiring in consumer apps (canvas-ecosystem-refactor-plan T3.1)
 - Server subpath `@theokit/plugin-canvas/server` — first server-side entrypoint, paving the way for additional server helpers (cost adapters, route presets) in future versions
 
 ### Changed
+
 - **BREAKING:** `@theokit/ui` is now a **required** peer dependency (`>= 0.13.0`). Previously optional. Plugin UI components (CanvasPanel, OpenInCanvasButton, ArtifactVersionRail, code/diff/mermaid renderers) now consume `Button`, `Card`, `CopyButton`, `EmptyState`, `ScrollArea`, `Tooltip`, `Alert`, `DropdownMenu`, `CodeBlock`, `DiffViewer` primitives directly instead of raw HTML elements (D1 of canvas-ecosystem-refactor-plan)
 - Plugin UI now inherits design tokens, theming, focus rings, and a11y from `@theokit/ui` — no more divergent button styles between plugin and host app
 - `OpenInCanvasButton` keyboard nav improved — Radix `DropdownMenu` adds arrow-key navigation, Esc-to-close, and focus trap for free
@@ -21,11 +40,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - `MermaidArtifact` fallback now uses `CodeBlock` (language="mermaid") instead of raw `<pre>`
 
 ### Fixed
+
 - N/A
 
 ## [0.2.0] - 2026-05-30
 
 ### Added
+
 - Initial release — 9 artifact kinds (markdown/code/svg/diff/whiteboard-scene/slide-deck/mermaid/html/image), SQLite + in-memory artifact stores, `defineArtifactTool` agent helper, `CanvasPanel` + `ArtifactRenderer` + `useCanvas` hook
 - Lazy peer imports for `@theokit/ui/whiteboard` and `@theokit/ui/slide-deck`
 - Defense-in-depth security: schema-level byte caps + render-time SVG/HTML sanitization
