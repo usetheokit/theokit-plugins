@@ -1,4 +1,4 @@
-import { DiffViewer, type DiffHunk } from '@theokit/ui'
+import { DiffViewer } from '@theokit/ui'
 
 import type { ArtifactRendererProps } from './types.js'
 
@@ -11,11 +11,7 @@ import type { ArtifactRendererProps } from './types.js'
 export function DiffArtifact({ artifact }: ArtifactRendererProps<'diff'>) {
   return (
     <div data-testid="diff-artifact" className="p-3">
-      <DiffViewer
-        path={artifact.path}
-        stats={artifact.stats}
-        hunks={artifact.hunks}
-      />
+      <DiffViewer path={artifact.path} stats={artifact.stats} hunks={artifact.hunks} />
     </div>
   )
 }

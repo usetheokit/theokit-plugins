@@ -5,3 +5,9 @@ coverage
 .changeset
 pnpm-lock.yaml
 *.md.snap
+
+# Cycle-kit tooling (synced from an external kit; formatting it here would diverge it
+# from source and churn locked golden-rule files) + generated audit trail + tool scratch.
+.claude
+knowledge-base
+architect-output

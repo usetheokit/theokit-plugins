@@ -9,32 +9,24 @@
  */
 
 // Types + canonical contract
-export type {
-  EmailMessage,
-  EmailProvider,
-  SendResult,
-} from "./types.js";
-export { EmailSendError } from "./types.js";
+export type { EmailMessage, EmailProvider, SendResult } from './types.js'
+export { EmailSendError } from './types.js'
 
 // Provider extension helper (consumer custom implementations)
-export { defineEmailProvider } from "./provider.js";
+export { defineEmailProvider } from './provider.js'
 
 // Resend default provider
 export {
   ResendProvider,
   type ResendClientLike,
   type ResendProviderOptions,
-} from "./resend-provider.js";
+} from './resend-provider.js'
 
 // Template factory
-export {
-  defineEmailTemplate,
-  type EmailTemplate,
-  type RenderedTemplate,
-} from "./templates.js";
+export { defineEmailTemplate, type EmailTemplate, type RenderedTemplate } from './templates.js'
 
 // React Email dynamic-import bridge
-export { renderReactEmail } from "./render-react-email.js";
+export { renderReactEmail } from './render-react-email.js'
 
 // Magic-link integration (returns SendMagicLinkFn-compatible function)
 export {
@@ -43,4 +35,4 @@ export {
   defaultMagicLinkText,
   type SendMagicLinkFn,
   type SendMagicLinkOptions,
-} from "./magic-link.js";
+} from './magic-link.js'

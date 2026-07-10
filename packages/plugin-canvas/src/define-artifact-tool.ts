@@ -86,10 +86,7 @@ export interface ArtifactToolConfig {
   name: string
   description: string
   inputSchema: z.ZodTypeAny
-  handler: (
-    input: unknown,
-    ctx?: ArtifactToolHandlerContext,
-  ) => Promise<ArtifactToolResult>
+  handler: (input: unknown, ctx?: ArtifactToolHandlerContext) => Promise<ArtifactToolResult>
 }
 
 const DEFAULT_NAME = 'publish_artifact'
@@ -113,7 +110,7 @@ function extractArtifactCandidate(input: unknown): unknown {
     // canonical envelope key).
     typeof (input as { artifact?: unknown }).artifact === 'object'
   ) {
-    return (input).artifact
+    return input.artifact
   }
   return input
 }

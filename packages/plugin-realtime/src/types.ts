@@ -21,7 +21,7 @@ export type RealtimeJson =
   | boolean
   | null
   | RealtimeJson[]
-  | { [key: string]: RealtimeJson };
+  | { [key: string]: RealtimeJson }
 
 /**
  * Per-connection presence state. Free-form JSON object (consumer-supplied
@@ -29,14 +29,14 @@ export type RealtimeJson =
  *
  * @public
  */
-export type Presence = Record<string, RealtimeJson>;
+export type Presence = Record<string, RealtimeJson>
 
 /**
  * Broadcast event payload. Free-form JSON object.
  *
  * @public
  */
-export type BroadcastPayload = Record<string, RealtimeJson>;
+export type BroadcastPayload = Record<string, RealtimeJson>
 
 /**
  * Connection metadata exposed to providers + authorize hooks.
@@ -45,11 +45,11 @@ export type BroadcastPayload = Record<string, RealtimeJson>;
  */
 export interface ConnectionInfo {
   /** Stable identifier for the underlying WS connection. */
-  readonly connectionId: string;
+  readonly connectionId: string
   /** Optional consumer-supplied client identifier (e.g., authenticated userId). */
-  readonly clientId?: string;
+  readonly clientId?: string
   /** Free-form metadata propagated from G8 subscription context. */
-  readonly metadata?: Record<string, RealtimeJson>;
+  readonly metadata?: Record<string, RealtimeJson>
 }
 
 /**
@@ -58,25 +58,25 @@ export interface ConnectionInfo {
  * @public
  */
 export type RealtimeFrame =
-  | { readonly type: "joined"; readonly connectionId: string; readonly presence: Presence }
-  | { readonly type: "left"; readonly connectionId: string }
+  | { readonly type: 'joined'; readonly connectionId: string; readonly presence: Presence }
+  | { readonly type: 'left'; readonly connectionId: string }
   | {
-      readonly type: "presence-changed";
-      readonly connectionId: string;
-      readonly presence: Presence;
+      readonly type: 'presence-changed'
+      readonly connectionId: string
+      readonly presence: Presence
     }
   | {
-      readonly type: "broadcast";
-      readonly connectionId: string;
-      readonly event: string;
-      readonly payload: BroadcastPayload;
+      readonly type: 'broadcast'
+      readonly connectionId: string
+      readonly event: string
+      readonly payload: BroadcastPayload
     }
-  | { readonly type: "yjs-update"; readonly connectionId: string; readonly bytes: Uint8Array }
+  | { readonly type: 'yjs-update'; readonly connectionId: string; readonly bytes: Uint8Array }
   | {
-      readonly type: "yjs-awareness";
-      readonly connectionId: string;
-      readonly bytes: Uint8Array;
-    };
+      readonly type: 'yjs-awareness'
+      readonly connectionId: string
+      readonly bytes: Uint8Array
+    }
 
 /**
  * Minimal structural Zod-like type (avoid hard zod peer for type declarations).
@@ -84,8 +84,8 @@ export type RealtimeFrame =
  * @internal
  */
 export interface ZodLike<T> {
-  safeParse(value: unknown): { success: true; data: T } | { success: false; error: unknown };
-  parse(value: unknown): T;
+  safeParse(value: unknown): { success: true; data: T } | { success: false; error: unknown }
+  parse(value: unknown): T
 }
 
 /**
@@ -95,8 +95,8 @@ export interface ZodLike<T> {
  * @public
  */
 export interface AuthorizeContext {
-  readonly roomId: string;
-  readonly connection: ConnectionInfo;
+  readonly roomId: string
+  readonly connection: ConnectionInfo
 }
 
 /**
@@ -105,7 +105,7 @@ export interface AuthorizeContext {
  *
  * @public
  */
-export type RoomStorage = "yjs" | undefined;
+export type RoomStorage = 'yjs' | undefined
 
 /**
  * Room descriptor returned by {@link defineRoom}.
@@ -116,11 +116,11 @@ export interface RoomDescriptor<
   P extends Presence = Presence,
   E extends BroadcastPayload = BroadcastPayload,
 > {
-  readonly id: string;
-  readonly presence: ZodLike<P>;
-  readonly broadcast: ZodLike<E>;
-  readonly storage?: RoomStorage;
-  readonly authorize?: (ctx: AuthorizeContext) => boolean | Promise<boolean>;
+  readonly id: string
+  readonly presence: ZodLike<P>
+  readonly broadcast: ZodLike<E>
+  readonly storage?: RoomStorage
+  readonly authorize?: (ctx: AuthorizeContext) => boolean | Promise<boolean>
 }
 
 /**
@@ -128,7 +128,7 @@ export interface RoomDescriptor<
  *
  * @public
  */
-export type RealtimeUnsubscribe = () => void;
+export type RealtimeUnsubscribe = () => void
 
 /**
  * Core abstraction (per ADR D1). Backed by {@link createMemoryRealtimeProvider}
@@ -138,13 +138,13 @@ export type RealtimeUnsubscribe = () => void;
  * @public
  */
 export interface RealtimeProvider {
-  readonly name: string;
+  readonly name: string
 
   /** Add a connection to a room. Idempotent for the same (roomId, connectionId). */
-  joinRoom(roomId: string, connection: ConnectionInfo, initialPresence?: Presence): Promise<void>;
+  joinRoom(roomId: string, connection: ConnectionInfo, initialPresence?: Presence): Promise<void>
 
   /** Remove a connection from a room. No-op if not present. */
-  leaveRoom(roomId: string, connectionId: string): Promise<void>;
+  leaveRoom(roomId: string, connectionId: string): Promise<void>
 
   /** Fan-out a broadcast event to all room participants. */
   broadcast(
@@ -152,35 +152,28 @@ export interface RealtimeProvider {
     connectionId: string,
     event: string,
     payload: BroadcastPayload,
-  ): Promise<void>;
+  ): Promise<void>
 
   /** Merge a partial presence patch for the given connection. */
-  updatePresence(
-    roomId: string,
-    connectionId: string,
-    patch: Partial<Presence>,
-  ): Promise<void>;
+  updatePresence(roomId: string, connectionId: string, patch: Partial<Presence>): Promise<void>
 
   /** Read-only snapshot of all connection presences in the room. */
-  getPresence(roomId: string): Promise<Record<string, Presence>>;
+  getPresence(roomId: string): Promise<Record<string, Presence>>
 
   /** Subscribe to {@link RealtimeFrame}s emitted by the room. */
-  subscribeRoom(
-    roomId: string,
-    listener: (frame: RealtimeFrame) => void,
-  ): RealtimeUnsubscribe;
+  subscribeRoom(roomId: string, listener: (frame: RealtimeFrame) => void): RealtimeUnsubscribe
 
   /**
    * Apply a binary Y.Doc update (Yjs storage = "yjs" rooms only).
    * No-op on providers without CRDT support.
    */
-  applyYjsUpdate?(roomId: string, connectionId: string, bytes: Uint8Array): Promise<void>;
+  applyYjsUpdate?(roomId: string, connectionId: string, bytes: Uint8Array): Promise<void>
 
   /**
    * Apply a binary Awareness update (Yjs awareness-aware providers).
    * No-op on providers without Awareness support.
    */
-  applyYjsAwareness?(roomId: string, connectionId: string, bytes: Uint8Array): Promise<void>;
+  applyYjsAwareness?(roomId: string, connectionId: string, bytes: Uint8Array): Promise<void>
 }
 
 /**
@@ -191,12 +184,12 @@ export interface RealtimeProvider {
  * @public
  */
 export class RealtimeError extends Error {
-  override readonly name: string = "RealtimeError";
-  readonly code?: string;
+  override readonly name: string = 'RealtimeError'
+  readonly code?: string
 
   constructor(message: string, options: { code?: string; cause?: unknown } = {}) {
-    super(message, options.cause !== undefined ? { cause: options.cause } : undefined);
-    if (options.code !== undefined) this.code = options.code;
+    super(message, options.cause !== undefined ? { cause: options.cause } : undefined)
+    if (options.code !== undefined) this.code = options.code
   }
 }
 
@@ -206,13 +199,13 @@ export class RealtimeError extends Error {
  * @public
  */
 export class RealtimePresenceError extends RealtimeError {
-  override readonly name: string = "RealtimePresenceError";
+  override readonly name: string = 'RealtimePresenceError'
 
-  readonly issues: unknown;
+  readonly issues: unknown
 
   constructor(message: string, options: { issues: unknown; cause?: unknown }) {
-    super(message, { code: "presence_invalid", cause: options.cause });
-    this.issues = options.issues;
+    super(message, { code: 'presence_invalid', cause: options.cause })
+    this.issues = options.issues
   }
 }
 
@@ -222,13 +215,13 @@ export class RealtimePresenceError extends RealtimeError {
  * @public
  */
 export class RealtimeBroadcastError extends RealtimeError {
-  override readonly name: string = "RealtimeBroadcastError";
+  override readonly name: string = 'RealtimeBroadcastError'
 
-  readonly issues: unknown;
+  readonly issues: unknown
 
   constructor(message: string, options: { issues: unknown; cause?: unknown }) {
-    super(message, { code: "broadcast_invalid", cause: options.cause });
-    this.issues = options.issues;
+    super(message, { code: 'broadcast_invalid', cause: options.cause })
+    this.issues = options.issues
   }
 }
 
@@ -238,10 +231,10 @@ export class RealtimeBroadcastError extends RealtimeError {
  * @public
  */
 export class RealtimeRoomNotFoundError extends RealtimeError {
-  override readonly name: string = "RealtimeRoomNotFoundError";
+  override readonly name: string = 'RealtimeRoomNotFoundError'
 
   constructor(roomId: string) {
-    super(`Realtime room not found: ${roomId}`, { code: "room_not_found" });
+    super(`Realtime room not found: ${roomId}`, { code: 'room_not_found' })
   }
 }
 
@@ -251,14 +244,14 @@ export class RealtimeRoomNotFoundError extends RealtimeError {
  * @public
  */
 export class RealtimeAuthorizationError extends RealtimeError {
-  override readonly name: string = "RealtimeAuthorizationError";
+  override readonly name: string = 'RealtimeAuthorizationError'
 
-  readonly roomId: string;
+  readonly roomId: string
 
   constructor(roomId: string) {
     super(`Realtime authorization rejected for room: ${roomId}`, {
-      code: "authorization_rejected",
-    });
-    this.roomId = roomId;
+      code: 'authorization_rejected',
+    })
+    this.roomId = roomId
   }
 }

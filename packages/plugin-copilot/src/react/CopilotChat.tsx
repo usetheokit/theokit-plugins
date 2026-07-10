@@ -12,9 +12,9 @@
  * @public
  */
 
-import * as React from "react";
-import { useCopilot, useCopilotPresence, useCopilotTyping } from "./hooks.js";
-import type { CopilotMessage, CopilotPresenceEntry } from "./copilot-context.js";
+import * as React from 'react'
+import { useCopilot, useCopilotPresence, useCopilotTyping } from './hooks.js'
+import type { CopilotMessage, CopilotPresenceEntry } from './copilot-context.js'
 
 /**
  * Props for {@link CopilotChat}.
@@ -23,17 +23,17 @@ import type { CopilotMessage, CopilotPresenceEntry } from "./copilot-context.js"
  */
 export interface CopilotChatProps {
   /** Broadcast event name used by the local user's input (default `"question"`). */
-  inputEvent?: string;
+  inputEvent?: string
   /** Placeholder text for the composer. */
-  placeholder?: string;
+  placeholder?: string
   /** Optional className passed to the root container. */
-  className?: string;
+  className?: string
   /** Render override for individual messages (defaults to a basic bubble). */
-  renderMessage?: (msg: CopilotMessage) => React.ReactNode;
+  renderMessage?: (msg: CopilotMessage) => React.ReactNode
   /** Render override for the participant list (defaults to inline pills). */
-  renderParticipants?: (presence: Record<string, CopilotPresenceEntry>) => React.ReactNode;
+  renderParticipants?: (presence: Record<string, CopilotPresenceEntry>) => React.ReactNode
   /** Render override for the typing indicator. */
-  renderTyping?: (anyTyping: boolean) => React.ReactNode;
+  renderTyping?: (anyTyping: boolean) => React.ReactNode
 }
 
 /**
@@ -45,35 +45,35 @@ export interface CopilotChatProps {
  * @public
  */
 export function CopilotChat(props: CopilotChatProps = {}): React.ReactElement {
-  const ctx = useCopilot();
-  const otherPresence = useCopilotPresence();
-  const anyTyping = useCopilotTyping();
-  const [draft, setDraft] = React.useState("");
+  const ctx = useCopilot()
+  const otherPresence = useCopilotPresence()
+  const anyTyping = useCopilotTyping()
+  const [draft, setDraft] = React.useState('')
 
-  const inputEvent = props.inputEvent ?? "question";
+  const inputEvent = props.inputEvent ?? 'question'
 
   const handleSubmit = React.useCallback(
     (e: React.FormEvent) => {
-      e.preventDefault();
-      const text = draft.trim();
-      if (text.length === 0) return;
-      ctx.sendBroadcast(inputEvent, { text });
-      setDraft("");
+      e.preventDefault()
+      const text = draft.trim()
+      if (text.length === 0) return
+      ctx.sendBroadcast(inputEvent, { text })
+      setDraft('')
     },
     [ctx, inputEvent, draft],
-  );
+  )
 
   return (
-    <section className={props.className ?? "theokit-copilot-chat"} data-copilot-id={ctx.copilotId}>
+    <section className={props.className ?? 'theokit-copilot-chat'} data-copilot-id={ctx.copilotId}>
       <header data-section="copilot-participants">
         {props.renderParticipants !== undefined ? (
           props.renderParticipants(otherPresence)
         ) : (
           <ul>
             {Object.entries(otherPresence).map(([id, p]) => (
-              <li key={id} data-copilot={p.isCopilot ? "true" : "false"}>
+              <li key={id} data-copilot={p.isCopilot ? 'true' : 'false'}>
                 {p.name ?? id}
-                {p.typing === true ? " · typing…" : ""}
+                {p.typing === true ? ' · typing…' : ''}
               </li>
             ))}
           </ul>
@@ -88,7 +88,8 @@ export function CopilotChat(props: CopilotChatProps = {}): React.ReactElement {
               <React.Fragment key={msg.id}>{props.renderMessage(msg)}</React.Fragment>
             ) : (
               <article key={msg.id} data-role={msg.role}>
-                <strong>{msg.senderName ?? (msg.role === "assistant" ? "AI" : "User")}:</strong> {msg.text}
+                <strong>{msg.senderName ?? (msg.role === 'assistant' ? 'AI' : 'User')}:</strong>{' '}
+                {msg.text}
               </article>
             ),
           )
@@ -105,7 +106,7 @@ export function CopilotChat(props: CopilotChatProps = {}): React.ReactElement {
             type="text"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder={props.placeholder ?? "Ask the copilot…"}
+            placeholder={props.placeholder ?? 'Ask the copilot…'}
             aria-label="Copilot input"
           />
           <button type="submit" disabled={draft.trim().length === 0}>
@@ -114,7 +115,7 @@ export function CopilotChat(props: CopilotChatProps = {}): React.ReactElement {
         </form>
         {ctx.lastError !== undefined ? (
           <p data-section="copilot-error" role="alert">
-            {ctx.lastError.code !== undefined ? `[${ctx.lastError.code}] ` : ""}
+            {ctx.lastError.code !== undefined ? `[${ctx.lastError.code}] ` : ''}
             {ctx.lastError.message}
           </p>
         ) : null}
@@ -126,5 +127,5 @@ export function CopilotChat(props: CopilotChatProps = {}): React.ReactElement {
         ) : null}
       </footer>
     </section>
-  );
+  )
 }

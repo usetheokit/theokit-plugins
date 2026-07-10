@@ -21,10 +21,7 @@
  */
 import { useCallback, useMemo, useReducer, useRef } from 'react'
 
-import {
-  CanvasArtifactValidationError,
-  CanvasPluginError,
-} from '../errors.js'
+import { CanvasArtifactValidationError, CanvasPluginError } from '../errors.js'
 import { type Artifact, validateArtifact } from '../schema.js'
 import { reducer, type CanvasState } from './canvas-reducer-handlers.js'
 
@@ -88,13 +85,15 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasState {
       for (const a of initialArtifacts) {
         const existing = history.get(a.id) ?? []
         existing.push(a)
-        history.set(a.id, existing.sort((x, y) => x.version - y.version))
+        history.set(
+          a.id,
+          existing.sort((x, y) => x.version - y.version),
+        )
       }
     }
     return { history, pointer: null, open: false, error: null }
     // initialArtifacts is captured once on mount by design — the hook
     // is for live state, not for swapping seeds at runtime.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const [state, dispatch] = useReducer(reducer, initialState)
@@ -113,7 +112,10 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasState {
   }, [])
 
   const hide = useCallback(() => dispatch({ type: 'hide' }), [])
-  const setOpen = useCallback((nextOpen: boolean) => dispatch({ type: 'set-open', open: nextOpen }), [])
+  const setOpen = useCallback(
+    (nextOpen: boolean) => dispatch({ type: 'set-open', open: nextOpen }),
+    [],
+  )
   const clearError = useCallback(() => dispatch({ type: 'clear-error' }), [])
   const remove = useCallback((id: string, version?: number) => {
     dispatch({ type: 'remove', id, version })

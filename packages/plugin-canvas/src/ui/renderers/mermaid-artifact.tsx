@@ -21,7 +21,7 @@ function loadMermaid(): Promise<MermaidApi | null> {
       // specifier 'mermaid'" because dev-mode resolution requires a
       // literal it can trace. tsup keeps the import as `import('mermaid')`
       // because `mermaid` is listed in tsup external.
-      // @ts-ignore optional peer dep — types resolve only when the
+      // @ts-expect-error optional peer dep — types resolve only when the
       // consumer installs `mermaid`; absent it, we fall back gracefully.
       const mod = (await import('mermaid')) as unknown as { default: MermaidApi }
       const instance = mod.default
@@ -83,7 +83,11 @@ export function MermaidArtifact({ artifact }: ArtifactRendererProps<'mermaid'>) 
   }
 
   return (
-    <div data-testid="mermaid-artifact" data-state={svg !== null ? 'ready' : 'loading'} className="p-3">
+    <div
+      data-testid="mermaid-artifact"
+      data-state={svg !== null ? 'ready' : 'loading'}
+      className="p-3"
+    >
       <div
         ref={ref}
         className="grid place-items-center"

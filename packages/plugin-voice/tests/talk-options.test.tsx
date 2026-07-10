@@ -26,7 +26,7 @@ describe('T3.4 — TalkOptions', () => {
   it('exposes all six OpenAI tts-1 voices in the dropdown', () => {
     const value: TalkOptionsValue = { voice: 'alloy', speed: 1 }
     render(<TalkOptions value={value} onChange={() => undefined} />)
-    const voice = screen.getByTestId('talk-options-voice')
+    const voice = screen.getByTestId<HTMLSelectElement>('talk-options-voice')
     const optionValues = Array.from(voice.options).map((o) => o.value)
     expect(optionValues).toEqual([...TALK_OPTION_VOICES])
   })
@@ -34,7 +34,7 @@ describe('T3.4 — TalkOptions', () => {
   it('exposes the four canonical speed multipliers', () => {
     const value: TalkOptionsValue = { voice: 'alloy', speed: 1 }
     render(<TalkOptions value={value} onChange={() => undefined} />)
-    const speed = screen.getByTestId('talk-options-speed')
+    const speed = screen.getByTestId<HTMLSelectElement>('talk-options-speed')
     const optionValues = Array.from(speed.options).map((o) => Number(o.value))
     expect(optionValues).toEqual([...TALK_OPTION_SPEEDS])
   })

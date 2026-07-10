@@ -34,12 +34,7 @@ import { validateVoiceOptions, type VoiceConfig, type VoiceOptions } from './opt
 
 export { handleSttRequest } from './server/stt-server.js'
 export { handleTtsRequest } from './server/tts-server.js'
-export type {
-  SttAudio,
-  SttHandlerOptions,
-  SttInput,
-  SttResponseBody,
-} from './server/stt-server.js'
+export type { SttAudio, SttHandlerOptions, SttInput, SttResponseBody } from './server/stt-server.js'
 export type { TtsHandlerOptions, TtsInput } from './server/tts-server.js'
 
 export {
@@ -101,4 +96,3 @@ export interface VoicePluginRuntimeOptions {
   // next to each `handleXxxRequest` call site.
   _: never
 }
-

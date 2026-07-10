@@ -26,7 +26,7 @@ function makeAudio(): FakeAudio {
   const listeners = new Map<string, ((...args: unknown[]) => void)[]>()
   const audio: FakeAudio = {
     src: '',
-    play: vi.fn(async () => undefined),
+    play: vi.fn(() => Promise.resolve(undefined)),
     pause: vi.fn(),
     addEventListener: vi.fn((type: string, fn: (...args: unknown[]) => void) => {
       const arr = listeners.get(type) ?? []
@@ -64,21 +64,21 @@ describe('useTts', () => {
   })
 
   it('idle → requesting → playing on successful speak()', async () => {
-    const fetchImpl = vi.fn(async () => mp3Response())
+    const fetchImpl = vi.fn(() => Promise.resolve(mp3Response()))
     const audio = makeAudio()
     const { result } = renderHook(() =>
       useTts({ fetchImpl, audioFactory: () => audio as unknown as HTMLAudioElement }),
     )
 
     let pending: Promise<void> | undefined
-    await act(async () => {
+    act(() => {
       pending = result.current.speak('hello')
     })
     await waitFor(() => expect(result.current.phase).toBe('playing'))
     expect(audio.play).toHaveBeenCalled()
     expect(audio.src).toMatch(/^blob:/)
 
-    await act(async () => {
+    act(() => {
       audio.emit('ended')
     })
     await waitFor(() => expect(result.current.phase).toBe('idle'))
@@ -87,9 +87,9 @@ describe('useTts', () => {
 
   it('POSTs JSON {text, voice?, speed?} with CSRF default header', async () => {
     let capturedInit: RequestInit | null = null
-    const fetchImpl = vi.fn(async (_url: string | URL, init: RequestInit) => {
+    const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
       capturedInit = init
-      return mp3Response()
+      return Promise.resolve(mp3Response())
     })
     const audio = makeAudio()
     const { result } = renderHook(() =>
@@ -115,9 +115,9 @@ describe('useTts', () => {
 
   it('per-call voice/speed override the hook defaults', async () => {
     let capturedBody: Record<string, unknown> = {}
-    const fetchImpl = vi.fn(async (_url: string | URL, init: RequestInit) => {
+    const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
       capturedBody = JSON.parse(init.body as string) as Record<string, unknown>
-      return mp3Response()
+      return Promise.resolve(mp3Response())
     })
     const audio = makeAudio()
     const { result } = renderHook(() =>
@@ -136,7 +136,7 @@ describe('useTts', () => {
   })
 
   it('non-2xx response transitions to error phase with VoiceProviderError', async () => {
-    const fetchImpl = vi.fn(async () => new Response('Unauthorized', { status: 401 }))
+    const fetchImpl = vi.fn(() => Promise.resolve(new Response('Unauthorized', { status: 401 })))
     const audio = makeAudio()
     const onError = vi.fn()
     const { result } = renderHook(() =>
@@ -156,9 +156,7 @@ describe('useTts', () => {
   })
 
   it('network rejection transitions to error phase with VoicePluginError', async () => {
-    const fetchImpl = vi.fn(async () => {
-      throw new Error('ECONNRESET')
-    })
+    const fetchImpl = vi.fn(() => Promise.reject(new Error('ECONNRESET')))
     const audio = makeAudio()
     const { result } = renderHook(() =>
       useTts({ fetchImpl, audioFactory: () => audio as unknown as HTMLAudioElement }),
@@ -171,7 +169,7 @@ describe('useTts', () => {
   })
 
   it('stop() pauses + resets to idle', async () => {
-    const fetchImpl = vi.fn(async () => mp3Response())
+    const fetchImpl = vi.fn(() => Promise.resolve(mp3Response()))
     const audio = makeAudio()
     const { result } = renderHook(() =>
       useTts({ fetchImpl, audioFactory: () => audio as unknown as HTMLAudioElement }),
@@ -198,7 +196,7 @@ describe('useTts', () => {
   })
 
   it('audio "error" event transitions to error phase', async () => {
-    const fetchImpl = vi.fn(async () => mp3Response())
+    const fetchImpl = vi.fn(() => Promise.resolve(mp3Response()))
     const audio = makeAudio()
     const { result } = renderHook(() =>
       useTts({ fetchImpl, audioFactory: () => audio as unknown as HTMLAudioElement }),
@@ -207,7 +205,7 @@ describe('useTts', () => {
       await result.current.speak('hi')
     })
     await waitFor(() => expect(result.current.phase).toBe('playing'))
-    await act(async () => {
+    act(() => {
       audio.emit('error')
     })
     expect(result.current.phase).toBe('error')
@@ -216,9 +214,9 @@ describe('useTts', () => {
 
   it('omits CSRF header when csrfHeader is explicitly null', async () => {
     let capturedInit: RequestInit | null = null
-    const fetchImpl = vi.fn(async (_url: string | URL, init: RequestInit) => {
+    const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
       capturedInit = init
-      return mp3Response()
+      return Promise.resolve(mp3Response())
     })
     const audio = makeAudio()
     const { result } = renderHook(() =>

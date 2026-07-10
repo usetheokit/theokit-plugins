@@ -110,9 +110,7 @@ describe('ArtifactRenderer — dispatch by kind', () => {
       sandbox: 'scripts',
     }
     render(<ArtifactRenderer artifact={a} />)
-    const iframe = screen
-      .getByTestId('html-artifact')
-      .querySelector('iframe') as HTMLIFrameElement
+    const iframe = screen.getByTestId('html-artifact').querySelector('iframe') as HTMLIFrameElement
     expect(iframe.getAttribute('sandbox')).toBe('allow-scripts')
   })
 
@@ -124,9 +122,7 @@ describe('ArtifactRenderer — dispatch by kind', () => {
       sandbox: 'forms',
     }
     render(<ArtifactRenderer artifact={a} />)
-    const iframe = screen
-      .getByTestId('html-artifact')
-      .querySelector('iframe') as HTMLIFrameElement
+    const iframe = screen.getByTestId('html-artifact').querySelector('iframe') as HTMLIFrameElement
     expect(iframe.getAttribute('sandbox')).toBe('allow-scripts allow-forms')
     expect(iframe.getAttribute('sandbox')).not.toMatch(/same-origin/)
   })

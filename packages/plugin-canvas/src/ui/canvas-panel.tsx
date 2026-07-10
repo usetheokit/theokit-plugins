@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 import type { Artifact } from '../schema.js'
-import {
-  artifactToBlob,
-  filenameFor,
-  serializeArtifactForCopy,
-} from './artifact-actions.js'
+import { artifactToBlob, filenameFor, serializeArtifactForCopy } from './artifact-actions.js'
 import { CanvasToolbar } from './canvas-toolbar.js'
 import { CanvasArtifactList } from './canvas-artifact-list.js'
 import type { ArtifactRendererRegistry } from './renderers/types.js'

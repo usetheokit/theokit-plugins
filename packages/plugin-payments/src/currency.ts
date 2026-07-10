@@ -12,14 +12,25 @@
 // zero-decimal at charge time and are charged in 2-decimal minor units (x100).
 // Do not add them here even though ICU formats them without decimals.
 const ZERO_DECIMAL_CURRENCIES: ReadonlySet<string> = new Set([
-  "bif", "clp", "djf", "gnf", "jpy", "kmf", "krw", "mga", "pyg", "rwf",
-  "vnd", "vuv", "xaf", "xof", "xpf",
-]);
+  'bif',
+  'clp',
+  'djf',
+  'gnf',
+  'jpy',
+  'kmf',
+  'krw',
+  'mga',
+  'pyg',
+  'rwf',
+  'vnd',
+  'vuv',
+  'xaf',
+  'xof',
+  'xpf',
+])
 
 // Stripe charges these in x1000 minor units, rounded to a multiple of 10.
-const THREE_DECIMAL_CURRENCIES: ReadonlySet<string> = new Set([
-  "bhd", "jod", "kwd", "omr", "tnd",
-]);
+const THREE_DECIMAL_CURRENCIES: ReadonlySet<string> = new Set(['bhd', 'jod', 'kwd', 'omr', 'tnd'])
 
 /**
  * Convert a major-unit amount to the integer minor unit Stripe expects.
@@ -36,33 +47,29 @@ const THREE_DECIMAL_CURRENCIES: ReadonlySet<string> = new Set([
  */
 export function formatAmountForStripe(amount: number, currency: string): number {
   if (!Number.isFinite(amount)) {
-    throw new RangeError(
-      `formatAmountForStripe: amount must be a finite number, got ${amount}`,
-    );
+    throw new RangeError(`formatAmountForStripe: amount must be a finite number, got ${amount}`)
   }
   if (amount < 0) {
-    throw new RangeError(
-      `formatAmountForStripe: amount must be non-negative, got ${amount}`,
-    );
+    throw new RangeError(`formatAmountForStripe: amount must be non-negative, got ${amount}`)
   }
-  const code = currency.toLowerCase();
+  const code = currency.toLowerCase()
 
   if (ZERO_DECIMAL_CURRENCIES.has(code)) {
     if (!Number.isInteger(amount)) {
       throw new RangeError(
         `formatAmountForStripe: zero-decimal currency "${currency}" requires an integer amount, got ${amount}`,
-      );
+      )
     }
-    return assertSafeMinorUnits(amount, currency);
+    return assertSafeMinorUnits(amount, currency)
   }
 
-  const decimals = THREE_DECIMAL_CURRENCIES.has(code) ? 3 : 2;
-  let minor = scaleToMinorUnits(amount, decimals);
+  const decimals = THREE_DECIMAL_CURRENCIES.has(code) ? 3 : 2
+  let minor = scaleToMinorUnits(amount, decimals)
   if (decimals === 3 && minor % 10 !== 0) {
     // Stripe requires 3-decimal charge amounts to be a multiple of 10.
-    minor = Math.round(minor / 10) * 10;
+    minor = Math.round(minor / 10) * 10
   }
-  return assertSafeMinorUnits(minor, currency);
+  return assertSafeMinorUnits(minor, currency)
 }
 
 /**
@@ -72,26 +79,24 @@ export function formatAmountForStripe(amount: number, currency: string): number 
  * just past the currency's precision.
  */
 function scaleToMinorUnits(amount: number, decimals: number): number {
-  const s = amount.toString();
-  if (s.includes("e") || s.includes("E")) {
-    throw new RangeError(
-      `formatAmountForStripe: amount ${amount} is out of the supported range`,
-    );
+  const s = amount.toString()
+  if (s.includes('e') || s.includes('E')) {
+    throw new RangeError(`formatAmountForStripe: amount ${amount} is out of the supported range`)
   }
-  const [intPart, fracRaw = ""] = s.split(".");
-  const keep = fracRaw.slice(0, decimals).padEnd(decimals, "0");
-  const roundUp = fracRaw.charCodeAt(decimals) - 48 >= 5; // (decimals+1)th digit
-  const base = Number(`${intPart}${keep}`);
-  return roundUp ? base + 1 : base;
+  const [intPart, fracRaw = ''] = s.split('.')
+  const keep = fracRaw.slice(0, decimals).padEnd(decimals, '0')
+  const roundUp = fracRaw.charCodeAt(decimals) - 48 >= 5 // (decimals+1)th digit
+  const base = Number(`${intPart}${keep}`)
+  return roundUp ? base + 1 : base
 }
 
 function assertSafeMinorUnits(minor: number, currency: string): number {
   if (minor > Number.MAX_SAFE_INTEGER) {
     throw new RangeError(
       `formatAmountForStripe: minor-unit amount for "${currency}" exceeds MAX_SAFE_INTEGER (${minor})`,
-    );
+    )
   }
-  return minor;
+  return minor
 }
 
 /**
@@ -100,10 +105,10 @@ function assertSafeMinorUnits(minor: number, currency: string): number {
  * Returns a localized string (e.g., `"$1.50"` for USD, `"¥1,500"` for JPY).
  */
 export function formatAmountForDisplay(amount: number, currency: string): string {
-  const numberFormat = new Intl.NumberFormat(["en-US"], {
-    style: "currency",
+  const numberFormat = new Intl.NumberFormat(['en-US'], {
+    style: 'currency',
     currency,
-    currencyDisplay: "symbol",
-  });
-  return numberFormat.format(amount);
+    currencyDisplay: 'symbol',
+  })
+  return numberFormat.format(amount)
 }

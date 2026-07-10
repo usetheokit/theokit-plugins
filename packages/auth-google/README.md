@@ -16,9 +16,9 @@ Peer dependencies: `@theokit/sdk >= 1.5.0`, `theokit >= 0.2.4`.
 
 ```ts
 // server/auth/index.ts
-import { defineAuth } from "@theokit/sdk/server/auth";
-import { google } from "@theokit/auth-google";
-import { sessionManager } from "./session.js";
+import { defineAuth } from '@theokit/sdk/server/auth'
+import { google } from '@theokit/auth-google'
+import { sessionManager } from './session.js'
 
 export const auth = defineAuth({
   session: sessionManager,
@@ -26,39 +26,39 @@ export const auth = defineAuth({
     google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirectUri: "https://myapp.com/api/auth/google/callback",
+      redirectUri: 'https://myapp.com/api/auth/google/callback',
     }),
   ],
   onSignIn: async ({ profile }) => {
     // profile is GoogleProfile { sub, email, email_verified, name?, picture?, locale? }
-    return { userId: profile.sub, email: profile.email };
+    return { userId: profile.sub, email: profile.email }
   },
-});
+})
 ```
 
 Wire into your routes:
 
 ```ts
 // server/routes/api/auth/google/start.ts
-import { defineRoute } from "theokit/server";
-import { auth } from "../../../auth/index.js";
+import { defineRoute } from 'theokit/server'
+import { auth } from '../../../auth/index.js'
 
 export const GET = defineRoute({
   handler: async ({ req }) => {
-    return auth.startSignIn("google", req);
+    return auth.startSignIn('google', req)
   },
-});
+})
 
 // server/routes/api/auth/google/callback.ts
-import { defineRoute } from "theokit/server";
-import { auth } from "../../../auth/index.js";
+import { defineRoute } from 'theokit/server'
+import { auth } from '../../../auth/index.js'
 
 export const GET = defineRoute({
   handler: async ({ req, res }) => {
-    const { session, returnTo } = await auth.finishSignIn("google", req, res);
-    return Response.redirect(returnTo ?? "/", 302);
+    const { session, returnTo } = await auth.finishSignIn('google', req, res)
+    return Response.redirect(returnTo ?? '/', 302)
   },
-});
+})
 ```
 
 ## Google Cloud Console setup
@@ -78,12 +78,12 @@ export const GET = defineRoute({
 
 ```ts
 interface GoogleProfile {
-  sub: string;          // OIDC subject — case-sensitive, never lowercased
-  email: string;
-  email_verified: boolean;
-  name?: string;
-  picture?: string;
-  locale?: string;
+  sub: string // OIDC subject — case-sensitive, never lowercased
+  email: string
+  email_verified: boolean
+  name?: string
+  picture?: string
+  locale?: string
 }
 ```
 
@@ -96,21 +96,21 @@ Per plan v1.1 EC-13 (Accepted Risk): the `email_verified` boolean comes directly
 The `google()` factory ships with `openid profile email`. If you need additional scopes (Drive, Gmail, Calendar, etc.), wrap the provider and post-process the URL:
 
 ```ts
-import { google as baseGoogle } from "@theokit/auth-google";
+import { google as baseGoogle } from '@theokit/auth-google'
 
 function googleWithDriveScope(opts) {
-  const base = baseGoogle(opts);
+  const base = baseGoogle(opts)
   return {
     ...base,
     async createAuthorizationURL(tx) {
-      const url = await base.createAuthorizationURL(tx);
+      const url = await base.createAuthorizationURL(tx)
       url.searchParams.set(
-        "scope",
-        "openid profile email https://www.googleapis.com/auth/drive.readonly",
-      );
-      return url;
+        'scope',
+        'openid profile email https://www.googleapis.com/auth/drive.readonly',
+      )
+      return url
     },
-  };
+  }
 }
 ```
 
@@ -129,13 +129,13 @@ The provider will route OIDC discovery to the local sidecar instead of `accounts
 
 ## Troubleshooting
 
-| Error code | Meaning | Likely cause |
-|---|---|---|
-| `missing_pkce_verifier` | `OAuthTransaction.pkceVerifier` missing | The orchestrator should populate it; check `defineAuth` wiring |
-| `state_mismatch` | Callback `state` doesn't match transaction state | Either CSRF attempt OR user resubmitted a stale callback. Restart sign-in |
-| `token_exchange_failed` | Google rejected the code exchange | Wrong `clientSecret`, expired code, mismatched `redirectUri` |
-| `missing_sub` / `missing_email` | Userinfo response lacks required fields | OAuth scopes didn't grant `email` permission; double-check Google Cloud Console consent screen |
-| OIDC discovery `403` / `404` | `oidcBaseUrl` wrong | If overriding, ensure the URL serves `/.well-known/openid-configuration` |
+| Error code                      | Meaning                                          | Likely cause                                                                                   |
+| ------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `missing_pkce_verifier`         | `OAuthTransaction.pkceVerifier` missing          | The orchestrator should populate it; check `defineAuth` wiring                                 |
+| `state_mismatch`                | Callback `state` doesn't match transaction state | Either CSRF attempt OR user resubmitted a stale callback. Restart sign-in                      |
+| `token_exchange_failed`         | Google rejected the code exchange                | Wrong `clientSecret`, expired code, mismatched `redirectUri`                                   |
+| `missing_sub` / `missing_email` | Userinfo response lacks required fields          | OAuth scopes didn't grant `email` permission; double-check Google Cloud Console consent screen |
+| OIDC discovery `403` / `404`    | `oidcBaseUrl` wrong                              | If overriding, ensure the URL serves `/.well-known/openid-configuration`                       |
 
 ## License
 

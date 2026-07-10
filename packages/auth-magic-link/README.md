@@ -16,23 +16,23 @@ Peer dependencies: `@theokit/sdk >= 1.5.0`, `theokit >= 0.2.4`. Zero runtime dep
 
 ```ts
 // server/auth/index.ts
-import { defineAuth } from "@theokit/sdk/server/auth";
-import { magicLink, createMemoryStore } from "@theokit/auth-magic-link";
-import { sessionManager } from "./session.js";
+import { defineAuth } from '@theokit/sdk/server/auth'
+import { magicLink, createMemoryStore } from '@theokit/auth-magic-link'
+import { sessionManager } from './session.js'
 
 export const auth = defineAuth({
   session: sessionManager,
   providers: [
     magicLink({
       store: createMemoryStore(), // dev only — see "Production" below
-      callbackBaseUrl: "https://myapp.com",
+      callbackBaseUrl: 'https://myapp.com',
       sendEmail: async ({ to, magicLinkUrl, expiresAt }) => {
-        console.log(`Magic link for ${to}: ${magicLinkUrl} (expires ${expiresAt.toISOString()})`);
+        console.log(`Magic link for ${to}: ${magicLinkUrl} (expires ${expiresAt.toISOString()})`)
       },
     }),
   ],
   onSignIn: async ({ profile }) => ({ userId: profile.email, email: profile.email }),
-});
+})
 ```
 
 ## Wiring
@@ -41,26 +41,26 @@ Magic-link does NOT use the OAuth `startSignIn` flow — call `provider.startSig
 
 ```ts
 // server/routes/api/auth/magic-link/start.ts
-import { defineRoute } from "theokit/server";
-import { magicLinkProvider } from "../../../auth/providers.js"; // your magicLink() instance
+import { defineRoute } from 'theokit/server'
+import { magicLinkProvider } from '../../../auth/providers.js' // your magicLink() instance
 
 export const POST = defineRoute({
   handler: async ({ req }) => {
-    const redirect = await magicLinkProvider.startSignIn(req);
-    return Response.redirect(redirect, 303);
+    const redirect = await magicLinkProvider.startSignIn(req)
+    return Response.redirect(redirect, 303)
   },
-});
+})
 
 // server/routes/api/auth/magic-link/callback.ts
-import { defineRoute } from "theokit/server";
-import { auth } from "../../../auth/index.js";
+import { defineRoute } from 'theokit/server'
+import { auth } from '../../../auth/index.js'
 
 export const GET = defineRoute({
   handler: async ({ req, res }) => {
-    const { session, returnTo } = await auth.finishSignIn("magic-link", req, res);
-    return Response.redirect(returnTo ?? "/", 302);
+    const { session, returnTo } = await auth.finishSignIn('magic-link', req, res)
+    return Response.redirect(returnTo ?? '/', 302)
   },
-});
+})
 ```
 
 The default `resolveEmail` reads `?email=` from the URL OR the `email` field from a JSON / form-encoded body. Override via `opts.resolveEmail` for custom shapes.
@@ -70,42 +70,42 @@ The default `resolveEmail` reads `?email=` from the URL OR the `email` field fro
 ### `@theokit/orm` adapter
 
 ```ts
-import { defineEntity, BaseEntity } from "@theokit/orm";
-import { createOrmStore } from "@theokit/auth-magic-link";
+import { defineEntity, BaseEntity } from '@theokit/orm'
+import { createOrmStore } from '@theokit/auth-magic-link'
 
 class MagicLinkRow extends BaseEntity {
   static __entity__ = defineEntity({
-    name: "magic_link_tokens",
+    name: 'magic_link_tokens',
     columns: {
-      token: { type: "string", primary: true, length: 64 },
-      email: { type: "string", length: 320, index: true },
-      expiresAt: { type: "datetime", index: true },
-      consumedAt: { type: "datetime", nullable: true },
+      token: { type: 'string', primary: true, length: 64 },
+      email: { type: 'string', length: 320, index: true },
+      expiresAt: { type: 'datetime', index: true },
+      consumedAt: { type: 'datetime', nullable: true },
     },
-  });
+  })
 }
 
-const repo = orm.getRepository(MagicLinkRow);
+const repo = orm.getRepository(MagicLinkRow)
 
 const store = createOrmStore({
   async insert(row) {
-    await repo.create(row);
+    await repo.create(row)
   },
   async consumeAtomically(token, now) {
     // Postgres UPDATE...RETURNING + WHERE consumed_at IS NULL guarantees single-use
     const rows = await repo.query(
       `UPDATE magic_link_tokens SET consumed_at = $2 WHERE token = $1 AND consumed_at IS NULL RETURNING email, expires_at`,
       [token, now],
-    );
-    return rows[0] ?? null;
+    )
+    return rows[0] ?? null
   },
   async delete(token) {
-    await repo.deleteOne({ token });
+    await repo.deleteOne({ token })
   },
   async deleteExpired(now) {
-    return repo.deleteWhere(`expires_at <= $1`, [now]);
+    return repo.deleteWhere(`expires_at <= $1`, [now])
   },
-});
+})
 ```
 
 ### Custom store
@@ -119,61 +119,63 @@ The `sendEmail` callback is intentionally unopinionated. Examples for popular tr
 ### Resend
 
 ```ts
-import { Resend } from "resend";
+import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
+const resend = new Resend(process.env.RESEND_API_KEY!)
 
 sendEmail: async ({ to, magicLinkUrl, expiresAt }) => {
   const { error } = await resend.emails.send({
-    from: "auth@myapp.com",
+    from: 'auth@myapp.com',
     to,
-    subject: "Your sign-in link",
+    subject: 'Your sign-in link',
     html: `<p>Click to sign in (expires ${expiresAt.toUTCString()}): <a href="${magicLinkUrl}">${magicLinkUrl}</a></p>`,
-  });
-  if (error) throw new Error(`Resend failed: ${error.message}`);
-};
+  })
+  if (error) throw new Error(`Resend failed: ${error.message}`)
+}
 ```
 
 ### SendGrid
 
 ```ts
-import sgMail from "@sendgrid/mail";
+import sgMail from '@sendgrid/mail'
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+sgMail.setApiKey(process.env.SENDGRID_API_KEY!)
 
 sendEmail: async ({ to, magicLinkUrl, expiresAt }) => {
   await sgMail.send({
-    from: "auth@myapp.com",
+    from: 'auth@myapp.com',
     to,
-    subject: "Your sign-in link",
+    subject: 'Your sign-in link',
     html: `<p>Click to sign in (expires ${expiresAt.toUTCString()}): <a href="${magicLinkUrl}">${magicLinkUrl}</a></p>`,
-  });
-};
+  })
+}
 ```
 
 ### Nodemailer (SMTP)
 
 ```ts
-import nodemailer from "nodemailer";
+import nodemailer from 'nodemailer'
 
-const transport = nodemailer.createTransport({ /* SMTP config */ });
+const transport = nodemailer.createTransport({
+  /* SMTP config */
+})
 
 sendEmail: async ({ to, magicLinkUrl, expiresAt }) => {
   await transport.sendMail({
-    from: "auth@myapp.com",
+    from: 'auth@myapp.com',
     to,
-    subject: "Your sign-in link",
+    subject: 'Your sign-in link',
     html: `<p>Click to sign in (expires ${expiresAt.toUTCString()}): <a href="${magicLinkUrl}">${magicLinkUrl}</a></p>`,
-  });
-};
+  })
+}
 ```
 
 ## Profile shape
 
 ```ts
 interface MagicLinkProfile {
-  email: string;       // verified by token possession
-  verifiedAt: Date;    // when handleCallback completed
+  email: string // verified by token possession
+  verifiedAt: Date // when handleCallback completed
 }
 ```
 
@@ -188,12 +190,12 @@ Per plan v1.1 EC-12 (SHOULD TEST absorbed): email is validated at the start-sign
 
 ## Troubleshooting
 
-| Error | Code | Likely cause |
-|---|---|---|
-| `MagicLinkConfigError` | `invalid_email` | Empty / malformed email field in start-sign-in request |
-| `MagicLinkAuthError` | `missing_token` | Callback URL lacks `?token=` |
-| `MagicLinkAuthError` | `invalid_or_expired_token` | Token unknown, expired (>15min), or already consumed |
-| `MagicLinkConfigError` | `use_start_sign_in` | App accidentally called `provider.createAuthorizationURL` (magic-link doesn't use OAuth flow) |
+| Error                  | Code                       | Likely cause                                                                                  |
+| ---------------------- | -------------------------- | --------------------------------------------------------------------------------------------- |
+| `MagicLinkConfigError` | `invalid_email`            | Empty / malformed email field in start-sign-in request                                        |
+| `MagicLinkAuthError`   | `missing_token`            | Callback URL lacks `?token=`                                                                  |
+| `MagicLinkAuthError`   | `invalid_or_expired_token` | Token unknown, expired (>15min), or already consumed                                          |
+| `MagicLinkConfigError` | `use_start_sign_in`        | App accidentally called `provider.createAuthorizationURL` (magic-link doesn't use OAuth flow) |
 
 ## License
 

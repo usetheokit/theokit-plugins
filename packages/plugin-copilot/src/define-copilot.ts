@@ -6,7 +6,19 @@
  * @public
  */
 
-import { CopilotConfigError, type CopilotDescriptor, type CopilotDispatcher, type CopilotTrigger, type CopilotIdentity, type CopilotAgentConfig, type CopilotBudgetConfig, type CopilotCanvasConfig, type CopilotRateLimitConfig, type CopilotRoomBinding, type CopilotVoiceConfig } from "./types.js";
+import {
+  CopilotConfigError,
+  type CopilotDescriptor,
+  type CopilotDispatcher,
+  type CopilotTrigger,
+  type CopilotIdentity,
+  type CopilotAgentConfig,
+  type CopilotBudgetConfig,
+  type CopilotCanvasConfig,
+  type CopilotRateLimitConfig,
+  type CopilotRoomBinding,
+  type CopilotVoiceConfig,
+} from './types.js'
 
 /**
  * Options accepted by {@link defineCopilot}.
@@ -15,28 +27,28 @@ import { CopilotConfigError, type CopilotDescriptor, type CopilotDispatcher, typ
  */
 export interface DefineCopilotOptions {
   /** Stable copilot identifier (URL-safe, non-empty). Used as `copilot:${id}` connectionId in P#9 room. */
-  id: string;
+  id: string
   /** P#9 room descriptor — copilot joins this room. */
-  room: CopilotRoomBinding;
+  room: CopilotRoomBinding
   /** SDK Agent configuration. */
-  agent: CopilotAgentConfig;
+  agent: CopilotAgentConfig
   /** Copilot's room identity (presence-visible name/avatar/color). */
-  identity: CopilotIdentity;
+  identity: CopilotIdentity
   /** Declarative triggers (per ADR D3). */
-  triggers: readonly CopilotTrigger[];
+  triggers: readonly CopilotTrigger[]
   /** Optional rate-limit (per-copilot windowed limit). */
-  rateLimit?: CopilotRateLimitConfig;
+  rateLimit?: CopilotRateLimitConfig
   /** Optional Budget integration (SDK Budget D375-D388). */
-  budget?: CopilotBudgetConfig;
+  budget?: CopilotBudgetConfig
   /** Optional Voice integration (plugin-voice peer required at runtime if set). */
-  voice?: CopilotVoiceConfig;
+  voice?: CopilotVoiceConfig
   /** Optional Canvas integration (plugin-canvas peer required at runtime if set). */
-  canvas?: CopilotCanvasConfig;
+  canvas?: CopilotCanvasConfig
   /** Optional multi-copilot dispatcher policy (per ADR D6). */
-  dispatcher?: CopilotDispatcher;
+  dispatcher?: CopilotDispatcher
 }
 
-const COPILOT_ID_RE = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
+const COPILOT_ID_RE = /^[a-zA-Z][a-zA-Z0-9_-]*$/
 
 /**
  * Define a copilot — pairs a P#9 room with an Agent + reactive triggers.
@@ -73,66 +85,70 @@ const COPILOT_ID_RE = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
  */
 /** #184: validate object shape, id, and room (throws CopilotConfigError). */
 function assertCopilotBaseShape(opts: DefineCopilotOptions): void {
-  if (opts === null || typeof opts !== "object") {
-    throw new CopilotConfigError("defineCopilot: options object is required");
+  if (opts === null || typeof opts !== 'object') {
+    throw new CopilotConfigError('defineCopilot: options object is required')
   }
-  if (typeof opts.id !== "string" || !COPILOT_ID_RE.test(opts.id)) {
+  if (typeof opts.id !== 'string' || !COPILOT_ID_RE.test(opts.id)) {
     throw new CopilotConfigError(
       `defineCopilot: opts.id must match /^[a-zA-Z][a-zA-Z0-9_-]*$/ (URL-safe); got ${JSON.stringify(opts.id)}`,
-      { code: "copilot_id_invalid" },
-    );
+      { code: 'copilot_id_invalid' },
+    )
   }
-  if (opts.room === undefined || typeof opts.room.id !== "string" || opts.room.id.length === 0) {
+  if (opts.room === undefined || typeof opts.room.id !== 'string' || opts.room.id.length === 0) {
     throw new CopilotConfigError(
-      "defineCopilot: opts.room must be a RoomDescriptor with non-empty id",
-      { code: "copilot_room_invalid" },
-    );
+      'defineCopilot: opts.room must be a RoomDescriptor with non-empty id',
+      { code: 'copilot_room_invalid' },
+    )
   }
 }
 
 /** #184: validate agent + identity (throws CopilotConfigError). */
 function assertCopilotAgentIdentity(opts: DefineCopilotOptions): void {
-  if (opts.agent === undefined || typeof opts.agent.name !== "string" || opts.agent.name.length === 0) {
-    throw new CopilotConfigError("defineCopilot: opts.agent.name must be non-empty string", {
-      code: "copilot_agent_invalid",
-    });
+  if (
+    opts.agent === undefined ||
+    typeof opts.agent.name !== 'string' ||
+    opts.agent.name.length === 0
+  ) {
+    throw new CopilotConfigError('defineCopilot: opts.agent.name must be non-empty string', {
+      code: 'copilot_agent_invalid',
+    })
   }
   if (opts.agent.model === undefined) {
-    throw new CopilotConfigError("defineCopilot: opts.agent.model is required", {
-      code: "copilot_agent_model_missing",
-    });
+    throw new CopilotConfigError('defineCopilot: opts.agent.model is required', {
+      code: 'copilot_agent_model_missing',
+    })
   }
   if (
     opts.identity === undefined ||
-    typeof opts.identity.name !== "string" ||
+    typeof opts.identity.name !== 'string' ||
     opts.identity.name.length === 0
   ) {
-    throw new CopilotConfigError("defineCopilot: opts.identity.name must be non-empty string", {
-      code: "copilot_identity_invalid",
-    });
+    throw new CopilotConfigError('defineCopilot: opts.identity.name must be non-empty string', {
+      code: 'copilot_identity_invalid',
+    })
   }
 }
 
 /** #184: validate the triggers array + per-trigger requirements. */
-function assertCopilotTriggers(triggers: DefineCopilotOptions["triggers"]): void {
+function assertCopilotTriggers(triggers: DefineCopilotOptions['triggers']): void {
   if (!Array.isArray(triggers) || triggers.length === 0) {
     throw new CopilotConfigError(
-      "defineCopilot: opts.triggers must be a non-empty array (at least one trigger required to activate copilot)",
-      { code: "copilot_triggers_empty" },
-    );
+      'defineCopilot: opts.triggers must be a non-empty array (at least one trigger required to activate copilot)',
+      { code: 'copilot_triggers_empty' },
+    )
   }
-  for (const t of triggers) {
-    if (t.on === "custom" && typeof t.filter !== "function") {
-      throw new CopilotConfigError(
-        "defineCopilot: custom trigger must include a filter function",
-        { code: "copilot_trigger_filter_missing" },
-      );
+  // `Array.isArray` widens the narrowed value to `any[]`; iterate over the
+  // originally-typed array so per-trigger member access stays type-safe.
+  for (const t of triggers as readonly CopilotTrigger[]) {
+    if (t.on === 'custom' && typeof t.filter !== 'function') {
+      throw new CopilotConfigError('defineCopilot: custom trigger must include a filter function', {
+        code: 'copilot_trigger_filter_missing',
+      })
     }
-    if (t.on === "presence:idle" && (typeof t.idleMs !== "number" || t.idleMs <= 0)) {
-      throw new CopilotConfigError(
-        "defineCopilot: presence:idle trigger must include idleMs > 0",
-        { code: "copilot_trigger_idle_invalid" },
-      );
+    if (t.on === 'presence:idle' && (typeof t.idleMs !== 'number' || t.idleMs <= 0)) {
+      throw new CopilotConfigError('defineCopilot: presence:idle trigger must include idleMs > 0', {
+        code: 'copilot_trigger_idle_invalid',
+      })
     }
   }
 }
@@ -140,9 +156,9 @@ function assertCopilotTriggers(triggers: DefineCopilotOptions["triggers"]): void
 export function defineCopilot(opts: DefineCopilotOptions): CopilotDescriptor {
   // #184: validation split into focused asserts to keep this factory's
   // cyclomatic complexity low (behavior unchanged — same checks, same codes).
-  assertCopilotBaseShape(opts);
-  assertCopilotAgentIdentity(opts);
-  assertCopilotTriggers(opts.triggers);
+  assertCopilotBaseShape(opts)
+  assertCopilotAgentIdentity(opts)
+  assertCopilotTriggers(opts.triggers)
   return {
     id: opts.id,
     room: opts.room,
@@ -154,5 +170,5 @@ export function defineCopilot(opts: DefineCopilotOptions): CopilotDescriptor {
     ...(opts.voice !== undefined ? { voice: opts.voice } : {}),
     ...(opts.canvas !== undefined ? { canvas: opts.canvas } : {}),
     ...(opts.dispatcher !== undefined ? { dispatcher: opts.dispatcher } : {}),
-  };
+  }
 }

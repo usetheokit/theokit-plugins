@@ -66,12 +66,8 @@ describe('pickExtension', () => {
   })
 
   it('maps "rust" / "rs" → rs', () => {
-    expect(
-      pickExtension({ ...env, kind: 'code', language: 'rust', content: 'x' }),
-    ).toBe('rs')
-    expect(
-      pickExtension({ ...env, kind: 'code', language: 'rs', content: 'x' }),
-    ).toBe('rs')
+    expect(pickExtension({ ...env, kind: 'code', language: 'rust', content: 'x' })).toBe('rs')
+    expect(pickExtension({ ...env, kind: 'code', language: 'rs', content: 'x' })).toBe('rs')
   })
 
   it('extracts mime from data-image URLs', () => {
@@ -98,15 +94,9 @@ describe('pickExtension', () => {
 
   it('defaults per kind for non-code/image kinds', () => {
     expect(pickExtension({ ...env, kind: 'markdown', content: 'x' })).toBe('md')
-    expect(
-      pickExtension({ ...env, kind: 'svg', content: '<svg/>' }),
-    ).toBe('svg')
-    expect(
-      pickExtension({ ...env, kind: 'mermaid', content: 'graph TD;' }),
-    ).toBe('mmd')
-    expect(
-      pickExtension({ ...env, kind: 'html', srcdoc: '<p/>', sandbox: 'minimal' }),
-    ).toBe('html')
+    expect(pickExtension({ ...env, kind: 'svg', content: '<svg/>' })).toBe('svg')
+    expect(pickExtension({ ...env, kind: 'mermaid', content: 'graph TD;' })).toBe('mmd')
+    expect(pickExtension({ ...env, kind: 'html', srcdoc: '<p/>', sandbox: 'minimal' })).toBe('html')
   })
 })
 
@@ -114,11 +104,14 @@ describe('serializeArtifactForCopy', () => {
   it('returns raw content for markdown / code / svg / mermaid', () => {
     expect(serializeArtifactForCopy({ ...env, kind: 'markdown', content: 'hi' })).toBe('hi')
     expect(
-      serializeArtifactForCopy({ ...env, kind: 'code', language: 'ts', content: 'export const x = 1' }),
+      serializeArtifactForCopy({
+        ...env,
+        kind: 'code',
+        language: 'ts',
+        content: 'export const x = 1',
+      }),
     ).toBe('export const x = 1')
-    expect(
-      serializeArtifactForCopy({ ...env, kind: 'svg', content: '<svg/>' }),
-    ).toBe('<svg/>')
+    expect(serializeArtifactForCopy({ ...env, kind: 'svg', content: '<svg/>' })).toBe('<svg/>')
   })
 
   it('returns srcdoc for html', () => {
@@ -221,9 +214,9 @@ describe('artifactToBlob', () => {
 
 describe('filenameFor', () => {
   it('combines slug + extension', () => {
-    expect(
-      filenameFor({ ...env, kind: 'code', language: 'ts', content: 'x' }),
-    ).toBe('My-artifact.ts')
+    expect(filenameFor({ ...env, kind: 'code', language: 'ts', content: 'x' })).toBe(
+      'My-artifact.ts',
+    )
   })
 
   it('appends -v<N> suffix when version > 1', () => {

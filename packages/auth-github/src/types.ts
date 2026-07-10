@@ -9,25 +9,25 @@
  */
 
 export interface GitHubProfile {
-  id: number;
-  login: string;
-  name?: string | null;
-  email?: string | null;
-  avatar_url?: string;
+  id: number
+  login: string
+  name?: string | null
+  email?: string | null
+  avatar_url?: string
 }
 
 export interface GitHubProviderOptions {
-  clientId: string;
-  clientSecret: string;
-  redirectUri: string;
+  clientId: string
+  clientSecret: string
+  redirectUri: string
   /** Defaults to `['read:user', 'user:email']`. */
-  scopes?: readonly string[];
+  scopes?: readonly string[]
   /** Override authorization endpoint (default https://github.com/login/oauth/authorize). */
-  authorizationEndpoint?: string;
+  authorizationEndpoint?: string
   /** Override token endpoint (default https://github.com/login/oauth/access_token). */
-  tokenEndpoint?: string;
+  tokenEndpoint?: string
   /** Override userinfo endpoint (default https://api.github.com/user). */
-  userinfoEndpoint?: string;
+  userinfoEndpoint?: string
   /** Override emails endpoint (default https://api.github.com/user/emails). */
-  userEmailsEndpoint?: string;
+  userEmailsEndpoint?: string
 }

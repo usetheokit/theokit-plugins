@@ -56,12 +56,7 @@ export class VoiceProviderError extends VoicePluginError {
   override readonly name = 'VoiceProviderError'
   readonly provider: string
   readonly status: number
-  constructor(
-    provider: string,
-    status: number,
-    message: string,
-    options?: { cause?: unknown },
-  ) {
+  constructor(provider: string, status: number, message: string, options?: { cause?: unknown }) {
     super(message, options)
     this.provider = provider
     this.status = status

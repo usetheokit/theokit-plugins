@@ -124,8 +124,15 @@ export function sanitizeSvg(input: string): SanitizeResult {
   try {
     const output = DOMPurify.sanitize(input, {
       USE_PROFILES: { svg: true, svgFilters: true },
-      FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'foreignObject',
-        'math', 'annotation-xml'],
+      FORBID_TAGS: [
+        'script',
+        'iframe',
+        'object',
+        'embed',
+        'foreignObject',
+        'math',
+        'annotation-xml',
+      ],
       FORBID_ATTR: ['formaction'],
       ALLOW_DATA_ATTR: false,
       ALLOW_UNKNOWN_PROTOCOLS: false,

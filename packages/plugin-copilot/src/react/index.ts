@@ -10,12 +10,9 @@ export {
   type CopilotMessage,
   type CopilotPresenceEntry,
   isCopilotConnectionId,
-} from "./copilot-context.js";
+} from './copilot-context.js'
 
-export {
-  CopilotProvider,
-  type CopilotProviderProps,
-} from "./copilot-provider.js";
+export { CopilotProvider, type CopilotProviderProps } from './copilot-provider.js'
 
 export {
   useCopilot,
@@ -24,9 +21,6 @@ export {
   useCopilotReadable,
   useCopilotTool,
   useCopilotTyping,
-} from "./hooks.js";
+} from './hooks.js'
 
-export {
-  CopilotChat,
-  type CopilotChatProps,
-} from "./CopilotChat.js";
+export { CopilotChat, type CopilotChatProps } from './CopilotChat.js'

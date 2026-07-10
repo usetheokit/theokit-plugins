@@ -188,7 +188,7 @@ export function createRecorder(opts: CreateRecorderOptions = {}): Recorder {
     try {
       ensureSecureContext()
     } catch (err) {
-      return Promise.reject(err)
+      return Promise.reject(err instanceof Error ? err : new Error(String(err)))
     }
     startPromise = doStart().finally(() => {
       startPromise = null
@@ -212,7 +212,7 @@ export function createRecorder(opts: CreateRecorderOptions = {}): Recorder {
       }
       stopReject = (reason) => {
         releaseStream()
-        reject(reason)
+        reject(reason instanceof Error ? reason : new Error(String(reason)))
       }
     })
     try {
@@ -275,10 +275,9 @@ function mapMediaError(err: unknown): VoicePluginError {
         { cause: err },
       )
     case 'NotReadableError':
-      return new VoicePluginError(
-        `Microphone is in use by another application (${name}).`,
-        { cause: err },
-      )
+      return new VoicePluginError(`Microphone is in use by another application (${name}).`, {
+        cause: err,
+      })
     default:
       return new VoicePluginError(
         `MediaDevices error${name === '' ? '' : ` (${name})`}: ${message}`,

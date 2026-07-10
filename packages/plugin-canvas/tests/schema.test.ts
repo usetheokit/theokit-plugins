@@ -203,9 +203,9 @@ describe('validateArtifact — boundary regressions', () => {
    * byte count.
    */
   it('counts bytes without relying on Node Buffer (browser-safe)', () => {
-    const originalBuffer = (globalThis as { Buffer?: unknown }).Buffer
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (globalThis as any).Buffer
+    const globalWithBuffer = globalThis as { Buffer?: unknown }
+    const originalBuffer = globalWithBuffer.Buffer
+    delete globalWithBuffer.Buffer
     try {
       const ok = validateArtifact({
         kind: 'code',
@@ -331,7 +331,10 @@ describe('validateArtifact — invalid envelope', () => {
 
   it('throwOnError=true throws CanvasArtifactValidationError', () => {
     expect(() =>
-      validateArtifact({ kind: 'markdown', content: 'x', id: 'a', title: '' }, { throwOnError: true }),
+      validateArtifact(
+        { kind: 'markdown', content: 'x', id: 'a', title: '' },
+        { throwOnError: true },
+      ),
     ).toThrowError(CanvasArtifactValidationError)
   })
 })

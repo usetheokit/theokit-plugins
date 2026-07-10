@@ -33,7 +33,7 @@ describe('handleTtsRequest', () => {
         new Uint8Array([0xff, 0xfb, 0x90, 0x00]),
         new Uint8Array([0x12, 0x34, 0x56]),
       ]
-      const fetchImpl = vi.fn(async (url: string | URL, init: RequestInit) => {
+      const fetchImpl = vi.fn((url: string | URL, init: RequestInit) => {
         expect(String(url)).toBe('https://api.openai.com/v1/audio/speech')
         const body = JSON.parse(init.body as string) as {
           model: string
@@ -45,10 +45,12 @@ describe('handleTtsRequest', () => {
         expect(body.voice).toBe('alloy')
         expect(body.input).toBe('Hello world')
         expect(body.response_format).toBe('mp3')
-        return new Response(makeAudioStream(audioChunks), {
-          status: 200,
-          headers: { 'Content-Type': 'audio/mpeg' },
-        })
+        return Promise.resolve(
+          new Response(makeAudioStream(audioChunks), {
+            status: 200,
+            headers: { 'Content-Type': 'audio/mpeg' },
+          }),
+        )
       })
 
       const res = await handleTtsRequest({ text: 'Hello world' }, ttsConfig, { fetchImpl })
@@ -67,9 +69,11 @@ describe('handleTtsRequest', () => {
 
     it('forwards speed to upstream + emits X-Voice-Speed header', async () => {
       let capturedBody: { speed?: number } = {}
-      const fetchImpl = vi.fn(async (_url: string | URL, init: RequestInit) => {
+      const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
         capturedBody = JSON.parse(init.body as string) as { speed?: number }
-        return new Response(makeAudioStream([new Uint8Array([1])]), { status: 200 })
+        return Promise.resolve(
+          new Response(makeAudioStream([new Uint8Array([1])]), { status: 200 }),
+        )
       })
       const res = await handleTtsRequest({ text: 'hi', speed: 1.25 }, ttsConfig, { fetchImpl })
       expect(capturedBody.speed).toBe(1.25)
@@ -78,9 +82,11 @@ describe('handleTtsRequest', () => {
 
     it('omits speed from upstream payload when speed === 1', async () => {
       let capturedBody: Record<string, unknown> = {}
-      const fetchImpl = vi.fn(async (_url: string | URL, init: RequestInit) => {
+      const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
         capturedBody = JSON.parse(init.body as string) as Record<string, unknown>
-        return new Response(makeAudioStream([new Uint8Array([1])]), { status: 200 })
+        return Promise.resolve(
+          new Response(makeAudioStream([new Uint8Array([1])]), { status: 200 }),
+        )
       })
       await handleTtsRequest({ text: 'hi', speed: 1 }, ttsConfig, { fetchImpl })
       expect('speed' in capturedBody).toBe(false)
@@ -88,9 +94,11 @@ describe('handleTtsRequest', () => {
 
     it('body voice override wins over config default', async () => {
       let capturedBody: { voice?: string } = {}
-      const fetchImpl = vi.fn(async (_url: string | URL, init: RequestInit) => {
+      const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
         capturedBody = JSON.parse(init.body as string) as { voice?: string }
-        return new Response(makeAudioStream([new Uint8Array([1])]), { status: 200 })
+        return Promise.resolve(
+          new Response(makeAudioStream([new Uint8Array([1])]), { status: 200 }),
+        )
       })
       const res = await handleTtsRequest({ text: 'hi', voice: 'nova' }, ttsConfig, { fetchImpl })
       expect(capturedBody.voice).toBe('nova')
@@ -156,30 +164,30 @@ describe('handleTtsRequest', () => {
 
   describe('upstream failures', () => {
     it('upstream 401 maps to 401 UPSTREAM_ERROR', async () => {
-      const fetchImpl = vi.fn(async () => new Response('Unauthorized', { status: 401 }))
+      const fetchImpl = vi.fn(() => Promise.resolve(new Response('Unauthorized', { status: 401 })))
       const res = await handleTtsRequest({ text: 'hi' }, ttsConfig, { fetchImpl })
       expect(res.status).toBe(401)
       expect(await res.text()).toMatch(/UPSTREAM_ERROR/)
     })
 
     it('upstream 5xx maps to 502 UPSTREAM_ERROR', async () => {
-      const fetchImpl = vi.fn(async () => new Response('boom', { status: 500 }))
+      const fetchImpl = vi.fn(() => Promise.resolve(new Response('boom', { status: 500 })))
       const res = await handleTtsRequest({ text: 'hi' }, ttsConfig, { fetchImpl })
       expect(res.status).toBe(502)
     })
 
     it('network failure maps to 502 UPSTREAM_NETWORK', async () => {
-      const fetchImpl = vi.fn(async () => {
-        throw new Error('ECONNRESET')
-      })
+      const fetchImpl = vi.fn(() => Promise.reject(new Error('ECONNRESET')))
       const res = await handleTtsRequest({ text: 'hi' }, ttsConfig, { fetchImpl })
       expect(res.status).toBe(502)
       expect(await res.text()).toMatch(/UPSTREAM_NETWORK/)
     })
 
     it('upstream null body maps to 502 UPSTREAM_EMPTY', async () => {
-      const fetchImpl = vi.fn(
-        async () => new Response(null, { status: 200, headers: { 'Content-Type': 'audio/mpeg' } }),
+      const fetchImpl = vi.fn(() =>
+        Promise.resolve(
+          new Response(null, { status: 200, headers: { 'Content-Type': 'audio/mpeg' } }),
+        ),
       )
       const res = await handleTtsRequest({ text: 'hi' }, ttsConfig, { fetchImpl })
       expect(res.status).toBe(502)
@@ -219,9 +227,14 @@ describe('handleTtsRequest', () => {
       // verify only the contract the handler owns: signal propagation + 504.
       const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
         if (init.signal?.aborted) {
-          return Promise.reject(init.signal.reason ?? new DOMException('aborted', 'AbortError'))
+          const reason: unknown = init.signal.reason
+          return Promise.reject(
+            reason instanceof Error ? reason : new DOMException('aborted', 'AbortError'),
+          )
         }
-        return Promise.resolve(new Response(makeAudioStream([new Uint8Array([1])]), { status: 200 }))
+        return Promise.resolve(
+          new Response(makeAudioStream([new Uint8Array([1])]), { status: 200 }),
+        )
       })
       const controller = new AbortController()
       controller.abort()
@@ -230,7 +243,8 @@ describe('handleTtsRequest', () => {
         signal: controller.signal,
       })
       expect(res.status).toBe(504)
-      expect((await res.json()).error.code).toBe('UPSTREAM_TIMEOUT')
+      const body = (await res.json()) as { error: { code: string } }
+      expect(body.error.code).toBe('UPSTREAM_TIMEOUT')
       expect(fetchImpl.mock.calls[0]![1].signal).toBeInstanceOf(AbortSignal)
     })
 
@@ -238,7 +252,9 @@ describe('handleTtsRequest', () => {
       let captured: AbortSignal | undefined
       const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
         captured = init.signal ?? undefined
-        return Promise.resolve(new Response(makeAudioStream([new Uint8Array([1])]), { status: 200 }))
+        return Promise.resolve(
+          new Response(makeAudioStream([new Uint8Array([1])]), { status: 200 }),
+        )
       })
       const controller = new AbortController()
       await handleTtsRequest({ text: 'hi' }, ttsConfig, {

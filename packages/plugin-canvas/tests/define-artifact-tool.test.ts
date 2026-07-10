@@ -17,7 +17,7 @@ const env = {
 
 describe('defineArtifactTool', () => {
   it('returns a TheoTool-shaped config', () => {
-    const tool = defineArtifactTool({ onPublish: async (a) => a })
+    const tool = defineArtifactTool({ onPublish: (a) => Promise.resolve(a) })
     expect(typeof tool.name).toBe('string')
     expect(typeof tool.description).toBe('string')
     expect(tool.inputSchema).toBeDefined()
@@ -25,12 +25,12 @@ describe('defineArtifactTool', () => {
   })
 
   it('default name is publish_artifact', () => {
-    const tool = defineArtifactTool({ onPublish: async (a) => a })
+    const tool = defineArtifactTool({ onPublish: (a) => Promise.resolve(a) })
     expect(tool.name).toBe('publish_artifact')
   })
 
   it('handler validates + calls onPublish + returns { ok, artifactId, version, artifact }', async () => {
-    const onPublish = vi.fn(async (a: Artifact) => a)
+    const onPublish = vi.fn((a: Artifact) => Promise.resolve(a))
     const tool = defineArtifactTool({ onPublish })
     const result = await tool.handler({ ...env, kind: 'markdown', content: '# hi' })
     expect(result.ok).toBe(true)
@@ -41,7 +41,7 @@ describe('defineArtifactTool', () => {
   })
 
   it('handler rejects invalid input with CanvasArtifactValidationError', async () => {
-    const tool = defineArtifactTool({ onPublish: async (a) => a })
+    const tool = defineArtifactTool({ onPublish: (a) => Promise.resolve(a) })
     await expect(tool.handler({ kind: 'markdown', content: 'x' })).rejects.toBeInstanceOf(
       CanvasArtifactValidationError,
     )
@@ -50,29 +50,29 @@ describe('defineArtifactTool', () => {
   it('honors allowedKinds restriction', async () => {
     const tool = defineArtifactTool({
       allowedKinds: ['code', 'svg'],
-      onPublish: async (a) => a,
+      onPublish: (a) => Promise.resolve(a),
     })
     expect(tool.description).toMatch(/code, svg/)
-    await expect(
-      tool.handler({ ...env, kind: 'markdown', content: 'hi' }),
-    ).rejects.toBeInstanceOf(CanvasArtifactSecurityError)
+    await expect(tool.handler({ ...env, kind: 'markdown', content: 'hi' })).rejects.toBeInstanceOf(
+      CanvasArtifactSecurityError,
+    )
   })
 
   it('throws CanvasPluginError when allowedKinds is empty', () => {
     expect(() =>
-      defineArtifactTool({ allowedKinds: [], onPublish: async (a) => a }),
+      defineArtifactTool({ allowedKinds: [], onPublish: (a) => Promise.resolve(a) }),
     ).toThrowError(CanvasPluginError)
   })
 
   it('injects ctx.sessionId when artifact.sessionId is missing', async () => {
-    const onPublish = vi.fn(async (a: Artifact) => a)
+    const onPublish = vi.fn((a: Artifact) => Promise.resolve(a))
     const tool = defineArtifactTool({ onPublish })
     await tool.handler({ ...env, kind: 'markdown', content: 'hi' }, { sessionId: 'sess-7' })
     expect(onPublish.mock.calls[0]?.[0].sessionId).toBe('sess-7')
   })
 
   it('does NOT overwrite an existing sessionId', async () => {
-    const onPublish = vi.fn(async (a: Artifact) => a)
+    const onPublish = vi.fn((a: Artifact) => Promise.resolve(a))
     const tool = defineArtifactTool({ onPublish })
     await tool.handler(
       { ...env, sessionId: 'preset', kind: 'markdown', content: 'hi' },
@@ -82,7 +82,7 @@ describe('defineArtifactTool', () => {
   })
 
   it('enforces security gate (rejects svg with <script>)', async () => {
-    const tool = defineArtifactTool({ onPublish: async (a) => a })
+    const tool = defineArtifactTool({ onPublish: (a) => Promise.resolve(a) })
     await expect(
       tool.handler({
         ...env,
@@ -102,9 +102,7 @@ describe('defineArtifactTool', () => {
     function defineCustomTool(cfg: SdkTool): SdkTool {
       return cfg
     }
-    const tool = defineCustomTool(
-      defineArtifactTool({ onPublish: async (a) => a }),
-    )
+    const tool = defineCustomTool(defineArtifactTool({ onPublish: (a) => Promise.resolve(a) }))
     expect(tool.name).toBe('publish_artifact')
     const r = await tool.handler({ ...env, kind: 'markdown', content: 'hi' })
     expect(r).toMatchObject({ ok: true, artifactId: 'a' })
@@ -119,9 +117,8 @@ describe('defineArtifactTool', () => {
    * `z.object({ artifact: artifactSchema })`.
    */
   it('exposes inputSchema as a ZodObject (theokit defineAgentTool contract)', () => {
-    const tool = defineArtifactTool({ onPublish: async (a) => a })
-    const shape = (tool.inputSchema as { _def?: { typeName?: string } })._def
-      ?.typeName
+    const tool = defineArtifactTool({ onPublish: (a) => Promise.resolve(a) })
+    const shape = (tool.inputSchema as { _def?: { typeName?: string } })._def?.typeName
     expect(shape).toBe('ZodObject')
   })
 
@@ -131,7 +128,7 @@ describe('defineArtifactTool', () => {
    * flat artifact (what defineCustomTool / direct callers send).
    */
   it('handler accepts the wrapped { artifact } envelope', async () => {
-    const onPublish = vi.fn(async (a: Artifact) => a)
+    const onPublish = vi.fn((a: Artifact) => Promise.resolve(a))
     const tool = defineArtifactTool({ onPublish })
     const wrapped = {
       artifact: { ...env, kind: 'markdown' as const, content: '# wrapped' },

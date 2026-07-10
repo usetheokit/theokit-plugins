@@ -6,15 +6,15 @@
 
 /** Rendered template output — plain content ready to ship via EmailProvider. */
 export interface RenderedTemplate {
-  readonly subject: string;
-  readonly html: string;
-  readonly text?: string;
+  readonly subject: string
+  readonly html: string
+  readonly text?: string
 }
 
 /** Descriptor returned by `defineEmailTemplate`. */
 export interface EmailTemplate<T = void> {
-  readonly name: string;
-  render: (props: T) => Promise<RenderedTemplate>;
+  readonly name: string
+  render: (props: T) => Promise<RenderedTemplate>
 }
 
 /**
@@ -36,5 +36,5 @@ export function defineEmailTemplate<T = void>(
   name: string,
   render: (props: T) => Promise<RenderedTemplate>,
 ): EmailTemplate<T> {
-  return { name, render };
+  return { name, render }
 }

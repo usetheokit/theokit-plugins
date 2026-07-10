@@ -13,7 +13,7 @@
  * useFormStatus would report pending:false under JSON+devalue wire (D5) because
  * submission goes through mutateAsync, not native form action.
  */
-import { createContext, useContext } from "react";
+import { createContext, useContext } from 'react'
 
 /**
  * Minimal error shape consumed by descendants. Compatible with both
@@ -21,12 +21,12 @@ import { createContext, useContext } from "react";
  * (peer-dep avoidance — plugin works with any G3-compatible error envelope).
  */
 export interface TheoFormErrorLike {
-  code: string;
-  message: string;
-  status?: number;
-  fields?: Record<string, string[]>;
-  issues?: unknown[];
-  type?: string;
+  code: string
+  message: string
+  status?: number
+  fields?: Record<string, string[]>
+  issues?: unknown[]
+  type?: string
 }
 
 /**
@@ -35,24 +35,24 @@ export interface TheoFormErrorLike {
  */
 export interface TheoFormContextValue {
   /** True while useAction.mutateAsync is in flight. */
-  isPending: boolean;
+  isPending: boolean
   /** True after last successful submission until reset(). */
-  isSuccess: boolean;
+  isSuccess: boolean
   /** True after last failed submission until reset() / re-submit. */
-  isError: boolean;
+  isError: boolean
   /** Last error from the action call, or undefined. */
-  error: TheoFormErrorLike | undefined;
+  error: TheoFormErrorLike | undefined
   /** Last successful response data, or undefined. */
-  data: unknown;
+  data: unknown
   /** Reset both useAction state AND the RHF form to initial values. */
-  reset: () => void;
+  reset: () => void
 }
 
 /**
  * The Context itself. Default null so misuse throws an actionable error
  * via useTheoFormState (rather than silently returning bogus state).
  */
-export const TheoFormContext = createContext<TheoFormContextValue | null>(null);
+export const TheoFormContext = createContext<TheoFormContextValue | null>(null)
 
 /**
  * Hook consumed by descendants of <TheoForm>. Returns the live form state.
@@ -60,12 +60,12 @@ export const TheoFormContext = createContext<TheoFormContextValue | null>(null);
  * mirrors theo-ui's `useFormField` enforcement (form-field.tsx:55).
  */
 export function useTheoFormState(): TheoFormContextValue {
-  const ctx = useContext(TheoFormContext);
+  const ctx = useContext(TheoFormContext)
   if (ctx === null) {
     throw new Error(
-      "useTheoFormState() must be called from a descendant of <TheoForm>. " +
-        "Wrap your component tree with <TheoForm action={...}> first.",
-    );
+      'useTheoFormState() must be called from a descendant of <TheoForm>. ' +
+        'Wrap your component tree with <TheoForm action={...}> first.',
+    )
   }
-  return ctx;
+  return ctx
 }

@@ -24,7 +24,7 @@ import {
   RealtimeRoomNotFoundError,
   type RealtimeUnsubscribe,
   type RoomDescriptor,
-} from "../types.js";
+} from '../types.js'
 
 /**
  * Incoming wire frame from a client (over G8 subscribe transport).
@@ -32,21 +32,21 @@ import {
  * @public
  */
 export type InboundWireFrame =
-  | { readonly kind: "presence-update"; readonly patch: Partial<Presence> }
+  | { readonly kind: 'presence-update'; readonly patch: Partial<Presence> }
   | {
-      readonly kind: "broadcast";
-      readonly event: string;
-      readonly payload: BroadcastPayload;
+      readonly kind: 'broadcast'
+      readonly event: string
+      readonly payload: BroadcastPayload
     }
-  | { readonly kind: "yjs-update"; readonly bytes: Uint8Array }
-  | { readonly kind: "yjs-awareness"; readonly bytes: Uint8Array };
+  | { readonly kind: 'yjs-update'; readonly bytes: Uint8Array }
+  | { readonly kind: 'yjs-awareness'; readonly bytes: Uint8Array }
 
 /**
  * Outgoing wire frame to a client (re-broadcast from {@link RealtimeFrame}).
  *
  * @public
  */
-export type OutboundWireFrame = RealtimeFrame;
+export type OutboundWireFrame = RealtimeFrame
 
 /**
  * Options for {@link RealtimeRuntime}.
@@ -55,9 +55,9 @@ export type OutboundWireFrame = RealtimeFrame;
  */
 export interface RealtimeRuntimeOptions {
   /** RealtimeProvider implementation (Memory default or Yjs opt-in). */
-  provider: RealtimeProvider;
+  provider: RealtimeProvider
   /** Room descriptors to register at construction. */
-  rooms?: readonly RoomDescriptor[];
+  rooms?: readonly RoomDescriptor[]
 }
 
 /**
@@ -66,37 +66,37 @@ export interface RealtimeRuntimeOptions {
  * @public
  */
 export class RealtimeRuntime {
-  private readonly provider: RealtimeProvider;
-  private readonly rooms = new Map<string, RoomDescriptor>();
+  private readonly provider: RealtimeProvider
+  private readonly rooms = new Map<string, RoomDescriptor>()
 
   constructor(opts: RealtimeRuntimeOptions) {
-    if (opts === null || typeof opts !== "object") {
-      throw new TypeError("RealtimeRuntime: options object is required");
+    if (opts === null || typeof opts !== 'object') {
+      throw new TypeError('RealtimeRuntime: options object is required')
     }
     if (opts.provider === undefined) {
-      throw new TypeError("RealtimeRuntime: opts.provider is required");
+      throw new TypeError('RealtimeRuntime: opts.provider is required')
     }
-    this.provider = opts.provider;
+    this.provider = opts.provider
     if (opts.rooms !== undefined) {
       for (const room of opts.rooms) {
-        this.registerRoom(room);
+        this.registerRoom(room)
       }
     }
   }
 
   /** Register a {@link RoomDescriptor}. Idempotent (replaces existing by id). */
   registerRoom(room: RoomDescriptor): void {
-    this.rooms.set(room.id, room);
+    this.rooms.set(room.id, room)
   }
 
   /** Unregister a room by id. Returns `true` if removed. */
   unregisterRoom(id: string): boolean {
-    return this.rooms.delete(id);
+    return this.rooms.delete(id)
   }
 
   /** Look up a registered room descriptor. */
   getRoom(id: string): RoomDescriptor | undefined {
-    return this.rooms.get(id);
+    return this.rooms.get(id)
   }
 
   /**
@@ -110,40 +110,34 @@ export class RealtimeRuntime {
     initialPresence: Presence | undefined,
     onFrame: (frame: OutboundWireFrame) => void,
   ): Promise<RealtimeConnectionHandle> {
-    const room = this.rooms.get(roomId);
+    const room = this.rooms.get(roomId)
     if (room === undefined) {
-      throw new RealtimeRoomNotFoundError(roomId);
+      throw new RealtimeRoomNotFoundError(roomId)
     }
     // Authorize hook.
     if (room.authorize !== undefined) {
-      const ctx: AuthorizeContext = { roomId, connection };
-      const ok = await room.authorize(ctx);
+      const ctx: AuthorizeContext = { roomId, connection }
+      const ok = await room.authorize(ctx)
       if (!ok) {
-        throw new RealtimeAuthorizationError(roomId);
+        throw new RealtimeAuthorizationError(roomId)
       }
     }
     // Validate initial presence (if provided).
-    let validatedInitial: Presence | undefined;
+    let validatedInitial: Presence | undefined
     if (initialPresence !== undefined) {
-      const parsed = room.presence.safeParse(initialPresence);
+      const parsed = room.presence.safeParse(initialPresence)
       if (!parsed.success) {
-        throw new RealtimePresenceError(
-          `Invalid initial presence for room ${roomId}`,
-          { issues: parsed.error },
-        );
+        throw new RealtimePresenceError(`Invalid initial presence for room ${roomId}`, {
+          issues: parsed.error,
+        })
       }
-      validatedInitial = parsed.data;
+      validatedInitial = parsed.data
     }
     // Subscribe to provider frames + bridge to onFrame.
-    const unsubscribe = this.provider.subscribeRoom(roomId, onFrame);
+    const unsubscribe = this.provider.subscribeRoom(roomId, onFrame)
     // Join the room.
-    await this.provider.joinRoom(roomId, connection, validatedInitial);
-    return new RealtimeConnectionHandle(
-      this,
-      roomId,
-      connection.connectionId,
-      unsubscribe,
-    );
+    await this.provider.joinRoom(roomId, connection, validatedInitial)
+    return new RealtimeConnectionHandle(this, roomId, connection.connectionId, unsubscribe)
   }
 
   /**
@@ -156,85 +150,78 @@ export class RealtimeRuntime {
     connectionId: string,
     frame: InboundWireFrame,
   ): Promise<void> {
-    const room = this.rooms.get(roomId);
+    const room = this.rooms.get(roomId)
     if (room === undefined) {
-      throw new RealtimeRoomNotFoundError(roomId);
+      throw new RealtimeRoomNotFoundError(roomId)
     }
     switch (frame.kind) {
-      case "presence-update": {
+      case 'presence-update': {
         // Validate the FULL merged shape, not just the patch — we treat patches
         // as partial overlays; consumers can opt for strict validation via
         // schema design (e.g., z.object({}).partial()).
-        const parsed = room.presence.safeParse(frame.patch);
+        const parsed = room.presence.safeParse(frame.patch)
         if (!parsed.success) {
-          throw new RealtimePresenceError(
-            `Invalid presence patch for room ${roomId}`,
-            { issues: parsed.error },
-          );
+          throw new RealtimePresenceError(`Invalid presence patch for room ${roomId}`, {
+            issues: parsed.error,
+          })
         }
-        await this.provider.updatePresence(roomId, connectionId, parsed.data);
-        return;
+        await this.provider.updatePresence(roomId, connectionId, parsed.data)
+        return
       }
-      case "broadcast": {
-        const parsed = room.broadcast.safeParse(frame.payload);
+      case 'broadcast': {
+        const parsed = room.broadcast.safeParse(frame.payload)
         if (!parsed.success) {
-          throw new RealtimeBroadcastError(
-            `Invalid broadcast payload for room ${roomId}`,
-            { issues: parsed.error },
-          );
+          throw new RealtimeBroadcastError(`Invalid broadcast payload for room ${roomId}`, {
+            issues: parsed.error,
+          })
         }
-        await this.provider.broadcast(
-          roomId,
-          connectionId,
-          frame.event,
-          parsed.data,
-        );
-        return;
+        await this.provider.broadcast(roomId, connectionId, frame.event, parsed.data)
+        return
       }
-      case "yjs-update": {
+      case 'yjs-update': {
         if (this.provider.applyYjsUpdate === undefined) {
           // #197 (Rule 8): a room that declares storage:"yjs" but is wired to a
           // provider with no Yjs support is a misconfiguration — fail loudly
           // instead of silently dropping CRDT frames (which loses document state).
-          if (room.storage === "yjs") {
+          if (room.storage === 'yjs') {
             throw new RealtimeError(
               `Room "${roomId}" declares storage:"yjs" but provider "${this.provider.name}" does not implement applyYjsUpdate. ` +
-                "Use a Yjs-capable provider (createYjsRealtimeProvider) or remove storage:\"yjs\".",
-              { code: "yjs_provider_unsupported" },
-            );
+                'Use a Yjs-capable provider (createYjsRealtimeProvider) or remove storage:"yjs".',
+              { code: 'yjs_provider_unsupported' },
+            )
           }
           // Non-yjs room with no provider support: nothing is expected — drop.
-          return;
+          return
         }
-        await this.provider.applyYjsUpdate(roomId, connectionId, frame.bytes);
-        return;
+        await this.provider.applyYjsUpdate(roomId, connectionId, frame.bytes)
+        return
       }
-      case "yjs-awareness": {
+      case 'yjs-awareness': {
         if (this.provider.applyYjsAwareness === undefined) {
           // #197: same misconfiguration guard as yjs-update.
-          if (room.storage === "yjs") {
+          if (room.storage === 'yjs') {
             throw new RealtimeError(
               `Room "${roomId}" declares storage:"yjs" but provider "${this.provider.name}" does not implement applyYjsAwareness. ` +
-                "Use a Yjs-capable provider (createYjsRealtimeProvider) or remove storage:\"yjs\".",
-              { code: "yjs_provider_unsupported" },
-            );
+                'Use a Yjs-capable provider (createYjsRealtimeProvider) or remove storage:"yjs".',
+              { code: 'yjs_provider_unsupported' },
+            )
           }
-          return;
+          return
         }
-        await this.provider.applyYjsAwareness(roomId, connectionId, frame.bytes);
-        return;
+        await this.provider.applyYjsAwareness(roomId, connectionId, frame.bytes)
+        return
       }
     }
   }
 
   /** Internal — accessor for connection handles. */
   async leaveRoom(roomId: string, connectionId: string): Promise<void> {
-    await this.provider.leaveRoom(roomId, connectionId);
+    await this.provider.leaveRoom(roomId, connectionId)
   }
 
   /** Read-only snapshot of presence for ops visibility. */
   getPresence(roomId: string): Promise<Record<string, Presence>> {
-    return this.provider.getPresence(roomId);
+    return this.provider.getPresence(roomId)
   }
 }
 
@@ -245,7 +232,7 @@ export class RealtimeRuntime {
  * @public
  */
 export class RealtimeConnectionHandle {
-  private released = false;
+  private released = false
 
   constructor(
     private readonly runtime: RealtimeRuntime,
@@ -255,9 +242,9 @@ export class RealtimeConnectionHandle {
   ) {}
 
   async release(): Promise<void> {
-    if (this.released) return;
-    this.released = true;
-    this.unsubscribe();
-    await this.runtime.leaveRoom(this.roomId, this.connectionId);
+    if (this.released) return
+    this.released = true
+    this.unsubscribe()
+    await this.runtime.leaveRoom(this.roomId, this.connectionId)
   }
 }

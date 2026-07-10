@@ -25,32 +25,32 @@
 // bundling, while consumers typically import via main barrel; mixing
 // produces two FormFieldContext instances at runtime and useFormField()
 // reads null inside <FormField.Control>. Documented as v0.1.2 hotfix.
-import { FormField } from "@theokit/ui";
-import { createContext, useContext, type ReactNode } from "react";
-import { type FieldValues } from "react-hook-form";
-import { useTheoField, type UseTheoFieldResult } from "../hooks/useTheoField.js";
+import { FormField } from '@theokit/ui'
+import { createContext, useContext, type ReactNode } from 'react'
+import { type FieldValues } from 'react-hook-form'
+import { useTheoField, type UseTheoFieldResult } from '../hooks/useTheoField.js'
 
 /**
  * Internal Context — supplies the current field's useTheoField result to
  * descendants. Consumer's `<Input {...useTheoFieldRegister()}/>` reads from
  * this Context to get the register props for the current TheoField scope.
  */
-const TheoFieldScopeContext = createContext<UseTheoFieldResult | null>(null);
+const TheoFieldScopeContext = createContext<UseTheoFieldResult | null>(null)
 
 /**
  * Hook for descendants of <TheoField> to pull RHF register props.
  * Spread onto your input: `<input {...useTheoFieldRegister()} />`.
  * Throws when used outside a <TheoField name="..."> wrapper.
  */
-export function useTheoFieldRegister(): UseTheoFieldResult["register"] {
-  const ctx = useContext(TheoFieldScopeContext);
+export function useTheoFieldRegister(): UseTheoFieldResult['register'] {
+  const ctx = useContext(TheoFieldScopeContext)
   if (ctx === null) {
     throw new Error(
-      "useTheoFieldRegister() must be called from a descendant of <TheoField>. " +
-        "Wrap your input scope with <TheoField name=\"...\"> first.",
-    );
+      'useTheoFieldRegister() must be called from a descendant of <TheoField>. ' +
+        'Wrap your input scope with <TheoField name="..."> first.',
+    )
   }
-  return ctx.register;
+  return ctx.register
 }
 
 /**
@@ -59,35 +59,35 @@ export function useTheoFieldRegister(): UseTheoFieldResult["register"] {
  * Throws when used outside a <TheoField>.
  */
 export function useTheoFieldScope(): UseTheoFieldResult {
-  const ctx = useContext(TheoFieldScopeContext);
+  const ctx = useContext(TheoFieldScopeContext)
   if (ctx === null) {
     throw new Error(
-      "useTheoFieldScope() must be called from a descendant of <TheoField>. " +
-        "Wrap your input scope with <TheoField name=\"...\"> first.",
-    );
+      'useTheoFieldScope() must be called from a descendant of <TheoField>. ' +
+        'Wrap your input scope with <TheoField name="..."> first.',
+    )
   }
-  return ctx;
+  return ctx
 }
 
 export interface TheoFieldProps {
   /** Dot-notation full path matching the form schema (e.g. "user.address.zip"). */
-  name: string;
+  name: string
   /**
    * Children compose `<FormField.Label>`, `<FormField.Control>`,
    * `<FormField.Hint>`, `<FormField.Error>` from `@theokit/ui`.
    * Input inside `<FormField.Control>` should spread `useTheoFieldRegister()`.
    */
-  children: ReactNode;
+  children: ReactNode
 }
 
 export function TheoField<_TInput extends FieldValues = FieldValues>(
   props: TheoFieldProps,
 ): React.JSX.Element {
-  const { name, children } = props;
-  const field = useTheoField(name);
+  const { name, children } = props
+  const field = useTheoField(name)
   return (
     <TheoFieldScopeContext.Provider value={field}>
       <FormField invalid={field.isInvalid}>{children}</FormField>
     </TheoFieldScopeContext.Provider>
-  );
+  )
 }

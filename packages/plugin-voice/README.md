@@ -19,10 +19,10 @@ pnpm add @theokit/plugin-voice
 
 Peer dependencies:
 
-| Peer | Required | Notes |
-| --- | --- | --- |
+| Peer      | Required          | Notes                         |
+| --------- | ----------------- | ----------------------------- | -------- | --------------------------- |
 | `theokit` | `>=0.1.0-alpha.5` | Server-side hook registration |
-| `react` | `^18.0.0 || ^19.0.0` | Only for the `./ui` subpath |
+| `react`   | `^18.0.0          |                               | ^19.0.0` | Only for the `./ui` subpath |
 
 ## Configuration
 
@@ -43,19 +43,19 @@ export default defineTheoConfig({
 
 ### Environment variables
 
-| Variable | Required | Default for |
-| --- | --- | --- |
-| `OPENAI_API_KEY` | yes (default STT + TTS provider) | `stt.provider: "openai"` AND `tts.provider: "openai"` |
-| `GROQ_API_KEY` | only if you set `stt.provider: "groq"` | Groq Whisper (no TTS — fall back to OpenAI) |
+| Variable         | Required                               | Default for                                           |
+| ---------------- | -------------------------------------- | ----------------------------------------------------- |
+| `OPENAI_API_KEY` | yes (default STT + TTS provider)       | `stt.provider: "openai"` AND `tts.provider: "openai"` |
+| `GROQ_API_KEY`   | only if you set `stt.provider: "groq"` | Groq Whisper (no TTS — fall back to OpenAI)           |
 
 You can override the env var name with `stt.envVar` / `tts.envVar`, or pass `stt.apiKey` / `tts.apiKey` explicitly in code.
 
 ### Endpoints
 
-| Method | Path (default) | Body | Response |
-| --- | --- | --- | --- |
-| POST | `/api/voice/stt` | `multipart/form-data` with field `audio` | `{ transcript, language?, durationMs }` |
-| POST | `/api/voice/tts` | `application/json` `{ text, voice? }` | `audio/mpeg` stream |
+| Method | Path (default)   | Body                                     | Response                                |
+| ------ | ---------------- | ---------------------------------------- | --------------------------------------- |
+| POST   | `/api/voice/stt` | `multipart/form-data` with field `audio` | `{ transcript, language?, durationMs }` |
+| POST   | `/api/voice/tts` | `application/json` `{ text, voice? }`    | `audio/mpeg` stream                     |
 
 Both paths are configurable via `stt.endpoint` / `tts.endpoint`. They must start with `/`.
 
@@ -103,12 +103,12 @@ try {
 }
 ```
 
-| Class | When | Where it fires |
-| --- | --- | --- |
-| `VoicePermissionDeniedError` | User denied mic | Browser, `recorder.start()` |
-| `VoiceNoDeviceError` | No mic device present | Browser, `recorder.start()` |
-| `VoicePluginConfigError` | Missing API key | Server, `voicePlugin(opts)` construction |
-| `VoiceProviderError` | STT/TTS provider returned non-2xx | Server, both endpoints |
+| Class                        | When                              | Where it fires                           |
+| ---------------------------- | --------------------------------- | ---------------------------------------- |
+| `VoicePermissionDeniedError` | User denied mic                   | Browser, `recorder.start()`              |
+| `VoiceNoDeviceError`         | No mic device present             | Browser, `recorder.start()`              |
+| `VoicePluginConfigError`     | Missing API key                   | Server, `voicePlugin(opts)` construction |
+| `VoiceProviderError`         | STT/TTS provider returned non-2xx | Server, both endpoints                   |
 
 ## License
 

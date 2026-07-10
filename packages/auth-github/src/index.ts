@@ -15,92 +15,92 @@
  *     API docs.
  */
 
-import type { IncomingMessage } from "node:http";
-import type { AuthProvider, AuthResult, OAuthTransaction } from "@theokit/sdk/server/auth";
-import type { GitHubProfile, GitHubProviderOptions } from "./types.js";
+import type { IncomingMessage } from 'node:http'
+import type { AuthProvider, AuthResult, OAuthTransaction } from '@theokit/sdk/server/auth'
+import type { GitHubProfile, GitHubProviderOptions } from './types.js'
 
-export type { GitHubProfile, GitHubProviderOptions } from "./types.js";
+export type { GitHubProfile, GitHubProviderOptions } from './types.js'
 
-const DEFAULT_AUTHORIZE = "https://github.com/login/oauth/authorize";
-const DEFAULT_TOKEN = "https://github.com/login/oauth/access_token";
-const DEFAULT_USERINFO = "https://api.github.com/user";
-const DEFAULT_EMAILS = "https://api.github.com/user/emails";
-const DEFAULT_SCOPES: readonly string[] = ["read:user", "user:email"];
+const DEFAULT_AUTHORIZE = 'https://github.com/login/oauth/authorize'
+const DEFAULT_TOKEN = 'https://github.com/login/oauth/access_token'
+const DEFAULT_USERINFO = 'https://api.github.com/user'
+const DEFAULT_EMAILS = 'https://api.github.com/user/emails'
+const DEFAULT_SCOPES: readonly string[] = ['read:user', 'user:email']
 
 export class GitHubAuthError extends Error {
-  readonly code: string;
+  readonly code: string
   constructor(code: string, message: string) {
-    super(message);
-    this.name = "GitHubAuthError";
-    this.code = code;
+    super(message)
+    this.name = 'GitHubAuthError'
+    this.code = code
   }
 }
 
 interface TokenResponse {
-  access_token?: string;
-  token_type?: string;
-  scope?: string;
+  access_token?: string
+  token_type?: string
+  scope?: string
 }
 
 interface EmailEntry {
-  email: string;
-  primary: boolean;
-  verified: boolean;
+  email: string
+  primary: boolean
+  verified: boolean
 }
 
 function parseCallbackUrl(req: IncomingMessage): URL {
-  return new URL(`http://${req.headers.host ?? "localhost"}${req.url ?? "/"}`);
+  return new URL(`http://${req.headers.host ?? 'localhost'}${req.url ?? '/'}`)
 }
 
 function resolveScopes(opts: GitHubProviderOptions): readonly string[] {
-  return opts.scopes ?? DEFAULT_SCOPES;
+  return opts.scopes ?? DEFAULT_SCOPES
 }
 
-export function github(opts: GitHubProviderOptions): AuthProvider<GitHubProfile, "github"> {
-  const scopes = resolveScopes(opts);
-  const wantsEmail = scopes.includes("user:email");
-  const authorizeEndpoint = opts.authorizationEndpoint ?? DEFAULT_AUTHORIZE;
-  const tokenEndpoint = opts.tokenEndpoint ?? DEFAULT_TOKEN;
-  const userinfoEndpoint = opts.userinfoEndpoint ?? DEFAULT_USERINFO;
-  const emailsEndpoint = opts.userEmailsEndpoint ?? DEFAULT_EMAILS;
+export function github(opts: GitHubProviderOptions): AuthProvider<GitHubProfile, 'github'> {
+  const scopes = resolveScopes(opts)
+  const wantsEmail = scopes.includes('user:email')
+  const authorizeEndpoint = opts.authorizationEndpoint ?? DEFAULT_AUTHORIZE
+  const tokenEndpoint = opts.tokenEndpoint ?? DEFAULT_TOKEN
+  const userinfoEndpoint = opts.userinfoEndpoint ?? DEFAULT_USERINFO
+  const emailsEndpoint = opts.userEmailsEndpoint ?? DEFAULT_EMAILS
 
   return {
-    name: "github",
+    name: 'github',
 
-    async createAuthorizationURL(tx: OAuthTransaction): Promise<URL> {
-      const url = new URL(authorizeEndpoint);
-      url.searchParams.set("client_id", opts.clientId);
-      url.searchParams.set("redirect_uri", opts.redirectUri);
-      url.searchParams.set("scope", scopes.join(" "));
-      url.searchParams.set("state", tx.state);
+    createAuthorizationURL(tx: OAuthTransaction): Promise<URL> {
+      const url = new URL(authorizeEndpoint)
+      url.searchParams.set('client_id', opts.clientId)
+      url.searchParams.set('redirect_uri', opts.redirectUri)
+      url.searchParams.set('scope', scopes.join(' '))
+      url.searchParams.set('state', tx.state)
       // GitHub allows response_type omission; include for RFC 6749 compliance
-      url.searchParams.set("response_type", "code");
-      return url;
+      url.searchParams.set('response_type', 'code')
+      return Promise.resolve(url)
     },
 
     async handleCallback(
       req: IncomingMessage,
       tx: OAuthTransaction,
-    ): Promise<AuthResult<GitHubProfile, "github">> {
-      const url = parseCallbackUrl(req);
-      const code = url.searchParams.get("code");
-      const state = url.searchParams.get("state");
+    ): Promise<AuthResult<GitHubProfile, 'github'>> {
+      const url = parseCallbackUrl(req)
+      const code = url.searchParams.get('code')
+      const state = url.searchParams.get('state')
 
       if (!code) {
-        throw new GitHubAuthError("missing_code", "OAuth callback missing code query param");
+        throw new GitHubAuthError('missing_code', 'OAuth callback missing code query param')
       }
       if (state !== tx.state) {
         throw new GitHubAuthError(
-          "state_mismatch",
-          "OAuth state query param does not match transaction state (CSRF guard)",
-        );
+          'state_mismatch',
+          'OAuth state query param does not match transaction state (CSRF guard)',
+        )
       }
 
       // #183: behavior-preserving extraction into named helpers keeps this
       // method's cyclomatic complexity low. Each helper owns one fetch + its guards.
-      const accessToken = await githubExchangeToken(code, opts, tokenEndpoint);
-      const raw = await githubFetchUser(accessToken, userinfoEndpoint);
-      const email = await githubResolveEmail(raw, wantsEmail, accessToken, emailsEndpoint);
+      const accessToken = await githubExchangeToken(code, opts, tokenEndpoint)
+      const raw = await githubFetchUser(accessToken, userinfoEndpoint)
+      const email = await githubResolveEmail(raw, wantsEmail, accessToken, emailsEndpoint)
 
       const profile: GitHubProfile = {
         id: raw.id,
@@ -108,15 +108,15 @@ export function github(opts: GitHubProviderOptions): AuthProvider<GitHubProfile,
         name: raw.name ?? null,
         email,
         avatar_url: raw.avatar_url,
-      };
+      }
 
       return {
         profile,
-        providerName: "github",
+        providerName: 'github',
         rawTokens: { accessToken },
-      };
+      }
     },
-  };
+  }
 }
 
 /** Exchange the OAuth code for an access token (throws on failure). */
@@ -126,31 +126,31 @@ async function githubExchangeToken(
   tokenEndpoint: string,
 ): Promise<string> {
   const tokenBody = new URLSearchParams({
-    grant_type: "authorization_code",
+    grant_type: 'authorization_code',
     code,
     redirect_uri: opts.redirectUri,
     client_id: opts.clientId,
     client_secret: opts.clientSecret,
-  });
+  })
   const tokenRes = await fetch(tokenEndpoint, {
-    method: "POST",
-    headers: { accept: "application/json", "content-type": "application/x-www-form-urlencoded" },
+    method: 'POST',
+    headers: { accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' },
     body: tokenBody.toString(),
-  });
+  })
   if (!tokenRes.ok) {
     throw new GitHubAuthError(
-      "token_exchange_failed",
+      'token_exchange_failed',
       `GitHub token exchange failed: HTTP ${tokenRes.status}`,
-    );
+    )
   }
-  const tokens = (await tokenRes.json()) as TokenResponse;
+  const tokens = (await tokenRes.json()) as TokenResponse
   if (!tokens.access_token) {
     throw new GitHubAuthError(
-      "missing_access_token",
-      "GitHub token response did not include access_token",
-    );
+      'missing_access_token',
+      'GitHub token response did not include access_token',
+    )
   }
-  return tokens.access_token;
+  return tokens.access_token
 }
 
 /** Fetch the GitHub user profile (note `Authorization: token X`). Throws on failure. */
@@ -159,22 +159,22 @@ async function githubFetchUser(
   userinfoEndpoint: string,
 ): Promise<Partial<GitHubProfile> & { id: number; login: string }> {
   const userRes = await fetch(userinfoEndpoint, {
-    headers: { authorization: `token ${accessToken}`, accept: "application/vnd.github+json" },
-  });
+    headers: { authorization: `token ${accessToken}`, accept: 'application/vnd.github+json' },
+  })
   if (!userRes.ok) {
     throw new GitHubAuthError(
-      "userinfo_fetch_failed",
+      'userinfo_fetch_failed',
       `GitHub userinfo fetch failed: HTTP ${userRes.status}`,
-    );
+    )
   }
-  const raw = (await userRes.json()) as Partial<GitHubProfile>;
-  if (typeof raw.id !== "number") {
-    throw new GitHubAuthError("missing_id", "GitHub userinfo response missing numeric id field");
+  const raw = (await userRes.json()) as Partial<GitHubProfile>
+  if (typeof raw.id !== 'number') {
+    throw new GitHubAuthError('missing_id', 'GitHub userinfo response missing numeric id field')
   }
   if (!raw.login) {
-    throw new GitHubAuthError("missing_login", "GitHub userinfo response missing login field");
+    throw new GitHubAuthError('missing_login', 'GitHub userinfo response missing login field')
   }
-  return raw as Partial<GitHubProfile> & { id: number; login: string };
+  return raw as Partial<GitHubProfile> & { id: number; login: string }
 }
 
 /**
@@ -188,23 +188,23 @@ async function githubResolveEmail(
   accessToken: string,
   emailsEndpoint: string,
 ): Promise<string | null> {
-  let email = raw.email ?? null;
+  let email = raw.email ?? null
   if (wantsEmail && !email) {
     const emailsRes = await fetch(emailsEndpoint, {
-      headers: { authorization: `token ${accessToken}`, accept: "application/vnd.github+json" },
-    });
+      headers: { authorization: `token ${accessToken}`, accept: 'application/vnd.github+json' },
+    })
     if (!emailsRes.ok) {
       throw new GitHubAuthError(
-        "emails_fetch_failed",
+        'emails_fetch_failed',
         `GitHub /user/emails fetch failed: HTTP ${emailsRes.status} ` +
-          "(user:email scope was granted; refusing to return a null-email identity)",
-      );
+          '(user:email scope was granted; refusing to return a null-email identity)',
+      )
     }
-    const entries = (await emailsRes.json()) as EmailEntry[];
-    const primary = entries.find((e) => e.primary && e.verified);
+    const entries = (await emailsRes.json()) as EmailEntry[]
+    const primary = entries.find((e) => e.primary && e.verified)
     // email may still be null here when the user has NO verified email — a
     // legitimate, documented outcome, distinct from the fetch failure above.
-    email = primary?.email ?? entries.find((e) => e.verified)?.email ?? null;
+    email = primary?.email ?? entries.find((e) => e.verified)?.email ?? null
   }
-  return email;
+  return email
 }

@@ -24,11 +24,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import {
-  VoiceNoDeviceError,
-  VoicePermissionDeniedError,
-  VoicePluginError,
-} from '../errors.js'
+import { VoiceNoDeviceError, VoicePermissionDeniedError, VoicePluginError } from '../errors.js'
 import { createRecorder, type CreateRecorderOptions, type Recorder } from '../recorder.js'
 
 import { VoiceAlert, type AlertKind } from './alert.js'
@@ -163,9 +159,7 @@ export function VoiceRecorderBar({
       })
       if (!res.ok) {
         const text = await res.text().catch(() => '')
-        throw new VoicePluginError(
-          `STT endpoint returned ${res.status}: ${text.slice(0, 200)}`,
-        )
+        throw new VoicePluginError(`STT endpoint returned ${res.status}: ${text.slice(0, 200)}`)
       }
       // #217: a 200 response with a malformed body would otherwise throw an
       // opaque SyntaxError. Guard res.json() and surface a specific error.
@@ -222,13 +216,7 @@ export function VoiceRecorderBar({
           ? 'Transcribing…'
           : 'Voice'
 
-  const Icon = isError
-    ? RetryIcon
-    : isRecording
-      ? StopIcon
-      : isBusy
-        ? SpinnerIcon
-        : MicIcon
+  const Icon = isError ? RetryIcon : isRecording ? StopIcon : isBusy ? SpinnerIcon : MicIcon
 
   return (
     <div className={['inline-flex flex-col gap-1', className].filter(Boolean).join(' ')}>
@@ -253,15 +241,15 @@ export function VoiceRecorderBar({
         <Icon className="size-3.5" aria-hidden />
         {label}
       </button>
-      {isError && error !== null
-        ? renderError !== undefined
-          ? renderError(error.err, clear)
-          : (
-              <VoiceAlert kind={error.kind} title={error.title}>
-                {error.detail}
-              </VoiceAlert>
-            )
-        : null}
+      {isError && error !== null ? (
+        renderError !== undefined ? (
+          renderError(error.err, clear)
+        ) : (
+          <VoiceAlert kind={error.kind} title={error.title}>
+            {error.detail}
+          </VoiceAlert>
+        )
+      ) : null}
     </div>
   )
 }

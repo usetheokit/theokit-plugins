@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **M2 — Lint & format compliance.** Brought the workspace to `pnpm lint --max-warnings=0` (437 pre-existing ESLint errors across all 11 packages) and `prettier` green. The CI `lint-and-format` job had only ever passed while `packages/` was empty, so the shipped plugins never satisfied the strict gate. All fixes are behavior-preserving (665/665 tests still green): `require-await` → `Promise.resolve(...)` where a Promise contract is required; `no-unsafe-*` → precise types (no `any`); `unbound-method` → property signatures / arrow wrappers. Scoped the prettier gate to product source via `.prettierignore` (excludes the synced `.claude` cycle-kit + generated `knowledge-base`).
+
 ### Deprecated
 
 ### Removed
@@ -31,7 +33,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Code review audit (2026-06-16) of all 11 `@theokit/*` packages — 72 findings (1 critical, 26 high, 34 medium, 11 low) in `code-review-output/final_report.md`
 - Remediation plan for all 72 findings — `knowledge-base/plans/remediate-code-review-2026-06-16-plan.md` (verdict SHIPPABLE 96.8) + edge-case review
 
-
 ### Changed
 
 - Reduced the cyclomatic complexity of eight functions flagged by the audit (CC 16–24) by extracting behavior-preserving named helpers — no behavior change, all existing tests stay green: `auth-github` `github()` callback, `plugin-canvas` `createInMemoryArtifactStore`/`serializeArtifactForCopy`/`classifyRemoved`, `plugin-copilot` `defineCopilot`, `plugin-realtime` subscription effect, and `plugin-voice` `handleSttRequest`/`handleTtsRequest` (#182, #183, #184, #185, #186, #187, #188, #189)
@@ -39,11 +40,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - plugin-canvas: removed a no-op `try/catch` around the agent-tool security gate (internal cleanup, no behavior change) (#181)
 - plugin-payments: `payments()` now logs a loud warning when it falls back to the default in-memory idempotency store under `NODE_ENV=production` — that store is not multi-replica safe; pass an explicit `idempotencyStore` in production (#202)
 
-
 ### Removed
 
 - Stale prior-run review artifacts from `code-review-output/` (2026-06-11 phase reports + figures superseded by the 2026-06-16 audit)
-
 
 ### Fixed
 
@@ -80,7 +79,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - plugin-payments: webhook dispatch now aggregates every failed handler's error into a single `AggregateError` (instead of throwing only the first and losing the rest to a log), and `processWebhook` returns a **sanitized** `{code,message}` error at the HTTP boundary while logging the full error server-side with secrets redacted — closing a PII/secret leak (#201) and a lost-errors gap (#208). `WebhookResult.error` shape narrowed (see changeset)
 - plugin-payments: webhook events are now claimed before dispatch and **released on handler failure** so Stripe's retry re-runs a failed handler instead of silently deduping it — restoring exactly-once-on-success + retry-on-failure (previously a thrown handler left the event marked, dropping it permanently). `IdempotencyStore` gains a required `release()` and `IdempotencyRepository` a required `delete()`; webhook handlers must be idempotent (#167)
 - plugin-payments: `formatAmountForStripe` now detects zero-decimal currencies from Stripe's published currency set keyed on the ISO code (not amount/locale-dependent `Intl` introspection) and scales to minor units with integer-exact arithmetic — fixing a 100x undercharge for codes like ISK/HUF/UGX, a 10x undercharge for 3-decimal currencies (BHD/KWD/…), and a binary-float rounding error (e.g. 1.005 USD). Non-finite/negative/overflowing amounts now fail loudly (#199, #200)
-
 
 ### Security
 

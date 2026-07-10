@@ -97,7 +97,7 @@ export async function handleSttRequest(
   // orchestrator's cyclomatic complexity low. Each helper owns one concern.
   const fetchImpl = opts.fetchImpl ?? globalThis.fetch
 
-  const audioBlob = await validateSttAudio(input.audio)
+  const audioBlob = validateSttAudio(input.audio)
   if (audioBlob instanceof Response) return audioBlob
 
   const filename = pickFilename(input.audio) ?? 'audio.webm'
@@ -136,8 +136,8 @@ export async function handleSttRequest(
 }
 
 /** Validate + normalize the audio to a Blob, or return a 400 Response (#182). */
-async function validateSttAudio(audio: SttAudio): Promise<Blob | Response> {
-  const audioBlob = await toBlob(audio)
+function validateSttAudio(audio: SttAudio): Blob | Response {
+  const audioBlob = toBlob(audio)
   if (audioBlob === null) return jsonError(400, 'INVALID_AUDIO', 'Missing audio input.')
   if (audioBlob.size === 0) return jsonError(400, 'INVALID_AUDIO', 'Audio payload is empty.')
   if (audioBlob.size > MAX_BODY_BYTES) {
@@ -156,7 +156,8 @@ function buildSttForm(audioBlob: Blob, filename: string, model: string, input: S
   form.append('file', audioBlob, filename)
   form.append('model', model)
   form.append('response_format', 'json')
-  if (input.language !== undefined && input.language.length > 0) form.append('language', input.language)
+  if (input.language !== undefined && input.language.length > 0)
+    form.append('language', input.language)
   if (input.prompt !== undefined && input.prompt.length > 0) form.append('prompt', input.prompt)
   return form
 }
@@ -218,7 +219,7 @@ async function parseSttJson(
   }
 }
 
-async function toBlob(audio: SttAudio): Promise<Blob | null> {
+function toBlob(audio: SttAudio): Blob | null {
   if (audio === null || audio === undefined) return null
   if (audio instanceof Blob) return audio
   const obj = audio as { buffer: Buffer | Uint8Array | ArrayBuffer; mimeType?: string }
@@ -230,9 +231,7 @@ async function toBlob(audio: SttAudio): Promise<Blob | null> {
   // the 25 MB hard cap enforced upstream.
   const src: Uint8Array | ArrayBuffer = obj.buffer
   const ab = new ArrayBuffer(src.byteLength)
-  new Uint8Array(ab).set(
-    src instanceof ArrayBuffer ? new Uint8Array(src) : (src),
-  )
+  new Uint8Array(ab).set(src instanceof ArrayBuffer ? new Uint8Array(src) : src)
   return new Blob([ab], { type: obj.mimeType ?? 'audio/webm' })
 }
 

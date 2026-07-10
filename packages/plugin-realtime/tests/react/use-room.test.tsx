@@ -9,9 +9,9 @@
  * `joined` event then completes) — the integration with G8 transport is
  * covered by tests/integration/presence-multi-client.test.ts (server side).
  */
-import { act, render, waitFor } from "@testing-library/react";
-import * as React from "react";
-import { describe, expect, it } from "vitest";
+import { act, render, waitFor } from '@testing-library/react'
+import * as React from 'react'
+import { describe, expect, it } from 'vitest'
 import {
   type RealtimeSubscribeClient,
   RoomProvider,
@@ -19,119 +19,116 @@ import {
   usePresence,
   useRoom,
   useUpdateMyPresence,
-} from "../../src/react/index.js";
+} from '../../src/react/index.js'
 
 const stubClient: RealtimeSubscribeClient = {
   async *subscribe(_name, input) {
+    // Yield to the microtask queue so this satisfies the AsyncGenerator contract
+    // without changing observable behavior (iteration already ticks per yield).
+    await Promise.resolve()
     // Yield a single `joined` event then stop.
-    const initial = (input as { initialPresence?: Record<string, unknown> }).initialPresence ?? {};
+    const initial = (input as { initialPresence?: Record<string, unknown> }).initialPresence ?? {}
     yield {
-      type: "joined",
-      connectionId: "stub-conn",
+      type: 'joined',
+      connectionId: 'stub-conn',
       presence: initial,
-    } as never;
+    } as never
     // Yield join of another client.
     yield {
-      type: "joined",
-      connectionId: "other",
-      presence: { name: "other" },
-    } as never;
+      type: 'joined',
+      connectionId: 'other',
+      presence: { name: 'other' },
+    } as never
   },
-};
+}
 
 function RoomConsumer(): React.ReactElement {
-  const room = useRoom();
+  const room = useRoom()
   return (
     <div>
       <span data-testid="roomId">{room.roomId}</span>
-      <span data-testid="connectionId">{room.connectionId ?? "null"}</span>
+      <span data-testid="connectionId">{room.connectionId ?? 'null'}</span>
       <span data-testid="myPresenceJSON">{JSON.stringify(room.myPresence)}</span>
     </div>
-  );
+  )
 }
 
 function OthersConsumer(): React.ReactElement {
-  const others = useOthers();
-  return <span data-testid="othersJSON">{JSON.stringify(others)}</span>;
+  const others = useOthers()
+  return <span data-testid="othersJSON">{JSON.stringify(others)}</span>
 }
 
 function UpdaterConsumer(): React.ReactElement {
-  const update = useUpdateMyPresence();
-  const presence = usePresence();
+  const update = useUpdateMyPresence()
+  const presence = usePresence()
   return (
     <div>
       <span data-testid="presenceJSON">{JSON.stringify(presence)}</span>
-      <button
-        type="button"
-        data-testid="update-btn"
-        onClick={() => update({ cursor: [5, 5] })}
-      >
+      <button type="button" data-testid="update-btn" onClick={() => update({ cursor: [5, 5] })}>
         update
       </button>
     </div>
-  );
+  )
 }
 
-describe("React hooks", () => {
-  it("RoomProvider mounts + useRoom reflects roomId", async () => {
+describe('React hooks', () => {
+  it('RoomProvider mounts + useRoom reflects roomId', async () => {
     const { getByTestId } = render(
       <RoomProvider roomId="cursor" client={stubClient}>
         <RoomConsumer />
       </RoomProvider>,
-    );
+    )
     await waitFor(() => {
-      expect(getByTestId("connectionId").textContent).toBe("stub-conn");
-    });
-    expect(getByTestId("roomId").textContent).toBe("cursor");
-  });
+      expect(getByTestId('connectionId').textContent).toBe('stub-conn')
+    })
+    expect(getByTestId('roomId').textContent).toBe('cursor')
+  })
 
-  it("useOthers reflects other connections joining", async () => {
+  it('useOthers reflects other connections joining', async () => {
     const { getByTestId } = render(
       <RoomProvider roomId="cursor" client={stubClient}>
         <OthersConsumer />
       </RoomProvider>,
-    );
+    )
     await waitFor(() => {
-      const text = getByTestId("othersJSON").textContent ?? "{}";
-      expect(text).toContain("other");
-    });
-  });
+      const text = getByTestId('othersJSON').textContent ?? '{}'
+      expect(text).toContain('other')
+    })
+  })
 
-  it("useUpdateMyPresence merges locally", async () => {
+  it('useUpdateMyPresence merges locally', async () => {
     const { getByTestId } = render(
-      <RoomProvider
-        roomId="cursor"
-        initialPresence={{ name: "alice" }}
-        client={stubClient}
-      >
+      <RoomProvider roomId="cursor" initialPresence={{ name: 'alice' }} client={stubClient}>
         <UpdaterConsumer />
       </RoomProvider>,
-    );
+    )
     await waitFor(() => {
       // After the stub yields `joined`, presence comes from the stub's data.
-      const txt = getByTestId("presenceJSON").textContent ?? "{}";
-      expect(txt).toContain("alice");
-    });
+      const txt = getByTestId('presenceJSON').textContent ?? '{}'
+      expect(txt).toContain('alice')
+    })
     act(() => {
-      (getByTestId("update-btn") as HTMLButtonElement).click();
-    });
+      ;(getByTestId('update-btn') as HTMLButtonElement).click()
+    })
     await waitFor(() => {
-      expect(getByTestId("presenceJSON").textContent).toContain("cursor");
-    });
-  });
+      expect(getByTestId('presenceJSON').textContent).toContain('cursor')
+    })
+  })
 
-  it("useRoom throws when used outside RoomProvider", () => {
+  it('useRoom throws when used outside RoomProvider', () => {
     function BadConsumer(): React.ReactElement {
-      useRoom();
-      return <div />;
+      useRoom()
+      return <div />
     }
     // Suppress React's console.error noise for this expected-throw test.
-    const origError = console.error;
-    console.error = () => {};
-    try {
-      expect(() => render(<BadConsumer />)).toThrow(/RoomProvider/);
-    } finally {
-      console.error = origError;
+    const origError = console.error
+    console.error = () => {
+      /* intentionally empty — suppress React's expected error boundary noise */
     }
-  });
-});
+    try {
+      expect(() => render(<BadConsumer />)).toThrow(/RoomProvider/)
+    } finally {
+      console.error = origError
+    }
+  })
+})

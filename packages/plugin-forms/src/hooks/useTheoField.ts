@@ -12,23 +12,23 @@
  * Why duck-type RHF: RHF's UseFormReturn type surface is large; the hook
  * narrows to the field-relevant slice so consumers don't need full RHF API.
  */
-import { useFormContext, useFormState } from "react-hook-form";
+import { useFormContext, useFormState } from 'react-hook-form'
 
 export interface UseTheoFieldResult {
   /** Current value of the field (reactive). */
-  value: unknown;
+  value: unknown
   /** RHF error object for this field, or undefined. */
-  error: { type?: string; message?: string } | undefined;
+  error: { type?: string; message?: string } | undefined
   /** Convenience: error !== undefined. */
-  isInvalid: boolean;
+  isInvalid: boolean
   /**
    * RHF register props — spread onto the underlying input:
    *   <input {...field.register} />
    * Provides name, onChange, onBlur, ref. RHF v7+ shape.
    */
-  register: ReturnType<ReturnType<typeof useFormContext>["register"]>;
+  register: ReturnType<ReturnType<typeof useFormContext>['register']>
   /** Imperative setter — calls RHF's setValue with shouldDirty=true. */
-  setValue: (value: unknown) => void;
+  setValue: (value: unknown) => void
 }
 
 /**
@@ -38,29 +38,29 @@ export interface UseTheoFieldResult {
  * @param name — dot-notation full path (matches TheoKit ActionInputError.fields keys)
  */
 export function useTheoField(name: string): UseTheoFieldResult {
-  const form = useFormContext();
+  const form = useFormContext()
   if (form === null) {
     throw new Error(
-      "useTheoField() must be called from a descendant of <TheoForm>. " +
-        "Wrap your component tree with <TheoForm action={...}> first " +
-        "(<TheoForm> provides the RHF FormProvider internally).",
-    );
+      'useTheoField() must be called from a descendant of <TheoForm>. ' +
+        'Wrap your component tree with <TheoForm action={...}> first ' +
+        '(<TheoForm> provides the RHF FormProvider internally).',
+    )
   }
-  const { errors } = useFormState({ control: form.control, name });
+  const { errors } = useFormState({ control: form.control, name })
   // Walk dot-notation path through nested errors to handle 'user.address.zip'
-  const error = walkErrorsByPath(errors, name);
-  const value: unknown = form.watch(name);
-  const register = form.register(name);
+  const error = walkErrorsByPath(errors, name)
+  const value: unknown = form.watch(name)
+  const register = form.register(name)
   const setValue = (v: unknown): void => {
-    form.setValue(name, v, { shouldDirty: true, shouldTouch: true });
-  };
+    form.setValue(name, v, { shouldDirty: true, shouldTouch: true })
+  }
   return {
     value,
     error,
     isInvalid: error !== undefined,
     register,
     setValue,
-  };
+  }
 }
 
 /**
@@ -74,21 +74,21 @@ function walkErrorsByPath(
   errors: Record<string, unknown>,
   path: string,
 ): { type?: string; message?: string } | undefined {
-  const segments = path === "" ? ["root"] : path.split(".");
-  let current: unknown = errors;
+  const segments = path === '' ? ['root'] : path.split('.')
+  let current: unknown = errors
   for (const seg of segments) {
-    if (current === undefined || current === null) return undefined;
-    if (typeof current !== "object") return undefined;
-    current = (current as Record<string, unknown>)[seg];
+    if (current === undefined || current === null) return undefined
+    if (typeof current !== 'object') return undefined
+    current = (current as Record<string, unknown>)[seg]
   }
-  if (current === undefined || current === null) return undefined;
-  if (typeof current !== "object") return undefined;
-  const candidate = current as { type?: unknown; message?: unknown };
-  if (typeof candidate.message === "string" || typeof candidate.type === "string") {
+  if (current === undefined || current === null) return undefined
+  if (typeof current !== 'object') return undefined
+  const candidate = current as { type?: unknown; message?: unknown }
+  if (typeof candidate.message === 'string' || typeof candidate.type === 'string') {
     return {
-      type: typeof candidate.type === "string" ? candidate.type : undefined,
-      message: typeof candidate.message === "string" ? candidate.message : undefined,
-    };
+      type: typeof candidate.type === 'string' ? candidate.type : undefined,
+      message: typeof candidate.message === 'string' ? candidate.message : undefined,
+    }
   }
-  return undefined;
+  return undefined
 }

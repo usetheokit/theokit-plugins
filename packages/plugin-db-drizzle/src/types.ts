@@ -8,18 +8,18 @@
  * is assignable to this one.
  */
 
-import type { ResolvedDrizzleDbOptions } from "./options.js";
+import type { ResolvedDrizzleDbOptions } from './options.js'
 
 /** Minimal app surface the plugin's `register()` needs. */
 export interface TheoPluginApp {
   /** Register a DI module (e.g., `OrmModule.forRoot()`). Optional — graceful no-op when absent. */
-  registerModule?(module: unknown): void;
+  registerModule?: (module: unknown) => void
   /** Register a CLI subcommand namespace (e.g., 'db' with the 7 verbs). */
-  registerCliCommand?(namespace: string, commands: unknown): void;
+  registerCliCommand?: (namespace: string, commands: unknown) => void
   /** Register a devtools-overlay tab (G4 backward-compat hook). */
-  registerDevtoolsTab?(tab: unknown): void;
+  registerDevtoolsTab?: (tab: unknown) => void
   /** Test whether a CLI namespace is already registered (EC-4 conflict guard). */
-  hasCliCommand?(namespace: string): boolean;
+  hasCliCommand?: (namespace: string) => boolean
 }
 
 /**
@@ -27,8 +27,8 @@ export interface TheoPluginApp {
  * (ADR-0008 in theokit) but kept local to avoid runtime coupling.
  */
 export interface DrizzleDbPlugin {
-  readonly name: "@theokit/plugin-db-drizzle";
-  readonly kind: "db";
-  readonly options: ResolvedDrizzleDbOptions;
-  register(app: TheoPluginApp): void;
+  readonly name: '@theokit/plugin-db-drizzle'
+  readonly kind: 'db'
+  readonly options: ResolvedDrizzleDbOptions
+  register: (app: TheoPluginApp) => void
 }

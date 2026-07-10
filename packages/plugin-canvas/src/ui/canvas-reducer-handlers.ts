@@ -89,9 +89,7 @@ export function handleRemove(
   if (existing === undefined) return state
 
   const remaining =
-    action.version === undefined
-      ? []
-      : existing.filter((a) => a.version !== action.version)
+    action.version === undefined ? [] : existing.filter((a) => a.version !== action.version)
 
   if (remaining.length === 0) next.delete(action.id)
   else next.set(action.id, remaining)

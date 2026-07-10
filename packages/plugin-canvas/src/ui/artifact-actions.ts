@@ -153,7 +153,7 @@ function formatDiffArtifact(artifact: Extract<Artifact, { kind: 'diff' }>): stri
  * images return an empty Blob — the consumer should `fetch(url)` then
  * download themselves (cross-origin caveats).
  */
-export async function artifactToBlob(artifact: Artifact): Promise<Blob> {
+export function artifactToBlob(artifact: Artifact): Promise<Blob> {
   if (artifact.kind === 'image' && artifact.source === 'data') {
     const match = artifact.dataUrl.match(/^data:([^;]+);base64,(.+)$/i)
     if (match !== null) {
@@ -162,7 +162,7 @@ export async function artifactToBlob(artifact: Artifact): Promise<Blob> {
       const bin = atob(b64)
       const bytes = new Uint8Array(bin.length)
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-      return new Blob([bytes], { type: mime })
+      return Promise.resolve(new Blob([bytes], { type: mime }))
     }
   }
   const text = serializeArtifactForCopy(artifact)
@@ -177,7 +177,7 @@ export async function artifactToBlob(artifact: Artifact): Promise<Blob> {
     diff: 'text/plain',
   }
   const mime = mimeMap[artifact.kind] ?? 'application/octet-stream'
-  return new Blob([text], { type: mime })
+  return Promise.resolve(new Blob([text], { type: mime }))
 }
 
 export function filenameFor(artifact: Artifact): string {

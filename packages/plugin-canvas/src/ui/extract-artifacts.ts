@@ -44,10 +44,7 @@ export interface ArtifactCandidate {
   build: () => Artifact
 }
 
-export function extractArtifactCandidates(
-  body: string,
-  ctx: ExtractContext,
-): ArtifactCandidate[] {
+export function extractArtifactCandidates(body: string, ctx: ExtractContext): ArtifactCandidate[] {
   const out: ArtifactCandidate[] = []
   const seenSpans: [number, number][] = []
   const now = new Date().toISOString()

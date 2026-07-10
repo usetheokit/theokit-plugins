@@ -54,7 +54,7 @@ export function createArtifactBus(): ArtifactBus {
         } catch (err) {
           // EC-2: never let one handler throw out of the dispatch loop.
           // Use stderr-friendly logging without taking a logger dep.
-           
+
           console.error(
             `[plugin-canvas/artifact-bus] handler for conversation "${conversationId}" threw:`,
             err,

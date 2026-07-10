@@ -121,10 +121,9 @@ const diffArtifactSchema = artifactEnvelopeSchema.extend({
 
 const svgArtifactSchema = artifactEnvelopeSchema.extend({
   kind: z.literal('svg'),
-  content: sized(MAX_SVG_BYTES, 'svg content').refine(
-    (s) => /^\s*<svg[\s>]/i.test(s),
-    { message: 'svg content must begin with a <svg> element.' },
-  ),
+  content: sized(MAX_SVG_BYTES, 'svg content').refine((s) => /^\s*<svg[\s>]/i.test(s), {
+    message: 'svg content must begin with a <svg> element.',
+  }),
 })
 
 const whiteboardSceneArtifactSchema = artifactEnvelopeSchema.extend({
@@ -160,10 +159,9 @@ const imageDataSchema = artifactEnvelopeSchema.extend({
   alt: z.string().min(1).max(500),
   dataUrl: z
     .string()
-    .refine(
-      (s) => /^data:image\/(png|jpeg|webp|gif|svg\+xml);base64,/i.test(s),
-      { message: 'dataUrl must be data:image/(png|jpeg|webp|gif|svg+xml);base64,...' },
-    )
+    .refine((s) => /^data:image\/(png|jpeg|webp|gif|svg\+xml);base64,/i.test(s), {
+      message: 'dataUrl must be data:image/(png|jpeg|webp|gif|svg+xml);base64,...',
+    })
     .refine((s) => s.length <= MAX_DATA_URL_BYTES, {
       message: `image data URL exceeds the ${Math.floor(MAX_DATA_URL_BYTES / 1024 / 1024)} MB cap.`,
     }),

@@ -1,24 +1,24 @@
-import { defineConfig } from "tsup";
+import { defineConfig } from 'tsup'
 
 export default defineConfig({
   entry: {
-    index: "src/index.ts",
-    "react/index": "src/react/index.ts",
+    index: 'src/index.ts',
+    'react/index': 'src/react/index.ts',
   },
-  format: ["esm"],
+  format: ['esm'],
   dts: true,
   clean: true,
   sourcemap: true,
-  target: "es2022",
+  target: 'es2022',
   external: [
-    "theokit",
-    "@theokit/sdk",
-    "@theokit/sdk/subscription",
-    "zod",
-    "yjs",
-    "y-protocols",
-    "y-protocols/awareness",
-    "lib0",
-    "react",
+    'theokit',
+    '@theokit/sdk',
+    '@theokit/sdk/subscription',
+    'zod',
+    'yjs',
+    'y-protocols',
+    'y-protocols/awareness',
+    'lib0',
+    'react',
   ],
-});
+})

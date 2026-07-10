@@ -24,7 +24,7 @@ export interface IdempotencyStore {
    *          `false` if the event was already processed (consumer should
    *          return 200 without re-running the handler).
    */
-  markProcessed(eventId: string): Promise<boolean>;
+  markProcessed(eventId: string): Promise<boolean>
 
   /**
    * Release a claim made by `markProcessed` when downstream processing FAILED,
@@ -34,7 +34,7 @@ export interface IdempotencyStore {
    * retry-on-failure (#167): the event is claimed before dispatch and released
    * if the handler throws. Releasing an unknown/never-claimed id is a no-op.
    */
-  release(eventId: string): Promise<void>;
+  release(eventId: string): Promise<void>
 }
 
 /**
@@ -46,37 +46,38 @@ export interface IdempotencyStore {
  * same event ID resolve consistently — exactly one returns `true`.
  */
 export function createMemoryStore(): IdempotencyStore {
-  const seen = new Set<string>();
+  const seen = new Set<string>()
   // In-flight claims per event ID so concurrent callers race deterministically.
-  const inflight = new Map<string, Promise<boolean>>();
+  const inflight = new Map<string, Promise<boolean>>()
 
   return {
     async markProcessed(eventId: string): Promise<boolean> {
-      const existing = inflight.get(eventId);
+      const existing = inflight.get(eventId)
       if (existing) {
         // Wait for the in-flight call; we lost the race → always false here.
-        await existing;
-        return false;
+        await existing
+        return false
       }
-      const promise: Promise<boolean> = (async () => {
-        if (seen.has(eventId)) return false;
-        seen.add(eventId);
-        return true;
-      })();
-      inflight.set(eventId, promise);
+      const promise: Promise<boolean> = Promise.resolve().then(() => {
+        if (seen.has(eventId)) return false
+        seen.add(eventId)
+        return true
+      })
+      inflight.set(eventId, promise)
       try {
-        return await promise;
+        return await promise
       } finally {
-        inflight.delete(eventId);
+        inflight.delete(eventId)
       }
     },
 
-    async release(eventId: string): Promise<void> {
+    release(eventId: string): Promise<void> {
       // Un-claim so a retry can re-run. No-op if it was never claimed.
-      seen.delete(eventId);
-      inflight.delete(eventId);
+      seen.delete(eventId)
+      inflight.delete(eventId)
+      return Promise.resolve()
     },
-  };
+  }
 }
 
 /**
@@ -93,13 +94,13 @@ export interface IdempotencyRepository {
    * `false` if the event_id already exists (UNIQUE constraint violation
    * caught at adapter level).
    */
-  insertNew(eventId: string): Promise<boolean>;
+  insertNew(eventId: string): Promise<boolean>
 
   /**
    * Delete a previously-inserted event row, releasing the claim so a retry can
    * re-insert and re-run after a handler failure (#167). No-op if absent.
    */
-  delete(eventId: string): Promise<void>;
+  delete(eventId: string): Promise<void>
 }
 
 /**
@@ -120,10 +121,10 @@ export interface IdempotencyRepository {
 export function createOrmStore(repo: IdempotencyRepository): IdempotencyStore {
   return {
     async markProcessed(eventId: string): Promise<boolean> {
-      return await repo.insertNew(eventId);
+      return await repo.insertNew(eventId)
     },
     async release(eventId: string): Promise<void> {
-      await repo.delete(eventId);
+      await repo.delete(eventId)
     },
-  };
+  }
 }

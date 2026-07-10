@@ -8,8 +8,4 @@
  * Re-exports only server-safe modules — never pulls React UI.
  */
 
-export {
-  createArtifactBus,
-  type ArtifactBus,
-  type ArtifactBusHandler,
-} from './artifact-bus.js'
+export { createArtifactBus, type ArtifactBus, type ArtifactBusHandler } from './artifact-bus.js'

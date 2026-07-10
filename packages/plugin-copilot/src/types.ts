@@ -18,13 +18,13 @@
  */
 export interface CopilotIdentity {
   /** Display name shown in chat-message + presence list (e.g. "GPT Copilot"). */
-  readonly name: string;
+  readonly name: string
   /** Avatar URL (theo-ui chat-message renders this). */
-  readonly avatar?: string;
+  readonly avatar?: string
   /** Theme color for typing indicator + cursor (hex, e.g. "#7c3aed"). */
-  readonly color?: string;
+  readonly color?: string
   /** Optional opaque metadata propagated via presence. */
-  readonly metadata?: Record<string, unknown>;
+  readonly metadata?: Record<string, unknown>
 }
 
 /**
@@ -35,15 +35,15 @@ export interface CopilotIdentity {
  */
 export interface CopilotAgentConfig {
   /** Logical name (for telemetry). */
-  readonly name: string;
+  readonly name: string
   /** Model id (e.g. "openrouter/openai/gpt-4o-mini"). */
-  readonly model: string | { readonly id: string };
+  readonly model: string | { readonly id: string }
   /** API key (or undefined to use env). Accepts a thunk for lazy/rotated keys. */
-  readonly apiKey?: string | (() => string);
+  readonly apiKey?: string | (() => string)
   /** Optional system prompt. */
-  readonly systemPrompt?: string;
+  readonly systemPrompt?: string
   /** Pass-through local options (sdk LocalOptions). */
-  readonly local?: { readonly settingSources?: readonly string[] };
+  readonly local?: { readonly settingSources?: readonly string[] }
 }
 
 /**
@@ -52,14 +52,18 @@ export interface CopilotAgentConfig {
  * @public
  */
 export type CopilotTrigger =
-  | { readonly on: `broadcast:${string}`; readonly action: "respond" }
-  | { readonly on: "presence:idle"; readonly action: "suggest"; readonly idleMs: number }
-  | { readonly on: `broadcast:${string}`; readonly action: "execute-tool"; readonly toolName: string }
+  | { readonly on: `broadcast:${string}`; readonly action: 'respond' }
+  | { readonly on: 'presence:idle'; readonly action: 'suggest'; readonly idleMs: number }
   | {
-      readonly on: "custom";
-      readonly filter: (frame: CopilotFrame) => boolean;
-      readonly action: "respond" | "suggest" | "execute-tool";
-    };
+      readonly on: `broadcast:${string}`
+      readonly action: 'execute-tool'
+      readonly toolName: string
+    }
+  | {
+      readonly on: 'custom'
+      readonly filter: (frame: CopilotFrame) => boolean
+      readonly action: 'respond' | 'suggest' | 'execute-tool'
+    }
 
 /**
  * Frame shape received from P#9 (structural mirror of RealtimeFrame).
@@ -67,19 +71,23 @@ export type CopilotTrigger =
  * @public
  */
 export type CopilotFrame =
-  | { readonly type: "joined"; readonly connectionId: string; readonly presence: Record<string, unknown> }
-  | { readonly type: "left"; readonly connectionId: string }
   | {
-      readonly type: "presence-changed";
-      readonly connectionId: string;
-      readonly presence: Record<string, unknown>;
+      readonly type: 'joined'
+      readonly connectionId: string
+      readonly presence: Record<string, unknown>
+    }
+  | { readonly type: 'left'; readonly connectionId: string }
+  | {
+      readonly type: 'presence-changed'
+      readonly connectionId: string
+      readonly presence: Record<string, unknown>
     }
   | {
-      readonly type: "broadcast";
-      readonly connectionId: string;
-      readonly event: string;
-      readonly payload: Record<string, unknown>;
-    };
+      readonly type: 'broadcast'
+      readonly connectionId: string
+      readonly event: string
+      readonly payload: Record<string, unknown>
+    }
 
 /**
  * P#9 RoomDescriptor structural mirror. Copilot binds to one room descriptor.
@@ -87,9 +95,13 @@ export type CopilotFrame =
  * @public
  */
 export interface CopilotRoomBinding {
-  readonly id: string;
-  readonly presence: { safeParse(v: unknown): { success: boolean; data?: unknown; error?: unknown } };
-  readonly broadcast: { safeParse(v: unknown): { success: boolean; data?: unknown; error?: unknown } };
+  readonly id: string
+  readonly presence: {
+    safeParse(v: unknown): { success: boolean; data?: unknown; error?: unknown }
+  }
+  readonly broadcast: {
+    safeParse(v: unknown): { success: boolean; data?: unknown; error?: unknown }
+  }
 }
 
 /**
@@ -104,21 +116,21 @@ export interface CopilotRealtimeProvider {
     roomId: string,
     connection: { connectionId: string; clientId?: string; metadata?: Record<string, unknown> },
     initialPresence?: Record<string, unknown>,
-  ): Promise<void>;
-  leaveRoom(roomId: string, connectionId: string): Promise<void>;
+  ): Promise<void>
+  leaveRoom(roomId: string, connectionId: string): Promise<void>
   broadcast(
     roomId: string,
     connectionId: string,
     event: string,
     payload: Record<string, unknown>,
-  ): Promise<void>;
+  ): Promise<void>
   updatePresence(
     roomId: string,
     connectionId: string,
     patch: Record<string, unknown>,
-  ): Promise<void>;
-  getPresence(roomId: string): Promise<Record<string, Record<string, unknown>>>;
-  subscribeRoom(roomId: string, listener: (frame: CopilotFrame) => void): () => void;
+  ): Promise<void>
+  getPresence(roomId: string): Promise<Record<string, Record<string, unknown>>>
+  subscribeRoom(roomId: string, listener: (frame: CopilotFrame) => void): () => void
 }
 
 /**
@@ -128,10 +140,10 @@ export interface CopilotRealtimeProvider {
  */
 export interface CopilotBudgetConfig {
   perRoom?: {
-    dailyUsd?: number;
-    monthlyUsd?: number;
-    perRequestUsd?: number;
-  };
+    dailyUsd?: number
+    monthlyUsd?: number
+    perRequestUsd?: number
+  }
 }
 
 /**
@@ -140,8 +152,8 @@ export interface CopilotBudgetConfig {
  * @public
  */
 export interface CopilotVoiceConfig {
-  transcribeWith?: "plugin-voice";
-  speakWith?: "plugin-voice";
+  transcribeWith?: 'plugin-voice'
+  speakWith?: 'plugin-voice'
 }
 
 /**
@@ -150,7 +162,7 @@ export interface CopilotVoiceConfig {
  * @public
  */
 export interface CopilotCanvasConfig {
-  emitArtifacts?: boolean;
+  emitArtifacts?: boolean
 }
 
 /**
@@ -159,8 +171,8 @@ export interface CopilotCanvasConfig {
  * @public
  */
 export interface CopilotRateLimitConfig {
-  tokens: number;
-  windowMs: number;
+  tokens: number
+  windowMs: number
 }
 
 /**
@@ -169,10 +181,10 @@ export interface CopilotRateLimitConfig {
  * @public
  */
 export type CopilotDispatcher =
-  | "first-wins"
-  | "round-robin"
-  | "all"
-  | ((copilots: readonly { readonly id: string }[], frame: CopilotFrame) => readonly string[]);
+  | 'first-wins'
+  | 'round-robin'
+  | 'all'
+  | ((copilots: readonly { readonly id: string }[], frame: CopilotFrame) => readonly string[])
 
 /**
  * Descriptor returned by {@link defineCopilot}.
@@ -180,16 +192,16 @@ export type CopilotDispatcher =
  * @public
  */
 export interface CopilotDescriptor {
-  readonly id: string;
-  readonly room: CopilotRoomBinding;
-  readonly agent: CopilotAgentConfig;
-  readonly identity: CopilotIdentity;
-  readonly triggers: readonly CopilotTrigger[];
-  readonly rateLimit?: CopilotRateLimitConfig;
-  readonly budget?: CopilotBudgetConfig;
-  readonly voice?: CopilotVoiceConfig;
-  readonly canvas?: CopilotCanvasConfig;
-  readonly dispatcher?: CopilotDispatcher;
+  readonly id: string
+  readonly room: CopilotRoomBinding
+  readonly agent: CopilotAgentConfig
+  readonly identity: CopilotIdentity
+  readonly triggers: readonly CopilotTrigger[]
+  readonly rateLimit?: CopilotRateLimitConfig
+  readonly budget?: CopilotBudgetConfig
+  readonly voice?: CopilotVoiceConfig
+  readonly canvas?: CopilotCanvasConfig
+  readonly dispatcher?: CopilotDispatcher
 }
 
 /**
@@ -198,12 +210,12 @@ export interface CopilotDescriptor {
  * @public
  */
 export class CopilotError extends Error {
-  override readonly name: string = "CopilotError";
-  readonly code?: string;
+  override readonly name: string = 'CopilotError'
+  readonly code?: string
 
   constructor(message: string, options: { code?: string; cause?: unknown } = {}) {
-    super(message, options.cause !== undefined ? { cause: options.cause } : undefined);
-    if (options.code !== undefined) this.code = options.code;
+    super(message, options.cause !== undefined ? { cause: options.cause } : undefined)
+    if (options.code !== undefined) this.code = options.code
   }
 }
 
@@ -213,10 +225,10 @@ export class CopilotError extends Error {
  * @public
  */
 export class CopilotConfigError extends CopilotError {
-  override readonly name: string = "CopilotConfigError";
+  override readonly name: string = 'CopilotConfigError'
 
   constructor(message: string, options: { code?: string; cause?: unknown } = {}) {
-    super(message, { code: options.code ?? "copilot_config_invalid", cause: options.cause });
+    super(message, { code: options.code ?? 'copilot_config_invalid', cause: options.cause })
   }
 }
 
@@ -226,10 +238,10 @@ export class CopilotConfigError extends CopilotError {
  * @public
  */
 export class CopilotTriggerError extends CopilotError {
-  override readonly name: string = "CopilotTriggerError";
+  override readonly name: string = 'CopilotTriggerError'
 
   constructor(message: string, options: { code?: string; cause?: unknown } = {}) {
-    super(message, { code: options.code ?? "copilot_trigger_failed", cause: options.cause });
+    super(message, { code: options.code ?? 'copilot_trigger_failed', cause: options.cause })
   }
 }
 
@@ -241,20 +253,20 @@ export class CopilotTriggerError extends CopilotError {
  */
 export interface CopilotAgentLike {
   streamObject<T>(opts: {
-    schema: unknown;
-    prompt: string;
-    model: string | { id: string };
-    apiKey?: string;
-    local?: { settingSources?: readonly string[] };
-    systemPrompt?: string;
-    maxRetries?: number;
+    schema: unknown
+    prompt: string
+    model: string | { id: string }
+    apiKey?: string
+    local?: { settingSources?: readonly string[] }
+    systemPrompt?: string
+    maxRetries?: number
   }): AsyncIterable<
-    | { type: "partial"; partial: T; attempt: number }
+    | { type: 'partial'; partial: T; attempt: number }
     // #174: the complete event MAY carry the provider's actual usage/cost so
     // budget accounting reflects real spend; absent → the runtime falls back to
     // its configured per-invocation estimate.
-    | { type: "complete"; object: T; usage?: { costUsd?: number } }
-  >;
+    | { type: 'complete'; object: T; usage?: { costUsd?: number } }
+  >
 
-  send?(message: string, opts?: Record<string, unknown>): Promise<{ text: string }>;
+  send?(message: string, opts?: Record<string, unknown>): Promise<{ text: string }>
 }

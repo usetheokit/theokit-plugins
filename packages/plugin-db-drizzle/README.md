@@ -24,30 +24,30 @@ pnpm add -D drizzle-kit
 ## Wire it into `theo.config.ts`
 
 ```ts
-import { drizzleDb } from "@theokit/plugin-db-drizzle";
-import { defineConfig } from "theokit";
+import { drizzleDb } from '@theokit/plugin-db-drizzle'
+import { defineConfig } from 'theokit'
 
 export default defineConfig({
   plugins: [
     drizzleDb({
-      driver: "postgres",
+      driver: 'postgres',
       url: process.env.DATABASE_URL,
-      schemaPath: "./db/schema.ts",
-      migrationsPath: "./db/migrations",
+      schemaPath: './db/schema.ts',
+      migrationsPath: './db/migrations',
     }),
   ],
-});
+})
 ```
 
 ## Options reference
 
-| Option | Type | Default | Notes |
-|---|---|---|---|
-| `driver` | `'sqlite' \| 'postgres' \| 'mysql'` | (required) | Canonical drizzle-kit driver names |
-| `url` | `string` | (caller-provided) | Connection URL — pass `process.env.DATABASE_URL` |
-| `schemaPath` | `string` | `'./db/schema.ts'` | Path to your drizzle schema file |
-| `migrationsPath` | `string` | `'./db/migrations'` | Directory for generated migration files |
-| `devtoolsTab` | `boolean` | `true` | Register a devtools-overlay tab when present |
+| Option           | Type                                | Default             | Notes                                            |
+| ---------------- | ----------------------------------- | ------------------- | ------------------------------------------------ |
+| `driver`         | `'sqlite' \| 'postgres' \| 'mysql'` | (required)          | Canonical drizzle-kit driver names               |
+| `url`            | `string`                            | (caller-provided)   | Connection URL — pass `process.env.DATABASE_URL` |
+| `schemaPath`     | `string`                            | `'./db/schema.ts'`  | Path to your drizzle schema file                 |
+| `migrationsPath` | `string`                            | `'./db/migrations'` | Directory for generated migration files          |
+| `devtoolsTab`    | `boolean`                           | `true`              | Register a devtools-overlay tab when present     |
 
 ## CLI verbs
 
@@ -76,11 +76,11 @@ Opt out via `drizzleDb({ devtoolsTab: false, ... })`.
 The plugin re-uses `@theokit/orm`'s `withAgentContext` AsyncLocalStorage. Wrap session-scoped queries the same way you do with orm direct:
 
 ```ts
-import { withAgentContext } from "@theokit/orm";
+import { withAgentContext } from '@theokit/orm'
 
 await withAgentContext({ userId: session.userId }, async () => {
-  return await users.findMany();
-});
+  return await users.findMany()
+})
 ```
 
 For native RLS policy generation, drizzle-kit's RLS support is the canonical path — this plugin does not add a layer on top.
@@ -91,16 +91,16 @@ If you currently wire orm directly:
 
 ```ts
 // Before
-import { OrmModule } from "@theokit/orm";
+import { OrmModule } from '@theokit/orm'
 defineConfig({
-  modules: [OrmModule.forRoot({ connector: "postgres", url: process.env.DATABASE_URL })],
-});
+  modules: [OrmModule.forRoot({ connector: 'postgres', url: process.env.DATABASE_URL })],
+})
 
 // After
-import { drizzleDb } from "@theokit/plugin-db-drizzle";
+import { drizzleDb } from '@theokit/plugin-db-drizzle'
 defineConfig({
-  plugins: [drizzleDb({ driver: "postgres", url: process.env.DATABASE_URL })],
-});
+  plugins: [drizzleDb({ driver: 'postgres', url: process.env.DATABASE_URL })],
+})
 ```
 
 Your Repository / decorator usage stays identical — the plugin re-exports orm's surface.
