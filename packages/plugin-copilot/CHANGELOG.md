@@ -1,5 +1,20 @@
 # @theokit/plugin-copilot
 
+## 0.1.2
+
+### Patch Changes
+
+- 2c0b594: Internal quality: bring every package to `pnpm lint --max-warnings=0` + `prettier`
+  compliance (437 pre-existing ESLint errors + workspace formatting). All fixes are
+  behavior-preserving — `require-await` resolved by returning `Promise.resolve(...)`
+  where a Promise contract is required, `no-unsafe-*` resolved with precise types
+  (no `any`), `unbound-method` via property-signatures / arrow wrappers. No public API
+  or runtime behavior changes; 665/665 tests remain green.
+- Updated dependencies [2c0b594]
+  - @theokit/plugin-canvas@0.3.3
+  - @theokit/plugin-realtime@0.1.2
+  - @theokit/plugin-voice@0.7.3
+
 ## 0.1.1
 
 ### Patch Changes

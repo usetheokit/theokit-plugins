@@ -14,24 +14,24 @@ plugins**, all building + testing green against the M0–M3 Harness (`@theokit/s
 
 ### Auth providers (consume `@theokit/sdk/server/auth`)
 
-| Package | Version | Purpose |
-| --- | --- | --- |
-| `@theokit/auth-github` | 0.1.0 | GitHub OAuth 2.0 provider (state-only CSRF) |
-| `@theokit/auth-google` | 0.1.0 | Google OIDC provider + SSRF hardening |
-| `@theokit/auth-magic-link` | 0.1.0 | Passwordless email provider (pluggable store) |
+| Package                    | Version | Purpose                                       |
+| -------------------------- | ------- | --------------------------------------------- |
+| `@theokit/auth-github`     | 0.1.0   | GitHub OAuth 2.0 provider (state-only CSRF)   |
+| `@theokit/auth-google`     | 0.1.0   | Google OIDC provider + SSRF hardening         |
+| `@theokit/auth-magic-link` | 0.1.0   | Passwordless email provider (pluggable store) |
 
 ### Capability plugins
 
-| Package | Version | Purpose | SDK coupling |
-| --- | --- | --- | --- |
-| `@theokit/plugin-canvas` | 0.3.0 | Artifact protocol (markdown/code/svg/diff/mermaid/html/image) + DOMPurify CSP-safe render | soft (types) |
-| `@theokit/plugin-copilot` | 0.1.0 | AI Copilot runtime (presence-aware, budget bridge, voice/canvas bridges) | soft (types) |
-| `@theokit/plugin-realtime` | 0.1.0 | Multiplayer (presence/room/broadcast, Yjs CRDT opt-in) | soft (`subscribe`) |
-| `@theokit/plugin-db-drizzle` | 0.1.0 | Drizzle ORM wrapper (7-verb CLI, studio passthrough) | none (`@theokit/orm`) |
-| `@theokit/plugin-email` | 0.1.0 | Email (Resend default, React-Email opt-in) | none |
-| `@theokit/plugin-forms` | 0.1.2 | Form binding (zod + react-hook-form + useAction) | none (`@theokit/react`) |
-| `@theokit/plugin-payments` | 0.1.0 | Stripe (webhook dispatcher, signature verify, idempotency) | none |
-| `@theokit/plugin-voice` | 0.7.0 | STT/TTS bridge (browser MediaRecorder, timeout wiring) | none |
+| Package                      | Version | Purpose                                                                                   | SDK coupling            |
+| ---------------------------- | ------- | ----------------------------------------------------------------------------------------- | ----------------------- |
+| `@theokit/plugin-canvas`     | 0.3.0   | Artifact protocol (markdown/code/svg/diff/mermaid/html/image) + DOMPurify CSP-safe render | soft (types)            |
+| `@theokit/plugin-copilot`    | 0.1.0   | AI Copilot runtime (presence-aware, budget bridge, voice/canvas bridges)                  | soft (types)            |
+| `@theokit/plugin-realtime`   | 0.1.0   | Multiplayer (presence/room/broadcast, Yjs CRDT opt-in)                                    | soft (`subscribe`)      |
+| `@theokit/plugin-db-drizzle` | 0.1.0   | Drizzle ORM wrapper (7-verb CLI, studio passthrough)                                      | none (`@theokit/orm`)   |
+| `@theokit/plugin-email`      | 0.1.0   | Email (Resend default, React-Email opt-in)                                                | none                    |
+| `@theokit/plugin-forms`      | 0.1.2   | Form binding (zod + react-hook-form + useAction)                                          | none (`@theokit/react`) |
+| `@theokit/plugin-payments`   | 0.1.0   | Stripe (webhook dispatcher, signature verify, idempotency)                                | none                    |
+| `@theokit/plugin-voice`      | 0.7.0   | STT/TTS bridge (browser MediaRecorder, timeout wiring)                                    | none                    |
 
 **M6 alignment (2026-07-03):** every `@theokit/sdk` peer/dev pin bumped from the
 stale 1.x ranges (`>=1.6.0` / `>=1.0.0` / `>=1.7.0` / `npm:@theokit/sdk@next`) to
@@ -50,7 +50,7 @@ stable across 1.x→2.x, so the alignment is a pin bump, not a migration. Valida
 > (two-hash) so the macro super-loop's flip logic and the `/roadmap-feature` parser
 > consume them.
 >
-> **Disambiguation:** these *plugins-local* milestones (M0, M1, …) are scoped to
+> **Disambiguation:** these _plugins-local_ milestones (M0, M1, …) are scoped to
 > **this repo** and are **distinct** from the ecosystem cross-pillar milestones
 > M0–M8 in `theokit-tools/ROADMAP.md` referenced at the top of this file. Same
 > letters, different tracks.
@@ -89,28 +89,28 @@ any package's public API**. Full evidence: `architect-output/REPORT.md` +
 **Definition of done (all must hold):**
 
 - [x] **Canvas circular dependency eliminated** — extract `CanvasPanelToolbarAction`
-  (currently defined in `packages/plugin-canvas/src/ui/canvas-panel.tsx:13`) into a
-  leaf module; `canvas-panel.tsx` and `canvas-toolbar.tsx` both type-import it;
-  `ui/index.ts` re-exports it under the same public name. **Proof:**
-  `npx --yes madge --circular --extensions ts,tsx packages/plugin-canvas/src`
-  reports **0 cycles**. `behavior_change=none`.
+      (currently defined in `packages/plugin-canvas/src/ui/canvas-panel.tsx:13`) into a
+      leaf module; `canvas-panel.tsx` and `canvas-toolbar.tsx` both type-import it;
+      `ui/index.ts` re-exports it under the same public name. **Proof:**
+      `npx --yes madge --circular --extensions ts,tsx packages/plugin-canvas/src`
+      reports **0 cycles**. `behavior_change=none`.
 - [x] **`plugin-voice` server files relocated** — `stt-server.ts` + `tts-server.ts`
-  moved into `packages/plugin-voice/src/server/`; imports rewired; **no `./server`
-  public subpath introduced** (internal-only). Build + tests green. `behavior_change=none`.
+      moved into `packages/plugin-voice/src/server/`; imports rewired; **no `./server`
+      public subpath introduced** (internal-only). Build + tests green. `behavior_change=none`.
 - [x] **`defineEmailProvider` fail-fast validation** — runtime validation (name +
-  method presence, typed error mirroring `defineRealtimeProvider`), added **after** a
-  failing negative-case regression test (RED → GREEN, per `rules/testing.md` +
-  Unbreakable Rule 5). `behavior_change=minor`.
+      method presence, typed error mirroring `defineRealtimeProvider`), added **after** a
+      failing negative-case regression test (RED → GREEN, per `rules/testing.md` +
+      Unbreakable Rule 5). `behavior_change=minor`.
 - [x] **Naming conventions documented** — `.claude/rules/architecture.md` gains a
-  forward-only convention: new React surfaces publish `./react`; internal files
-  kebab-case. **No mass rename** of existing PascalCase files (case-only renames are a
-  git/FS hazard). Docs only.
+      forward-only convention: new React surfaces publish `./react`; internal files
+      kebab-case. **No mass rename** of existing PascalCase files (case-only renames are a
+      git/FS hazard). Docs only.
 - [x] **Full functional gate green** — `pnpm -r build` (11/11), `pnpm -r test`
-  (665/665), `pnpm typecheck` (0 errors), `pnpm check:cycles` (0); affected packages'
-  CHANGELOGs updated. *Note:* `pnpm lint` full-green is **explicitly scoped out** — 437
-  pre-existing ESLint errors (unrelated to M1, present since the plugins shipped) are
-  tracked as **M2**. M1 introduces **zero** new lint errors and leaves its touched
-  source files lint-clean.
+      (665/665), `pnpm typecheck` (0 errors), `pnpm check:cycles` (0); affected packages'
+      CHANGELOGs updated. _Note:_ `pnpm lint` full-green is **explicitly scoped out** — 437
+      pre-existing ESLint errors (unrelated to M1, present since the plugins shipped) are
+      tracked as **M2**. M1 introduces **zero** new lint errors and leaves its touched
+      source files lint-clean.
 
 **Dependencies:** M0 (the plugin cluster must exist and be green before it can be refactored).
 
@@ -124,7 +124,9 @@ any package's public API**. Full evidence: `architect-output/REPORT.md` +
    name; voice adds no new subpath. `ui/` vs `react/` folders are frozen (they are
    public subpath exports, not an inconsistency to unify).
 
-## M2 — [ ] Lint compliance & CI gate repair
+## M2 — [x] Lint compliance & CI gate repair
+
+> **Delivered 2026-07-10** — all 11 packages patch-bumped. `pnpm lint` 0, `pnpm format:check` 0, typecheck 0, madge 0, test 665/665. 437 pre-existing ESLint errors resolved with behavior-preserving fixes.
 
 **Objective:** Bring the workspace to `pnpm lint --max-warnings=0` green. **437
 pre-existing ESLint errors** across all 11 packages were surfaced during M1 — the CI
@@ -134,14 +136,14 @@ behavior change, and make the gate genuinely enforce on every PR.
 
 **Definition of done (all must hold):**
 
-- [ ] `pnpm lint` exits 0 (`--max-warnings=0`) across all packages.
-- [ ] `pnpm format:check` (prettier) green.
-- [ ] **No behavior regression** — `pnpm -r test` stays 665/665, `pnpm typecheck` 0,
-  `pnpm -r build` 11/11, `pnpm check:cycles` 0.
-- [ ] Fixes are **real** — drop dead `async` (`require-await`), correct array-type /
-  type-import style, tighten `any`/`no-unsafe-*` in test mocks. **No** blanket
-  `eslint-disable` sweeps and **no** rule downgrades to force green (Rule 3, no workarounds).
-- [ ] Per-package changesets + root CHANGELOG updated.
+- [x] `pnpm lint` exits 0 (`--max-warnings=0`) across all packages.
+- [x] `pnpm format:check` (prettier) green.
+- [x] **No behavior regression** — `pnpm -r test` stays 665/665, `pnpm typecheck` 0,
+      `pnpm -r build` 11/11, `pnpm check:cycles` 0.
+- [x] Fixes are **real** — drop dead `async` (`require-await`), correct array-type /
+      type-import style, tighten `any`/`no-unsafe-*` in test mocks. **No** blanket
+      `eslint-disable` sweeps and **no** rule downgrades to force green (Rule 3, no workarounds).
+- [x] Per-package changesets + root CHANGELOG updated.
 
 **Dependencies:** M1 (built on the green build/test/typecheck baseline M1 restored).
 
@@ -160,9 +162,9 @@ behavior change, and make the gate genuinely enforce on every PR.
 Peers cloned under `knowledge-base/references/`. See `_catalog.md` in that folder for
 license-gate decisions and study notes.
 
-| Peer | License | Why it's here | Supports milestone(s) |
-|---|---|---|---|
-| _(none cloned)_ | — | The 2026-07-10 architecture audit backing M1 was internal static analysis (madge / dependency-cruiser + source reading); no external reference peer was needed. | M1 |
+| Peer            | License | Why it's here                                                                                                                                                   | Supports milestone(s) |
+| --------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| _(none cloned)_ | —       | The 2026-07-10 architecture audit backing M1 was internal static analysis (madge / dependency-cruiser + source reading); no external reference peer was needed. | M1                    |
 
 ---
 
@@ -185,17 +187,17 @@ when demand is evidenced. Other demand-gated candidates: `plugin-otel`,
 
 ## Exclusions — already in the Harness (don't propose as plugins)
 
-| Need | Already in `@theokit/sdk` |
-| --- | --- |
-| Security headers (CSP/HSTS/X-Frame) | security-hardening defaults |
-| Cookies | `getCookie` / `setCookie` / `deleteCookie` |
-| Rate limit | `createRateLimiter` + pluggable store |
-| Secret redaction | `Security.redact` (ADR D68) |
-| Multipart upload | `parseRequestBody` + busboy |
-| Postgres / Redis | `usePostgres` / `useRedis` + `StorageManager` |
-| KV / SQL / custom client | `useUnstorage` / `useDatabase` / `useStorage<T>` |
-| WebSocket / Cron / Webhooks | `defineWebSocket` / `defineCron` / `defineWebhook` |
-| Auth (PKCE/OAuth state/TOTP/sessions) | RFC-aligned primitives in core |
+| Need                                  | Already in `@theokit/sdk`                          |
+| ------------------------------------- | -------------------------------------------------- |
+| Security headers (CSP/HSTS/X-Frame)   | security-hardening defaults                        |
+| Cookies                               | `getCookie` / `setCookie` / `deleteCookie`         |
+| Rate limit                            | `createRateLimiter` + pluggable store              |
+| Secret redaction                      | `Security.redact` (ADR D68)                        |
+| Multipart upload                      | `parseRequestBody` + busboy                        |
+| Postgres / Redis                      | `usePostgres` / `useRedis` + `StorageManager`      |
+| KV / SQL / custom client              | `useUnstorage` / `useDatabase` / `useStorage<T>`   |
+| WebSocket / Cron / Webhooks           | `defineWebSocket` / `defineCron` / `defineWebhook` |
+| Auth (PKCE/OAuth state/TOTP/sessions) | RFC-aligned primitives in core                     |
 
 ## How to propose a new plugin
 

@@ -1,6 +1,6 @@
 {
   "name": "@theokit/plugin-payments",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Stripe-only payments plugin for TheoKit — defineStripeWebhook typed dispatcher + signature verification + idempotency (memory or @theokit/orm-backed) + createCheckoutSession helper (Stripe-hosted page passthrough). Form 4 Hybrid per plan p6-plugin-payments v1.0.",
   "type": "module",
   "main": "./dist/index.js",
