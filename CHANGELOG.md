@@ -8,12 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Roadmap converted to a milestone-tracked format and amended: added `## M0 — [x]` (shipped plugin cluster baseline) and `## M1 — [ ] Architecture remediation (audit 2026-07-10)` covering the four findings of the 2026-07-10 architecture audit (score 88/100, verdict KEEP); added the `## State-of-the-art references` anchor (`/roadmap-feature architecture-remediation`)
-- Architecture audit (2026-07-10, loop-codebase-architect) of the 11 `@theokit/*` packages — verdict KEEP (88/100); 1 critical (canvas circular dependency) + 3 low normalizations, full report + migration plan in `architect-output/`
-
 ### Changed
-
-- **M2 — Lint & format compliance.** Brought the workspace to `pnpm lint --max-warnings=0` (437 pre-existing ESLint errors across all 11 packages) and `prettier` green. The CI `lint-and-format` job had only ever passed while `packages/` was empty, so the shipped plugins never satisfied the strict gate. All fixes are behavior-preserving (665/665 tests still green): `require-await` → `Promise.resolve(...)` where a Promise contract is required; `no-unsafe-*` → precise types (no `any`); `unbound-method` → property signatures / arrow wrappers. Scoped the prettier gate to product source via `.prettierignore` (excludes the synced `.claude` cycle-kit + generated `knowledge-base`).
 
 ### Deprecated
 
@@ -21,10 +16,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+### Security
+
+## [0.3.0] - 2026-07-10
+
+### Added
+
+- Roadmap converted to a milestone-tracked format and amended: added `## M0 — [x]` (shipped plugin cluster baseline) and `## M1 — [ ] Architecture remediation (audit 2026-07-10)` covering the four findings of the 2026-07-10 architecture audit (score 88/100, verdict KEEP); added the `## State-of-the-art references` anchor (`/roadmap-feature architecture-remediation`)
+- Architecture audit (2026-07-10, loop-codebase-architect) of the 11 `@theokit/*` packages — verdict KEEP (88/100); 1 critical (canvas circular dependency) + 3 low normalizations, full report + migration plan in `architect-output/`
+
+
+### Changed
+
+- **M2 — Lint & format compliance.** Brought the workspace to `pnpm lint --max-warnings=0` (437 pre-existing ESLint errors across all 11 packages) and `prettier` green. The CI `lint-and-format` job had only ever passed while `packages/` was empty, so the shipped plugins never satisfied the strict gate. All fixes are behavior-preserving (665/665 tests still green): `require-await` → `Promise.resolve(...)` where a Promise contract is required; `no-unsafe-*` → precise types (no `any`); `unbound-method` → property signatures / arrow wrappers. Scoped the prettier gate to product source via `.prettierignore` (excludes the synced `.claude` cycle-kit + generated `knowledge-base` / `agents` audit trail + `architect-output`).
+
+
+### Fixed
+
 - Workspace `pnpm typecheck` was silently broken — the root `tsconfig.json` never set `jsx`, so every `.tsx` source failed `tsc --noEmit` (33 errors) and the CI `typecheck-build` job only passed while `packages/` was empty. Added `"jsx": "react-jsx"` to the root config and fixed the remaining 7 type errors (voice `fetchImpl` mock-type mismatch, a dead `??` in the canvas markdown renderer). Root typecheck is green again (0 errors) (M1)
 - M1 architecture remediation — see per-package changesets: `@theokit/plugin-voice` (theokit M31 `defineTheoPlugin` boot crash + `src/server/` relocation), `@theokit/plugin-canvas` (broke the `canvas-panel` ↔ `canvas-toolbar` import cycle), `@theokit/plugin-email` (`defineEmailProvider` fail-fast validation)
-
-### Security
 
 ## [0.2.0] - 2026-06-17
 
