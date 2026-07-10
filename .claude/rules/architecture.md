@@ -56,3 +56,24 @@ Pick one per project. Mixing both creates inconsistency.
 - **Premature abstraction** — interfaces with a single implementer and no foreseeable second one. Wait for the second case.
 - **Anaemic domain** — entities reduced to data bags with all logic in services. Logic that operates on an entity's invariants belongs on the entity.
 - **Leaky abstractions** — adapters returning ORM-specific or driver-specific types from interfaces meant to be portable.
+
+## § 7 — Naming conventions (theokit-plugins)
+
+Project-specific conventions for the `@theokit/*` plugin monorepo, established by the
+2026-07-10 architecture audit (`architect-output/REPORT.md`, milestone M1). **Forward-only**
+— existing public names are frozen; these apply to new code, not a retroactive rename sweep.
+
+- **React surface folder.** New packages publish their browser/React surface under a
+  `react/` subpath (`packages/<pkg>/src/react/`, exported as `./react`). Do **not** introduce
+  new `ui/` folders. The existing `./ui` subpaths (`plugin-canvas`, `plugin-voice`) and
+  `./react` subpaths (`plugin-copilot`, `plugin-realtime`) are **public subpath exports and
+  are frozen** — unifying them would be a breaking change, so they stay as-is.
+- **Server-only code.** Server-side handlers live under `src/server/` (e.g.,
+  `plugin-canvas/src/server/`, `plugin-voice/src/server/`), kept out of the client barrel.
+  A `./server` public subpath is added only when the package intends to publish it.
+- **File casing.** New source files use **kebab-case** (`canvas-panel.tsx`,
+  `voice-recorder-bar.tsx`) — the dominant convention here and case-insensitive-filesystem
+  safe. Existing PascalCase component files (`CopilotChat.tsx`, `TheoForm.tsx`) are **not**
+  mass-renamed: a case-only rename is a git/FS hazard and must be an isolated, deliberate PR.
+- **No generic dumping-ground folders** — `utils` / `helpers` / `common` / `misc` / `shared`
+  / `lib` (reinforces § 6). Name the responsibility instead.

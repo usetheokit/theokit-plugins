@@ -10,8 +10,8 @@ export { ArtifactRenderer, type ArtifactRendererProps } from './artifact-rendere
 export {
   CanvasPanel,
   type CanvasPanelProps,
-  type CanvasPanelToolbarAction,
 } from './canvas-panel.js'
+export type { CanvasPanelToolbarAction } from './canvas-panel-actions.js'
 export {
   ArtifactVersionRail,
   type ArtifactVersionRailProps,

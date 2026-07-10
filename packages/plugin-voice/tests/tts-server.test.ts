@@ -6,7 +6,7 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 
-import { handleTtsRequest } from '../src/tts-server.js'
+import { handleTtsRequest } from '../src/server/tts-server.js'
 import type { VoiceConfig } from '../src/options.js'
 
 function makeAudioStream(chunks: Uint8Array[]): ReadableStream<Uint8Array> {

@@ -9,7 +9,7 @@ import { Buffer } from 'node:buffer'
 
 import { describe, expect, it, vi } from 'vitest'
 
-import { handleSttRequest, type SttInput } from '../src/stt-server.js'
+import { handleSttRequest, type SttInput } from '../src/server/stt-server.js'
 import type { VoiceConfig } from '../src/options.js'
 
 function jsonResponse(body: unknown, init: ResponseInit = { status: 200 }): Response {

@@ -34,8 +34,8 @@
 import { Buffer } from 'node:buffer'
 import { randomUUID } from 'node:crypto'
 
-import { VoiceProviderError } from './errors.js'
-import type { VoiceConfig } from './options.js'
+import { VoiceProviderError } from '../errors.js'
+import type { VoiceConfig } from '../options.js'
 
 /** Hard upper bound — Whisper REST refuses anything larger. */
 const MAX_BODY_BYTES = 25 * 1024 * 1024
@@ -56,7 +56,12 @@ export interface SttInput {
 }
 
 export interface SttHandlerOptions {
-  fetchImpl?: typeof fetch
+  /**
+   * Injected fetch seam. The handler always calls it with a concrete URL and an
+   * explicit init, so the parameter type is the narrow subset it uses (DIP seam
+   * that keeps test mocks simple). `globalThis.fetch` is assignable to it.
+   */
+  fetchImpl?: (url: string | URL, init: RequestInit) => Promise<Response>
   /**
    * Upstream request timeout in ms (#211). Defaults to 30s. After this elapses
    * the upstream fetch is aborted and the handler returns 504 `UPSTREAM_TIMEOUT`.
