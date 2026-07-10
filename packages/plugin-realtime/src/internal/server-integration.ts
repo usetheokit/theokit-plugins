@@ -118,7 +118,7 @@ export interface MountRealtimeOptions {
   /** Pre-constructed runtime (with provider + rooms registered). */
   runtime: RealtimeRuntime;
   /** Rooms to expose via subscription handlers. Must be registered in runtime. */
-  rooms: ReadonlyArray<RoomDescriptor>;
+  rooms: readonly RoomDescriptor[];
   /**
    * Optional schema for the wrapper subscription input (consumer can extend
    * with extra fields). Defaults to a basic schema accepting `initialPresence`
@@ -148,12 +148,12 @@ export interface MountedRealtime {
 const passthroughInputSchema: ZodLike<RealtimeSubscriptionInput> = {
   safeParse(value) {
     if (value === null || typeof value !== "object") {
-      return { success: true, data: {} as RealtimeSubscriptionInput };
+      return { success: true, data: {} };
     }
-    return { success: true, data: value as RealtimeSubscriptionInput };
+    return { success: true, data: value };
   },
   parse(value) {
-    return (value ?? {}) as RealtimeSubscriptionInput;
+    return (value ?? {});
   },
 };
 

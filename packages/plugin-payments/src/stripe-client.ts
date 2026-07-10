@@ -65,7 +65,7 @@ export function createStripeClientGetter(opts: ResolvedPaymentsOptions): {
       cached = new Stripe(opts.secretKey, {
         // Validated against ACCEPTED_API_VERSIONS above — the narrowing is safe,
         // not a blind cast (#210).
-        apiVersion: opts.apiVersion as Stripe.LatestApiVersion,
+        apiVersion: opts.apiVersion,
         appInfo: {
           name: "@theokit/plugin-payments",
           version: "0.1.0",

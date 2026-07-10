@@ -8,7 +8,7 @@ export interface ArtifactVersionRailProps {
    * rail itself does not sort — caller must pass a stable order so
    * scroll positions don't jump on update.
    */
-  versions: ReadonlyArray<Artifact>
+  versions: readonly Artifact[]
   /** The currently selected version (typically the highest one). */
   currentVersion: number
   /** Click handler — passes the chosen artifact, not the index. */

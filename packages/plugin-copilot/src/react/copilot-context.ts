@@ -49,7 +49,7 @@ export interface CopilotContextValue {
   /** Room id (P#9 room descriptor's id). */
   readonly roomId: string;
   /** Recent messages (capped via cap option; newest last). */
-  readonly messages: ReadonlyArray<CopilotMessage>;
+  readonly messages: readonly CopilotMessage[];
   /** Current presence snapshot (all room participants — copilots + humans). */
   readonly presence: Readonly<Record<string, CopilotPresenceEntry>>;
   /** True when at least one copilot is currently emitting (typing indicator). */

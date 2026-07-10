@@ -9,7 +9,7 @@ import type Stripe from "stripe";
 import type { IdempotencyStore } from "./idempotency-store.js";
 
 /** Stripe API version pin. Defaults to "2023-10-16" (Stripe Node SDK 14.x default). */
-export type StripeApiVersion = Stripe.LatestApiVersion | "2023-10-16";
+export type StripeApiVersion = Stripe.LatestApiVersion  ;
 
 /**
  * User-facing options for the `payments()` factory.

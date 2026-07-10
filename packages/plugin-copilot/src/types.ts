@@ -43,7 +43,7 @@ export interface CopilotAgentConfig {
   /** Optional system prompt. */
   readonly systemPrompt?: string;
   /** Pass-through local options (sdk LocalOptions). */
-  readonly local?: { readonly settingSources?: ReadonlyArray<string> };
+  readonly local?: { readonly settingSources?: readonly string[] };
 }
 
 /**
@@ -172,7 +172,7 @@ export type CopilotDispatcher =
   | "first-wins"
   | "round-robin"
   | "all"
-  | ((copilots: ReadonlyArray<{ readonly id: string }>, frame: CopilotFrame) => ReadonlyArray<string>);
+  | ((copilots: readonly { readonly id: string }[], frame: CopilotFrame) => readonly string[]);
 
 /**
  * Descriptor returned by {@link defineCopilot}.
@@ -184,7 +184,7 @@ export interface CopilotDescriptor {
   readonly room: CopilotRoomBinding;
   readonly agent: CopilotAgentConfig;
   readonly identity: CopilotIdentity;
-  readonly triggers: ReadonlyArray<CopilotTrigger>;
+  readonly triggers: readonly CopilotTrigger[];
   readonly rateLimit?: CopilotRateLimitConfig;
   readonly budget?: CopilotBudgetConfig;
   readonly voice?: CopilotVoiceConfig;
@@ -245,7 +245,7 @@ export interface CopilotAgentLike {
     prompt: string;
     model: string | { id: string };
     apiKey?: string;
-    local?: { settingSources?: ReadonlyArray<string> };
+    local?: { settingSources?: readonly string[] };
     systemPrompt?: string;
     maxRetries?: number;
   }): AsyncIterable<

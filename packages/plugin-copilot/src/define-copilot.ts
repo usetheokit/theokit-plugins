@@ -23,7 +23,7 @@ export interface DefineCopilotOptions {
   /** Copilot's room identity (presence-visible name/avatar/color). */
   identity: CopilotIdentity;
   /** Declarative triggers (per ADR D3). */
-  triggers: ReadonlyArray<CopilotTrigger>;
+  triggers: readonly CopilotTrigger[];
   /** Optional rate-limit (per-copilot windowed limit). */
   rateLimit?: CopilotRateLimitConfig;
   /** Optional Budget integration (SDK Budget D375-D388). */

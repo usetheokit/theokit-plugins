@@ -61,7 +61,7 @@ export function useCopilotReadable<T>(opts: { description: string; value: T }): 
   React.useEffect(() => {
     ctx.sendBroadcast("register-knowledge", {
       description: opts.description,
-      value: opts.value as unknown as Record<string, unknown>,
+      value: opts.value,
     });
     return () => {
       ctx.sendBroadcast("deregister-knowledge", { description: opts.description });
@@ -98,7 +98,7 @@ export function useCopilotTool<TArgs extends Record<string, unknown>>(opts: {
  *
  * @public
  */
-export function useCopilotMessages(): ReadonlyArray<CopilotMessage> {
+export function useCopilotMessages(): readonly CopilotMessage[] {
   return useCopilotContextOrThrow("useCopilotMessages").messages;
 }
 

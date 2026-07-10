@@ -24,10 +24,10 @@ export class CanvasPluginError extends Error {
 
 export class CanvasArtifactValidationError extends CanvasPluginError {
   override readonly name = 'CanvasArtifactValidationError'
-  readonly issues: ReadonlyArray<{ path: string; message: string }>
+  readonly issues: readonly { path: string; message: string }[]
   constructor(
     message: string,
-    issues: ReadonlyArray<{ path: string; message: string }>,
+    issues: readonly { path: string; message: string }[],
     options?: { cause?: unknown },
   ) {
     super(message, options)

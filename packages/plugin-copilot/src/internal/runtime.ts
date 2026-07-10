@@ -38,7 +38,7 @@ export interface CopilotRuntimeOptions {
   /** Agent runtime (Agent.streamObject) — structural mirror per ADR D4. */
   agent: CopilotAgentLike;
   /** Copilots to register at construction. */
-  copilots?: ReadonlyArray<CopilotDescriptor>;
+  copilots?: readonly CopilotDescriptor[];
   /** Default dispatcher policy when copilot doesn't specify one (per ADR D6). */
   defaultDispatcher?: CopilotDispatcher;
   /** Hook called when copilot responds — useful for telemetry / tests. */
@@ -191,9 +191,9 @@ export class CopilotRuntime {
     // fires during teardown) becomes a no-op rather than invoking the agent.
     reg.active = false;
     reg.unsubscribeRoom?.();
-    reg.unsubscribeRoom = undefined as unknown as () => void;
+    reg.unsubscribeRoom = undefined;
     reg.unscheduleIdle?.();
-    reg.unscheduleIdle = undefined as unknown as () => void;
+    reg.unscheduleIdle = undefined;
     // Drain pending handleFrame/idle work before teardown (EC-3). Idle now goes
     // through the same queue, so this drain covers it too.
     await this.queues.get(copilotId);
@@ -351,7 +351,7 @@ export class CopilotRuntime {
     }
   }
 
-  private copilotsInRoom(roomId: string): ReadonlyArray<{ id: string }> {
+  private copilotsInRoom(roomId: string): readonly { id: string }[] {
     const out: { id: string }[] = [];
     for (const reg of this.registry.values()) {
       if (reg.descriptor.room.id === roomId) out.push({ id: reg.descriptor.id });
@@ -361,7 +361,7 @@ export class CopilotRuntime {
 
   private applyDispatcher(
     dispatcher: CopilotDispatcher,
-    copilots: ReadonlyArray<{ id: string }>,
+    copilots: readonly { id: string }[],
     roomId: string,
     frame: CopilotFrame,
   ): string[] {

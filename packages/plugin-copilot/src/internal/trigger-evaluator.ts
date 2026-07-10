@@ -35,7 +35,7 @@ export class TriggerEvaluator {
    * Evaluate triggers against a single frame. Filters out copilot-originated
    * frames (EC-4 cost runaway prevention).
    */
-  evaluate(triggers: ReadonlyArray<CopilotTrigger>, frame: CopilotFrame, roomId: string): TriggerMatch[] {
+  evaluate(triggers: readonly CopilotTrigger[], frame: CopilotFrame, roomId: string): TriggerMatch[] {
     // EC-4 + EC-8: ignore copilot connections (no self-trigger; no impersonation).
     if (
       "connectionId" in frame &&

@@ -231,7 +231,7 @@ describe('handleTtsRequest', () => {
       })
       expect(res.status).toBe(504)
       expect((await res.json()).error.code).toBe('UPSTREAM_TIMEOUT')
-      expect(fetchImpl.mock.calls[0]![1]!.signal).toBeInstanceOf(AbortSignal)
+      expect(fetchImpl.mock.calls[0]![1].signal).toBeInstanceOf(AbortSignal)
     })
 
     it('test_tts_client_signal_propagated_to_fetch', async () => {

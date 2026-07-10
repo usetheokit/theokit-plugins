@@ -17,7 +17,7 @@ import {
 } from '../src/index.js'
 
 interface FakeStream {
-  getTracks(): Array<{ stop: ReturnType<typeof vi.fn> }>
+  getTracks(): { stop: ReturnType<typeof vi.fn> }[]
 }
 
 interface FakeMediaRecorderConstructor {
@@ -124,7 +124,7 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
     let mr: FakeMediaRecorderConstructor
 
     beforeEach(() => {
-      installMediaDevices(async () => makeFakeStream() as unknown as MediaStream)
+      installMediaDevices(async () => makeFakeStream())
       mr = installMediaRecorder()
     })
 
@@ -151,7 +151,7 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
       // Use a fresh stream + tracks pair so the assertion observes the
       // same vi.fn() spies the recorder closed over.
       const fakeStream = makeFakeStream()
-      installMediaDevices(async () => fakeStream as unknown as MediaStream)
+      installMediaDevices(async () => fakeStream)
       installMediaRecorder()
       const recorder = createRecorder()
       await recorder.start()
@@ -215,7 +215,7 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
     })
 
     it('MediaRecorder runtime error propagates via stop() rejection', async () => {
-      installMediaDevices(async () => makeFakeStream() as unknown as MediaStream)
+      installMediaDevices(async () => makeFakeStream())
       const mr = installMediaRecorder()
       const recorder = createRecorder()
       await recorder.start()
@@ -249,7 +249,7 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
 
     it('calling start() while already recording is a no-op', async () => {
       const getUserMedia = installMediaDevices(
-        async () => makeFakeStream() as unknown as MediaStream,
+        async () => makeFakeStream(),
       )
       installMediaRecorder()
       const recorder = createRecorder()
@@ -272,7 +272,7 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
     })
 
     it('throws VoicePluginConfigError when MediaRecorder is missing', async () => {
-      installMediaDevices(async () => makeFakeStream() as unknown as MediaStream)
+      installMediaDevices(async () => makeFakeStream())
       delete (globalThis as { MediaRecorder?: unknown }).MediaRecorder
       const recorder = createRecorder()
       await expect(recorder.start()).rejects.toBeInstanceOf(VoicePluginConfigError)
@@ -285,7 +285,7 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
       // release the stream AND surface via onError — not be silently dropped
       // with a leaked stream.
       const fakeStream = makeFakeStream()
-      installMediaDevices(async () => fakeStream as unknown as MediaStream)
+      installMediaDevices(async () => fakeStream)
       const mr = installMediaRecorder()
       const onError = vi.fn()
       const recorder = createRecorder({ onError })
@@ -304,7 +304,7 @@ describe('T3.2 — createRecorder (EC-4 + EC-12 + EC-15)', () => {
 
   describe('state machine guards', () => {
     it('stop() called before start() rejects without crashing', async () => {
-      installMediaDevices(async () => makeFakeStream() as unknown as MediaStream)
+      installMediaDevices(async () => makeFakeStream())
       installMediaRecorder()
       const recorder = createRecorder()
       await expect(recorder.stop()).rejects.toBeInstanceOf(VoicePluginError)

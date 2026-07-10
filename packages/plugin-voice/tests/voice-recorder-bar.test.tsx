@@ -40,12 +40,12 @@ function fakeRecorder(overrides: Partial<Recorder> = {}): Recorder & {
           rejectStop = reject
         }),
     ),
-    state: () => phase as 'idle',
+    state: () => phase,
     release: vi.fn(),
     resolveStop: (blob) => resolveStop(blob),
     rejectStop: (err) => rejectStop(err),
     ...overrides,
-  } as Recorder & { resolveStop: (blob: Blob) => void; rejectStop: (err: unknown) => void }
+  }
 }
 
 function jsonResponse(body: unknown, init: ResponseInit = { status: 200 }) {

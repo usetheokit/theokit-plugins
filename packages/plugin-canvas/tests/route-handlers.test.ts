@@ -130,7 +130,7 @@ describe('createArtifactRouteHandlers', () => {
       jsonRequest(
         'POST',
         'http://x/artifacts',
-        md({ kind: 'code', content: 'const x = 1', language: 'ts' } as Partial<Artifact>),
+        md({ kind: 'code', content: 'const x = 1', language: 'ts' }),
       ),
     )
     expect(res.status).toBe(201)

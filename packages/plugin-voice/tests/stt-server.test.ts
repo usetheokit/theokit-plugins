@@ -67,7 +67,7 @@ describe('handleSttRequest', () => {
       }
       await handleSttRequest(input, sttConfig, { fetchImpl })
       expect(capturedForm).not.toBeNull()
-      const form = capturedForm! as FormData
+      const form = capturedForm!
       expect(form.get('language')).toBe('pt')
       expect(form.get('prompt')).toBe('Theokit, dogfood')
       expect(form.get('model')).toBe('whisper-1')
@@ -194,7 +194,7 @@ describe('handleSttRequest', () => {
       })
       expect(res.status).toBe(504)
       expect((await res.json()).error.code).toBe('UPSTREAM_TIMEOUT')
-      expect(fetchImpl.mock.calls[0]![1]!.signal).toBeInstanceOf(AbortSignal)
+      expect(fetchImpl.mock.calls[0]![1].signal).toBeInstanceOf(AbortSignal)
     })
 
     it('test_stt_client_signal_propagated_to_fetch', async () => {

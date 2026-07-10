@@ -36,9 +36,7 @@ interface YDocLike {
   destroy(): void;
 }
 
-interface YDocConstructor {
-  new (opts?: { gc?: boolean }): YDocLike;
-}
+type YDocConstructor = new (opts?: { gc?: boolean }) => YDocLike;
 
 interface AwarenessLike {
   readonly doc: YDocLike;
@@ -49,9 +47,7 @@ interface AwarenessLike {
   destroy(): void;
 }
 
-interface AwarenessConstructor {
-  new (doc: YDocLike): AwarenessLike;
-}
+type AwarenessConstructor = new (doc: YDocLike) => AwarenessLike;
 
 interface YjsModule {
   readonly Doc: YDocConstructor;
@@ -71,7 +67,7 @@ function loadYjs(): Promise<{ yjs: YjsModule; awareness: YAwarenessModule }> {
       let yjsModule: YjsModule;
       let awarenessModule: YAwarenessModule;
       try {
-        yjsModule = (await import("yjs")) as unknown as YjsModule;
+        yjsModule = await import("yjs");
       } catch (cause) {
         throw new RealtimeError(
           "`yjs` peer dependency not installed. Run `pnpm add yjs y-protocols` to use YjsRealtimeProvider.",

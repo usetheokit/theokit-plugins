@@ -31,7 +31,7 @@
  *   - `durationMs` is the upstream provider's processing time.
  */
 
-import { Buffer } from 'node:buffer'
+import type { Buffer } from 'node:buffer'
 import { randomUUID } from 'node:crypto'
 
 import { VoiceProviderError } from '../errors.js'
@@ -231,7 +231,7 @@ async function toBlob(audio: SttAudio): Promise<Blob | null> {
   const src: Uint8Array | ArrayBuffer = obj.buffer
   const ab = new ArrayBuffer(src.byteLength)
   new Uint8Array(ab).set(
-    src instanceof ArrayBuffer ? new Uint8Array(src) : (src as Uint8Array),
+    src instanceof ArrayBuffer ? new Uint8Array(src) : (src),
   )
   return new Blob([ab], { type: obj.mimeType ?? 'audio/webm' })
 }

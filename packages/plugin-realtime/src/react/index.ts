@@ -268,7 +268,7 @@ export function useRoom<P extends Presence = Presence, E extends BroadcastPayloa
     myPresence: ctx.state.myPresence as P,
     connectionId: ctx.state.connectionId,
     updateMyPresence: (patch) => ctx.emit({ kind: "presence-update", patch }),
-    broadcast: (event, payload) => ctx.emitBroadcast(event, payload as BroadcastPayload),
+    broadcast: (event, payload) => ctx.emitBroadcast(event, payload),
   };
 }
 
@@ -311,7 +311,7 @@ export function useUpdateMyPresence<P extends Presence = Presence>(): (patch: Pa
  */
 export function useBroadcast<E extends BroadcastPayload = BroadcastPayload>(): (event: string, payload: E) => void {
   const ctx = useRoomContext();
-  return (event, payload) => ctx.emitBroadcast(event, payload as BroadcastPayload);
+  return (event, payload) => ctx.emitBroadcast(event, payload);
 }
 
 /**

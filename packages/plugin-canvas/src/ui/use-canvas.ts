@@ -49,16 +49,16 @@ export interface UseCanvasOptions {
   /** Test seam for fetch. */
   fetchImpl?: typeof fetch
   /** Seed the history with pre-loaded artifacts (e.g. server-side hydration). */
-  initialArtifacts?: ReadonlyArray<Artifact>
+  initialArtifacts?: readonly Artifact[]
 }
 
 export interface UseCanvasState {
   /** The currently displayed artifact (latest version selected). */
   current: Artifact | null
   /** All versions of the current artifact id, ascending. */
-  versions: ReadonlyArray<Artifact>
+  versions: readonly Artifact[]
   /** Latest version of EVERY artifact id in the session, sorted by createdAt desc. */
-  history: ReadonlyArray<Artifact>
+  history: readonly Artifact[]
   /** Controlled `open` state for `<CanvasPanel>`. */
   open: boolean
   /** Last publish/fork error, null when none. */
@@ -200,7 +200,7 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasState {
   )
 
   // Derived selectors.
-  const versions = useMemo<ReadonlyArray<Artifact>>(() => {
+  const versions = useMemo<readonly Artifact[]>(() => {
     if (state.pointer === null) return []
     return state.history.get(state.pointer.id) ?? []
   }, [state.pointer, state.history])
@@ -216,7 +216,7 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasState {
     )
   }, [state.pointer, state.history])
 
-  const history = useMemo<ReadonlyArray<Artifact>>(() => {
+  const history = useMemo<readonly Artifact[]>(() => {
     const out: Artifact[] = []
     for (const versions of state.history.values()) {
       const latest = versions[versions.length - 1]

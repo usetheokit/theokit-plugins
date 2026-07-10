@@ -48,7 +48,7 @@ export interface CopilotProviderProps {
 export function CopilotProvider(props: CopilotProviderProps): React.ReactElement {
   const { copilotId, roomId, provider, userConnectionId, messageCap, usage, children } = props;
   const cap = messageCap ?? 200;
-  const [messages, setMessages] = React.useState<ReadonlyArray<CopilotMessage>>([]);
+  const [messages, setMessages] = React.useState<readonly CopilotMessage[]>([]);
   const [presence, setPresence] = React.useState<Record<string, CopilotPresenceEntry>>({});
   const [lastError, setLastError] = React.useState<CopilotContextValue["lastError"]>();
   const messageIdRef = React.useRef(0);
@@ -126,7 +126,7 @@ function handleFrame(
   frame: CopilotFrame,
   messageIdRef: React.MutableRefObject<number>,
   cap: number,
-  setMessages: React.Dispatch<React.SetStateAction<ReadonlyArray<CopilotMessage>>>,
+  setMessages: React.Dispatch<React.SetStateAction<readonly CopilotMessage[]>>,
   setPresence: React.Dispatch<React.SetStateAction<Record<string, CopilotPresenceEntry>>>,
   setLastError: React.Dispatch<React.SetStateAction<CopilotContextValue["lastError"]>>,
 ): void {

@@ -58,7 +58,7 @@ describe("RealtimeRuntime", () => {
       rt.handleConnection(
         "cursor",
         { connectionId: "c1" },
-        { x: "not a number" } as unknown as Record<string, number>,
+        { x: "not a number" },
         () => {},
       ),
     ).rejects.toThrow(RealtimePresenceError);

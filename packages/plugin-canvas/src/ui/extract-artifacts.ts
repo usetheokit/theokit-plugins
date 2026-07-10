@@ -49,7 +49,7 @@ export function extractArtifactCandidates(
   ctx: ExtractContext,
 ): ArtifactCandidate[] {
   const out: ArtifactCandidate[] = []
-  const seenSpans: Array<[number, number]> = []
+  const seenSpans: [number, number][] = []
   const now = new Date().toISOString()
   const base = (suffix: string) => ({
     id: `${ctx.messageId}-${suffix}`,
@@ -126,7 +126,7 @@ export function extractArtifactCandidates(
   return out
 }
 
-function isInsideAnySpan(index: number, spans: Array<[number, number]>): boolean {
+function isInsideAnySpan(index: number, spans: [number, number][]): boolean {
   for (const [a, b] of spans) {
     if (index >= a && index < b) return true
   }

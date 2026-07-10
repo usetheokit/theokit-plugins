@@ -7,9 +7,9 @@ const schema = { safeParse: (v: unknown) => ({ success: true as const, data: v }
 
 interface InMemoryProvider extends CopilotRealtimeProvider {
   emit(roomId: string, frame: CopilotFrame): void;
-  joins: Array<{ roomId: string; connectionId: string; presence?: Record<string, unknown> }>;
-  presenceUpdates: Array<{ roomId: string; connectionId: string; patch: Record<string, unknown> }>;
-  broadcasts: Array<{ roomId: string; connectionId: string; event: string; payload: Record<string, unknown> }>;
+  joins: { roomId: string; connectionId: string; presence?: Record<string, unknown> }[];
+  presenceUpdates: { roomId: string; connectionId: string; patch: Record<string, unknown> }[];
+  broadcasts: { roomId: string; connectionId: string; event: string; payload: Record<string, unknown> }[];
 }
 
 function makeMemoryProvider(): InMemoryProvider {

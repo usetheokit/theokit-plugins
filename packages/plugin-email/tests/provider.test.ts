@@ -103,7 +103,7 @@ describe("ResendProvider factory (P#7 T1.3)", () => {
     });
 
     expect(send).toHaveBeenCalledOnce();
-    const callList = send.mock.calls as unknown as Array<Array<Record<string, unknown>>>;
+    const callList = send.mock.calls as unknown as Record<string, unknown>[][];
     const payload = callList[0]?.[0] ?? {};
     expect(payload.to).toBe("user@example.com");
     expect(payload.from).toBe("noreply@app.test");
@@ -126,9 +126,7 @@ describe("ResendProvider factory (P#7 T1.3)", () => {
       idempotencyKey: "msg_abc123",
     });
 
-    const callList = send.mock.calls as unknown as Array<
-      Array<{ headers?: Record<string, string> }>
-    >;
+    const callList = send.mock.calls as unknown as { headers?: Record<string, string> }[][];
     const payload = callList[0]?.[0] ?? {};
     expect(payload.headers?.["Idempotency-Key"]).toBe("msg_abc123");
   });
@@ -146,9 +144,7 @@ describe("ResendProvider factory (P#7 T1.3)", () => {
       headers: { "X-Custom": "value" },
     });
 
-    const callList = send.mock.calls as unknown as Array<
-      Array<{ headers?: Record<string, string> }>
-    >;
+    const callList = send.mock.calls as unknown as { headers?: Record<string, string> }[][];
     const payload = callList[0]?.[0] ?? {};
     expect(payload.headers).toEqual({
       "X-Custom": "value",

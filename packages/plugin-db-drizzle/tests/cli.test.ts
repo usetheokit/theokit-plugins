@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
 import { buildDbCommands, type DbVerb } from "../src/cli/db.js";
 import { resolveOptions } from "../src/options.js";
 
-const REQUIRED_VERBS: ReadonlyArray<DbVerb> = [
+const REQUIRED_VERBS: readonly DbVerb[] = [
   "generate",
   "migrate",
   "push",

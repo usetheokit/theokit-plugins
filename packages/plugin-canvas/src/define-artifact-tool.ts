@@ -70,7 +70,7 @@ export interface DefineArtifactToolOptions {
    * accepted. Apps that restrict this should also update their agent
    * prompt so the model knows which kinds are usable.
    */
-  allowedKinds?: ReadonlyArray<ArtifactKind>
+  allowedKinds?: readonly ArtifactKind[]
   /**
    * Persistence side-effect. Must throw on storage failure so the
    * agent sees a tool_error and can recover.
@@ -113,12 +113,12 @@ function extractArtifactCandidate(input: unknown): unknown {
     // canonical envelope key).
     typeof (input as { artifact?: unknown }).artifact === 'object'
   ) {
-    return (input as { artifact: unknown }).artifact
+    return (input).artifact
   }
   return input
 }
 
-function buildDescription(allowed: ReadonlyArray<ArtifactKind>): string {
+function buildDescription(allowed: readonly ArtifactKind[]): string {
   return [
     'Publish a rendered artifact into the side canvas surface so the user can see it inline.',
     `Allowed kinds: ${allowed.join(', ')}.`,

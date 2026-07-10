@@ -18,12 +18,12 @@ interface FakeAudio {
   pause: ReturnType<typeof vi.fn>
   addEventListener: ReturnType<typeof vi.fn>
   removeEventListener: ReturnType<typeof vi.fn>
-  __listeners: Map<string, Array<(...args: unknown[]) => void>>
+  __listeners: Map<string, ((...args: unknown[]) => void)[]>
   emit(event: string): void
 }
 
 function makeAudio(): FakeAudio {
-  const listeners = new Map<string, Array<(...args: unknown[]) => void>>()
+  const listeners = new Map<string, ((...args: unknown[]) => void)[]>()
   const audio: FakeAudio = {
     src: '',
     play: vi.fn(async () => undefined),

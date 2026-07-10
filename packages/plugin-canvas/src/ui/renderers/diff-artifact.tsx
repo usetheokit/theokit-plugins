@@ -14,7 +14,7 @@ export function DiffArtifact({ artifact }: ArtifactRendererProps<'diff'>) {
       <DiffViewer
         path={artifact.path}
         stats={artifact.stats}
-        hunks={artifact.hunks as DiffHunk[]}
+        hunks={artifact.hunks}
       />
     </div>
   )

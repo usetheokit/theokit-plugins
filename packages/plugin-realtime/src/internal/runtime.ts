@@ -57,7 +57,7 @@ export interface RealtimeRuntimeOptions {
   /** RealtimeProvider implementation (Memory default or Yjs opt-in). */
   provider: RealtimeProvider;
   /** Room descriptors to register at construction. */
-  rooms?: ReadonlyArray<RoomDescriptor>;
+  rooms?: readonly RoomDescriptor[];
 }
 
 /**
@@ -132,7 +132,7 @@ export class RealtimeRuntime {
           { issues: parsed.error },
         );
       }
-      validatedInitial = parsed.data as Presence;
+      validatedInitial = parsed.data;
     }
     // Subscribe to provider frames + bridge to onFrame.
     const unsubscribe = this.provider.subscribeRoom(roomId, onFrame);
@@ -172,7 +172,7 @@ export class RealtimeRuntime {
             { issues: parsed.error },
           );
         }
-        await this.provider.updatePresence(roomId, connectionId, parsed.data as Presence);
+        await this.provider.updatePresence(roomId, connectionId, parsed.data);
         return;
       }
       case "broadcast": {
@@ -187,7 +187,7 @@ export class RealtimeRuntime {
           roomId,
           connectionId,
           frame.event,
-          parsed.data as BroadcastPayload,
+          parsed.data,
         );
         return;
       }

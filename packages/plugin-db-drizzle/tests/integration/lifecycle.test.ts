@@ -24,7 +24,7 @@ describe("plugin lifecycle smoke (P#5 T2.3)", () => {
     const captured: {
       cliNamespaces: string[];
       cliCommands: Map<string, unknown>;
-      devtoolsTabs: Array<{ id: string; label: string }>;
+      devtoolsTabs: { id: string; label: string }[];
     } = {
       cliNamespaces: [],
       cliCommands: new Map(),
@@ -79,10 +79,10 @@ describe("plugin lifecycle smoke (P#5 T2.3)", () => {
 
     // Then: commands array exists; each command produces sane drizzle-kit args
     expect(dbCommands).toBeDefined();
-    const cmds = dbCommands as Array<{
+    const cmds = dbCommands as {
       verb: string;
       buildArgs: (opts: unknown) => string[];
-    }>;
+    }[];
 
     // `migrate` args lead with `migrate` verb + schema flag
     const migrate = cmds.find((c) => c.verb === "migrate");

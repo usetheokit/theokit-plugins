@@ -34,18 +34,18 @@ const passthroughSchema = {
 
 interface InMemoryProvider extends CopilotRealtimeProvider {
   emit(roomId: string, frame: CopilotFrame): void;
-  joins: Array<{ roomId: string; connectionId: string; presence?: Record<string, unknown> }>;
-  broadcasts: Array<{
+  joins: { roomId: string; connectionId: string; presence?: Record<string, unknown> }[];
+  broadcasts: {
     roomId: string;
     connectionId: string;
     event: string;
     payload: Record<string, unknown>;
-  }>;
-  presenceUpdates: Array<{
+  }[];
+  presenceUpdates: {
     roomId: string;
     connectionId: string;
     patch: Record<string, unknown>;
-  }>;
+  }[];
 }
 
 function makeProvider(): InMemoryProvider {

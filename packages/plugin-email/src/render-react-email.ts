@@ -29,7 +29,7 @@ export async function renderReactEmail(component: unknown): Promise<string> {
     // @ts-expect-error — @react-email/render is an OPTIONAL peer (ADR D3).
     // Types intentionally absent in plugin-email's deps; consumer installs
     // the peer at runtime. Falls into the catch block when missing.
-    mod = (await import("@react-email/render")) as unknown as typeof mod;
+    mod = await import("@react-email/render");
   } catch (cause) {
     throw new Error(
       "@react-email/render not installed. Run `pnpm add @react-email/render @react-email/components react` to use React Email templates.",

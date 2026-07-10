@@ -44,7 +44,7 @@ export type DbVerb =
   | "seed"
   | "check";
 
-const VERBS: ReadonlyArray<DbVerb> = [
+const VERBS: readonly DbVerb[] = [
   "generate",
   "migrate",
   "push",

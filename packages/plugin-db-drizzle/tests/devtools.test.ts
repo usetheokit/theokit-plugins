@@ -36,7 +36,7 @@ describe("buildDevtoolsTab (P#5 T2.2)", () => {
   it("mount() creates an IFRAME pointing at studioUrl inside the container", () => {
     // Given: a fake DOM container (vitest happy-dom would normally do this;
     // we keep test runtime as node + minimal stub to avoid happy-dom dep)
-    const iframes: Array<{ src?: string; title?: string }> = [];
+    const iframes: { src?: string; title?: string }[] = [];
     const container = {
       ownerDocument: {
         createElement: (tag: string) => {
