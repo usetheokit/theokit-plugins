@@ -6,7 +6,7 @@ Voice (Speech-to-Text + Text-to-Speech) plugin for [TheoKit](https://github.com/
 
 ## Why this plugin
 
-- Same single-config pattern as [`@theokit/plugin-cors`](../plugin-cors/) — install it, register it once in `theo.config.ts`. Endpoint registration is **not** automatic; wire each endpoint via `defineRoute` in your `server/routes/` directory (e.g., a route that calls `handleSttRequest` / `handleTtsRequest`).
+- Same single-config pattern as the other first-party plugins (e.g. [`@theokit/plugin-forms`](../plugin-forms/)) — install it, register it once in `theo.config.ts`. Endpoint registration is **not** automatic; wire each endpoint via `defineRoute` in your `server/routes/` directory (e.g., a route that calls `handleSttRequest` / `handleTtsRequest`).
 - Browser-side `MediaRecorder` helper that throws typed errors instead of `DOMException` — so `<VoiceRecorderBar>` can render an actionable `<Alert kind="auth">` when the user denied the mic.
 - Provider-agnostic STT (OpenAI Whisper or Groq Whisper) selected via env var.
 - Synchronous config validation: missing `OPENAI_API_KEY` throws `VoicePluginConfigError` at boot, not on the first user click.

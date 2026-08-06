@@ -1,7 +1,10 @@
 # Roadmap — theokit-plugins
 
 > **Reconciled with the ecosystem ROADMAP (2026-07-03, milestone M6).** The
-> canonical cross-pillar roadmap lives at `theokit-tools/ROADMAP.md` (M0–M8);
+> canonical cross-pillar roadmap used to live at the group level (`theokit-tools/ROADMAP.md`
+> in the old layout). **It did not survive the 2026-08 repo-group split** — there is no
+> group-level `ROADMAP.md` under `theokit-framework/` today (verified 2026-08-06). The M0–M8
+> numbering below is kept for traceability;
 > this repo is **subsumed** by it as part of the Harness cluster that M6 (cluster
 > consolidation) aligns to the hardened `@theokit/sdk` 2.18.0 Harness. This file
 > tracks the plugins-specific status only.
@@ -52,7 +55,7 @@ stable across 1.x→2.x, so the alignment is a pin bump, not a migration. Valida
 >
 > **Disambiguation:** these _plugins-local_ milestones (M0, M1, …) are scoped to
 > **this repo** and are **distinct** from the ecosystem cross-pillar milestones
-> M0–M8 in `theokit-tools/ROADMAP.md` referenced at the top of this file. Same
+> M0–M8 of the (now absent) group-level roadmap referenced at the top of this file. Same
 > letters, different tracks.
 
 ## M0 — [x] Plugin cluster shipped & `@theokit/sdk` 2.18.0 alignment
