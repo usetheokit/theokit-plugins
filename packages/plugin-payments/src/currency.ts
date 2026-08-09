@@ -41,7 +41,7 @@ const THREE_DECIMAL_CURRENCIES: ReadonlySet<string> = new Set(['bhd', 'jod', 'kw
  * `amount * 100`, #199): `1.005 USD → 101` (round-half-up), not the float
  * artifact `100`.
  *
- * Throws (fail-loud, Inquebrável Rule 8) on: non-finite or negative amounts, a
+ * Throws (fail-loud, Unbreakable Rule 8) on: non-finite or negative amounts, a
  * non-integer amount for a zero-decimal currency, or a minor-unit value that
  * would exceed `Number.MAX_SAFE_INTEGER` (EC-5).
  */

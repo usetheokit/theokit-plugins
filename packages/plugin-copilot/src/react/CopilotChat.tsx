@@ -1,7 +1,7 @@
 /**
  * @theokit/plugin-copilot/react — `<CopilotChat />` component (P#11).
  *
- * Per ADR D5 — composição de theo-ui composites (chat-message + chat-composer
+ * Per ADR D5 — composition of theo-ui composites (chat-message + chat-composer
  * + agent-stream + agent-timeline + usage-meter). ZERO custom CSS.
  *
  * v0.1 ships a headless reference layout — consumer can theme via

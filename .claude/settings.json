@@ -1,6 +1,5 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "_comment_": "Template for PLUGIN INSTALL layout (consumer project's .claude/ contains the plan ecosystem). Used by scripts/install.sh. For standalone use (the plan repo itself), see settings.json.",
   "env": {
     "CLAUDE_DEBUG_HOOKS": "0"
   },
@@ -9,54 +8,23 @@
     "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/scripts/statusline.sh\""
   },
   "permissions": {
-    "_comment_permissions_": "YOLO/aggressive mode (set 2026-07-10 for the M1 cycle run): defaultMode=acceptEdits + Bash(*) allow auto-approves everything the cycle needs. CRITICAL GIT stays gated: remote/irreversible ops (push/merge/tag/cherry-pick/rebase, gh pr create|merge, gh release) sit in ask (ask > allow, so they still prompt); nuclear ops (checkout/revert/push --force/reset --hard/rebase -i) sit in deny (blocked, and also enforced by hooks/validate-command.sh). Revert defaultMode to 'default' + restore the prior allow/ask lists to return to normal prompting.",
-    "defaultMode": "acceptEdits",
+    "defaultMode": "default",
     "allow": [
       "Read",
       "Glob",
       "Grep",
-      "Edit",
-      "Write",
-      "Task",
-      "WebFetch",
-      "WebSearch",
-      "TodoWrite",
+      "Bash",
       "Bash(*)"
     ],
     "ask": [
-      "Bash(git push:*)",
-      "Bash(git merge:*)",
-      "Bash(git tag:*)",
-      "Bash(git cherry-pick:*)",
-      "Bash(git rebase:*)",
-      "Bash(gh pr create:*)",
-      "Bash(gh pr merge:*)",
-      "Bash(gh release:*)"
     ],
     "deny": [
-      "Bash(rm -rf /)",
-      "Bash(rm -rf ~)",
-      "Bash(rm -rf $HOME)",
-      "Bash(rm -rf *)",
-      "Bash(sudo *)",
       "Bash(git checkout *)",
       "Bash(git revert *)",
       "Bash(git push --force *)",
       "Bash(git push -f *)",
       "Bash(git reset --hard *)",
-      "Bash(git rebase -i *)",
-      "Read(.env)",
-      "Read(.env.*)",
-      "Read(**/.env)",
-      "Read(**/.env.*)",
-      "Read(**/credentials*)",
-      "Read(**/*secret*)",
-      "Read(**/*.pem)",
-      "Read(**/*.key)",
-      "Edit(.claude/knowledge-base/references/**)",
-      "Write(.claude/knowledge-base/references/**)",
-      "Edit(.claude/knowledge-base/tools/**)",
-      "Write(.claude/knowledge-base/tools/**)"
+      "Bash(git rebase -i *)"
     ]
   },
   "hooks": {
@@ -144,5 +112,6 @@
         ]
       }
     ]
-  }
+  },
+  "_comment_": "Template for PLUGIN INSTALL layout (consumer project's .claude/ contains the Cycle ecosystem). Used by scripts/install.sh. For standalone use (the Cycle repo itself), see settings.json."
 }
