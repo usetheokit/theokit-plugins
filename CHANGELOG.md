@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 ### Changed
+- Hook de validação de comandos ficou mais rápido: ~6 processos por chamada de ferramenta em vez de ~50, sem mudança de comportamento
 
 - O README do `@theokit/plugin-voice` não referencia mais `@theokit/plugin-cors`, pacote que não existe neste repo. (docs-reorg-2026-08)
 - `ROADMAP.md` deixa de apontar para um roadmap cross-pillar em `theokit-tools/ROADMAP.md` — esse arquivo de nível de grupo não sobreviveu à reorganização de 2026-08 e não existe em lugar nenhum. (docs-reorg-2026-08)
