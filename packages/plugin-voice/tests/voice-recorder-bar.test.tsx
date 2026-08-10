@@ -102,7 +102,7 @@ describe('T3.4 — VoiceRecorderBar', () => {
   it('transcript_propagates_to_handler with language + durationMs metadata', async () => {
     const rec = fakeRecorder()
     const fetchImpl = vi.fn(() =>
-      Promise.resolve(jsonResponse({ transcript: 'olá mundo', language: 'pt', durationMs: 423 })),
+      Promise.resolve(jsonResponse({ transcript: 'hello world', language: 'pt', durationMs: 423 })),
     )
     const onTranscript = vi.fn()
     render(
@@ -126,7 +126,7 @@ describe('T3.4 — VoiceRecorderBar', () => {
     })
 
     await waitFor(() => expect(onTranscript).toHaveBeenCalled())
-    expect(onTranscript).toHaveBeenCalledWith('olá mundo', { language: 'pt', durationMs: 423 })
+    expect(onTranscript).toHaveBeenCalledWith('hello world', { language: 'pt', durationMs: 423 })
   })
 
   it('sends FormData to the STT endpoint with CSRF header by default', async () => {

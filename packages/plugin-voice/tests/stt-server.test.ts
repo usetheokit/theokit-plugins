@@ -58,7 +58,7 @@ describe('handleSttRequest', () => {
       let capturedForm: FormData | null = null
       const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
         capturedForm = init.body as FormData
-        return Promise.resolve(jsonResponse({ text: 'olá', language: 'pt' }))
+        return Promise.resolve(jsonResponse({ text: 'hello', language: 'pt' }))
       })
       const input: SttInput = {
         ...makeBlobInput(),
