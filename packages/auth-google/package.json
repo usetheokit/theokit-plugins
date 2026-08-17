@@ -47,5 +47,5 @@
     "openid-connect"
   ],
   "author": "@theokit",
-  "license": "MIT"
+  "license": "Apache-2.0"
 }
