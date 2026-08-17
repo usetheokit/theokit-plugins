@@ -1,13 +1,32 @@
 name: CI
 
+# Quality gates for theokit-plugins. The flow is workspace -> develop -> main and BOTH
+# promotion legs are pull requests, so both bases are listed — exactly as
+# secret-scan.yml already does.
+#
+# Listing only `main` was a hole, not a theory: a PR based on `develop` ran none of the
+# three jobs, so `develop` — the branch whose whole job is to integrate — accepted code
+# that had never been checked by CI. Whoever reviewed a promotion saw "all checks
+# passed" from a secret scan alone. It hid a `theokit: link:../../../` devDependency
+# that made all three jobs impossible to pass on any commit (#13), which in turn hid a
+# broken release (#9, #15, #19). Five Release runs failed over two months before the
+# first PR based on `main` surfaced it.
+#
+# `workspace` is deliberately absent from `push`: every promotion out of it is a PR, so
+# the pull_request trigger already covers that commit, and adding it here would run the
+# same three jobs twice on the same SHA.
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
-# Quality gates for theokit-plugins — every job runs on every PR.
-# When packages/ is empty, jobs short-circuit to a pass (no plugins to lint/test).
+# Widening the triggers multiplies runs, so supersede in-flight ones. Never cancel on
+# `main` or `develop`: those runs are the record of what a protected branch actually
+# passed, and the Release workflow keys off main's state.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
 
 jobs:
   lint-and-format:
