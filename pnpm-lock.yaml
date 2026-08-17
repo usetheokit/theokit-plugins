@@ -49,7 +49,7 @@ importers:
         version: 2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3)
       theokit:
         specifier: ^0.48.7
-        version: 0.48.7(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+        version: 0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.15)(tsx@4.23.12)(typescript@5.9.3)
@@ -67,7 +67,7 @@ importers:
         version: 2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3)
       theokit:
         specifier: ^0.48.7
-        version: 0.48.7(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+        version: 0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.15)(tsx@4.23.12)(typescript@5.9.3)
@@ -85,7 +85,7 @@ importers:
         version: 2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3)
       theokit:
         specifier: ^0.48.7
-        version: 0.48.7(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+        version: 0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.15)(tsx@4.23.12)(typescript@5.9.3)
@@ -137,7 +137,7 @@ importers:
         version: 19.2.6(react@19.2.6)
       theokit:
         specifier: ^0.48.7
-        version: 0.48.7(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
+        version: 0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
       vite:
         specifier: ^7.3.5
         version: 7.3.5(@types/node@25.9.1)(tsx@4.23.12)
@@ -203,7 +203,7 @@ importers:
         version: 0.2.2
       theokit:
         specifier: ^0.48.7
-        version: 0.48.7(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(better-sqlite3@11.10.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+        version: 0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(better-sqlite3@11.10.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.15)(tsx@4.23.12)(typescript@5.9.3)
@@ -224,7 +224,7 @@ importers:
         version: 4.8.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       theokit:
         specifier: ^0.48.7
-        version: 0.48.7(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+        version: 0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.15)(tsx@4.23.12)(typescript@5.9.3)
@@ -269,7 +269,7 @@ importers:
         version: 7.77.0(react@19.2.6)
       theokit:
         specifier: ^0.48.7
-        version: 0.48.7(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
+        version: 0.48.8(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.15)(tsx@4.23.12)(typescript@5.9.3)
@@ -290,7 +290,7 @@ importers:
         version: 14.25.0
       theokit:
         specifier: ^0.48.7
-        version: 0.48.7(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+        version: 0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.15)(tsx@4.23.12)(typescript@5.9.3)
@@ -393,7 +393,7 @@ importers:
         version: 19.2.6(react@19.2.6)
       theokit:
         specifier: ^0.48.7
-        version: 0.48.7(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
+        version: 0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
       vite:
         specifier: ^7.3.5
         version: 7.3.5(@types/node@25.9.1)(tsx@4.23.12)
@@ -4047,8 +4047,8 @@ packages:
   thenify@3.3.1:
     resolution: {integrity: sha512-RVZSIV5IG10Hk3enotrhvz0T9em6cyHBLkH/YAZuKqd8hRkKhSfCGIcP2KUY0EPxndzANBmNllzWPwak+bheSw==}
 
-  theokit@0.48.7:
-    resolution: {integrity: sha512-FmcR6VG8W+wTWfqevVutlI3BCN6j+mtXyTG51NADKrg/KSm+1NZOZBZI1tlbKd1eY9eI6Xlz7hQFhJYRjZ9hFA==}
+  theokit@0.48.8:
+    resolution: {integrity: sha512-v2IlBQmkrTgr/qMXv8Rkv87njk6ikVYv34oolQfgbj8eqgy0fHrlJ+ombsHIUzQ2vMMryNfjFsONxoCrPqMZ8g==}
     engines: {node: '>=22.12.0'}
     hasBin: true
     peerDependencies:
@@ -8039,7 +8039,7 @@ snapshots:
     dependencies:
       any-promise: 1.3.0
 
-  theokit@0.48.7(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
+  theokit@0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
     dependencies:
       '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
@@ -8087,7 +8087,7 @@ snapshots:
       - vitest
       - yaml
 
-  theokit@0.48.7(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(better-sqlite3@11.10.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
+  theokit@0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(better-sqlite3@11.10.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
     dependencies:
       '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
@@ -8135,7 +8135,7 @@ snapshots:
       - vitest
       - yaml
 
-  theokit@0.48.7(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76):
+  theokit@0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76):
     dependencies:
       '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76)
@@ -8183,7 +8183,7 @@ snapshots:
       - vitest
       - yaml
 
-  theokit@0.48.7(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
+  theokit@0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
     dependencies:
       '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
@@ -8231,7 +8231,7 @@ snapshots:
       - vitest
       - yaml
 
-  theokit@0.48.7(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76):
+  theokit@0.48.8(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76):
     dependencies:
       '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76)
