@@ -17,5 +17,6 @@ export default defineConfig({
     'theokit',
     '@theokit/react',
     '@theokit/ui',
+    '@usetheo/ui',
   ],
 })

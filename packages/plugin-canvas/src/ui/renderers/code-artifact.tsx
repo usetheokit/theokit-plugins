@@ -1,4 +1,4 @@
-import { CodeBlock } from '@theokit/ui'
+import { CodeBlock } from '@usetheo/ui'
 
 import type { ArtifactRendererProps } from './types.js'
 

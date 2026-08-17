@@ -1,4 +1,4 @@
-import { Alert } from '@theokit/ui'
+import { Alert } from '@usetheo/ui'
 
 import type { Artifact } from '../schema.js'
 import { DEFAULT_RENDERERS } from './renderers/index.js'

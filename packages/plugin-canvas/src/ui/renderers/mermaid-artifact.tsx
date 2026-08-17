@@ -1,4 +1,4 @@
-import { CodeBlock } from '@theokit/ui'
+import { CodeBlock } from '@usetheo/ui'
 import { useEffect, useId, useRef, useState } from 'react'
 
 import { sanitizeSvg } from './sanitize.js'

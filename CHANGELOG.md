@@ -29,6 +29,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **`@theokit/plugin-canvas` e `@theokit/plugin-forms` voltaram a resolver seus componentes de UI** — os dois estavam publicados quebrados. O `@theokit/ui@1.0.0` moveu seus 54 componentes não-AI para o `@usetheo/ui` e ficou AI-exclusive; estes dois pacotes nunca rodaram essa migração e seguiram importando `Alert`, `Button`, `CodeBlock`, `CopyButton`, `DropdownMenu`, `FormField` e `Tooltip` de um pacote que não os exporta mais. Quem instalava não conseguia importar `@theokit/plugin-canvas/ui` nem usar `<TheoField>`. No workspace isso deixava `pnpm typecheck` (10 erros), `pnpm build` (DTS) e 4 suítes vermelhos — e, como o workflow de release roda `pnpm build`, nenhuma versão nova podia sair. `DiffViewer` continua no `@theokit/ui`: é componente AI e não migrou. **Quem consome precisa instalar `@usetheo/ui` (`>=0.22.0 <1`)** — peer obrigatória no canvas, opcional no forms (só o tier estilizado usa; o hook `useTheoField()` segue sem peer). (#9)
+
+- O gate de migração falhou silenciosamente e vale registrar: o codemod oficial (`@theokit/ui/codemod/split-usetheo.mjs`) não reescreve nada num repositório sem ponto e vírgula — a regex dele exige `;` no fim do import — e ainda assim imprime `codemod applied to N file(s)`, porque conta os argumentos recebidos, não os arquivos alterados. Os imports daqui foram reapontados à mão, conferindo com a lista `MOVED` do próprio codemod. Reportado em `usetheokit/theokit-ui#41`. (#9)
+
 ### Security
 
 ## [0.3.0] - 2026-07-10
