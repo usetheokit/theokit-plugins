@@ -193,7 +193,7 @@ export const SERVICES: readonly ServiceSpec[] = [
       },
     ],
     caveat:
-      'A full round trip needs a browser and a human clicking "allow", so it cannot run unattended. The suite covers the half that can: the authorize URL it builds, and how a real GitHub refusal of a bad code is mapped.',
+      'Only the token exchange is reachable unattended. Measured 2026-08-17: unauthenticated, /login/oauth/authorize answers 302 → /login BEFORE validating anything, so a fabricated client_id — even an empty one — gets the same 302 as the real app. Any "GitHub accepted our authorize URL" assertion therefore passes with no credential at all, and redirect_uri mismatch is enforced only after login. Both were written, measured, and deleted.',
   },
   {
     id: 'auth-google',

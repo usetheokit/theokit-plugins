@@ -137,10 +137,11 @@ pnpm --filter @theokit/plugins-e2e env:example
 
 ## Current coverage, stated plainly
 
-| service                                                      | suite                      | ran against the real API?                                                    |
-| ------------------------------------------------------------ | -------------------------- | ---------------------------------------------------------------------------- |
-| `email` (Resend)                                             | `tests/email/live.test.ts` | **yes** — 4/4 against the live API, and it found a real bug on the first run |
-| `payments`, `copilot`, `voice`, `auth-github`, `auth-google` | none yet                   | registered, so readiness tells you what to create                            |
+| service                                       | suite                            | ran against the real API?                                                                                           |
+| --------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `email` (Resend)                              | `tests/email/live.test.ts`       | **yes** — 4/4 against the live API, and it found a real bug on the first run                                        |
+| `auth-github`                                 | `tests/auth-github/live.test.ts` | partly — measured against GitHub; the one live assertion needs `GITHUB_OAUTH_CLIENT_SECRET`, gated behind sudo mode |
+| `payments`, `copilot`, `voice`, `auth-google` | none yet                         | registered, so readiness tells you what to create                                                                   |
 
 The first run is worth recording, because it is the whole argument for this
 package existing. Two of the four assertions failed, and neither failure was a
@@ -162,6 +163,27 @@ flake:
    passed.
 
 One live run, one wrong assertion of ours corrected, one shipped bug found.
+
+### Why `auth-github` holds exactly one assertion
+
+The first draft had four. Two were deleted after measuring, because they were
+worse than nothing:
+
+- _"GitHub accepts the authorize URL we build"_ — **passed with a fabricated
+  client id, and with an empty one.** Unauthenticated, `/login/oauth/authorize`
+  answers `302 → /login` before validating anything, so the assertion could not
+  fail. It looked like coverage of the app registration and covered nothing.
+- _"refused when redirect_uri is not registered"_ — GitHub enforces that only
+  **after** authentication, unreachable for the same reason.
+
+A third, the state-mismatch guard, fires locally without touching the network, so
+it belongs to the unit suite and would only add latency here.
+
+What remains is the token exchange, and it is the one worth having: GitHub refuses
+a bad code with HTTP **200** and `{"error":"bad_verification_code"}` — not a 4xx.
+So `tokenRes.ok` is true, the provider's `token_exchange_failed` guard never fires
+for the most common failure in the flow, and GitHub's own reason is discarded. No
+fake would have said so.
 
 ## Adding a service
 

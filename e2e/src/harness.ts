@@ -10,7 +10,7 @@
 
 import { describe } from 'vitest'
 
-import { liveRunEnabled, missingFor, unsafeReason } from './credentials.js'
+import { has, liveRunEnabled, missingFor, unsafeReason } from './credentials.js'
 import type { ServiceSpec } from './services.js'
 
 export interface LiveSuiteOptions {
@@ -24,6 +24,16 @@ export interface LiveSuiteOptions {
    * suites and they light up as soon as the credential exists.
    */
   readonly sends?: boolean
+  /**
+   * Gate on these variable names instead of the whole spec.
+   *
+   * Some contracts are reachable with a subset of the credentials — GitHub
+   * accepts or rejects an authorize URL knowing only the client id, and that is
+   * a real server-side answer worth having before a client secret exists.
+   * Without this, one missing variable keeps dark every assertion in the file,
+   * including the ones that never needed it.
+   */
+  readonly requires?: readonly string[]
 }
 
 /**
@@ -48,7 +58,10 @@ export function describeLive(
     describe.skip(`${spec.label} — ${name} [skipped: ${unsafe}]`, body)
     return
   }
-  const missing = missingFor(spec, { includeTarget: opts.sends ?? true })
+  const missing =
+    opts.requires === undefined
+      ? missingFor(spec, { includeTarget: opts.sends ?? true })
+      : opts.requires.filter((name) => !has(name))
   if (missing.length > 0) {
     describe.skip(`${spec.label} — ${name} [skipped: missing ${missing.join(', ')}]`, body)
     return

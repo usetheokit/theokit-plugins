@@ -44,6 +44,9 @@ importers:
 
   e2e:
     devDependencies:
+      '@theokit/auth-github':
+        specifier: workspace:*
+        version: link:../packages/auth-github
       '@theokit/plugin-copilot':
         specifier: workspace:*
         version: link:../packages/plugin-copilot

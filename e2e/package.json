@@ -13,6 +13,7 @@
     "env:example": "tsx scripts/env-example.ts"
   },
   "devDependencies": {
+    "@theokit/auth-github": "workspace:*",
     "@theokit/plugin-copilot": "workspace:*",
     "@theokit/plugin-email": "workspace:*",
     "@theokit/plugin-voice": "workspace:*",
