@@ -46,5 +46,14 @@
     "github"
   ],
   "author": "@theokit",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usetheokit/theokit-plugins.git",
+    "directory": "packages/auth-github"
+  },
+  "homepage": "https://github.com/usetheokit/theokit-plugins/tree/main/packages/auth-github#readme",
+  "bugs": {
+    "url": "https://github.com/usetheokit/theokit-plugins/issues"
+  },
   "license": "Apache-2.0"
 }

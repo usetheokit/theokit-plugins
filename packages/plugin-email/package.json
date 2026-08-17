@@ -61,5 +61,14 @@
     "transactional"
   ],
   "author": "@theokit",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usetheokit/theokit-plugins.git",
+    "directory": "packages/plugin-email"
+  },
+  "homepage": "https://github.com/usetheokit/theokit-plugins/tree/main/packages/plugin-email#readme",
+  "bugs": {
+    "url": "https://github.com/usetheokit/theokit-plugins/issues"
+  },
   "license": "Apache-2.0"
 }
