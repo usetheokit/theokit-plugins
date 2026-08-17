@@ -1,4 +1,4 @@
-import { Button, CopyButton, Tooltip } from '@theokit/ui'
+import { Button, CopyButton, Tooltip } from '@usetheo/ui'
 
 import type { Artifact } from '../schema.js'
 import type { CanvasPanelToolbarAction } from './canvas-panel-actions.js'

@@ -1,15 +1,15 @@
 /**
  * Phase 4 / T4.2 — <TheoField name="..."> styled tier component.
  *
- * Per plan p4-plugin-forms v1.1 ADR D6 (styled tier wrapping @theokit/ui FormField).
+ * Per plan p4-plugin-forms v1.1 ADR D6 (styled tier wrapping the design system's FormField).
  *
  * v0.1.1 change (P#4 EC-10 hardening):
  *   Previous v0.1.0 used `(globalThis as {require?...}).require?.(...)` lazy
  *   loader that ALWAYS fails in browser ESM context (globalThis.require is
  *   undefined). Switched to a static ESM import — clearer failure mode:
- *   importing <TheoField> without `@theokit/ui` installed produces a module-
+ *   importing <TheoField> without `@usetheo/ui` installed produces a module-
  *   resolution error at load time, not a render-time throw. Consumers without
- *   @theokit/ui MUST use `useTheoField()` headless hook (still works peer-free).
+ *   @usetheo/ui MUST use `useTheoField()` headless hook (still works peer-free).
  *
  * Composition (v0.1.x):
  *   <TheoField name="email">
@@ -20,12 +20,17 @@
  *     <FormField.Error />
  *   </TheoField>
  */
-// IMPORTANT: import from main barrel "@theokit/ui" (NOT sub-path
-// "@theokit/ui/form-field"). The sub-path bypasses Vite's optimizeDeps
+// `FormField` comes from `@usetheo/ui`, not `@theokit/ui`. The v1 split of
+// `@theokit/ui` moved the 54 non-AI components — FormField among them — to
+// `@usetheo/ui`, leaving `@theokit/ui` AI-exclusive. See that package's
+// wiki/migrations/v1-usetheo-ui-split.md.
+//
+// IMPORTANT: import from the main barrel "@usetheo/ui" (NOT sub-path
+// "@usetheo/ui/form-field"). The sub-path bypasses Vite's optimizeDeps
 // bundling, while consumers typically import via main barrel; mixing
 // produces two FormFieldContext instances at runtime and useFormField()
 // reads null inside <FormField.Control>. Documented as v0.1.2 hotfix.
-import { FormField } from '@theokit/ui'
+import { FormField } from '@usetheo/ui'
 import { createContext, useContext, type ReactNode } from 'react'
 import { type FieldValues } from 'react-hook-form'
 import { useTheoField, type UseTheoFieldResult } from '../hooks/useTheoField.js'

@@ -11,6 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Secret scanning em duas camadas: um hook `pre-commit` que varre com o TruffleHog o conteúdo que está staged e recusa o commit, e `.github/workflows/secret-scan.yml`, que revarre no CI o intervalo empurrado. O hook é o que impede a credencial de entrar no histórico; o workflow é o que `git commit --no-verify` não consegue pular. Falsos positivos confirmados são silenciados linha a linha com um comentário `trufflehog:ignore`, nunca excluindo o caminho — excluir o caminho esconderia também um segredo real acrescentado depois àquele mesmo fixture. (secret-scanning-2026-08)
 
 ### Changed
+
+- **O repositório passou para a organização oficial `usetheokit`.** Clones existentes continuam funcionando: o GitHub redireciona permanentemente o remote antigo `usetheodev/theokit-plugins`. Os campos `repository`, `bugs` e `homepage` de todos os pacotes, o README e o `CONTRIBUTING.md` agora apontam para `usetheokit`. (usetheokit/theokit#316)
+
+- **A licença passou de MIT para Apache-2.0, alinhando-se ao restante do ecossistema.** Os doze pacotes deste repositório eram os únicos sob MIT enquanto todo o resto do TheoKit é Apache-2.0 — a divergência obrigava quem consome mais de um pilar a conciliar dois regimes de licença, sem que houvesse decisão registrada a favor disso. A Apache-2.0 adiciona concessão explícita de patente, que a MIT não tem. O relicenciamento foi verificado quanto à titularidade: o histórico deste repositório tem apenas duas identidades de autor, ambas do mantenedor, sem contribuições de terceiros a relicenciar. (usetheokit/theokit#316)
+
 - Hook de validação de comandos ficou mais rápido: ~6 processos por chamada de ferramenta em vez de ~50, sem mudança de comportamento
 
 - O README do `@theokit/plugin-voice` não referencia mais `@theokit/plugin-cors`, pacote que não existe neste repo. (docs-reorg-2026-08)
@@ -20,7 +25,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Removed
 
+- O gate `tests/lint/no-ptbr.test.ts` (varredura English-only do repositório) foi removido junto com a pasta `tests/` da raiz. Ele nunca foi executado por gate algum: `pnpm test` percorre somente `./packages/*`, não há `vitest.config` na raiz, `pnpm lint` cobre apenas `packages/**` e o `include` do `tsconfig.json` raiz é `packages/*/src` + `packages/*/tests` — a `tests/` da raiz ficava fora de todos eles. O repositório declarava uma proteção que não estava ligada em lugar nenhum; removê-la não reduz nenhuma verificação que estivesse de fato rodando. (B-065)
+
 ### Fixed
+
+- **`@theokit/plugin-canvas` e `@theokit/plugin-forms` voltaram a resolver seus componentes de UI** — os dois estavam publicados quebrados. O `@theokit/ui@1.0.0` moveu seus 54 componentes não-AI para o `@usetheo/ui` e ficou AI-exclusive; estes dois pacotes nunca rodaram essa migração e seguiram importando `Alert`, `Button`, `CodeBlock`, `CopyButton`, `DropdownMenu`, `FormField` e `Tooltip` de um pacote que não os exporta mais. Quem instalava não conseguia importar `@theokit/plugin-canvas/ui` nem usar `<TheoField>`. No workspace isso deixava `pnpm typecheck` (10 erros), `pnpm build` (DTS) e 4 suítes vermelhos — e, como o workflow de release roda `pnpm build`, nenhuma versão nova podia sair. `DiffViewer` continua no `@theokit/ui`: é componente AI e não migrou. **Quem consome precisa instalar `@usetheo/ui` (`>=0.22.0 <1`)** — peer obrigatória no canvas, opcional no forms (só o tier estilizado usa; o hook `useTheoField()` segue sem peer). (#9)
+
+- **O CI voltou a poder passar.** Nove dos onze pacotes declaravam `"theokit": "link:../../../theokit/packages/theo"` como devDependency — um caminho fora do repositório, que existe só na máquina de quem o criou. No runner o `theokit` não resolvia, e os três jobs caíam juntos: `typecheck` com `TS2307` em `theokit/server` e `theokit/server/auth`, os testes do `auth-google` com `ERR_MODULE_NOT_FOUND`, e o `lint` com 30 erros `no-unsafe-*` que eram apenas o reflexo dos tipos irresolvíveis. Passou a apontar para `theokit@^0.48.7`, do registro — exatamente a mesma versão que o diretório linkado continha, então nada muda de comportamento. Isso não afetava quem consome os pacotes (devDependency não é distribuída); afetava a capacidade do repositório de verificar a si mesmo. Para desenvolver contra uma versão local do `theokit`, use um override local não comitado em vez de um `link:` no `package.json`. (#13)
+
+- O gate de migração falhou silenciosamente e vale registrar: o codemod oficial (`@theokit/ui/codemod/split-usetheo.mjs`) não reescreve nada num repositório sem ponto e vírgula — a regex dele exige `;` no fim do import — e ainda assim imprime `codemod applied to N file(s)`, porque conta os argumentos recebidos, não os arquivos alterados. Os imports daqui foram reapontados à mão, conferindo com a lista `MOVED` do próprio codemod. Reportado em `usetheokit/theokit-ui#41`. (#9)
 
 ### Security
 
@@ -31,11 +44,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Roadmap converted to a milestone-tracked format and amended: added `## M0 — [x]` (shipped plugin cluster baseline) and `## M1 — [ ] Architecture remediation (audit 2026-07-10)` covering the four findings of the 2026-07-10 architecture audit (score 88/100, verdict KEEP); added the `## State-of-the-art references` anchor (`/roadmap-feature architecture-remediation`)
 - Architecture audit (2026-07-10, loop-codebase-architect) of the 11 `@theokit/*` packages — verdict KEEP (88/100); 1 critical (canvas circular dependency) + 3 low normalizations, full report + migration plan in `architect-output/`
 
-
 ### Changed
 
 - **M2 — Lint & format compliance.** Brought the workspace to `pnpm lint --max-warnings=0` (437 pre-existing ESLint errors across all 11 packages) and `prettier` green. The CI `lint-and-format` job had only ever passed while `packages/` was empty, so the shipped plugins never satisfied the strict gate. All fixes are behavior-preserving (665/665 tests still green): `require-await` → `Promise.resolve(...)` where a Promise contract is required; `no-unsafe-*` → precise types (no `any`); `unbound-method` → property signatures / arrow wrappers. Scoped the prettier gate to product source via `.prettierignore` (excludes the synced `.claude` cycle-kit + generated `knowledge-base` / `agents` audit trail + `architect-output`).
-
 
 ### Fixed
 

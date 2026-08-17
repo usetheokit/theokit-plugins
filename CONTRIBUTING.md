@@ -1,12 +1,12 @@
 # Contributing to theokit-plugins
 
-This repo is the **first-party plugin monorepo** for [TheoKit](https://github.com/usetheodev/theokit). It is intentionally empty until the first plugin clears the gates below (per [ADR-0008](https://github.com/usetheodev/theokit/blob/main/docs/adr/0008-theoplugin-is-the-canonical-sdk.md) + CLAUDE.md macro-roadmap R0.6.5).
+This repo is the **first-party plugin monorepo** for [TheoKit](https://github.com/usetheokit/theokit). It is intentionally empty until the first plugin clears the gates below (per [ADR-0008](https://github.com/usetheokit/theokit/blob/main/docs/adr/0008-theoplugin-is-the-canonical-sdk.md) + CLAUDE.md macro-roadmap R0.6.5).
 
 ## Two contribution paths
 
 ### A — Propose a new first-party plugin
 
-Open a **discussion** (not a PR) at [usetheodev/theokit/discussions](https://github.com/usetheodev/theokit/discussions) titled `[plugin proposal] <name>`. Include:
+Open a **discussion** (not a PR) at [usetheodev/theokit/discussions](https://github.com/usetheokit/theokit/discussions) titled `[plugin proposal] <name>`. Include:
 
 1. **Problem** — what need does this solve? Why isn't a TheoKit core primitive enough?
 2. **Production evidence** — at least 1 app using a draft version (your own community package is fine)
@@ -116,4 +116,4 @@ By contributing you agree your contribution is MIT-licensed.
 
 ## Questions
 
-Open a discussion at [usetheodev/theokit](https://github.com/usetheodev/theokit/discussions). For TheoKit framework bugs (not plugin bugs), use [usetheodev/theokit/issues](https://github.com/usetheodev/theokit/issues).
+Open a discussion at [usetheodev/theokit](https://github.com/usetheokit/theokit/discussions). For TheoKit framework bugs (not plugin bugs), use [usetheodev/theokit/issues](https://github.com/usetheokit/theokit/issues).

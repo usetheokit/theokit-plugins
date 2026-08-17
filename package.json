@@ -36,11 +36,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/usetheodev/theokit-plugins.git"
+    "url": "git+https://github.com/usetheokit/theokit-plugins.git"
   },
-  "homepage": "https://github.com/usetheodev/theokit-plugins#readme",
+  "homepage": "https://github.com/usetheokit/theokit-plugins#readme",
   "bugs": {
-    "url": "https://github.com/usetheodev/theokit-plugins/issues"
+    "url": "https://github.com/usetheokit/theokit-plugins/issues"
   },
-  "license": "MIT"
+  "license": "Apache-2.0"
 }

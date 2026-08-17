@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@theokit/sdk": "^2.18.0",
-    "theokit": "link:../../../theokit/packages/theo",
+    "theokit": "^0.48.7",
     "tsup": "^8.5.0",
     "typescript": "^5.8.0",
     "vitest": "^4.1.8"
@@ -47,5 +47,5 @@
     "openid-connect"
   ],
   "author": "@theokit",
-  "license": "MIT"
+  "license": "Apache-2.0"
 }
