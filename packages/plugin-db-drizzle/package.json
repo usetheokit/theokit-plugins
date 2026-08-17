@@ -38,7 +38,7 @@
     "better-sqlite3": "^11.10.0",
     "drizzle-orm": "^0.36.4",
     "reflect-metadata": "^0.2.0",
-    "theokit": "link:../../../theokit/packages/theo",
+    "theokit": "^0.48.7",
     "tsup": "^8.5.0",
     "typescript": "^5.8.0",
     "vitest": "^4.1.8"

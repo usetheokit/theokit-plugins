@@ -50,7 +50,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.50.0",
-    "theokit": "link:../../../theokit/packages/theo",
+    "theokit": "^0.48.7",
     "tsup": "^8.5.0",
     "vitest": "^4.1.8",
     "zod": "^3.25.76"
