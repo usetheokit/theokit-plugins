@@ -19,7 +19,7 @@
     "changeset": "changeset",
     "version:packages": "changeset version",
     "release": "pnpm build && changeset publish",
-    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true"
+    "prepare": "[ -n \"$CI\" ] || git config core.hooksPath .githooks 2>/dev/null || true"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
