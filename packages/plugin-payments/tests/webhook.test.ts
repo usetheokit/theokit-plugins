@@ -325,9 +325,11 @@ describe('processWebhook (P#6 T2.1 + T2.2 + T2.3 integration)', () => {
 
     const registry = new WebhookRegistry()
     registry.register(
-      defineStripeWebhook('checkout.session.completed', () =>
-        // Raw handler errors may carry PII/secrets — must NOT reach the boundary.
-        Promise.reject(new Error('DB write failed: postgres://user:s3cret@db/prod')),
+      defineStripeWebhook(
+        'checkout.session.completed',
+        () =>
+          // Raw handler errors may carry PII/secrets — must NOT reach the boundary.
+          Promise.reject(new Error('DB write failed: postgres://user:s3cret@db/prod')), // trufflehog:ignore — fixture, not a live credential
       ),
     )
 
