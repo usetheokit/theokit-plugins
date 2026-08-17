@@ -63,6 +63,12 @@ jobs:
       - run: pnpm typecheck
       - name: Check for circular dependencies (regression guard for the M1 canvas cycle fix)
         run: pnpm check:cycles
+      # Catches, on every push, what previously surfaced only at a package's first
+      # publish: a missing `repository` (E422 from provenance validation, #34) and a
+      # `link:` dependency pointing outside the workspace, which made all three jobs
+      # unpassable on any commit (#13).
+      - name: Validate package manifests (publishability)
+        run: pnpm check:manifests
       - name: Build all packages
         run: pnpm build
 
