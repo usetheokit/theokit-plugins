@@ -58,5 +58,14 @@
     "migrations"
   ],
   "author": "@theokit",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usetheokit/theokit-plugins.git",
+    "directory": "packages/plugin-db-drizzle"
+  },
+  "homepage": "https://github.com/usetheokit/theokit-plugins/tree/main/packages/plugin-db-drizzle#readme",
+  "bugs": {
+    "url": "https://github.com/usetheokit/theokit-plugins/issues"
+  },
   "license": "Apache-2.0"
 }

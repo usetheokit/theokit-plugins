@@ -81,6 +81,15 @@
     "presence",
     "multiplayer"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usetheokit/theokit-plugins.git",
+    "directory": "packages/plugin-copilot"
+  },
+  "homepage": "https://github.com/usetheokit/theokit-plugins/tree/main/packages/plugin-copilot#readme",
+  "bugs": {
+    "url": "https://github.com/usetheokit/theokit-plugins/issues"
+  },
   "license": "Apache-2.0",
   "publishConfig": {
     "access": "public"
