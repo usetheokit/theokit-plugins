@@ -1,4 +1,4 @@
-import { Button } from '@theokit/ui'
+import { Button } from '@usetheo/ui'
 
 import type { Artifact } from '../schema.js'
 

@@ -1,4 +1,4 @@
-import { Button, DropdownMenu } from '@theokit/ui'
+import { Button, DropdownMenu } from '@usetheo/ui'
 import { useCallback, useMemo } from 'react'
 
 import type { Artifact } from '../schema.js'
