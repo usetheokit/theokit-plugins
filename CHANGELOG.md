@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Secret scanning em duas camadas: um hook `pre-commit` que varre com o TruffleHog o conteúdo que está staged e recusa o commit, e `.github/workflows/secret-scan.yml`, que revarre no CI o intervalo empurrado. O hook é o que impede a credencial de entrar no histórico; o workflow é o que `git commit --no-verify` não consegue pular. Falsos positivos confirmados são silenciados linha a linha com um comentário `trufflehog:ignore`, nunca excluindo o caminho — excluir o caminho esconderia também um segredo real acrescentado depois àquele mesmo fixture. (secret-scanning-2026-08)
 
 ### Changed
+- **O repositório passou para a organização oficial `usetheokit`.** Clones existentes continuam funcionando: o GitHub redireciona permanentemente o remote antigo `usetheodev/theokit-plugins`. Os campos `repository`, `bugs` e `homepage` de todos os pacotes, o README e o `CONTRIBUTING.md` agora apontam para `usetheokit`. (usetheokit/theokit#316)
+
+- **A licença passou de MIT para Apache-2.0, alinhando-se ao restante do ecossistema.** Os doze pacotes deste repositório eram os únicos sob MIT enquanto todo o resto do TheoKit é Apache-2.0 — a divergência obrigava quem consome mais de um pilar a conciliar dois regimes de licença, sem que houvesse decisão registrada a favor disso. A Apache-2.0 adiciona concessão explícita de patente, que a MIT não tem. O relicenciamento foi verificado quanto à titularidade: o histórico deste repositório tem apenas duas identidades de autor, ambas do mantenedor, sem contribuições de terceiros a relicenciar. (usetheokit/theokit#316)
+
 - Hook de validação de comandos ficou mais rápido: ~6 processos por chamada de ferramenta em vez de ~50, sem mudança de comportamento
 
 - O README do `@theokit/plugin-voice` não referencia mais `@theokit/plugin-cors`, pacote que não existe neste repo. (docs-reorg-2026-08)

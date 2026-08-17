@@ -79,12 +79,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/usetheodev/theokit-plugins.git",
+    "url": "git+https://github.com/usetheokit/theokit-plugins.git",
     "directory": "packages/plugin-canvas"
   },
-  "homepage": "https://github.com/usetheodev/theokit-plugins/tree/main/packages/plugin-canvas#readme",
+  "homepage": "https://github.com/usetheokit/theokit-plugins/tree/main/packages/plugin-canvas#readme",
   "bugs": {
-    "url": "https://github.com/usetheodev/theokit-plugins/issues"
+    "url": "https://github.com/usetheokit/theokit-plugins/issues"
   },
-  "license": "MIT"
+  "license": "Apache-2.0"
 }

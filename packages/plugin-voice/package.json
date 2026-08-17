@@ -68,12 +68,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/usetheodev/theokit-plugins.git",
+    "url": "git+https://github.com/usetheokit/theokit-plugins.git",
     "directory": "packages/plugin-voice"
   },
-  "homepage": "https://github.com/usetheodev/theokit-plugins/tree/main/packages/plugin-voice#readme",
+  "homepage": "https://github.com/usetheokit/theokit-plugins/tree/main/packages/plugin-voice#readme",
   "bugs": {
-    "url": "https://github.com/usetheodev/theokit-plugins/issues"
+    "url": "https://github.com/usetheokit/theokit-plugins/issues"
   },
-  "license": "MIT"
+  "license": "Apache-2.0"
 }
