@@ -28,6 +28,23 @@ jobs:
           node-version: 22
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
+      # `changeset publish` shells out to `npm publish`, and OIDC trusted publishing
+      # landed in npm 11.5.1. Node 22 ships npm 10.9.7, which has no OIDC code at all:
+      # measured by unpacking the tarballs and grepping lib/ for
+      # ACTIONS_ID_TOKEN_REQUEST_URL — 10.9.7 → 0 files, 11.4.1 → 0, 11.5.1 → 2.
+      #
+      # Without it the CLI never presents the OIDC token, publishes unauthenticated,
+      # and the registry answers `E404 Not Found - PUT` — it returns 404 rather than
+      # 403 so it does not reveal that a package exists to someone who cannot publish
+      # it. That reads as "package does not exist" and sends you looking for a typo or
+      # a missing trusted-publisher binding instead of a CLI too old to use one. It
+      # cost two failed publishes of an already-correct release (#29).
+      #
+      # NOT redundant with the trusted-publisher binding on npmjs.com: both halves are
+      # required — the binding authorizes this workflow, this line is what lets the CLI
+      # present the token the binding checks.
+      - name: Upgrade npm to a version that supports OIDC trusted publishing
+        run: npm install -g npm@^11.5.1
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - name: Create Release PR or Publish
