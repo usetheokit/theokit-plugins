@@ -51,10 +51,12 @@ describeLive(EMAIL, 'outbound', () => {
     const result = await provider().send(message(marker))
 
     expect(result.provider).toBe('resend')
-    // Resend ids are `re_`-prefixed. Asserting the prefix rather than just
-    // "truthy" is what would catch a response shape change that still returns
-    // *something* — the failure mode a fake can never reproduce.
-    expect(result.id).toMatch(/^re_/)
+    // Resend returns a UUID for a message id. Asserting the SHAPE rather than
+    // just "truthy" is what would catch a response change that still returns
+    // *something* — and this is the assertion the first live run corrected: the
+    // package's fakes returned `re_xxx`, which is the shape of an API KEY, not of
+    // a message id, so the fake had taught the wrong contract.
+    expect(result.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
   }, 60_000)
 
   it('accepts an idempotency key and does not create a second message for it', async () => {

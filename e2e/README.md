@@ -137,24 +137,31 @@ pnpm --filter @theokit/plugins-e2e env:example
 
 ## Current coverage, stated plainly
 
-| service                                                      | suite                      | ran against the real API?                                                                                    |
-| ------------------------------------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `email` (Resend)                                             | `tests/email/live.test.ts` | **not yet** — written from the provider's documented contract; needs one run with a key before it is trusted |
-| `payments`, `copilot`, `voice`, `auth-github`, `auth-google` | none yet                   | registered, so readiness tells you what to create                                                            |
+| service                                                      | suite                      | ran against the real API?                                                    |
+| ------------------------------------------------------------ | -------------------------- | ---------------------------------------------------------------------------- |
+| `email` (Resend)                                             | `tests/email/live.test.ts` | **yes** — 4/4 against the live API, and it found a real bug on the first run |
+| `payments`, `copilot`, `voice`, `auth-github`, `auth-google` | none yet                   | registered, so readiness tells you what to create                            |
 
-That first row is the important one. **A live test that has never made a live
-call is a unit test with extra latency.** The suite is written and typechecked,
-and it has not authenticated against Resend even once, because this machine has
-no key. Run `pnpm e2e` with `RESEND_API_KEY` set before treating it as coverage,
-and fix what the real API says rather than what the fake would have said.
+The first run is worth recording, because it is the whole argument for this
+package existing. Two of the four assertions failed, and neither failure was a
+flake:
 
-`plugin-copilot` already has a real-LLM probe at
-`packages/plugin-copilot/tests/integration/copilot-real-llm.test.ts`. It lives in
-the package because it needs `CopilotRuntime` plus an in-memory provider fixture,
-and it is now gated on `E2E_LIVE` as well as on the key — otherwise anyone with
-`OPENROUTER_API_KEY` in their environment paid for it on every `pnpm test`.
+1. **`expect(result.id).toMatch(/^re_/)`** — Resend returns a **UUID** for a
+   message id. `re_` is the prefix of an API _key_. The package's fakes returned
+   `re_xxx`, so the fake had taught the wrong contract and this suite inherited
+   it. All the unreal ids in the unit tests were replaced with UUIDs.
 
----
+2. **The idempotency round trip returned two different ids** for one key. That
+   was not a bad assertion — it was a real bug (#37). `ResendProvider` wrote the
+   key into `payload.headers`, which are MIME headers of the _message_, while
+   Resend deduplicates on the `Idempotency-Key` HTTP header of the _request_,
+   which the SDK only accepts as `send(payload, { idempotencyKey })`. Every
+   consumer relying on it to make a retry safe was sending the email twice, and
+   the README said it worked. The unit test asserted `payload.headers[...]` under
+   the name "maps to Idempotency-Key HTTP header" — both cannot be true, so it
+   passed.
+
+One live run, one wrong assertion of ours corrected, one shipped bug found.
 
 ## Adding a service
 
