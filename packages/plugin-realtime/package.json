@@ -83,6 +83,15 @@
     "crdt",
     "awareness"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usetheokit/theokit-plugins.git",
+    "directory": "packages/plugin-realtime"
+  },
+  "homepage": "https://github.com/usetheokit/theokit-plugins/tree/main/packages/plugin-realtime#readme",
+  "bugs": {
+    "url": "https://github.com/usetheokit/theokit-plugins/issues"
+  },
   "license": "Apache-2.0",
   "publishConfig": {
     "access": "public"
