@@ -34,7 +34,16 @@ jobs:
         uses: changesets/action@v1
         with:
           publish: pnpm release
-          version: pnpm version
+          # `pnpm run version:packages`, never `pnpm version`. `version` is a native
+          # npm/pnpm command: invoked without a semver argument it prints
+          # process.versions and exits 0 WITHOUT running the package script of the
+          # same name. That is what this input said until 2026-08-17, so
+          # `changeset version` never ran: every release pushed a
+          # changeset-release/main branch identical to main, with the changesets
+          # unconsumed and no version bumped — while the step still looked like it
+          # had worked. The script was renamed off the reserved word so the trap
+          # cannot be re-armed by someone dropping the `run`.
+          version: pnpm run version:packages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # NPM_TOKEN intentionally absent — per technical-hardening-sprint plan v1.1 EC-2
