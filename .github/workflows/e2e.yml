@@ -1,0 +1,111 @@
+name: E2E (live)
+
+# Live tests against the real provider APIs, with real credentials.
+#
+# Deliberately NOT on pull_request. Three reasons, each sufficient:
+#
+#  - Secrets are not available to workflows triggered by a fork PR, so the suite
+#    would skip everything and report a green tick that means nothing.
+#  - These send real email and spend real money on every run (LLM tokens, TTS
+#    characters).
+#  - A provider having a bad afternoon is not a reason to turn a contributor's PR
+#    red. `ci.yml` is the gate for changes; this one watches the contracts.
+#
+# It runs nightly, so a provider changing its API surface is found by a schedule
+# rather than by a user, and on demand when you want to confirm a fix.
+
+on:
+  schedule:
+    # 04:00 UTC — outside working hours in America/Sao_Paulo, where the throwaway
+    # mailboxes and Stripe test data live.
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Single service id (email, payments, copilot, voice, …). Empty runs all.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  # Never two live runs at once: they would race for the same provider rate
+  # limit and, for email, interleave into the same mailbox.
+  group: e2e-live
+  cancel-in-progress: false
+
+jobs:
+  live:
+    name: Live provider contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Scopes the secrets to this workflow rather than the whole repository.
+    environment: e2e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      # The suites import the plugins by their public entry points, which come
+      # from dist/.
+      - run: pnpm build
+
+      # Always runs, with or without secrets: it prints which services are wired
+      # up and what each missing one still needs. When a credential expires this
+      # is the line in the log that says so.
+      - name: Readiness report
+        run: pnpm e2e:readiness
+        env:
+          E2E_LIVE: '1'
+          # Same names as `e2e/.env`, so a suite never knows which source it got.
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_ADDRESS: ${{ secrets.RESEND_FROM_ADDRESS }}
+          EMAIL_TEST_RECIPIENT: ${{ secrets.EMAIL_TEST_RECIPIENT }}
+          # Must be sk_test_… — the harness refuses a live key outright rather
+          # than handling it carefully.
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_TEST_PRICE_ID: ${{ secrets.STRIPE_TEST_PRICE_ID }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          COPILOT_TEST_MODEL: ${{ secrets.COPILOT_TEST_MODEL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          VOICE_TEST_TTS_VOICE: ${{ secrets.VOICE_TEST_TTS_VOICE }}
+          # Optional: only lights up the Groq STT backend.
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_OAUTH_CLIENT_ID: ${{ secrets.GITHUB_OAUTH_CLIENT_ID }}
+          GITHUB_OAUTH_CLIENT_SECRET: ${{ secrets.GITHUB_OAUTH_CLIENT_SECRET }}
+          GITHUB_OAUTH_CALLBACK_URL: ${{ secrets.GITHUB_OAUTH_CALLBACK_URL }}
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_OAUTH_REDIRECT_URI: ${{ secrets.GOOGLE_OAUTH_REDIRECT_URI }}
+
+      - name: Live suites
+        run: |
+          if [ -n "${{ inputs.service }}" ]; then
+            pnpm --filter @theokit/plugins-e2e exec vitest run "tests/${{ inputs.service }}"
+          else
+            pnpm e2e
+          fi
+        env:
+          E2E_LIVE: '1'
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_ADDRESS: ${{ secrets.RESEND_FROM_ADDRESS }}
+          EMAIL_TEST_RECIPIENT: ${{ secrets.EMAIL_TEST_RECIPIENT }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_TEST_PRICE_ID: ${{ secrets.STRIPE_TEST_PRICE_ID }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          COPILOT_TEST_MODEL: ${{ secrets.COPILOT_TEST_MODEL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          VOICE_TEST_TTS_VOICE: ${{ secrets.VOICE_TEST_TTS_VOICE }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_OAUTH_CLIENT_ID: ${{ secrets.GITHUB_OAUTH_CLIENT_ID }}
+          GITHUB_OAUTH_CLIENT_SECRET: ${{ secrets.GITHUB_OAUTH_CLIENT_SECRET }}
+          GITHUB_OAUTH_CALLBACK_URL: ${{ secrets.GITHUB_OAUTH_CALLBACK_URL }}
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_OAUTH_REDIRECT_URI: ${{ secrets.GOOGLE_OAUTH_REDIRECT_URI }}

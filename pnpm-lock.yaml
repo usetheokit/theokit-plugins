@@ -42,6 +42,30 @@ importers:
         specifier: ^4.1.8
         version: 4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12)
 
+  e2e:
+    devDependencies:
+      '@theokit/plugin-copilot':
+        specifier: workspace:*
+        version: link:../packages/plugin-copilot
+      '@theokit/plugin-email':
+        specifier: workspace:*
+        version: link:../packages/plugin-email
+      '@theokit/plugin-voice':
+        specifier: workspace:*
+        version: link:../packages/plugin-voice
+      '@types/node':
+        specifier: ^25.6.2
+        version: 25.9.1
+      tsx:
+        specifier: ^4.19.0
+        version: 4.23.12
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.8
+        version: 4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12)
+
   packages/auth-github:
     devDependencies:
       '@theokit/sdk':

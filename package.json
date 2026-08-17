@@ -11,6 +11,8 @@
   "scripts": {
     "build": "pnpm -r --filter='./packages/*' run build",
     "test": "pnpm -r --filter='./packages/*' run test",
+    "e2e": "pnpm --filter @theokit/plugins-e2e e2e",
+    "e2e:readiness": "pnpm --filter @theokit/plugins-e2e readiness",
     "typecheck": "tsc --noEmit",
     "check:cycles": "npx --yes madge --circular --extensions ts,tsx packages/*/src",
     "check:manifests": "node scripts/validate-manifests.mjs",
