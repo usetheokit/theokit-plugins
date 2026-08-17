@@ -104,9 +104,22 @@ describeLive(
 
 describeManualOAuth(GH, 'full consent round trip', () => {
   it('exchanges a real authorization code for a profile', () => {
-    // Unreachable without a human: the code is issued to the redirect after a
-    // consent click and expires in minutes. Declared so the gap shows up in the
-    // report instead of being absent from it.
+    // Not "impossible" — impossible in CI. The distinction matters and the first
+    // version of this file got it wrong. An authorization code is issued to a
+    // browser redirect after a consent click, so a runner with no session cannot
+    // obtain one; a workstation with a logged-in browser can, and does:
+    //
+    //   pnpm --filter @theokit/plugins-e2e flow:github
+    //
+    // That script covers what this suite cannot — the SUCCESS path of the
+    // exchange, plus githubFetchUser and githubResolveEmail, which no other test
+    // in this repository executes. Run on 2026-08-17 against the real API it
+    // returned a complete profile: numeric id, login, name, an email resolved
+    // from /user/emails, and an https avatar — confirming GitHub still accepts
+    // the legacy `Authorization: token X` header this plugin sends.
+    //
+    // Left declared so the gap shows in the report with a pointer to the script,
+    // rather than being absent from it.
     expect(true).toBe(true)
   })
 })

@@ -70,18 +70,20 @@ export function describeLive(
 }
 
 /**
- * Declare a suite that can only pass with a human in a browser.
+ * Declare a suite that cannot pass in CI, because it needs a browser session.
  *
- * An OAuth round trip needs somebody to click "allow": the authorization code
- * is issued to a redirect, not to an API caller. Saying that out loud beats a
- * suite that mints its own code and proves only that its fixture works.
+ * An OAuth round trip needs somebody to click "allow": the authorization code is
+ * issued to a redirect, not to an API caller. That rules it out on a runner —
+ * but NOT on a workstation with a logged-in browser, which is why the message
+ * points at the script that does run it (`flow:github`) instead of implying the
+ * path is untestable anywhere.
  *
- * The server half — the authorize URL we build, and how a real refusal is
- * mapped — runs unattended and lives in the normal {@link describeLive} suites.
+ * The server half — how a real refusal is mapped — runs unattended and lives in
+ * the normal {@link describeLive} suites.
  */
 export function describeManualOAuth(spec: ServiceSpec, name: string, body: () => void): void {
   describe.skip(
-    `${spec.label} — ${name} [skipped: needs a browser and a human consent click; the server half is covered by the suites above]`,
+    `${spec.label} — ${name} [skipped: needs a browser session, so it cannot run in CI — run it locally with the flow:* script for this service]`,
     body,
   )
 }

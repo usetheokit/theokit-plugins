@@ -39,17 +39,17 @@ afternoon is not a reason to turn someone's PR red.
 Only plugins whose **own code** calls a third party can have a live test. The
 exclusions were measured, and they are findings rather than gaps:
 
-| plugin              | live-testable                    | why                                                                                                                                  |
-| ------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `plugin-email`      | yes                              | calls the Resend API                                                                                                                 |
-| `plugin-payments`   | yes                              | calls the Stripe API                                                                                                                 |
-| `plugin-copilot`    | yes                              | drives a real LLM through OpenRouter                                                                                                 |
-| `plugin-voice`      | yes                              | POSTs audio to OpenAI / Groq                                                                                                         |
-| `auth-github`       | `tests/auth-github/live.test.ts` | **yes** — 1/1 against the real GitHub token endpoint                                                                                 |
-| `plugin-db-drizzle` | **no**                           | reads `DATABASE_URL` but never connects — it registers CLI verbs and a devtools tab, and hands the URL to the consumer's drizzle-kit |
-| `plugin-realtime`   | **no**                           | Redis appears only in comments and a doc example; the shipped providers are in-memory and Yjs, both local                            |
-| `plugin-canvas`     | **no**                           | renders mermaid/markdown in-process                                                                                                  |
-| `plugin-forms`      | **no**                           | zod + react-hook-form, no network                                                                                                    |
+| plugin              | live-testable                                                     | why                                                                                                                                  |
+| ------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `plugin-email`      | yes                                                               | calls the Resend API                                                                                                                 |
+| `plugin-payments`   | yes                                                               | calls the Stripe API                                                                                                                 |
+| `plugin-copilot`    | yes                                                               | drives a real LLM through OpenRouter                                                                                                 |
+| `plugin-voice`      | yes                                                               | POSTs audio to OpenAI / Groq                                                                                                         |
+| `auth-github`       | `tests/auth-github/live.test.ts` + `scripts/full-flow-github.mjs` | **yes** — error path 1/1 in the suite, and the full round trip verified by the script                                                |
+| `plugin-db-drizzle` | **no**                                                            | reads `DATABASE_URL` but never connects — it registers CLI verbs and a devtools tab, and hands the URL to the consumer's drizzle-kit |
+| `plugin-realtime`   | **no**                                                            | Redis appears only in comments and a doc example; the shipped providers are in-memory and Yjs, both local                            |
+| `plugin-canvas`     | **no**                                                            | renders mermaid/markdown in-process                                                                                                  |
+| `plugin-forms`      | **no**                                                            | zod + react-hook-form, no network                                                                                                    |
 
 A live suite for any of the last four would be a unit test with extra latency.
 
@@ -184,6 +184,32 @@ a bad code with HTTP **200** and `{"error":"bad_verification_code"}` — not a 4
 So `tokenRes.ok` is true, the provider's `token_exchange_failed` guard never fires
 for the most common failure in the flow, and GitHub's own reason is discarded. No
 fake would have said so.
+
+### The OAuth round trip: impossible in CI, not impossible
+
+The first version of this package said the consent leg was "unreachable without a
+human" and left it at that. That conflated two different things. A CI runner has
+no browser session, so it genuinely cannot obtain an authorization code. A
+workstation with a logged-in browser can — and the script does it:
+
+```bash
+pnpm --filter @theokit/plugins-e2e flow:github
+```
+
+It starts a callback listener on port 3000, prints the authorize URL, captures the
+code from the redirect, and runs the real `handleCallback`. That covers the three
+things the unattended suite cannot reach:
+
+| path                   | what it proves                                                                                                                           |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| code → access token    | `githubExchangeToken` on the **success** side, not just the refusal                                                                      |
+| token → `/user`        | `githubFetchUser`, including that GitHub still accepts the legacy `Authorization: token X` header this plugin sends rather than `Bearer` |
+| token → `/user/emails` | `githubResolveEmail`, which needs the `user:email` scope and is otherwise never executed                                                 |
+
+Run against the real API on 2026-08-17 it returned a complete profile — numeric
+id, login, name, an email resolved from `/user/emails`, https avatar. The script
+reports the SHAPE of each field and never its contents, because that is a real
+person's name and address.
 
 ### One naming rule, learned by hitting it
 
