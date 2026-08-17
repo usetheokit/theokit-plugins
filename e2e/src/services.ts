@@ -28,6 +28,14 @@
  *   plugin-forms       zod + react-hook-form, no network.
  *
  * A live suite for any of those would be a unit test with extra latency.
+ *
+ * NAMING CONSTRAINT, learned the hard way: variable names here double as GitHub
+ * Actions secret names, and the API refuses to create any secret whose name
+ * starts with `GITHUB_` ("Secret names must not start with GITHUB_."). The GitHub
+ * OAuth variables were originally `GITHUB_OAUTH_*` and would have been silently
+ * empty in CI forever — `secrets.GITHUB_OAUTH_CLIENT_ID` resolves to nothing and
+ * the suite would have skipped every night reporting a missing credential nobody
+ * could add. They are `GH_OAUTH_*` for that reason, not for brevity.
  */
 
 /** How far an unattended run can exercise the credential. */
@@ -174,19 +182,19 @@ export const SERVICES: readonly ServiceSpec[] = [
     exercise: 'oauth-redirect',
     credentials: [
       {
-        name: 'GITHUB_OAUTH_CLIENT_ID',
+        name: 'GH_OAUTH_CLIENT_ID',
         what: 'OAuth app client id',
         where: 'github.com/settings/developers → New OAuth App',
       },
       {
-        name: 'GITHUB_OAUTH_CLIENT_SECRET',
+        name: 'GH_OAUTH_CLIENT_SECRET',
         what: 'OAuth app client secret',
         where: 'Same app → Generate a new client secret',
       },
     ],
     target: [
       {
-        name: 'GITHUB_OAUTH_CALLBACK_URL',
+        name: 'GH_OAUTH_CALLBACK_URL',
         what: 'Callback URL registered on the app',
         where:
           'Same app → Authorization callback URL. GitHub rejects an exchange whose redirect_uri does not match, which is one of the things worth asserting.',

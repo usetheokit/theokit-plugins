@@ -39,17 +39,17 @@ afternoon is not a reason to turn someone's PR red.
 Only plugins whose **own code** calls a third party can have a live test. The
 exclusions were measured, and they are findings rather than gaps:
 
-| plugin                       | live-testable | why                                                                                                                                  |
-| ---------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `plugin-email`               | yes           | calls the Resend API                                                                                                                 |
-| `plugin-payments`            | yes           | calls the Stripe API                                                                                                                 |
-| `plugin-copilot`             | yes           | drives a real LLM through OpenRouter                                                                                                 |
-| `plugin-voice`               | yes           | POSTs audio to OpenAI / Groq                                                                                                         |
-| `auth-github`, `auth-google` | partly        | see _Two kinds of credential_ below                                                                                                  |
-| `plugin-db-drizzle`          | **no**        | reads `DATABASE_URL` but never connects — it registers CLI verbs and a devtools tab, and hands the URL to the consumer's drizzle-kit |
-| `plugin-realtime`            | **no**        | Redis appears only in comments and a doc example; the shipped providers are in-memory and Yjs, both local                            |
-| `plugin-canvas`              | **no**        | renders mermaid/markdown in-process                                                                                                  |
-| `plugin-forms`               | **no**        | zod + react-hook-form, no network                                                                                                    |
+| plugin              | live-testable                    | why                                                                                                                                  |
+| ------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `plugin-email`      | yes                              | calls the Resend API                                                                                                                 |
+| `plugin-payments`   | yes                              | calls the Stripe API                                                                                                                 |
+| `plugin-copilot`    | yes                              | drives a real LLM through OpenRouter                                                                                                 |
+| `plugin-voice`      | yes                              | POSTs audio to OpenAI / Groq                                                                                                         |
+| `auth-github`       | `tests/auth-github/live.test.ts` | **yes** — 1/1 against the real GitHub token endpoint                                                                                 |
+| `plugin-db-drizzle` | **no**                           | reads `DATABASE_URL` but never connects — it registers CLI verbs and a devtools tab, and hands the URL to the consumer's drizzle-kit |
+| `plugin-realtime`   | **no**                           | Redis appears only in comments and a doc example; the shipped providers are in-memory and Yjs, both local                            |
+| `plugin-canvas`     | **no**                           | renders mermaid/markdown in-process                                                                                                  |
+| `plugin-forms`      | **no**                           | zod + react-hook-form, no network                                                                                                    |
 
 A live suite for any of the last four would be a unit test with extra latency.
 
@@ -137,11 +137,11 @@ pnpm --filter @theokit/plugins-e2e env:example
 
 ## Current coverage, stated plainly
 
-| service                                       | suite                            | ran against the real API?                                                                                           |
-| --------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `email` (Resend)                              | `tests/email/live.test.ts`       | **yes** — 4/4 against the live API, and it found a real bug on the first run                                        |
-| `auth-github`                                 | `tests/auth-github/live.test.ts` | partly — measured against GitHub; the one live assertion needs `GITHUB_OAUTH_CLIENT_SECRET`, gated behind sudo mode |
-| `payments`, `copilot`, `voice`, `auth-google` | none yet                         | registered, so readiness tells you what to create                                                                   |
+| service                                       | suite                            | ran against the real API?                                                                                       |
+| --------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `email` (Resend)                              | `tests/email/live.test.ts`       | **yes** — 4/4 against the live API, and it found a real bug on the first run                                    |
+| `auth-github`                                 | `tests/auth-github/live.test.ts` | partly — measured against GitHub; the one live assertion needs `GH_OAUTH_CLIENT_SECRET`, gated behind sudo mode |
+| `payments`, `copilot`, `voice`, `auth-google` | none yet                         | registered, so readiness tells you what to create                                                               |
 
 The first run is worth recording, because it is the whole argument for this
 package existing. Two of the four assertions failed, and neither failure was a
@@ -184,6 +184,22 @@ a bad code with HTTP **200** and `{"error":"bad_verification_code"}` — not a 4
 So `tokenRes.ok` is true, the provider's `token_exchange_failed` guard never fires
 for the most common failure in the flow, and GitHub's own reason is discarded. No
 fake would have said so.
+
+### One naming rule, learned by hitting it
+
+Variable names here double as GitHub Actions secret names, and the API refuses
+any secret whose name starts with `GITHUB_`:
+
+```
+HTTP 422: Secret names must not start with GITHUB_.
+```
+
+The GitHub OAuth variables started life as `GITHUB_OAUTH_*`. Nothing local would
+have complained — `.env` accepts any name — and the suite would have passed on a
+laptop while `secrets.GITHUB_OAUTH_CLIENT_ID` resolved to an empty string in CI
+every night, reporting a missing credential that could not be added. They are
+`GH_OAUTH_*` for that reason, not for brevity. Check the name before adding a
+service, because this failure is invisible until the nightly run.
 
 ## Adding a service
 

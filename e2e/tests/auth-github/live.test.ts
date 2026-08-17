@@ -64,9 +64,9 @@ describeLive(
       // contract moved. What it does pin is that the failure is OUR typed error
       // and never a bare fetch rejection.
       const provider = github({
-        clientId: required('GITHUB_OAUTH_CLIENT_ID'),
-        clientSecret: required('GITHUB_OAUTH_CLIENT_SECRET'),
-        redirectUri: required('GITHUB_OAUTH_CALLBACK_URL'),
+        clientId: required('GH_OAUTH_CLIENT_ID'),
+        clientSecret: required('GH_OAUTH_CLIENT_SECRET'),
+        redirectUri: required('GH_OAUTH_CALLBACK_URL'),
       })
 
       const attempt = provider.handleCallback(
@@ -81,9 +81,9 @@ describeLive(
       let caught: unknown
       try {
         await github({
-          clientId: required('GITHUB_OAUTH_CLIENT_ID'),
-          clientSecret: required('GITHUB_OAUTH_CLIENT_SECRET'),
-          redirectUri: required('GITHUB_OAUTH_CALLBACK_URL'),
+          clientId: required('GH_OAUTH_CLIENT_ID'),
+          clientSecret: required('GH_OAUTH_CLIENT_SECRET'),
+          redirectUri: required('GH_OAUTH_CALLBACK_URL'),
         }).handleCallback(callbackRequest('?code=e2e-definitely-not-a-valid-code&state=s'), {
           state: 's',
         } as never)
@@ -98,7 +98,7 @@ describeLive(
     }, 30_000)
   },
   {
-    requires: ['GITHUB_OAUTH_CLIENT_ID', 'GITHUB_OAUTH_CLIENT_SECRET', 'GITHUB_OAUTH_CALLBACK_URL'],
+    requires: ['GH_OAUTH_CLIENT_ID', 'GH_OAUTH_CLIENT_SECRET', 'GH_OAUTH_CALLBACK_URL'],
   },
 )
 
