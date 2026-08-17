@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Secret scanning em duas camadas: um hook `pre-commit` que varre com o TruffleHog o conteúdo que está staged e recusa o commit, e `.github/workflows/secret-scan.yml`, que revarre no CI o intervalo empurrado. O hook é o que impede a credencial de entrar no histórico; o workflow é o que `git commit --no-verify` não consegue pular. Falsos positivos confirmados são silenciados linha a linha com um comentário `trufflehog:ignore`, nunca excluindo o caminho — excluir o caminho esconderia também um segredo real acrescentado depois àquele mesmo fixture. (secret-scanning-2026-08)
 
 ### Changed
+
 - **O repositório passou para a organização oficial `usetheokit`.** Clones existentes continuam funcionando: o GitHub redireciona permanentemente o remote antigo `usetheodev/theokit-plugins`. Os campos `repository`, `bugs` e `homepage` de todos os pacotes, o README e o `CONTRIBUTING.md` agora apontam para `usetheokit`. (usetheokit/theokit#316)
 
 - **A licença passou de MIT para Apache-2.0, alinhando-se ao restante do ecossistema.** Os doze pacotes deste repositório eram os únicos sob MIT enquanto todo o resto do TheoKit é Apache-2.0 — a divergência obrigava quem consome mais de um pilar a conciliar dois regimes de licença, sem que houvesse decisão registrada a favor disso. A Apache-2.0 adiciona concessão explícita de patente, que a MIT não tem. O relicenciamento foi verificado quanto à titularidade: o histórico deste repositório tem apenas duas identidades de autor, ambas do mantenedor, sem contribuições de terceiros a relicenciar. (usetheokit/theokit#316)
@@ -24,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Removed
 
+- O gate `tests/lint/no-ptbr.test.ts` (varredura English-only do repositório) foi removido junto com a pasta `tests/` da raiz. Ele nunca foi executado por gate algum: `pnpm test` percorre somente `./packages/*`, não há `vitest.config` na raiz, `pnpm lint` cobre apenas `packages/**` e o `include` do `tsconfig.json` raiz é `packages/*/src` + `packages/*/tests` — a `tests/` da raiz ficava fora de todos eles. O repositório declarava uma proteção que não estava ligada em lugar nenhum; removê-la não reduz nenhuma verificação que estivesse de fato rodando. (B-065)
+
 ### Fixed
 
 ### Security
@@ -35,11 +38,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Roadmap converted to a milestone-tracked format and amended: added `## M0 — [x]` (shipped plugin cluster baseline) and `## M1 — [ ] Architecture remediation (audit 2026-07-10)` covering the four findings of the 2026-07-10 architecture audit (score 88/100, verdict KEEP); added the `## State-of-the-art references` anchor (`/roadmap-feature architecture-remediation`)
 - Architecture audit (2026-07-10, loop-codebase-architect) of the 11 `@theokit/*` packages — verdict KEEP (88/100); 1 critical (canvas circular dependency) + 3 low normalizations, full report + migration plan in `architect-output/`
 
-
 ### Changed
 
 - **M2 — Lint & format compliance.** Brought the workspace to `pnpm lint --max-warnings=0` (437 pre-existing ESLint errors across all 11 packages) and `prettier` green. The CI `lint-and-format` job had only ever passed while `packages/` was empty, so the shipped plugins never satisfied the strict gate. All fixes are behavior-preserving (665/665 tests still green): `require-await` → `Promise.resolve(...)` where a Promise contract is required; `no-unsafe-*` → precise types (no `any`); `unbound-method` → property signatures / arrow wrappers. Scoped the prettier gate to product source via `.prettierignore` (excludes the synced `.claude` cycle-kit + generated `knowledge-base` / `agents` audit trail + `architect-output`).
-
 
 ### Fixed
 
