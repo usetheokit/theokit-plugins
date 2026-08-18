@@ -25,6 +25,9 @@ function providerReturning(event: Partial<PaymentEvent>, name = 'fake'): Payment
     name,
     createCheckout: () =>
       Promise.resolve({ id: 'c', url: 'https://pay/1', provider: name, raw: {} }),
+    retrieveCheckout: () =>
+      Promise.resolve({ id: 'c', status: 'pending' as const, provider: name, raw: {} }),
+    refund: () => Promise.resolve({ id: 'r', provider: name, raw: {} }),
     verifyWebhook: () =>
       Promise.resolve({
         type: 'checkout.completed',

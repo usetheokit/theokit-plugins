@@ -8,12 +8,31 @@ Multi-provider payments for TheoKit. One neutral contract, with Stripe and Abaca
 
 **Neutral — `@theokit/plugin-payments`**
 
-- `PaymentProvider` — `createCheckout(input)` and `verifyWebhook(req)`. Application code written against it switches gateways without a rewrite.
+`PaymentProvider`, the four things every gateway here does:
+
+| Method                        | What it is for                                                        |
+| ----------------------------- | --------------------------------------------------------------------- |
+| `createCheckout(input)`       | A hosted checkout — one-off or `mode: 'subscription'`. Returns a URL. |
+| `verifyWebhook(req)`          | Authenticity + normalisation. Throws on a bad signature.              |
+| `retrieveCheckout(reference)` | Where a charge stands, **asked** rather than waited for.              |
+| `refund(input)`               | Refund a completed charge in full.                                    |
+
+Plus:
+
 - `processPaymentWebhook({ provider, request, registry, store })` — verify, deduplicate, dispatch. Works with any provider.
 - `PaymentEventRegistry` + `definePaymentWebhook(type, handler)` — routing on the normalised event set.
-- `supportsPix(provider)` — type guard for the optional PIX capability.
 - `definePaymentProvider(impl)` — validates a provider at wiring time, so a malformed one fails at boot rather than mid-checkout.
+- Three capability guards for what only some gateways do: `supportsPix`, `supportsPartialRefund`, `supportsSubscriptions`.
 - Idempotency store (memory default, `createOrmStore(repo)` for production) and currency helpers.
+
+### Why `retrieveCheckout` is in the base contract
+
+Webhook delivery is at-least-once, and at-least-once is not at-least-one. A
+dropped delivery, a deploy inside the retry window, or an endpoint that 500s
+past the provider's give-up point all end the same way: a paid customer and an
+order nobody fulfilled. Reconciliation needs a way to **ask**, and a payments
+contract without one obliges every consumer to reach around it to the gateway
+SDK — which is the coupling this package exists to remove.
 
 **Stripe — `@theokit/plugin-payments/stripe`**
 
@@ -31,17 +50,42 @@ Multi-provider payments for TheoKit. One neutral contract, with Stripe and Abaca
 
 A Brazilian shop taking only PIX should not carry Stripe's SDK types in its build. Neither peer dependency is required unless the matching subpath is imported — `dist/abacatepay.js` imports `node:crypto` and nothing else.
 
-### Why PIX is not on `PaymentProvider`
+### Capabilities: what only some gateways do
 
-AbacatePay serves an inline QR payload; Stripe has no equivalent. Giving the base contract a `createPixCharge` would force Stripe to throw from it, and a type that describes a capability half its implementations lack teaches the reader nothing. It lives on `PixCapableProvider`, behind `supportsPix`, so the compiler stops the call on Stripe:
+`PaymentProvider` holds what both do. Anything else is a capability behind a
+guard, so the **compiler** stops a call the provider cannot serve:
+
+| Guard                   | Method               | Stripe | AbacatePay                          |
+| ----------------------- | -------------------- | ------ | ----------------------------------- |
+| `supportsPix`           | `createPixCharge`    | ✗      | ✓                                   |
+| `supportsPartialRefund` | `refundPartial`      | ✓      | ✗ — refunds integrally, and says so |
+| `supportsSubscriptions` | `cancelSubscription` | ✓      | ✓                                   |
 
 ```ts
-import { supportsPix } from '@theokit/plugin-payments'
+import { supportsPix, supportsPartialRefund } from '@theokit/plugin-payments'
 
 if (supportsPix(provider)) {
   const { brCode, brCodeBase64 } = await provider.createPixCharge({ amountInCents: 10_000 })
 }
+if (supportsPartialRefund(provider)) {
+  await provider.refundPartial({ reference: id, amountInCents: 400 })
+}
 ```
+
+Giving the base contract a `createPixCharge` would force Stripe to throw from
+it, and a type describing a capability half its implementations lack teaches the
+reader nothing.
+
+### The line between a capability and a field
+
+`mode: 'subscription'` is a plain field on `CheckoutInput`, while cancelling a
+subscription is a capability. That looks arbitrary until you see the rule:
+
+- a **value** a provider cannot serve is validated and refused at runtime —
+  AbacatePay rejects a non-BRL currency the same way;
+- a **method** a provider does not have is a capability, because its absence has
+  to be visible to the compiler. Otherwise every consumer writes a call that
+  type-checks and throws.
 
 ## Install
 
@@ -112,10 +156,20 @@ export async function POST(req: Request, { params }: { params: { gateway: string
 
 ### AbacatePay: what to know before wiring it
 
+> **Not yet exercised against the live API.** Every AbacatePay path here is
+> implemented from the published documentation and covered by unit tests against
+> a fake `fetch`. Nobody on this project has an AbacatePay account, so no call
+> has reached the real service. The Stripe provider is verified live on every
+> nightly run; this one is not, and the difference matters — see the note on
+> `/checkouts/get` below for what documentation alone got wrong.
+
 - **BRL only.** A `createCheckout` with any other currency is refused, not converted.
-- **No idempotency mechanism is documented**, so `CheckoutInput.idempotencyKey` is ignored on this provider — deliberately, rather than mapped onto `externalId`, which AbacatePay does not deduplicate on and which would look like retry safety while providing none.
+- **No idempotency mechanism is documented**, so `CheckoutInput.idempotencyKey` is ignored on this provider — deliberately, rather than mapped onto `externalId`, which AbacatePay does not deduplicate on and which would look like retry safety while providing none. Its refund endpoint is idempotent by resource id instead, so nothing is sent there either.
 - **Webhook verification needs the request URL.** The per-merchant secret arrives as `?webhookSecret=…`, and verification refuses to run without it rather than falling back to no check.
 - **The HMAC header is opt-in** via `signatureKey`. The key AbacatePay's docs publish is a global constant printed on a public page, so it proves the body was not altered — not that AbacatePay sent it. Its own docs disagree on whether the key is that constant or your webhook secret; pass `ABACATEPAY_DOCUMENTED_PUBLIC_KEY`, or your own key, once you have measured which one a real delivery is signed with.
+- **Subscriptions post to `/subscriptions/create`** and accept exactly one item, whose product must carry a `cycle`. The provider enforces the single-item rule itself so the caller learns the rule, not a field name in a 400.
+- **`cancelSubscription` takes a `subs_…` id, not the checkout's `bill_…`.** The subscription only exists once the customer pays, and AbacatePay documents no lookup from one to the other — take the id from the `subscription.completed` webhook.
+- **Status is read from `/checkouts/get`, not `/checkouts/one`.** AbacatePay's own documentation contradicts itself: the `llms.txt` index names `/checkouts/one`, the OpenAPI block on the same page names `/checkouts/get`. Measured unauthenticated on 2026-08-18, `/checkouts/get` answers `401` (exists, needs auth) while `/checkouts/one` answers `400` — identical to a route that does not exist. Following the index would have shipped a status check that fails on every call.
 
 ## Migrating from 0.2.x
 

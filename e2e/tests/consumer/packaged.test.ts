@@ -83,6 +83,41 @@ function normalize(target: string): string {
   return target.replace(/^\.\//, '')
 }
 
+/**
+ * Node builtins whose BARE specifier collides with the builtin name. A built
+ * file importing one of these without `node:` fails to resolve on runtimes that
+ * only expose the prefixed form. Not exhaustive on purpose — it covers the ones
+ * a plugin in this repo could plausibly reach for.
+ */
+const NODE_BUILTINS = new Set([
+  'assert',
+  'buffer',
+  'child_process',
+  'crypto',
+  'dns',
+  'events',
+  'fs',
+  'fs/promises',
+  'http',
+  'http2',
+  'https',
+  'net',
+  'os',
+  'path',
+  'process',
+  'querystring',
+  'readline',
+  'stream',
+  'stream/promises',
+  'string_decoder',
+  'timers',
+  'tls',
+  'url',
+  'util',
+  'worker_threads',
+  'zlib',
+])
+
 const DIRS = packageDirs()
 
 describe('consumer smoke — the packaging contract', () => {
@@ -128,6 +163,30 @@ describe('consumer smoke — the packaging contract', () => {
           if (!files.includes(normalize(types))) broken.push(`${subpath} -> ${types}`)
         }
         expect(broken, `${pkg.name} type declarations missing from the tarball`).toEqual([])
+      })
+
+      it('imports Node builtins with the `node:` prefix the source wrote', () => {
+        // #38: tsup 8 strips `node:` by default, so `node:crypto` in the source
+        // shipped as bare `crypto` — which Deno, Bun and Workers-style runtimes
+        // do not resolve. Nothing caught it, because the SOURCE was correct and
+        // no unit test reads the built artifact. This does.
+        //
+        // Bare specifiers are checked against the builtin list rather than a
+        // `node:` regex: a bare `crypto` could in principle be a real npm
+        // package, and it is the collision with a builtin name that breaks
+        // resolution, not the absence of a prefix in general.
+        const offenders: string[] = []
+        for (const file of files.filter((f) => f.endsWith('.js'))) {
+          const text = readFileSync(join(REPO_ROOT, 'packages', dir, file), 'utf8')
+          for (const m of text.matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g)) {
+            const spec = m[1]
+            if (spec !== undefined && NODE_BUILTINS.has(spec)) offenders.push(`${file}: ${spec}`)
+          }
+        }
+        expect(
+          offenders,
+          `${pkg.name} imports a Node builtin without the node: prefix (#38)`,
+        ).toEqual([])
       })
 
       it('imports its main entry and exposes a non-empty barrel', async () => {

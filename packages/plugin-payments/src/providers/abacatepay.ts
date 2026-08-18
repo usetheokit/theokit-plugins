@@ -30,12 +30,18 @@ import { definePaymentProvider } from '../provider.js'
 import {
   type CheckoutInput,
   type CheckoutResult,
+  type CheckoutStatus,
   type PaymentEvent,
   type PaymentEventType,
   PaymentProviderError,
+  type PaymentStatus,
   type PixCapableProvider,
   type PixChargeInput,
   type PixChargeResult,
+  type RefundInput,
+  type RefundResult,
+  type SubscriptionCapableProvider,
+  type SubscriptionStatus,
   type WebhookRequest,
   WebhookSignatureError,
 } from '../provider-types.js'
@@ -121,30 +127,59 @@ interface CheckoutData {
   readonly url?: string
 }
 
+/**
+ * AbacatePay reports status as one enumerated word, documented and stable, so
+ * this is a translation rather than an inference.
+ */
+const STATUS_MAP: Readonly<Record<string, PaymentStatus>> = {
+  PENDING: 'pending',
+  PAID: 'paid',
+  EXPIRED: 'expired',
+  CANCELLED: 'cancelled',
+  REFUNDED: 'refunded',
+}
+
+interface StatusData {
+  readonly id?: string
+  readonly status?: string
+  readonly amount?: number
+  readonly paidAmount?: number
+}
+
+interface RefundData {
+  readonly refundPublicId?: string
+}
+
+interface SubscriptionData {
+  readonly id?: string
+  readonly status?: string
+}
+
 interface PixData {
   readonly id?: string
   readonly brCode?: string
   readonly brCodeBase64?: string
 }
 
-export function AbacatePayProvider(opts: AbacatePayProviderOptions): PixCapableProvider {
+export function AbacatePayProvider(
+  opts: AbacatePayProviderOptions,
+): PixCapableProvider & SubscriptionCapableProvider {
   if (typeof opts.apiKey !== 'string' || opts.apiKey.length === 0) {
     throw new TypeError('AbacatePayProvider requires { apiKey } — a non-empty AbacatePay API key')
   }
   const baseUrl = (opts.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, '')
   const doFetch: FetchLike = opts.fetchImpl ?? ((input, init) => fetch(input, init))
 
-  async function post<T>(path: string, body: unknown, code: string): Promise<T> {
+  async function request<T>(path: string, init: RequestInit, code: string): Promise<T> {
     let res: Response
     try {
       res = await doFetch(`${baseUrl}${path}`, {
-        method: 'POST',
+        ...init,
         headers: {
           authorization: `Bearer ${opts.apiKey}`,
-          'content-type': 'application/json',
           accept: 'application/json',
+          ...(init.headers as Record<string, string> | undefined),
         },
-        body: JSON.stringify(body),
       })
     } catch (cause) {
       // A transport failure, not a refusal: the request never reached a decision.
@@ -187,6 +222,22 @@ export function AbacatePayProvider(opts: AbacatePayProviderOptions): PixCapableP
     return envelope.data
   }
 
+  function get<T>(path: string, code: string): Promise<T> {
+    return request<T>(path, { method: 'GET' }, code)
+  }
+
+  function post<T>(path: string, body: unknown, code: string): Promise<T> {
+    return request<T>(
+      path,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+      code,
+    )
+  }
+
   return definePaymentProvider({
     name: PROVIDER,
 
@@ -206,6 +257,19 @@ export function AbacatePayProvider(opts: AbacatePayProviderOptions): PixCapableP
         )
       }
 
+      const subscription = input.mode === 'subscription'
+      if (subscription && input.items.length !== 1) {
+        // Documented AbacatePay constraint, enforced here so the caller learns
+        // it from a message that names the rule rather than from a 400 that
+        // names a field. Stripe has no equivalent limit, which is exactly why
+        // it is checked in the provider and not in the neutral contract.
+        throw new PaymentProviderError(
+          PROVIDER,
+          'subscription_requires_single_item',
+          `AbacatePay subscription checkouts accept exactly one item; ${input.items.length} were given. The billing cycle comes from the product's own \`cycle\`, so a second item has no cycle to follow.`,
+        )
+      }
+
       // `idempotencyKey` is intentionally absent from this payload. See point 3
       // of the file docstring.
       const payload = {
@@ -216,7 +280,16 @@ export function AbacatePayProvider(opts: AbacatePayProviderOptions): PixCapableP
         ...(input.metadata !== undefined ? { metadata: { ...input.metadata } } : {}),
       }
 
-      const data = await post<CheckoutData>('/checkouts/create', payload, 'checkout_failed')
+      // Different endpoint, identical payload and identical response shape —
+      // `/subscriptions/create` is documented as taking the checkout parameters.
+      // Note what it returns is a CHECKOUT, not a subscription: the `subs_…`
+      // only exists once the customer pays, which is why the caller should wait
+      // for `subscription.completed` rather than treat this URL as activation.
+      const data = await post<CheckoutData>(
+        subscription ? '/subscriptions/create' : '/checkouts/create',
+        payload,
+        'checkout_failed',
+      )
       if (typeof data.url !== 'string' || data.url.length === 0) {
         throw new PaymentProviderError(
           PROVIDER,
@@ -347,6 +420,95 @@ export function AbacatePayProvider(opts: AbacatePayProviderOptions): PixCapableP
         provider: PROVIDER,
         raw: parsed,
       }
+    },
+
+    async retrieveCheckout(reference: string): Promise<CheckoutStatus> {
+      // Two resources, two endpoints, told apart by the id prefix the API itself
+      // assigns: `bill_…` is a hosted checkout, `pix_char_…` an inline PIX
+      // charge. Guessing wrong is a 404, so the prefix is read rather than
+      // assumed, and an unrecognised one is refused instead of routed by
+      // coin-flip.
+      const pix = reference.startsWith('pix_char_') || reference.startsWith('char_')
+      if (!pix && !reference.startsWith('bill_')) {
+        throw new PaymentProviderError(
+          PROVIDER,
+          'unknown_reference',
+          `Cannot tell what "${reference}" refers to. AbacatePay checkout ids start with bill_ and inline PIX charges with pix_char_ / char_.`,
+        )
+      }
+      const path = pix
+        ? `/transparents/check?id=${encodeURIComponent(reference)}`
+        : `/checkouts/get?id=${encodeURIComponent(reference)}`
+
+      const data = await get<StatusData>(path, 'retrieve_failed')
+      const status = typeof data.status === 'string' ? data.status.toUpperCase() : ''
+      return {
+        id: typeof data.id === 'string' ? data.id : reference,
+        status: STATUS_MAP[status] ?? 'unknown',
+        provider: PROVIDER,
+        ...(typeof data.amount === 'number' ? { amountInCents: data.amount } : {}),
+        // AbacatePay refunds integrally, so a REFUNDED resource returned the
+        // whole amount and there is no separate figure to report.
+        ...(STATUS_MAP[status] === 'refunded' && typeof data.amount === 'number'
+          ? { amountRefundedInCents: data.amount }
+          : { amountRefundedInCents: 0 }),
+        currency: 'BRL',
+        raw: data,
+      }
+    },
+
+    async cancelSubscription(reference: string): Promise<SubscriptionStatus> {
+      if (!reference.startsWith('subs_')) {
+        // AbacatePay's cancel takes the SUBSCRIPTION id (`subs_…`), which only
+        // exists once the customer has paid the subscription checkout — the
+        // `bill_…` from createCheckout is not it, and there is no documented
+        // endpoint that resolves one to the other. Saying so beats a 4xx that
+        // looks like the subscription was never there.
+        throw new PaymentProviderError(
+          PROVIDER,
+          'unknown_reference',
+          `AbacatePay cancels by subscription id (subs_…); "${reference}" is not one. The subs_ id only exists after the customer pays — take it from the subscription.completed webhook, not from the checkout.`,
+        )
+      }
+
+      const data = await post<SubscriptionData>(
+        '/subscriptions/cancel',
+        { id: reference },
+        'cancel_failed',
+      )
+      const status = typeof data.status === 'string' ? data.status.toUpperCase() : ''
+      return {
+        id: typeof data.id === 'string' ? data.id : reference,
+        status: status === 'CANCELLED' ? 'cancelled' : 'unknown',
+        provider: PROVIDER,
+        raw: data,
+      }
+    },
+
+    async refund(input: RefundInput): Promise<RefundResult> {
+      // Full refund only; `refundPartial` is deliberately absent so
+      // `supportsPartialRefund` reports false and the compiler stops the call.
+      const pix = input.reference.startsWith('pix_char_') || input.reference.startsWith('char_')
+      const data = await post<RefundData>(
+        pix ? '/transparents/refund' : '/checkouts/refund',
+        {
+          id: input.reference,
+          ...(input.reason !== undefined ? { reason: input.reason } : {}),
+        },
+        'refund_failed',
+      )
+      // `idempotencyKey` is not sent: AbacatePay documents this endpoint as
+      // idempotent BY RESOURCE ID — the same id always returns the same
+      // refundPublicId and never creates a second refund — so a caller-supplied
+      // key would have nothing to bind to.
+      if (typeof data.refundPublicId !== 'string' || data.refundPublicId.length === 0) {
+        throw new PaymentProviderError(
+          PROVIDER,
+          'refund_failed',
+          'AbacatePay reported success but returned no refundPublicId, so there is nothing to reconcile the refund against.',
+        )
+      }
+      return { id: data.refundPublicId, provider: PROVIDER, raw: data }
     },
   })
 }

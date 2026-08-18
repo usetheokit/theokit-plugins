@@ -6,8 +6,12 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { definePaymentProvider, supportsPix } from '../src/provider.js'
-import type { PaymentProvider, PixCapableProvider } from '../src/provider-types.js'
+import { definePaymentProvider, supportsPartialRefund, supportsPix } from '../src/provider.js'
+import type {
+  PartialRefundCapableProvider,
+  PaymentProvider,
+  PixCapableProvider,
+} from '../src/provider-types.js'
 
 function minimalProvider(overrides: Partial<PaymentProvider> = {}): PaymentProvider {
   return {
@@ -22,6 +26,9 @@ function minimalProvider(overrides: Partial<PaymentProvider> = {}): PaymentProvi
         provider: 'fake',
         raw: {},
       }),
+    retrieveCheckout: () =>
+      Promise.resolve({ id: 'id', status: 'pending' as const, provider: 'fake', raw: {} }),
+    refund: () => Promise.resolve({ id: 'ref', provider: 'fake', raw: {} }),
     ...overrides,
   }
 }
@@ -46,6 +53,28 @@ describe('definePaymentProvider', () => {
   it('rejects a provider that cannot verify a webhook', () => {
     const broken = { ...minimalProvider(), verifyWebhook: 'nope' } as unknown as PaymentProvider
     expect(() => definePaymentProvider(broken)).toThrow(/impl.verifyWebhook must be a function/)
+  })
+
+  it('rejects a provider that cannot answer where a charge stands', () => {
+    // retrieveCheckout is not optional: without it, reconciling a dropped
+    // webhook means reaching around the contract to the gateway SDK.
+    const broken = {
+      ...minimalProvider(),
+      retrieveCheckout: undefined,
+    } as unknown as PaymentProvider
+    expect(() => definePaymentProvider(broken)).toThrow(/impl.retrieveCheckout must be a function/)
+  })
+
+  it('rejects a provider that cannot refund', () => {
+    const broken = { ...minimalProvider(), refund: undefined } as unknown as PaymentProvider
+    expect(() => definePaymentProvider(broken)).toThrow(/impl.refund must be a function/)
+  })
+
+  it('rejects a non-function refundPartial, for the same reason as createPixCharge', () => {
+    const broken = { ...minimalProvider(), refundPartial: 1 } as unknown as PaymentProvider
+    expect(() => definePaymentProvider(broken)).toThrow(
+      /impl.refundPartial must be a function when present/,
+    )
   })
 
   it('rejects a non-function createPixCharge, because supportsPix would then report a lie', () => {
@@ -85,6 +114,24 @@ describe('supportsPix', () => {
     // createPixCharge and tsc rejects the call.
     if (supportsPix(asBase)) {
       expect(typeof asBase.createPixCharge).toBe('function')
+    }
+  })
+})
+
+describe('supportsPartialRefund', () => {
+  it('is false for a provider that only refunds in full', () => {
+    expect(supportsPartialRefund(minimalProvider())).toBe(false)
+  })
+
+  it('is true, and narrows the type, for a provider that can', () => {
+    const capable: PartialRefundCapableProvider = {
+      ...minimalProvider({ name: 'parts' }),
+      refundPartial: () => Promise.resolve({ id: 'ref', provider: 'parts', raw: {} }),
+    }
+    const asBase: PaymentProvider = capable
+    expect(supportsPartialRefund(asBase)).toBe(true)
+    if (supportsPartialRefund(asBase)) {
+      expect(typeof asBase.refundPartial).toBe('function')
     }
   })
 })

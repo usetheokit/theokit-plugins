@@ -68,6 +68,52 @@ describe('AbacatePayProvider.createCheckout', () => {
     })
   })
 
+  it('posts a subscription checkout to /subscriptions/create, not /checkouts/create', async () => {
+    // #39. Same payload, different endpoint — the provider hides that, so the
+    // caller writes `mode: 'subscription'` and nothing else changes.
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({ data: { id: 'bill_sub', url: 'https://pay/sub' }, error: null }),
+    )
+    const result = await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).createCheckout({
+      items: [{ ref: 'prod_monthly', quantity: 1 }],
+      mode: 'subscription',
+    })
+
+    expect((fetchImpl.mock.calls[0] as [string])[0]).toBe(
+      'https://api.abacatepay.com/v2/subscriptions/create',
+    )
+    expect(result.url).toBe('https://pay/sub')
+  })
+
+  it('refuses a multi-item subscription with the rule, not with a 400 from the API', async () => {
+    // AbacatePay accepts exactly one item on a subscription checkout, because
+    // the cycle comes from the product. Stripe has no such limit, so the check
+    // belongs to the provider and not to the neutral contract.
+    const fetchImpl = makeFetch(() => jsonResponse({ data: {}, error: null }))
+    await expect(
+      AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).createCheckout({
+        items: [
+          { ref: 'prod_a', quantity: 1 },
+          { ref: 'prod_b', quantity: 1 },
+        ],
+        mode: 'subscription',
+      }),
+    ).rejects.toMatchObject({ code: 'subscription_requires_single_item' })
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('still posts a one-off checkout to /checkouts/create', async () => {
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({ data: { id: 'bill_1', url: 'https://pay/1' }, error: null }),
+    )
+    await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).createCheckout({
+      items: [{ ref: 'prod_x', quantity: 1 }],
+    })
+    expect((fetchImpl.mock.calls[0] as [string])[0]).toBe(
+      'https://api.abacatepay.com/v2/checkouts/create',
+    )
+  })
+
   it('refuses a non-BRL charge instead of letting the amount be reinterpreted', async () => {
     const fetchImpl = makeFetch(() => jsonResponse({ data: {}, error: null }))
     const provider = AbacatePayProvider({ apiKey: API_KEY, fetchImpl })
@@ -352,5 +398,178 @@ describe('AbacatePayProvider.verifyWebhook', () => {
     await expect(
       provider.verifyWebhook({ rawBody: 'not json', headers: {}, url: goodUrl }),
     ).rejects.toMatchObject({ code: 'malformed_webhook_body' })
+  })
+})
+
+describe('AbacatePayProvider.retrieveCheckout', () => {
+  it('reads a hosted checkout from /checkouts/get — NOT /checkouts/one', async () => {
+    // AbacatePay's own docs disagree: the llms index names /checkouts/one, the
+    // OpenAPI on the same page names /checkouts/get. Measured unauthenticated
+    // 2026-08-18, /checkouts/get answers 401 (exists, needs auth) while
+    // /checkouts/one answers 400 — identical to a route that does not exist.
+    // Following the index would have shipped a status check that 400s always.
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({ data: { id: 'bill_1', status: 'PAID', amount: 10_000 }, error: null }),
+    )
+    const status = await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).retrieveCheckout(
+      'bill_1',
+    )
+
+    expect((fetchImpl.mock.calls[0] as [string])[0]).toBe(
+      'https://api.abacatepay.com/v2/checkouts/get?id=bill_1',
+    )
+    expect(status).toMatchObject({
+      id: 'bill_1',
+      status: 'paid',
+      provider: 'abacatepay',
+      amountInCents: 10_000,
+      currency: 'BRL',
+    })
+  })
+
+  it('reads an inline PIX charge from /transparents/check', async () => {
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({ data: { id: 'pix_char_1', status: 'PENDING', amount: 500 }, error: null }),
+    )
+    await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).retrieveCheckout('pix_char_1')
+    expect((fetchImpl.mock.calls[0] as [string])[0]).toBe(
+      'https://api.abacatepay.com/v2/transparents/check?id=pix_char_1',
+    )
+  })
+
+  it.each([
+    ['PENDING', 'pending'],
+    ['PAID', 'paid'],
+    ['EXPIRED', 'expired'],
+    ['CANCELLED', 'cancelled'],
+    ['REFUNDED', 'refunded'],
+  ])('maps %s to %s', async (api, expected) => {
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({ data: { id: 'bill_1', status: api, amount: 100 }, error: null }),
+    )
+    const status = await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).retrieveCheckout(
+      'bill_1',
+    )
+    expect(status.status).toBe(expected)
+  })
+
+  it('reports the full amount as refunded, because AbacatePay refunds integrally', async () => {
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({ data: { id: 'bill_1', status: 'REFUNDED', amount: 7500 }, error: null }),
+    )
+    const status = await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).retrieveCheckout(
+      'bill_1',
+    )
+    expect(status.amountRefundedInCents).toBe(7500)
+  })
+
+  it('refuses a reference whose prefix matches no resource, rather than guessing an endpoint', async () => {
+    const fetchImpl = makeFetch(() => jsonResponse({ data: {}, error: null }))
+    await expect(
+      AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).retrieveCheckout('whatever_123'),
+    ).rejects.toMatchObject({ code: 'unknown_reference' })
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('passes an unrecognised status through as unknown instead of inventing one', async () => {
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({ data: { id: 'bill_1', status: 'SOMETHING_NEW' }, error: null }),
+    )
+    const status = await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).retrieveCheckout(
+      'bill_1',
+    )
+    expect(status.status).toBe('unknown')
+  })
+})
+
+describe('AbacatePayProvider.refund', () => {
+  it('posts the checkout id to /checkouts/refund and returns the refund id', async () => {
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({ data: { refundPublicId: 'tran_refund789' }, error: null }),
+    )
+    const result = await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).refund({
+      reference: 'bill_1',
+      reason: 'Pedido cancelado pelo cliente.',
+    })
+
+    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('https://api.abacatepay.com/v2/checkouts/refund')
+    expect(JSON.parse(init.body as string)).toEqual({
+      id: 'bill_1',
+      reason: 'Pedido cancelado pelo cliente.',
+    })
+    expect(result).toMatchObject({ id: 'tran_refund789', provider: 'abacatepay' })
+  })
+
+  it('routes a PIX charge to /transparents/refund', async () => {
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({ data: { refundPublicId: 'tran_r' }, error: null }),
+    )
+    await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).refund({ reference: 'pix_char_1' })
+    expect((fetchImpl.mock.calls[0] as [string])[0]).toBe(
+      'https://api.abacatepay.com/v2/transparents/refund',
+    )
+  })
+
+  it('never sends an idempotency key, because the endpoint dedupes on the resource id', async () => {
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({ data: { refundPublicId: 'tran_r' }, error: null }),
+    )
+    await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).refund({
+      reference: 'bill_1',
+      idempotencyKey: 'should-not-travel',
+    })
+    expect((fetchImpl.mock.calls[0] as [string, RequestInit])[1].body as string).not.toContain(
+      'should-not-travel',
+    )
+  })
+
+  it('refuses a success with no refundPublicId — there would be nothing to reconcile', async () => {
+    const fetchImpl = makeFetch(() => jsonResponse({ data: {}, error: null }))
+    await expect(
+      AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).refund({ reference: 'bill_1' }),
+    ).rejects.toMatchObject({ code: 'refund_failed' })
+  })
+
+  it('does NOT advertise partial refunds, because AbacatePay has none', async () => {
+    const { supportsPartialRefund } = await import('../../src/provider.js')
+    expect(supportsPartialRefund(AbacatePayProvider({ apiKey: API_KEY }))).toBe(false)
+  })
+})
+
+describe('AbacatePayProvider.cancelSubscription', () => {
+  it('posts the subs_ id to /subscriptions/cancel', async () => {
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({ data: { id: 'subs_1', status: 'CANCELLED' }, error: null }),
+    )
+    const result = await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).cancelSubscription(
+      'subs_1',
+    )
+
+    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('https://api.abacatepay.com/v2/subscriptions/cancel')
+    expect(JSON.parse(init.body as string)).toEqual({ id: 'subs_1' })
+    expect(result).toMatchObject({ id: 'subs_1', status: 'cancelled', provider: 'abacatepay' })
+  })
+
+  it('refuses a checkout id, because AbacatePay documents no way to resolve one', async () => {
+    // Unlike Stripe, whose session carries `subscription`, AbacatePay has no
+    // documented bill_ -> subs_ lookup. Guessing would produce a 4xx that reads
+    // like the subscription never existed.
+    const fetchImpl = makeFetch(() => jsonResponse({ data: {}, error: null }))
+    await expect(
+      AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).cancelSubscription('bill_1'),
+    ).rejects.toMatchObject({ code: 'unknown_reference' })
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('does not claim cancellation when the API reports another status', async () => {
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({ data: { id: 'subs_1', status: 'PENDING' }, error: null }),
+    )
+    expect(
+      (await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).cancelSubscription('subs_1'))
+        .status,
+    ).toBe('unknown')
   })
 })

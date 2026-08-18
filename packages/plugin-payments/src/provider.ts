@@ -7,7 +7,12 @@
  * is trying to pay.
  */
 
-import { type PaymentProvider, type PixCapableProvider } from './provider-types.js'
+import {
+  type PartialRefundCapableProvider,
+  type PaymentProvider,
+  type PixCapableProvider,
+  type SubscriptionCapableProvider,
+} from './provider-types.js'
 
 /**
  * Register a payment provider, validating the contract up front.
@@ -28,6 +33,12 @@ export function definePaymentProvider<T extends PaymentProvider>(impl: T): T {
   if (typeof impl.verifyWebhook !== 'function') {
     throw new TypeError('definePaymentProvider: impl.verifyWebhook must be a function')
   }
+  if (typeof impl.retrieveCheckout !== 'function') {
+    throw new TypeError('definePaymentProvider: impl.retrieveCheckout must be a function')
+  }
+  if (typeof impl.refund !== 'function') {
+    throw new TypeError('definePaymentProvider: impl.refund must be a function')
+  }
   // Half a PIX implementation is worse than none: the guard below would report
   // the provider as capable and the call would fail at runtime.
   const pix = (impl as Partial<PixCapableProvider>).createPixCharge
@@ -35,6 +46,10 @@ export function definePaymentProvider<T extends PaymentProvider>(impl: T): T {
     throw new TypeError(
       'definePaymentProvider: impl.createPixCharge must be a function when present',
     )
+  }
+  const partial = (impl as Partial<PartialRefundCapableProvider>).refundPartial
+  if (partial !== undefined && typeof partial !== 'function') {
+    throw new TypeError('definePaymentProvider: impl.refundPartial must be a function when present')
   }
   return impl
 }
@@ -54,4 +69,36 @@ export function definePaymentProvider<T extends PaymentProvider>(impl: T): T {
  */
 export function supportsPix(provider: PaymentProvider): provider is PixCapableProvider {
   return typeof (provider as Partial<PixCapableProvider>).createPixCharge === 'function'
+}
+
+/**
+ * Narrow a provider to one that can refund less than the full amount.
+ *
+ * A guard rather than an optional method, so the compiler stops a caller from
+ * asking AbacatePay for a partial refund — it refunds integrally and documents
+ * that it does. Same shape as {@link supportsPix}, deliberately: two
+ * capabilities detected two different ways would be one convention too many.
+ *
+ * ```ts
+ * if (supportsPartialRefund(provider)) {
+ *   await provider.refundPartial({ reference: id, amountInCents: 400 })
+ * }
+ * ```
+ */
+export function supportsPartialRefund(
+  provider: PaymentProvider,
+): provider is PartialRefundCapableProvider {
+  return typeof (provider as Partial<PartialRefundCapableProvider>).refundPartial === 'function'
+}
+
+/**
+ * Narrow a provider to one that can end a recurring charge.
+ *
+ * See {@link SubscriptionCapableProvider} for why cancelling is a capability
+ * while starting a subscription is a field on the input.
+ */
+export function supportsSubscriptions(
+  provider: PaymentProvider,
+): provider is SubscriptionCapableProvider {
+  return typeof (provider as Partial<SubscriptionCapableProvider>).cancelSubscription === 'function'
 }

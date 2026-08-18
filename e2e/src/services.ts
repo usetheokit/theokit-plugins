@@ -130,6 +130,12 @@ export const SERVICES: readonly ServiceSpec[] = [
     ],
     target: [
       {
+        name: 'STRIPE_TEST_RECURRING_PRICE_ID',
+        what: 'RECURRING price id in test mode, for the subscription-mode assertion',
+        where:
+          "Same throwaway product as STRIPE_TEST_PRICE_ID, with a recurring interval. Kept separate from the one-time price on purpose: Stripe refuses each in the other's mode, and the suite asserts both refusals, so one id cannot serve both.",
+      },
+      {
         name: 'STRIPE_TEST_PRICE_ID',
         what: 'ONE-TIME price id in test mode the suite may build a checkout session for',
         where:

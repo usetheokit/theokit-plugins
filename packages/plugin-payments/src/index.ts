@@ -26,19 +26,33 @@
 export {
   type CheckoutInput,
   type CheckoutItem,
+  type CheckoutMode,
   type CheckoutResult,
+  type CheckoutStatus,
+  type PartialRefundCapableProvider,
+  type PartialRefundInput,
   type PaymentEvent,
   type PaymentEventType,
   type PaymentProvider,
   PaymentProviderError,
+  type PaymentStatus,
   type PixCapableProvider,
   type PixChargeInput,
   type PixChargeResult,
+  type RefundInput,
+  type RefundResult,
+  type SubscriptionCapableProvider,
+  type SubscriptionStatus,
   type WebhookRequest,
   WebhookSignatureError,
 } from './provider-types.js'
 
-export { definePaymentProvider, supportsPix } from './provider.js'
+export {
+  definePaymentProvider,
+  supportsPartialRefund,
+  supportsPix,
+  supportsSubscriptions,
+} from './provider.js'
 
 export {
   definePaymentWebhook,

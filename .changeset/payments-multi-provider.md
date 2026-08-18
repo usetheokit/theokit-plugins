@@ -27,3 +27,16 @@ Also in this release:
 - **Event ids are namespaced per provider** in the shared idempotency store. Two gateways can both emit `evt_1`; unnamespaced, the second would be swallowed as a duplicate and that payment silently never fulfilled.
 - **AbacatePay's `?webhookSecret=` is verified in constant time, and verification refuses to run without the request URL** rather than falling back to no check. Its HMAC header is opt-in via `signatureKey`, because the key its docs publish is a global constant — that proves the body was not altered, not that AbacatePay sent it.
 - **`node:` import prefixes survive the build** (`removeNodeProtocol: false`). tsup was rewriting `node:crypto` to bare `crypto`, which Deno, Bun and Workers-style runtimes do not resolve. The other packages in the repo still ship that way — tracked in usetheokit/theokit-plugins#38.
+
+**The contract covers the whole lifecycle, not just the start of it.** A payments plugin that can only create a checkout leaves every consumer reaching around it to the gateway SDK for the parts that actually run a business:
+
+| Method | Why it is in the base contract |
+| --- | --- |
+| `retrieveCheckout(reference)` | Webhook delivery is at-least-once, which is not at-least-one. A dropped delivery, a deploy inside the retry window, or an endpoint that 500s past the give-up point all end with a paid customer and an unfulfilled order. Reconciliation needs a way to ASK. |
+| `refund(input)` | Both gateways refund in full. Partial refunds are a capability (`supportsPartialRefund`) because AbacatePay refunds integrally and documents that it does. |
+
+`mode: 'subscription'` on `CheckoutInput` closes #39 — the contract previously hardcoded `mode: 'payment'`, so it could not begin a recurring charge on either provider. Ending one is `cancelSubscription`, behind `supportsSubscriptions`. The split follows a rule rather than a mood: a **value** a provider cannot serve is validated and refused at runtime (AbacatePay rejects non-BRL the same way), while a **method** it does not have must be visible to the compiler, or every consumer writes a call that type-checks and throws.
+
+**Verified against the live Stripe API, without a browser.** Thirteen assertions run nightly, including the ones a fake cannot support: the same idempotency key returning the same session; a real charge confirmed with `pm_card_visa` then refunded in full and in part; a real `active` subscription cancelled and then re-read from Stripe to confirm it stuck. The AbacatePay provider is implemented from published documentation and covered only against a fake — nobody here has an account, and the README says so where a reader will see it before wiring it.
+
+That distinction earned its keep immediately: AbacatePay's own docs contradict themselves on the status endpoint, and measuring settled it. `/checkouts/get` answers 401 unauthenticated (exists), `/checkouts/one` — the one their `llms.txt` index names — answers 400, identical to a route that does not exist.
