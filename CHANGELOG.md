@@ -85,6 +85,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Uma afirmação minha, não medida, corrigida no `AbacatePayProvider`.** O docstring dizia como fato que um erro da AbacatePay "pode chegar com HTTP 200" — veio da descrição do envelope `{data, success, error}` nos docs, não de uma resposta. Medido: toda recusa chega com 4xx (400 `"No products found"`, 422 em corpo malformado). O guard que checa `res.ok` **e** `error` fica, porque custa nada e um corpo `success:false` atrás de um 200 devolveria `undefined` como URL de checkout; o que mudou é a etiqueta — cobertura **defensiva** de uma forma que a API nunca produziu, não contrato medido. Mesmo padrão aplicado a três afirmações deles no mesmo dia, agora a uma minha. Sem mudança de comportamento. (abacatepay-live-2026-08)
+
 - **Três defeitos do `AbacatePayProvider`, todos vindos de confiar na documentação em vez de medir (#41).** O terceiro é o mais grave e nenhum teste unitário podia pegá-lo. (abacatepay-live-2026-08)
 
   **1. Estorno bem-sucedido lançava erro.** Os docs mostram `{ refundPublicId }`; a API devolve `{ id, status: "COMPLETE", amount, originalId, createdAt }`. Lendo só a chave documentada, o provider lançava `refund_failed` em **todo estorno que funcionou**. Invisível para o teste unitário porque o fake tinha sido escrito a partir dos mesmos docs — é o mesmo padrão do `re_xxx` no `plugin-email`, onde o fake ensinou o contrato errado. Agora aceita as duas chaves, e o fake ensina a forma **medida**.
