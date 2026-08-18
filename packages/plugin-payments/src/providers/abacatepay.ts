@@ -27,7 +27,11 @@
  *    reference that AbacatePay does not deduplicate on, so that mapping would
  *    look like retry safety and provide none.
  *
- * Verified against https://docs.abacatepay.com on 2026-08-18.
+ * Verified against the live sandbox API on 2026-08-18, not only against the
+ * docs — which lost three times in the process: the refund response shape, the
+ * refund endpoint routing, and `methods` being required. The `x-webhook-secret`
+ * header this provider prefers is not documented at all; it was found on a real
+ * delivery (#44).
  */
 
 import { createHmac, timingSafeEqual } from 'node:crypto'
@@ -56,22 +60,29 @@ const PROVIDER = 'abacatepay'
 const DEFAULT_BASE_URL = 'https://api.abacatepay.com/v2'
 
 /**
- * The HMAC key AbacatePay's own documentation prints in full, in four
- * languages, on a public page.
+ * The HMAC key AbacatePay signs with — and it is the constant their own
+ * documentation prints in full, in four languages, on a public page.
  *
- * It is exported because a consumer who wants the integrity check should not
- * have to copy a 256-character literal out of a docs page — but it is NOT the
- * default, and that is the point. A key anyone can read authenticates nobody:
- * it proves the body was not altered in transit, not that AbacatePay sent it.
- * The per-merchant `webhookSecret` in the query string is the part that does.
+ * MEASURED on a real delivery 2026-08-18 (#44), which settled a contradiction in
+ * their docs. Their webhooks reference says payloads are signed "com HMAC usando
+ * o `secret` informado"; their security page hardcodes this constant. Against a
+ * live `transparent.completed`:
  *
- * AbacatePay's own docs disagree with themselves here — the webhooks reference
- * says payloads are "signed with HMAC using the `secret` you provided", while
- * the security page hardcodes this constant. Defaulting to either reading would
- * be a guess, so `signatureKey` is opt-in and unset means the header is not
- * checked. Verification then rests on the query secret, which both pages agree
- * on. Pass this constant, or your own key, once you have measured which one a
- * real delivery is actually signed with.
+ *   base64(HMAC-SHA256(rawBody, THIS_CONSTANT))     === X-Webhook-Signature  ✓
+ *   base64(HMAC-SHA256(rawBody, merchant secret))   !== X-Webhook-Signature  ✗
+ *   hex(...) for either                             !== X-Webhook-Signature  ✗
+ *
+ * So the signature is computed with a key anyone can read, and that decides what
+ * it is worth: it proves the body was not altered in transit, and NOT that
+ * AbacatePay sent it — anybody who opened the docs can produce a valid one.
+ *
+ * That is why checking it is still opt-in. Enabling it by default would add a
+ * check that looks like authentication and is not; authenticity comes from the
+ * per-merchant secret, which arrives in the `x-webhook-secret` header (and in the
+ * query string) and is verified unconditionally.
+ *
+ * Pass this to `signatureKey` when you want the integrity half too, knowing
+ * exactly what it buys.
  *
  * @see https://docs.abacatepay.com/pages/webhooks/security
  */
@@ -91,9 +102,13 @@ export interface AbacatePayProviderOptions {
    */
   readonly webhookSecret?: string
   /**
-   * Opt-in HMAC key for the `X-Webhook-Signature` header. Unset means the
-   * header is not checked — see {@link ABACATEPAY_DOCUMENTED_PUBLIC_KEY} for
-   * why this is not defaulted.
+   * Opt-in HMAC key for the `X-Webhook-Signature` header.
+   *
+   * Measured: the signature is computed with the constant AbacatePay publishes,
+   * so checking it proves integrity in transit and not authenticity. Unset means
+   * the header is not checked, and authenticity still rests on the per-merchant
+   * secret, which is verified either way. See
+   * {@link ABACATEPAY_DOCUMENTED_PUBLIC_KEY}.
    */
   readonly signatureKey?: string
   /**
@@ -393,29 +408,40 @@ export function AbacatePayProvider(
           'AbacatePayProvider needs { webhookSecret } to verify webhooks — the secret you set when creating the webhook, which arrives as the ?webhookSecret= query parameter.',
         )
       }
-      if (req.url === undefined || req.url.length === 0) {
-        // Failing here rather than falling back to the signature: the signature
-        // key may be unset, and if it is, accepting without the query secret
-        // would accept anything at all.
-        throw new WebhookSignatureError(
-          PROVIDER,
-          'WebhookRequest.url is required for AbacatePay — its per-merchant secret travels in the query string, so without the URL there is nothing to check it against.',
-        )
+      // MEASURED on a real delivery 2026-08-18 (#44): AbacatePay sends the
+      // per-merchant secret TWICE — as `?webhookSecret=` and as an
+      // `x-webhook-secret` header. The header is undocumented and is the better
+      // channel, so it is preferred: a secret in a URL reaches proxy logs,
+      // browser history and Referer, and a query string is the part of a request
+      // people paste into tickets. The query parameter stays as a fallback for
+      // runtimes that hand us a URL and no headers.
+      const fromHeader = req.headers['x-webhook-secret'] ?? req.headers['X-Webhook-Secret']
+      let fromQuery: string | null = null
+      if (req.url !== undefined && req.url.length > 0) {
+        try {
+          fromQuery = new URL(req.url).searchParams.get('webhookSecret')
+        } catch {
+          throw new WebhookSignatureError(
+            PROVIDER,
+            `WebhookRequest.url is not a parseable absolute URL: ${req.url.slice(0, 120)}`,
+          )
+        }
       }
 
-      let received: string | null
-      try {
-        received = new URL(req.url).searchParams.get('webhookSecret')
-      } catch {
+      const received = fromHeader ?? fromQuery
+      if (received === null || received === undefined) {
+        // Refusing beats falling back to the signature: `signatureKey` may be
+        // unset, and if it is, accepting without the secret would accept
+        // anything at all.
         throw new WebhookSignatureError(
           PROVIDER,
-          `WebhookRequest.url is not a parseable absolute URL: ${req.url.slice(0, 120)}`,
+          'This request carries no per-merchant secret. AbacatePay sends it as the `x-webhook-secret` header and as a `?webhookSecret=` query parameter — pass the headers, or the request url, or both.',
         )
       }
-      if (received === null || !constantTimeEquals(received, opts.webhookSecret)) {
+      if (!constantTimeEquals(received, opts.webhookSecret)) {
         throw new WebhookSignatureError(
           PROVIDER,
-          'The ?webhookSecret= query parameter is missing or does not match the configured secret.',
+          'The per-merchant secret does not match the configured webhookSecret.',
         )
       }
 

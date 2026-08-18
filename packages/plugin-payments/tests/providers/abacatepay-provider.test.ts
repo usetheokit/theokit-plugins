@@ -365,10 +365,34 @@ describe('AbacatePayProvider.verifyWebhook', () => {
     ).rejects.toBeInstanceOf(WebhookSignatureError)
   })
 
-  it('refuses to verify without the request URL instead of falling back to no check', async () => {
+  it('accepts the secret from the x-webhook-secret HEADER, with no URL at all', async () => {
+    // MEASURED against a real delivery 2026-08-18 (#44). AbacatePay sends the
+    // per-merchant secret TWICE: as `?webhookSecret=` and as an
+    // `x-webhook-secret` header. The header is undocumented and is the better
+    // channel — a secret in a URL reaches proxy logs, browser history and
+    // Referer, and a query string is the one part of a request people paste into
+    // tickets.
+    const provider = AbacatePayProvider({ apiKey: API_KEY, webhookSecret: SECRET })
+    const event = await provider.verifyWebhook({
+      rawBody: body,
+      headers: { 'x-webhook-secret': SECRET },
+    })
+    expect(event.type).toBe('checkout.completed')
+  })
+
+  it('rejects a wrong secret in the header', async () => {
+    const provider = AbacatePayProvider({ apiKey: API_KEY, webhookSecret: SECRET })
+    await expect(
+      provider.verifyWebhook({ rawBody: body, headers: { 'x-webhook-secret': 'chutado' } }),
+    ).rejects.toBeInstanceOf(WebhookSignatureError)
+  })
+
+  it('refuses to verify when NEITHER the header nor the URL carries a secret', async () => {
+    // Refusing beats falling back to no check: `signatureKey` may be unset, and
+    // if it is, accepting without the secret would accept anything at all.
     const provider = AbacatePayProvider({ apiKey: API_KEY, webhookSecret: SECRET })
     await expect(provider.verifyWebhook({ rawBody: body, headers: {} })).rejects.toThrow(
-      /url is required for AbacatePay/,
+      /no per-merchant secret/i,
     )
   })
 
