@@ -130,8 +130,8 @@ describe('useCanvas — publish (local only)', () => {
 
 describe('useCanvas — publish (with endpoint)', () => {
   it('POSTs JSON with the CSRF default header, optimistic-inserts, then replaces with server response', async () => {
-    let capturedInit: RequestInit | null = null
-    const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
+    let capturedInit: RequestInit | undefined
+    const fetchImpl = vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {
       capturedInit = init
       const serverShape: Artifact = { ...md(), version: 7 }
       return Promise.resolve(
@@ -168,8 +168,8 @@ describe('useCanvas — publish (with endpoint)', () => {
   })
 
   it('omits CSRF header when csrfHeader=null', async () => {
-    let capturedInit: RequestInit | null = null
-    const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
+    let capturedInit: RequestInit | undefined
+    const fetchImpl = vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {
       capturedInit = init
       return Promise.resolve(new Response(JSON.stringify({ artifact: md() }), { status: 200 }))
     })
