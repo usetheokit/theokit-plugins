@@ -111,6 +111,17 @@ export async function processPaymentWebhook(opts: {
   request: WebhookRequest
   registry: PaymentEventRegistry
   store: IdempotencyStore
+  /**
+   * Overrides `provider.name` when namespacing the event id in the store.
+   *
+   * Two gateways can share a `name` — two Stripe accounts, for a marketplace or
+   * separate legal entities — and then `provider.name` namespaces both to
+   * "stripe". Stripe's own ids happen to be globally unique so nothing collides
+   * there today, but that is a property of one gateway rather than of this
+   * contract. The plugin passes its routing key, which is unique by
+   * construction.
+   */
+  namespace?: string
 }): Promise<PaymentWebhookResult> {
   let event: PaymentEvent
   try {
@@ -126,10 +137,11 @@ export async function processPaymentWebhook(opts: {
   // ACROSS providers, and one store may serve several. Namespacing here costs
   // one string concat and removes a collision that would look like a duplicate
   // and silently drop a real payment.
+  const namespace = opts.namespace ?? event.provider
   return runIdempotently({
-    eventId: `${event.provider}:${event.id}`,
+    eventId: `${namespace}:${event.id}`,
     store: opts.store,
     dispatch: () => opts.registry.dispatch(event),
-    logLabel: `[plugin-payments/${event.provider}]`,
+    logLabel: `[plugin-payments/${namespace}]`,
   })
 }

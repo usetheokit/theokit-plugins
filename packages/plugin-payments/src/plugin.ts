@@ -123,7 +123,15 @@ export function payments(opts: MultiProviderPaymentsOptions): MultiProviderPayme
     registry,
     provider,
     handleWebhook(gateway: string, request: WebhookRequest): Promise<PaymentWebhookResult> {
-      return processPaymentWebhook({ provider: provider(gateway), request, registry, store })
+      return processPaymentWebhook({
+        provider: provider(gateway),
+        request,
+        registry,
+        store,
+        // The routing key, not provider.name: two gateways can share a name and
+        // must not share an idempotency namespace.
+        namespace: gateway,
+      })
     },
     register(_app: TheoPluginApp): void {
       // No auto-registered routes, deliberately. The webhook path is the

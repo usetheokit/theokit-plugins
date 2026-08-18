@@ -79,6 +79,26 @@ describe('payments()', () => {
     expect(handled).toEqual(['abacatepay'])
   })
 
+  it('namespaces by the routing key, so two gateways sharing a name do not collide', async () => {
+    // The failure this prevents: two Stripe accounts both namespace to
+    // "stripe" under provider.name, and the second account's event reads as a
+    // duplicate of the first — a real payment silently never fulfilled.
+    const handle = vi.fn(() => Promise.resolve())
+    const registry = new PaymentEventRegistry()
+    registry.register(definePaymentWebhook('checkout.completed', handle))
+    const plugin = payments({
+      providers: { 'stripe-eu': fakeProvider('stripe'), 'stripe-us': fakeProvider('stripe') },
+      registry,
+    })
+
+    const eu = await plugin.handleWebhook('stripe-eu', REQUEST)
+    const us = await plugin.handleWebhook('stripe-us', REQUEST)
+
+    expect(eu).toMatchObject({ status: 'ok', duplicate: false, eventId: 'stripe-eu:evt_1' })
+    expect(us).toMatchObject({ status: 'ok', duplicate: false, eventId: 'stripe-us:evt_1' })
+    expect(handle).toHaveBeenCalledTimes(2)
+  })
+
   it('shares one store across gateways without letting their event ids collide', async () => {
     // Both fakes emit evt_1. One store, and the second must still be new —
     // otherwise a real payment is swallowed as a duplicate.
