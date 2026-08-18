@@ -168,12 +168,13 @@ pnpm --filter @theokit/plugins-e2e env:example
 
 ## Current coverage, stated plainly
 
-| service                                       | suite                             | ran against the real API?                                                                                       |
-| --------------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `email` (Resend)                              | `tests/email/live.test.ts`        | **yes** — 4/4 against the live API, and it found a real bug on the first run                                    |
-| `auth-github`                                 | `tests/auth-github/live.test.ts`  | partly — measured against GitHub; the one live assertion needs `GH_OAUTH_CLIENT_SECRET`, gated behind sudo mode |
-| `payments`, `copilot`, `voice`, `auth-google` | none yet                          | registered, so readiness tells you what to create                                                               |
-| **all 11 packages**                           | `tests/consumer/packaged.test.ts` | **yes** — 45 assertions, no credentials needed                                                                  |
+| service                        | suite                             | ran against the real API?                                                                                       |
+| ------------------------------ | --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `email` (Resend)               | `tests/email/live.test.ts`        | **yes** — 4/4 against the live API, and it found a real bug on the first run                                    |
+| `auth-github`                  | `tests/auth-github/live.test.ts`  | partly — measured against GitHub; the one live assertion needs `GH_OAUTH_CLIENT_SECRET`, gated behind sudo mode |
+| `auth-google`                  | `tests/auth-google/live.test.ts`  | **yes** — 3/3 against Google's real discovery document, with no credential                                      |
+| `payments`, `copilot`, `voice` | none yet                          | registered, so readiness tells you what to create                                                               |
+| **all 11 packages**            | `tests/consumer/packaged.test.ts` | **yes** — 45 assertions, no credentials needed                                                                  |
 
 The first run is worth recording, because it is the whole argument for this
 package existing. Two of the four assertions failed, and neither failure was a
@@ -257,6 +258,32 @@ seen. Revoke at `github.com/settings/connections/applications/<client_id>` first
 Done that way, the screen returned, listed exactly the two scopes requested, and
 warned that `localhost:3000` is "Not owned or operated by GitHub" — none of which
 the shortcut would have shown.
+
+### `auth-google` verifies a security decision, not just a happy path
+
+Google's discovery document is public, and `createAuthorizationURL` fetches it on
+every call — the client id is only written into a query parameter, never checked
+by the fetch. So this suite runs with **no credential at all**, and it checks
+something a unit test cannot: a claim the plugin makes about a third party.
+
+`auth-google/src/index.ts` deliberately does _not_ implement the reviewer's
+prescribed "discovered endpoint host must equal the base host" SSRF check, and
+says why in a comment: real Google discovery spans several hosts, so
+host-equality would break production. Nothing verified that. Now it does —
+measured today:
+
+| endpoint                 | host                           |
+| ------------------------ | ------------------------------ |
+| `authorization_endpoint` | `accounts.google.com`          |
+| `token_endpoint`         | `oauth2.googleapis.com`        |
+| `userinfo_endpoint`      | `openidconnect.googleapis.com` |
+
+Three distinct hosts, so the weaker-looking guard is the correct one. If Google
+ever consolidates, the suite goes red and the comment stops being true — which is
+a design decision worth being told about rather than discovering later. The
+companion assertion checks the other side: every endpoint still https, because
+the guard allows any https host and would start rejecting real traffic the day one
+of them was not.
 
 ### One naming rule, learned by hitting it
 
