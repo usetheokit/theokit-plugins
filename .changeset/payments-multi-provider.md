@@ -40,3 +40,17 @@ Also in this release:
 **Verified against the live Stripe API, without a browser.** Thirteen assertions run nightly, including the ones a fake cannot support: the same idempotency key returning the same session; a real charge confirmed with `pm_card_visa` then refunded in full and in part; a real `active` subscription cancelled and then re-read from Stripe to confirm it stuck. The AbacatePay provider is implemented from published documentation and covered only against a fake — nobody here has an account, and the README says so where a reader will see it before wiring it.
 
 That distinction earned its keep immediately: AbacatePay's own docs contradict themselves on the status endpoint, and measuring settled it. `/checkouts/get` answers 401 unauthenticated (exists), `/checkouts/one` — the one their `llms.txt` index names — answers 400, identical to a route that does not exist.
+
+**The plugin is multi-provider too, not just the types.** `payments({ providers })` on the top-level import holds the gateways, one idempotency store and one handler registry, so a webhook route is `plugin.handleWebhook(gateway, request)`. Until now the contract knew several gateways while the thing a consumer actually wires into `theo.config.ts` knew exactly one — the `/stripe` factory returning `getStripeClient()`.
+
+Providers are keyed by the name the app routes them under rather than by `provider.name`: two Stripe accounts is a real shape (marketplace, separate legal entities) and deriving the key would silently collapse them. No route is auto-registered — a plugin claiming `/api/payments/webhook` collides with the app that already had one.
+
+The single-gateway Stripe factory is renamed `stripePayments()`. Two factories called `payments` in two subpaths is a footgun, and the one to reach for by default is the multi-provider one. It keeps its reason to exist: it pairs with `defineStripeWebhook`, which narrows `Stripe.Event` in a way the neutral contract cannot express.
+
+```diff
+-import { payments } from '@theokit/plugin-payments/stripe'
++import { stripePayments } from '@theokit/plugin-payments/stripe'
+```
+
+Five new tests run the webhook path against Stripe's **real** signature crypto — `generateTestHeaderString` producing a genuine `t=…,v1=…`, verified by the untouched `constructEvent` — covering a tampered body, a wrong secret and a stale timestamp. Every other test of that path mocks `constructEvent`, so none of them ever ran the HMAC and none could catch our wiring mangling the raw body. They were written in the e2e package and moved out of it: they make no network call, and gating credential-free assertions behind a credential trades feedback on every push for feedback once a night.
+

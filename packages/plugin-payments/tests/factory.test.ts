@@ -5,7 +5,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { payments } from '../src/stripe.js'
+import { stripePayments as payments } from '../src/stripe.js'
 import { createMemoryStore } from '../src/idempotency-store.js'
 
 const ENV_KEYS = ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'] as const

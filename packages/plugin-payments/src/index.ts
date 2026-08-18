@@ -55,6 +55,12 @@ export {
 } from './provider.js'
 
 export {
+  type MultiProviderPaymentsOptions,
+  type MultiProviderPaymentsPlugin,
+  payments,
+} from './plugin.js'
+
+export {
   definePaymentWebhook,
   PaymentEventRegistry,
   type PaymentEventHandler,

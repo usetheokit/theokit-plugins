@@ -19,7 +19,8 @@ Multi-provider payments for TheoKit. One neutral contract, with Stripe and Abaca
 
 Plus:
 
-- `processPaymentWebhook({ provider, request, registry, store })` — verify, deduplicate, dispatch. Works with any provider.
+- `payments({ providers })` — the plugin for `theo.config.ts`. Holds the gateways, one idempotency store and one registry, so a webhook route is `plugin.handleWebhook(gateway, request)`.
+- `processPaymentWebhook({ provider, request, registry, store })` — the same thing unwrapped, for apps that assemble the pieces themselves.
 - `PaymentEventRegistry` + `definePaymentWebhook(type, handler)` — routing on the normalised event set.
 - `definePaymentProvider(impl)` — validates a provider at wiring time, so a malformed one fails at boot rather than mid-checkout.
 - Three capability guards for what only some gateways do: `supportsPix`, `supportsPartialRefund`, `supportsSubscriptions`.
@@ -37,7 +38,7 @@ SDK — which is the coupling this package exists to remove.
 **Stripe — `@theokit/plugin-payments/stripe`**
 
 - `StripeProvider({ client, webhookSecret })` — Stripe as a `PaymentProvider`.
-- `payments(opts)` plugin factory wired into `theo.config.ts`.
+- `stripePayments(opts)` — single-gateway plugin factory that resolves its keys from the environment. The multi-provider `payments()` lives on the top-level import.
 - `defineStripeWebhook(type, handler)` — the fully-typed Stripe event union, narrowed via `Extract<Stripe.Event, { type: T }>`. Code that branches on `payment_intent.processing` needs Stripe's own types, and normalising them away would be a downgrade, not an abstraction.
 - `createCheckoutSession(client, params)`, `verifyAndParseWebhook`, `processWebhook`, `Stripe` type re-export.
 
@@ -185,18 +186,69 @@ Nothing was removed or renamed. Every Stripe export moved one import deeper:
 ## Wire it into `theo.config.ts`
 
 ```ts
-import { payments } from '@theokit/plugin-payments/stripe'
+import { payments } from '@theokit/plugin-payments'
+import { StripeProvider } from '@theokit/plugin-payments/stripe'
+import { AbacatePayProvider } from '@theokit/plugin-payments/abacatepay'
 import { defineConfig } from 'theokit'
+import Stripe from 'stripe'
 
 export default defineConfig({
   plugins: [
     payments({
-      // secretKey defaults to process.env.STRIPE_SECRET_KEY
-      // webhookSecret defaults to process.env.STRIPE_WEBHOOK_SECRET
-      apiVersion: '2023-10-16',
+      providers: {
+        stripe: StripeProvider({
+          client: new Stripe(process.env.STRIPE_SECRET_KEY!),
+          webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+        }),
+        abacatepay: AbacatePayProvider({
+          apiKey: process.env.ABACATEPAY_API_KEY!,
+          webhookSecret: process.env.ABACATEPAY_WEBHOOK_SECRET,
+        }),
+      },
     }),
   ],
 })
+```
+
+The plugin holds the providers, one idempotency store and one handler registry —
+which is what a webhook route needs, and nothing more. A route handler becomes
+one call:
+
+```ts
+export async function POST(req: Request, { params }: { params: { gateway: string } }) {
+  const result = await plugin.handleWebhook(params.gateway, {
+    rawBody: await req.text(), // MUST be read before any other body access
+    headers: Object.fromEntries(req.headers),
+    url: req.url,
+  })
+  if (result.status === 'signature_invalid') return new Response('invalid', { status: 401 })
+  if (result.status === 'handler_error') return new Response('retry', { status: 500 })
+  return new Response('ok')
+}
+```
+
+**Providers are keyed by the name your app routes them under, not by
+`provider.name`.** Two Stripe accounts is a real shape — a marketplace, or
+separate legal entities — and deriving the key from the provider would collapse
+them into one.
+
+**No route is registered for you.** A plugin that claims
+`/api/payments/webhook` collides with the app that already had one, so the path
+stays yours.
+
+### Single-gateway Stripe, with its own event types
+
+`stripePayments()` on the `/stripe` subpath is the other factory. It resolves
+`STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` from the environment and gives you
+`getStripeClient()`, and it pairs with `defineStripeWebhook` — which narrows
+`Stripe.Event` in a way the neutral contract cannot express. Reach for it when
+you take one gateway and want its own event union; reach for `payments()` when
+you take more than one, or want to be able to.
+
+```ts
+import { stripePayments } from '@theokit/plugin-payments/stripe'
+
+export default defineConfig({ plugins: [stripePayments({ apiVersion: '2023-10-16' })] })
 ```
 
 ## Options reference
@@ -215,10 +267,10 @@ import {
   defineStripeWebhook,
   processWebhook,
   WebhookRegistry,
-  payments,
+  stripePayments,
 } from '@theokit/plugin-payments/stripe'
 
-const plugin = payments()
+const plugin = stripePayments()
 const registry = new WebhookRegistry()
 
 registry.register(
@@ -258,9 +310,9 @@ export async function POST(req: Request) {
 
 ```ts
 import { formatAmountForStripe } from '@theokit/plugin-payments'
-import { createCheckoutSession, payments } from '@theokit/plugin-payments/stripe'
+import { createCheckoutSession, stripePayments } from '@theokit/plugin-payments/stripe'
 
-const plugin = payments()
+const plugin = stripePayments()
 
 // In your server action:
 export async function startCheckout() {
@@ -292,7 +344,7 @@ The memory store ships as default but is **not multi-replica safe**. For product
 
 ```ts
 import { createOrmStore } from '@theokit/plugin-payments'
-import { payments } from '@theokit/plugin-payments/stripe'
+import { stripePayments } from '@theokit/plugin-payments/stripe'
 import { OrmModule, Repository } from '@theokit/orm'
 
 // Schema (drizzle):
@@ -318,7 +370,7 @@ const repo = {
   },
 }
 
-const plugin = payments({ idempotencyStore: createOrmStore(repo) })
+const plugin = stripePayments({ idempotencyStore: createOrmStore(repo) })
 ```
 
 ## Security threats addressed

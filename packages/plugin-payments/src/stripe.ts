@@ -52,15 +52,27 @@ export { createStripeClientGetter, StripeSecretKeyMissingError } from './stripe-
 export type { Stripe }
 
 /**
- * Create a `@theokit/plugin-payments` plugin instance backed by Stripe.
+ * A single-gateway plugin backed by Stripe, resolving its keys from the
+ * environment.
+ *
+ * Named apart from the neutral `payments()` on the top-level import on purpose:
+ * two factories called the same thing in two subpaths is a footgun, and the one
+ * that should be reached for by default is the multi-provider one.
+ *
+ * This exists because the Stripe-typed webhook path — `defineStripeWebhook`,
+ * `WebhookRegistry`, `processWebhook` — narrows `Stripe.Event` in a way the
+ * neutral contract cannot express, and code that branches on
+ * `payment_intent.processing` genuinely needs it. Reach for this when you take
+ * one gateway and want its own event types; reach for `payments()` when you take
+ * more than one, or want to be able to.
  *
  * ```ts
- * import { payments } from "@theokit/plugin-payments/stripe";
+ * import { stripePayments } from "@theokit/plugin-payments/stripe";
  * import { defineConfig } from "theokit";
  *
  * export default defineConfig({
  *   plugins: [
- *     payments({
+ *     stripePayments({
  *       // secretKey / webhookSecret default to env vars
  *       apiVersion: "2023-10-16",
  *     }),
@@ -70,7 +82,7 @@ export type { Stripe }
  *
  * @public
  */
-export function payments(opts: PaymentsOptions = {}): PaymentsPlugin {
+export function stripePayments(opts: PaymentsOptions = {}): PaymentsPlugin {
   const resolved = resolveOptions(opts)
   // Memory store is created lazily so test isolation works (one store per
   // plugin instance). Production consumers SHOULD pass `idempotencyStore`
