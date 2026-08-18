@@ -428,15 +428,20 @@ export function AbacatePayProvider(
       // charge. Guessing wrong is a 404, so the prefix is read rather than
       // assumed, and an unrecognised one is refused instead of routed by
       // coin-flip.
-      const pix = reference.startsWith('pix_char_') || reference.startsWith('char_')
-      if (!pix && !reference.startsWith('bill_')) {
+      const charge =
+        reference.startsWith('pix_char_') ||
+        reference.startsWith('card_') ||
+        reference.startsWith('char_')
+      if (!charge && !reference.startsWith('bill_')) {
         throw new PaymentProviderError(
           PROVIDER,
           'unknown_reference',
-          `Cannot tell what "${reference}" refers to. AbacatePay checkout ids start with bill_ and inline PIX charges with pix_char_ / char_.`,
+          `Cannot tell what "${reference}" refers to. AbacatePay hosted checkouts start with bill_; transparent charges with pix_char_, card_ or char_.`,
         )
       }
-      const path = pix
+      // Unlike refunds, this split is real: the two endpoints read two different
+      // resources, and asking the wrong one is a 404 rather than a redirect.
+      const path = charge
         ? `/transparents/check?id=${encodeURIComponent(reference)}`
         : `/checkouts/get?id=${encodeURIComponent(reference)}`
 
@@ -488,9 +493,14 @@ export function AbacatePayProvider(
     async refund(input: RefundInput): Promise<RefundResult> {
       // Full refund only; `refundPartial` is deliberately absent so
       // `supportsPartialRefund` reports false and the compiler stops the call.
-      const pix = input.reference.startsWith('pix_char_') || input.reference.startsWith('char_')
+      //
+      // One endpoint, no prefix routing: `/checkouts/refund` documents every id
+      // shape AbacatePay issues — `bill_`, `char_`, `pix_char_`, `card_` — while
+      // `/transparents/refund` takes only the charge ids, so it is a strict
+      // subset. Splitting on the prefix would be a branch that can only be
+      // wrong, never more right.
       const data = await post<RefundData>(
-        pix ? '/transparents/refund' : '/checkouts/refund',
+        '/checkouts/refund',
         {
           id: input.reference,
           ...(input.reason !== undefined ? { reason: input.reason } : {}),

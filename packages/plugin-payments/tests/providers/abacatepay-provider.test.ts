@@ -427,15 +427,21 @@ describe('AbacatePayProvider.retrieveCheckout', () => {
     })
   })
 
-  it('reads an inline PIX charge from /transparents/check', async () => {
-    const fetchImpl = makeFetch(() =>
-      jsonResponse({ data: { id: 'pix_char_1', status: 'PENDING', amount: 500 }, error: null }),
-    )
-    await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).retrieveCheckout('pix_char_1')
-    expect((fetchImpl.mock.calls[0] as [string])[0]).toBe(
-      'https://api.abacatepay.com/v2/transparents/check?id=pix_char_1',
-    )
-  })
+  it.each([['pix_char_1'], ['card_1'], ['char_1']])(
+    'reads transparent charge %s from /transparents/check',
+    async (reference) => {
+      // Here the split IS real: the two endpoints read different resources, and
+      // asking the wrong one is a 404 rather than a redirect. `card_` used to
+      // fall through to unknown_reference — it is a documented charge id.
+      const fetchImpl = makeFetch(() =>
+        jsonResponse({ data: { id: reference, status: 'PENDING', amount: 500 }, error: null }),
+      )
+      await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).retrieveCheckout(reference)
+      expect((fetchImpl.mock.calls[0] as [string])[0]).toBe(
+        `https://api.abacatepay.com/v2/transparents/check?id=${reference}`,
+      )
+    },
+  )
 
   it.each([
     ['PENDING', 'pending'],
@@ -501,15 +507,21 @@ describe('AbacatePayProvider.refund', () => {
     expect(result).toMatchObject({ id: 'tran_refund789', provider: 'abacatepay' })
   })
 
-  it('routes a PIX charge to /transparents/refund', async () => {
-    const fetchImpl = makeFetch(() =>
-      jsonResponse({ data: { refundPublicId: 'tran_r' }, error: null }),
-    )
-    await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).refund({ reference: 'pix_char_1' })
-    expect((fetchImpl.mock.calls[0] as [string])[0]).toBe(
-      'https://api.abacatepay.com/v2/transparents/refund',
-    )
-  })
+  it.each([['bill_1'], ['char_1'], ['pix_char_1'], ['card_1']])(
+    'refunds %s through the one endpoint that documents every id shape',
+    async (reference) => {
+      // /checkouts/refund accepts bill_, char_, pix_char_ and card_;
+      // /transparents/refund accepts only the charge ids, so it is a strict
+      // subset. Routing on the prefix would be a branch that can only be wrong.
+      const fetchImpl = makeFetch(() =>
+        jsonResponse({ data: { refundPublicId: 'tran_r' }, error: null }),
+      )
+      await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).refund({ reference })
+      expect((fetchImpl.mock.calls[0] as [string])[0]).toBe(
+        'https://api.abacatepay.com/v2/checkouts/refund',
+      )
+    },
+  )
 
   it('never sends an idempotency key, because the endpoint dedupes on the resource id', async () => {
     const fetchImpl = makeFetch(() =>

@@ -80,8 +80,11 @@ function sessionStatus(session: Stripe.Checkout.Session, refunded: number): Paym
   if (session.payment_status === 'paid' || session.payment_status === 'no_payment_required') {
     return 'paid'
   }
-  if (session.status === 'open') return 'pending'
-  if (session.status === 'complete') return 'pending'
+  // `open` and `complete` both land on pending here, and that is the point: a
+  // complete-but-unpaid session is an asynchronous method still settling, not a
+  // sale. Two branches returning the same value would imply a distinction the
+  // caller does not have.
+  if (session.status === 'open' || session.status === 'complete') return 'pending'
   return 'unknown'
 }
 
