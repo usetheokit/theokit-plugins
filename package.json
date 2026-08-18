@@ -22,7 +22,8 @@
     "changeset": "changeset",
     "version:packages": "changeset version",
     "release": "pnpm build && changeset publish",
-    "prepare": "[ -n \"$CI\" ] || git config core.hooksPath .githooks 2>/dev/null || true"
+    "prepare": "[ -n \"$CI\" ] || git config core.hooksPath .githooks 2>/dev/null || true",
+    "e2e:consumer": "pnpm --filter @theokit/plugins-e2e consumer"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",

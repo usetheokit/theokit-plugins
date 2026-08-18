@@ -33,6 +33,16 @@ function describeRow(spec: ServiceSpec, missing: readonly string[]): string[] {
   return lines
 }
 
+/**
+ * Test directories that are deliberately NOT services.
+ *
+ * `consumer/` asserts the packaging contract for every package at once — it has no
+ * credential, no provider and no registry entry, by design. Named explicitly
+ * rather than allowed by a pattern, so the drift guard below stays strict: a
+ * typo'd service directory still fails, which is the whole point of it.
+ */
+const CROSS_CUTTING_DIRS = new Set(['consumer'])
+
 async function testDirectories(): Promise<string[]> {
   const entries = await readdir(new URL('.', import.meta.url), { withFileTypes: true })
   return entries.filter((e) => e.isDirectory()).map((e) => e.name)
@@ -47,6 +57,7 @@ describe('live-test readiness', () => {
 
     const dirs = await testDirectories()
     const withoutSuite = SERVICES.filter((s) => !dirs.includes(s.id)).map((s) => s.id)
+    const crossCutting = dirs.filter((d) => CROSS_CUTTING_DIRS.has(d))
 
     const ready = rows.filter((r) => r.ready).length
     const lines = [
@@ -57,6 +68,9 @@ describe('live-test readiness', () => {
       ...rows.flatMap((row) => describeRow(row.spec, row.missing)),
       ...(withoutSuite.length > 0
         ? [`  registered with no suite yet: ${withoutSuite.join(', ')}`, '']
+        : []),
+      ...(crossCutting.length > 0
+        ? [`  cross-cutting suites (no credential needed): ${crossCutting.join(', ')}`, '']
         : []),
     ]
     process.stdout.write(`${lines.join('\n')}\n`)
@@ -102,6 +116,7 @@ describe('live-test readiness', () => {
     // credential to create first.
     const ids = SERVICES.map((s) => s.id)
     for (const dir of await testDirectories()) {
+      if (CROSS_CUTTING_DIRS.has(dir)) continue
       expect(ids, `tests/${dir}/ has no entry in SERVICES`).toContain(dir)
     }
   })

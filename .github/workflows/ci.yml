@@ -71,6 +71,15 @@ jobs:
         run: pnpm check:manifests
       - name: Build all packages
         run: pnpm build
+      # The packaging contract, and the only check that looks at these packages
+      # the way a consumer does: every `exports` subpath resolving to a file the
+      # tarball actually ships, every declared .d.ts shipped, main entry importing
+      # from dist/. Unit tests import from src/ through the workspace, so none of
+      # them can see a broken subpath — that is how #9 shipped. Runs here rather
+      # than in e2e.yml because it needs no credential and no network: a packaging
+      # break is ours, not a provider's bad afternoon. Must come AFTER build.
+      - name: Consumer smoke (packaging contract, all packages)
+        run: pnpm e2e:consumer
 
   test:
     name: Unit tests

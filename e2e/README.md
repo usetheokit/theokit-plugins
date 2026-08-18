@@ -34,6 +34,37 @@ afternoon is not a reason to turn someone's PR red.
 
 ---
 
+## Two kinds of live test, and every plugin has one
+
+**Provider contracts** (`tests/<service>/live.test.ts`) — does the third party
+still accept what we send? Only the six plugins that call one can have these.
+
+**The packaging contract** (`tests/consumer/packaged.test.ts`) — if somebody
+installs this, does it load at all? **Every** plugin has this one, including the
+four with nothing to call, and it is the half whose absence cost the most.
+
+Nothing in `packages/<name>/tests` can answer the second question. Unit tests
+import from `src/` through the workspace, so they never touch `dist/`, never
+consult `exports`, and never notice a subpath pointing at a file `files` does not
+ship. #9 was exactly that shape: imports wrong, unit suites green, failure visible
+only once a consumer resolved the package.
+
+It asserts three mechanical things per package — every `exports` subpath resolves
+to a file the tarball actually ships (measured with `npm pack --dry-run`, not read
+from the working tree), every declared `.d.ts` ships too (a missing one silently
+downgrades consumers to `any`, which is worse than a crash), and the main entry
+imports with a non-empty barrel. It needs no credentials and no network, so it is
+**not** gated on `E2E_LIVE`: a packaging break is not a provider's bad afternoon,
+it is ours.
+
+Verified adversarially rather than trusted — planting each defect turns it red:
+
+| planted                      | caught by                                |
+| ---------------------------- | ---------------------------------------- |
+| subpath → missing file       | `resolves every exports subpath…`        |
+| declared `.d.ts` not shipped | `ships the .d.ts every subpath declares` |
+| `files` without `dist`       | both, 2 failures                         |
+
 ## Which plugins are here, and which are deliberately not
 
 Only plugins whose **own code** calls a third party can have a live test. The
@@ -137,11 +168,12 @@ pnpm --filter @theokit/plugins-e2e env:example
 
 ## Current coverage, stated plainly
 
-| service                                       | suite                            | ran against the real API?                                                                                       |
-| --------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `email` (Resend)                              | `tests/email/live.test.ts`       | **yes** — 4/4 against the live API, and it found a real bug on the first run                                    |
-| `auth-github`                                 | `tests/auth-github/live.test.ts` | partly — measured against GitHub; the one live assertion needs `GH_OAUTH_CLIENT_SECRET`, gated behind sudo mode |
-| `payments`, `copilot`, `voice`, `auth-google` | none yet                         | registered, so readiness tells you what to create                                                               |
+| service                                       | suite                             | ran against the real API?                                                                                       |
+| --------------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `email` (Resend)                              | `tests/email/live.test.ts`        | **yes** — 4/4 against the live API, and it found a real bug on the first run                                    |
+| `auth-github`                                 | `tests/auth-github/live.test.ts`  | partly — measured against GitHub; the one live assertion needs `GH_OAUTH_CLIENT_SECRET`, gated behind sudo mode |
+| `payments`, `copilot`, `voice`, `auth-google` | none yet                          | registered, so readiness tells you what to create                                                               |
+| **all 11 packages**                           | `tests/consumer/packaged.test.ts` | **yes** — 45 assertions, no credentials needed                                                                  |
 
 The first run is worth recording, because it is the whole argument for this
 package existing. Two of the four assertions failed, and neither failure was a
