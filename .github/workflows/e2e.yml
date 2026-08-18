@@ -72,6 +72,8 @@ jobs:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_TEST_PRICE_ID: ${{ secrets.STRIPE_TEST_PRICE_ID }}
           STRIPE_TEST_RECURRING_PRICE_ID: ${{ secrets.STRIPE_TEST_RECURRING_PRICE_ID }}
+          ABACATEPAY_API_KEY: ${{ secrets.ABACATEPAY_API_KEY }}
+          ABACATEPAY_TEST_PRODUCT_ID: ${{ secrets.ABACATEPAY_TEST_PRODUCT_ID }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           COPILOT_TEST_MODEL: ${{ secrets.COPILOT_TEST_MODEL }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -110,6 +112,8 @@ jobs:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_TEST_PRICE_ID: ${{ secrets.STRIPE_TEST_PRICE_ID }}
           STRIPE_TEST_RECURRING_PRICE_ID: ${{ secrets.STRIPE_TEST_RECURRING_PRICE_ID }}
+          ABACATEPAY_API_KEY: ${{ secrets.ABACATEPAY_API_KEY }}
+          ABACATEPAY_TEST_PRODUCT_ID: ${{ secrets.ABACATEPAY_TEST_PRODUCT_ID }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           COPILOT_TEST_MODEL: ${{ secrets.COPILOT_TEST_MODEL }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

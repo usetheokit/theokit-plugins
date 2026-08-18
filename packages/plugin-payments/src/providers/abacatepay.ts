@@ -90,6 +90,20 @@ export interface AbacatePayProviderOptions {
    * why this is not defaulted.
    */
   readonly signatureKey?: string
+  /**
+   * Payment methods this store supports, sent on every checkout.
+   *
+   * Measured 2026-08-18: omitting it makes `/checkouts/create` inherit the API
+   * default and answer "CARD is not available for this store", so a PIX-only
+   * store could not create a checkout at all. AbacatePay's docs have since
+   * narrowed the field to `(PIX)` with CARD commented out, which makes PIX-only
+   * the norm rather than an edge case.
+   *
+   * On the provider rather than on `CheckoutInput` because which methods a store
+   * supports is account configuration — set once, where the key is configured —
+   * not a per-checkout intent. Left unset, the API decides.
+   */
+  readonly methods?: readonly string[]
   /** Injection point for tests. Defaults to global `fetch`. */
   readonly fetchImpl?: FetchLike
 }
@@ -147,7 +161,24 @@ interface StatusData {
 }
 
 interface RefundData {
+  /**
+   * MEASURED 2026-08-18. The docs show `{ refundPublicId: "tran_…" }`; the API
+   * returns:
+   *
+   *   { id: "tran_…", status: "COMPLETE", amount: 500, reason: null,
+   *     originalId: "pix_char_…", createdAt: "…" }
+   *
+   * Reading only `refundPublicId` made the provider throw `refund_failed` on
+   * every SUCCESSFUL refund, and the unit fake could not catch it because the
+   * fake was written from the same docs. Both keys are accepted so that a later
+   * correction on their side does not break this one — the two name the same
+   * thing, which is what makes tolerating both defensive parsing rather than the
+   * silent-alias trap.
+   */
+  readonly id?: string
   readonly refundPublicId?: string
+  readonly status?: string
+  readonly amount?: number
 }
 
 interface SubscriptionData {
@@ -274,6 +305,7 @@ export function AbacatePayProvider(
       // of the file docstring.
       const payload = {
         items: input.items.map((i) => ({ id: i.ref, quantity: i.quantity })),
+        ...(opts.methods !== undefined ? { methods: [...opts.methods] } : {}),
         ...(input.successUrl !== undefined ? { completionUrl: input.successUrl } : {}),
         ...(input.cancelUrl !== undefined ? { returnUrl: input.cancelUrl } : {}),
         ...(input.customerRef !== undefined ? { customerId: input.customerRef } : {}),
@@ -494,13 +526,25 @@ export function AbacatePayProvider(
       // Full refund only; `refundPartial` is deliberately absent so
       // `supportsPartialRefund` reports false and the compiler stops the call.
       //
-      // One endpoint, no prefix routing: `/checkouts/refund` documents every id
-      // shape AbacatePay issues — `bill_`, `char_`, `pix_char_`, `card_` — while
-      // `/transparents/refund` takes only the charge ids, so it is a strict
-      // subset. Splitting on the prefix would be a branch that can only be
-      // wrong, never more right.
+      // The prefix decides the endpoint, and this routing was once removed for
+      // the opposite reason. The docs' prefix table claims `/checkouts/refund`
+      // accepts `bill_`, `char_`, `pix_char_` AND `card_`, which made the branch
+      // look like one that could only be wrong. Measured against the live API
+      // 2026-08-18:
+      //
+      //   POST /checkouts/refund   { id: "pix_char_…" }
+      //     -> "Use a rota /v2/transparents/refund para reembolsar cobranças
+      //         transparentes."
+      //   POST /transparents/refund { id: "pix_char_…" }
+      //     -> accepted (refused on balance, a business error, not routing)
+      //
+      // Documentation lost to measurement, and the branch is load-bearing.
+      const transparent =
+        input.reference.startsWith('pix_char_') ||
+        input.reference.startsWith('char_') ||
+        input.reference.startsWith('card_')
       const data = await post<RefundData>(
-        '/checkouts/refund',
+        transparent ? '/transparents/refund' : '/checkouts/refund',
         {
           id: input.reference,
           ...(input.reason !== undefined ? { reason: input.reason } : {}),
@@ -511,14 +555,20 @@ export function AbacatePayProvider(
       // idempotent BY RESOURCE ID — the same id always returns the same
       // refundPublicId and never creates a second refund — so a caller-supplied
       // key would have nothing to bind to.
-      if (typeof data.refundPublicId !== 'string' || data.refundPublicId.length === 0) {
+      const refundId = data.id ?? data.refundPublicId
+      if (typeof refundId !== 'string' || refundId.length === 0) {
         throw new PaymentProviderError(
           PROVIDER,
           'refund_failed',
-          'AbacatePay reported success but returned no refundPublicId, so there is nothing to reconcile the refund against.',
+          'AbacatePay reported success but returned no refund id, so there is nothing to reconcile the refund against.',
         )
       }
-      return { id: data.refundPublicId, provider: PROVIDER, raw: data }
+      return {
+        id: refundId,
+        provider: PROVIDER,
+        ...(typeof data.amount === 'number' ? { amountInCents: data.amount } : {}),
+        raw: data,
+      }
     },
   })
 }

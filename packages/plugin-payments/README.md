@@ -157,21 +157,33 @@ export async function POST(req: Request, { params }: { params: { gateway: string
 
 ### AbacatePay: what to know before wiring it
 
-> **Not yet exercised against the live API.** Every AbacatePay path here is
-> implemented from the published documentation and covered by unit tests against
-> a fake `fetch`. Nobody on this project has an AbacatePay account, so no call
-> has reached the real service. The Stripe provider is verified live on every
-> nightly run; this one is not, and the difference matters — see the note on
-> `/checkouts/get` below for what documentation alone got wrong.
+> **Exercised against the live sandbox API.** Twelve assertions run against a
+> real AbacatePay devMode account — hosted checkout, inline PIX with a payable BR
+> Code, status reconciliation across both resource kinds, a full refund confirmed
+> by re-reading the charge, and the typed refusals. Writing them refuted three
+> things the published documentation had said; each is noted below where it
+> applies. Subscriptions and inbound webhook delivery remain uncovered, for
+> measured reasons — see § What is still not covered.
 
 - **BRL only.** A `createCheckout` with any other currency is refused, not converted.
 - **No idempotency mechanism is documented**, so `CheckoutInput.idempotencyKey` is ignored on this provider — deliberately, rather than mapped onto `externalId`, which AbacatePay does not deduplicate on and which would look like retry safety while providing none. Its refund endpoint is idempotent by resource id instead, so nothing is sent there either.
 - **Webhook verification needs the request URL.** The per-merchant secret arrives as `?webhookSecret=…`, and verification refuses to run without it rather than falling back to no check.
 - **The HMAC header is opt-in** via `signatureKey`. The key AbacatePay's docs publish is a global constant printed on a public page, so it proves the body was not altered — not that AbacatePay sent it. Its own docs disagree on whether the key is that constant or your webhook secret; pass `ABACATEPAY_DOCUMENTED_PUBLIC_KEY`, or your own key, once you have measured which one a real delivery is signed with.
-- **Subscriptions post to `/subscriptions/create`** and accept exactly one item, whose product must carry a `cycle`. The provider enforces the single-item rule itself so the caller learns the rule, not a field name in a 400.
+- **Payment methods are a provider option, and you probably need it.** Measured: omitting `methods` makes `/checkouts/create` inherit the API default and answer `"CARD is not available for this store"`, so a PIX-only store cannot create a checkout at all. AbacatePay has since narrowed the field to `(PIX)` in its own docs, with CARD commented out. Pass `AbacatePayProvider({ apiKey, methods: ['PIX'] })`.
+- **Refunds route by id prefix**, and the docs say they do not. Their prefix table claims `/checkouts/refund` accepts `bill_`, `char_`, `pix_char_` and `card_`; the API answers `"Use a rota /v2/transparents/refund para reembolsar cobranças transparentes."` The routing had been removed on the strength of that table and is restored.
+- **A successful refund returns `id`, not `refundPublicId`.** The documented shape is `{ refundPublicId }`; the real one is `{ id, status: "COMPLETE", amount, originalId, createdAt }`. Reading only the documented key made the provider throw `refund_failed` on every successful refund — and no unit test could see it, because the fake was written from the same docs. Both keys are accepted now.
+- **Subscriptions post to `/subscriptions/create`** and accept exactly one item, whose product must carry a `cycle`. The provider enforces the single-item rule itself so the caller learns the rule, not a field name in a 400. **AbacatePay has commented the entire subscriptions section out of its documentation**, and the endpoint answers `"PIX Automático is not available for this store"` — so this path is shipped but unverifiable, and may be being withdrawn.
 - **Refunds go to one endpoint, status reads go to two.** `/checkouts/refund` documents every id shape AbacatePay issues (`bill_`, `char_`, `pix_char_`, `card_`), so no prefix routing is needed and a wrong branch is impossible. Status is different: `/checkouts/get` and `/transparents/check` read different resources, and asking the wrong one is a 404.
 - **`cancelSubscription` takes a `subs_…` id, not the checkout's `bill_…`.** The subscription only exists once the customer pays, and AbacatePay documents no lookup from one to the other — take the id from the `subscription.completed` webhook.
 - **Status is read from `/checkouts/get`, not `/checkouts/one`.** AbacatePay's own documentation contradicts itself: the `llms.txt` index names `/checkouts/one`, the OpenAPI block on the same page names `/checkouts/get`. Measured unauthenticated on 2026-08-18, `/checkouts/get` answers `401` (exists, needs auth) while `/checkouts/one` answers `400` — identical to a route that does not exist. Following the index would have shipped a status check that fails on every call.
+
+### What is still not covered
+
+|                          | Why, measured                                                                                                                                                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Subscriptions            | AbacatePay commented the whole section out of its docs; `/subscriptions/create` answers "PIX Automático is not available for this store". The endpoint exists, the capability does not.                                                    |
+| Inbound webhook delivery | Needs a public HTTPS endpoint. Signing a payload locally and verifying it locally would only prove our HMAC agrees with our HMAC — the circularity `e2e/` exists to avoid. The query-secret half is string comparison and is unit-covered. |
+| `GET /store/get`         | A documented endpoint that answers "Not found", so store capabilities cannot be read programmatically to pick `methods` for you.                                                                                                           |
 
 ## Migrating from 0.2.x
 

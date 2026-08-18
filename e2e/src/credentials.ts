@@ -110,12 +110,25 @@ export function missingFor(spec: ServiceSpec, opts: { includeTarget?: boolean } 
  * Returns the reason it is unsafe, or undefined when it is fine.
  */
 export function unsafeReason(spec: ServiceSpec): string | undefined {
-  if (spec.id !== 'payments') return undefined
-  const key = optional('STRIPE_SECRET_KEY')
-  if (key === undefined) return undefined
-  return key.startsWith('sk_test_')
-    ? undefined
-    : 'STRIPE_SECRET_KEY is not a test key (expected sk_test_…) — refusing to touch live money'
+  if (spec.id === 'payments') {
+    const key = optional('STRIPE_SECRET_KEY')
+    if (key === undefined) return undefined
+    return key.startsWith('sk_test_')
+      ? undefined
+      : 'STRIPE_SECRET_KEY is not a test key (expected sk_test_…) — refusing to touch live money'
+  }
+  if (spec.id === 'payments-abacatepay') {
+    // Same rule, different prefix. Measured 2026-08-18: a sandbox key is
+    // `abc_dev_…` and every resource it creates comes back with
+    // `devMode: true`, so the prefix is the account mode rather than a naming
+    // convention.
+    const key = optional('ABACATEPAY_API_KEY')
+    if (key === undefined) return undefined
+    return key.startsWith('abc_dev_')
+      ? undefined
+      : 'ABACATEPAY_API_KEY is not a sandbox key (expected abc_dev_…) — refusing to touch live money'
+  }
+  return undefined
 }
 
 /** Live suites are opt-in: they call real APIs and cost real money. */

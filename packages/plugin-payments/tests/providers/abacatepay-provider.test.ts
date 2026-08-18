@@ -114,6 +114,41 @@ describe('AbacatePayProvider.createCheckout', () => {
     )
   })
 
+  it('sends the payment methods the store actually supports', async () => {
+    // MEASURED 2026-08-18: without `methods`, /checkouts/create inherits the API
+    // default and answers "CARD is not available for this store" — so a checkout
+    // could not be created at all on a PIX-only store. AbacatePay's own docs have
+    // since narrowed `methods` to (PIX), with CARD commented out, which makes
+    // PIX-only the norm rather than an edge case.
+    //
+    // It lives on the provider, not on CheckoutInput: which methods a store
+    // supports is account configuration, set once where the key is configured,
+    // not a per-checkout intent.
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({ data: { id: 'bill_1', url: 'https://pay/1' }, error: null }),
+    )
+    await AbacatePayProvider({ apiKey: API_KEY, methods: ['PIX'], fetchImpl }).createCheckout({
+      items: [{ ref: 'prod_x', quantity: 1 }],
+    })
+    const body = JSON.parse(
+      (fetchImpl.mock.calls[0] as [string, RequestInit])[1].body as string,
+    ) as { methods?: unknown }
+    expect(body.methods).toEqual(['PIX'])
+  })
+
+  it('omits methods when the caller did not configure any, letting the API decide', async () => {
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({ data: { id: 'bill_1', url: 'https://pay/1' }, error: null }),
+    )
+    await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).createCheckout({
+      items: [{ ref: 'prod_x', quantity: 1 }],
+    })
+    const body = JSON.parse(
+      (fetchImpl.mock.calls[0] as [string, RequestInit])[1].body as string,
+    ) as Record<string, unknown>
+    expect(body).not.toHaveProperty('methods')
+  })
+
   it('refuses a non-BRL charge instead of letting the amount be reinterpreted', async () => {
     const fetchImpl = makeFetch(() => jsonResponse({ data: {}, error: null }))
     const provider = AbacatePayProvider({ apiKey: API_KEY, fetchImpl })
@@ -491,7 +526,17 @@ describe('AbacatePayProvider.retrieveCheckout', () => {
 describe('AbacatePayProvider.refund', () => {
   it('posts the checkout id to /checkouts/refund and returns the refund id', async () => {
     const fetchImpl = makeFetch(() =>
-      jsonResponse({ data: { refundPublicId: 'tran_refund789' }, error: null }),
+      jsonResponse({
+        // The MEASURED shape, not the documented one. A fake copied from the
+        // docs is how `refund_failed` fired on every successful refund.
+        data: {
+          id: 'tran_refund789',
+          status: 'COMPLETE',
+          amount: 500,
+          originalId: 'pix_char_1',
+        },
+        error: null,
+      }),
     )
     const result = await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).refund({
       reference: 'bill_1',
@@ -504,28 +549,41 @@ describe('AbacatePayProvider.refund', () => {
       id: 'bill_1',
       reason: 'Pedido cancelado pelo cliente.',
     })
-    expect(result).toMatchObject({ id: 'tran_refund789', provider: 'abacatepay' })
+    expect(result).toMatchObject({
+      id: 'tran_refund789',
+      provider: 'abacatepay',
+      amountInCents: 500,
+    })
   })
 
-  it.each([['bill_1'], ['char_1'], ['pix_char_1'], ['card_1']])(
-    'refunds %s through the one endpoint that documents every id shape',
-    async (reference) => {
-      // /checkouts/refund accepts bill_, char_, pix_char_ and card_;
-      // /transparents/refund accepts only the charge ids, so it is a strict
-      // subset. Routing on the prefix would be a branch that can only be wrong.
-      const fetchImpl = makeFetch(() =>
-        jsonResponse({ data: { refundPublicId: 'tran_r' }, error: null }),
-      )
-      await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).refund({ reference })
-      expect((fetchImpl.mock.calls[0] as [string])[0]).toBe(
-        'https://api.abacatepay.com/v2/checkouts/refund',
-      )
-    },
-  )
+  it.each([
+    ['bill_1', '/checkouts/refund'],
+    ['pix_char_1', '/transparents/refund'],
+    ['char_1', '/transparents/refund'],
+    ['card_1', '/transparents/refund'],
+  ])('routes %s to %s', async (reference, path) => {
+    // MEASURED against the live API 2026-08-18, after this routing had been
+    // deleted for the opposite reason. The docs' prefix table claims
+    // /checkouts/refund accepts bill_, char_, pix_char_ AND card_, which made the
+    // branch look like one that could only be wrong. The API disagrees:
+    //
+    //   POST /checkouts/refund { id: "pix_char_…" }
+    //     -> "Use a rota /v2/transparents/refund para reembolsar cobranças
+    //         transparentes."
+    //   POST /transparents/refund { id: "pix_char_…" }
+    //     -> accepted; refused on balance, which is a business error, not routing
+    //
+    // Documentation lost to measurement. The prefix routing is load-bearing.
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({ data: { id: 'tran_r', status: 'COMPLETE', amount: 500 }, error: null }),
+    )
+    await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).refund({ reference })
+    expect((fetchImpl.mock.calls[0] as [string])[0]).toBe(`https://api.abacatepay.com/v2${path}`)
+  })
 
   it('never sends an idempotency key, because the endpoint dedupes on the resource id', async () => {
     const fetchImpl = makeFetch(() =>
-      jsonResponse({ data: { refundPublicId: 'tran_r' }, error: null }),
+      jsonResponse({ data: { id: 'tran_r', status: 'COMPLETE', amount: 500 }, error: null }),
     )
     await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).refund({
       reference: 'bill_1',
@@ -536,7 +594,17 @@ describe('AbacatePayProvider.refund', () => {
     )
   })
 
-  it('refuses a success with no refundPublicId — there would be nothing to reconcile', async () => {
+  it('still accepts the documented refundPublicId, in case their side is corrected', async () => {
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({ data: { refundPublicId: 'tran_docs_shape' }, error: null }),
+    )
+    const result = await AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).refund({
+      reference: 'bill_1',
+    })
+    expect(result.id).toBe('tran_docs_shape')
+  })
+
+  it('refuses a success with no refund id — there would be nothing to reconcile', async () => {
     const fetchImpl = makeFetch(() => jsonResponse({ data: {}, error: null }))
     await expect(
       AbacatePayProvider({ apiKey: API_KEY, fetchImpl }).refund({ reference: 'bill_1' }),

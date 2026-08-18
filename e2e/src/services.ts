@@ -146,6 +146,31 @@ export const SERVICES: readonly ServiceSpec[] = [
       'Test mode only. The readiness report refuses to treat a key that does not start with sk_test_ as ready, and the sk_test_ prefix is re-asserted on the response of a real call (session ids come back cs_test_…), not just at credential-check time. Sessions are not cleaned up; they expire in 24h. The INBOUND leg is not covered by this suite and is not coverable by it: nothing here receives a webhook Stripe actually transmitted, and a signature produced by our own process (generateTestHeaderString) proves our wiring, not their format. That gap is closed by `pnpm flow:stripe-webhook`, which opens a real tunnel — see the README. Measured 2026-08-18 and deliberately NOT asserted here: GET /v1/events?types[]=… does not validate the event type, so a fabricated name returns HTTP 200 with an empty list, exactly like a valid one with no matches. The EVENT_MAP is verified by the tunnel script instead, which reaches 5 of 7 entries against real events.',
   },
   {
+    id: 'payments-abacatepay',
+    label: 'Payments (AbacatePay)',
+    pkg: '@theokit/plugin-payments',
+    provider: 'AbacatePay',
+    exercise: 'api-key',
+    credentials: [
+      {
+        name: 'ABACATEPAY_API_KEY',
+        what: 'AbacatePay SANDBOX API key, `abc_dev_…`',
+        where:
+          'app.abacatepay.com → Integração → API → Nova chave, with the Dev Mode switch on. Requires 2FA on the account (the key-creation dialog asks for a TOTP code). Scope "Leitura e escrita" is enough — "Completo" grants more than these tests need. Deliberately NOT named ABACATE_PUBLIC_KEY: it is a secret Bearer key, and this integration also has a genuinely public key (ABACATEPAY_DOCUMENTED_PUBLIC_KEY, the HMAC constant), so calling the secret one "public" invites treating it as safe to expose — including in a GitHub secrets list.',
+      },
+    ],
+    target: [
+      {
+        name: 'ABACATEPAY_TEST_PRODUCT_ID',
+        what: 'One-off product id (`prod_…`) the suite may build a checkout for',
+        where:
+          'POST /products/create with { externalId, name, price, currency: "BRL" } and no `cycle`. Measured: `currency` is required and the docs\' minimal example omits it. The one in use is named "theokit-e2e — do not use".',
+      },
+    ],
+    caveat:
+      'Sandbox only — the readiness report refuses a key that does not start with abc_dev_, and every resource created comes back devMode:true. Nothing is cleaned up; the products and charges stay in the sandbox dashboard. THREE THINGS ARE NOT COVERED, measured rather than assumed: (1) subscriptions — AbacatePay commented the whole section out of its docs, and /subscriptions/create answers "PIX Automático is not available for this store"; (2) the refund happy path — /transparents/refund accepts the call and answers "Saldo insuficiente para realizar o reembolso", because a devMode simulated payment adds no balance, so only the routing and the refusal are verifiable; (3) verifyWebhook — delivery needs a public HTTPS endpoint, and signing a payload ourselves would only prove our HMAC agrees with our HMAC.',
+  },
+  {
     id: 'copilot',
     label: 'Copilot (OpenRouter LLM)',
     pkg: '@theokit/plugin-copilot',
