@@ -1,6 +1,6 @@
 {
   "name": "@theokit/plugin-forms",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Declarative form binding for TheoKit: zod + react-hook-form + useAction. Ships <TheoForm action={actions.X}> + <TheoField name> + applyActionErrorsToForm adapter.",
   "type": "module",
   "main": "./dist/index.js",
