@@ -233,9 +233,38 @@ export async function POST(req: Request, { params }: { params: { gateway: string
 separate legal entities — and deriving the key from the provider would collapse
 them into one.
 
-**No route is registered for you.** A plugin that claims
-`/api/payments/webhook` collides with the app that already had one, so the path
-stays yours.
+### `ctx.payments` — what `register()` actually does
+
+The plugin publishes its gateways on the request context, so a handler reaches
+them without importing and wiring the plugin a second time:
+
+```ts
+export const POST = route().handler(async ({ ctx, request, params }) => {
+  const result = await ctx.payments.handleWebhook(params.gateway, {
+    rawBody: await request.text(),
+    headers: Object.fromEntries(request.headers),
+    url: request.url,
+  })
+  ...
+})
+```
+
+`ctx.payments` is deliberately narrower than the plugin: `providers`,
+`provider(key)` and `handleWebhook`, and **not** `store` or `registry`. That
+narrowing buys a safety property rather than tidiness — a handler holding
+`store` could claim or release an event id outside the dispatcher and defeat
+idempotency; one holding `registry` could rewire routing mid-request.
+
+**No route is registered for you, and that is not a choice we made.** A TheoKit
+plugin _cannot_ register one: `TheoApp` gives `register()` exactly `addHook` and
+`decorateRequest`. Routes come from the `route()` builder in your own route
+files. Earlier versions of this README described the absence as a design
+decision; it is a platform constraint, and saying otherwise was writing prose
+without reading the contract (#42).
+
+**No hook is registered either, and that one IS a choice.** A payments plugin
+adding an `onRequest` hook would run on every request in the app, including the
+ones that never touch money.
 
 ### Single-gateway Stripe, with its own event types
 
@@ -251,6 +280,11 @@ import { stripePayments } from '@theokit/plugin-payments/stripe'
 
 export default defineConfig({ plugins: [stripePayments({ apiVersion: '2023-10-16' })] })
 ```
+
+Its `register()` publishes the client on `ctx.stripe` — the equivalent of
+`@InjectStripeClient` in the NestJS ecosystem — and resolves it **at boot**, so a
+missing `STRIPE_SECRET_KEY` crashes on startup instead of 500-ing while somebody
+is paying.
 
 ## Options reference
 

@@ -57,6 +57,8 @@ export {
 export {
   type MultiProviderPaymentsOptions,
   type MultiProviderPaymentsPlugin,
+  PAYMENTS_DECORATION_KEY,
+  type PaymentsRequestSurface,
   payments,
 } from './plugin.js'
 

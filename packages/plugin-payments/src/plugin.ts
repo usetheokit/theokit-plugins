@@ -12,6 +12,8 @@
  * inside a plugin.
  */
 
+import type { TheoApp, TheoPlugin } from 'theokit/server'
+
 import {
   PaymentEventRegistry,
   processPaymentWebhook,
@@ -19,7 +21,6 @@ import {
 } from './dispatch.js'
 import { createMemoryStore, type IdempotencyStore } from './idempotency-store.js'
 import { type PaymentProvider, type WebhookRequest } from './provider-types.js'
-import type { TheoPluginApp } from './types.js'
 
 export interface MultiProviderPaymentsOptions {
   /**
@@ -42,7 +43,25 @@ export interface MultiProviderPaymentsOptions {
   readonly registry?: PaymentEventRegistry
 }
 
-export interface MultiProviderPaymentsPlugin {
+/**
+ * What a route handler gets on `ctx.payments`.
+ *
+ * Narrower than the plugin on purpose, and the narrowing buys a safety property
+ * rather than tidiness: a handler holding `store` could claim or release an
+ * event id outside the dispatcher and defeat idempotency; one holding `registry`
+ * could rewire routing mid-request. Neither is something a request should be
+ * able to do, so neither is reachable from one.
+ */
+export interface PaymentsRequestSurface {
+  readonly providers: Readonly<Record<string, PaymentProvider>>
+  provider(key: string): PaymentProvider
+  handleWebhook(gateway: string, request: WebhookRequest): Promise<PaymentWebhookResult>
+}
+
+/** The key `ctx.payments` is published under. Fixed, so a handler can rely on it. */
+export const PAYMENTS_DECORATION_KEY = 'payments'
+
+export interface MultiProviderPaymentsPlugin extends TheoPlugin {
   readonly name: '@theokit/plugin-payments'
   readonly kind: 'payments'
   readonly providers: Readonly<Record<string, PaymentProvider>>
@@ -58,7 +77,16 @@ export interface MultiProviderPaymentsPlugin {
    * provider.
    */
   handleWebhook(gateway: string, request: WebhookRequest): Promise<PaymentWebhookResult>
-  register(app: TheoPluginApp): void
+  /**
+   * Publish {@link PaymentsRequestSurface} on `ctx.payments`.
+   *
+   * `TheoApp` and `TheoPlugin` are imported type-only, so the framework is a
+   * compile-time contract and not a runtime dependency — `import type` is erased
+   * at build. The `plugin()` builder in `theokit/server/define` would produce
+   * the same `{ name, register }` and cost a real import, which rung 4 of the
+   * parsimony ladder rules out.
+   */
+  register(app: TheoApp): void
 }
 
 /**
@@ -115,6 +143,18 @@ export function payments(opts: MultiProviderPaymentsOptions): MultiProviderPayme
     return found
   }
 
+  function handleWebhook(gateway: string, request: WebhookRequest): Promise<PaymentWebhookResult> {
+    return processPaymentWebhook({
+      provider: provider(gateway),
+      request,
+      registry,
+      store,
+      // The routing key, not provider.name: two gateways can share a name and
+      // must not share an idempotency namespace.
+      namespace: gateway,
+    })
+  }
+
   return {
     name: '@theokit/plugin-payments',
     kind: 'payments',
@@ -122,21 +162,22 @@ export function payments(opts: MultiProviderPaymentsOptions): MultiProviderPayme
     store,
     registry,
     provider,
-    handleWebhook(gateway: string, request: WebhookRequest): Promise<PaymentWebhookResult> {
-      return processPaymentWebhook({
-        provider: provider(gateway),
-        request,
-        registry,
-        store,
-        // The routing key, not provider.name: two gateways can share a name and
-        // must not share an idempotency namespace.
-        namespace: gateway,
+    handleWebhook,
+    register(app: TheoApp): void {
+      // No route is registered here because a plugin CANNOT register one:
+      // `TheoApp` offers `addHook` and `decorateRequest`, and nothing else.
+      // Routes come from the `route()` builder, which the consumer uses in its
+      // own route files. Earlier prose in this package called that a design
+      // choice; it is a platform constraint (#42).
+      //
+      // No hook either, and that is the choice: a payments plugin adding an
+      // onRequest hook would run on every request in the app, including the
+      // ones that never touch money.
+      app.decorateRequest<PaymentsRequestSurface>(PAYMENTS_DECORATION_KEY, {
+        providers,
+        provider,
+        handleWebhook,
       })
-    },
-    register(_app: TheoPluginApp): void {
-      // No auto-registered routes, deliberately. The webhook path is the
-      // consumer's to choose, and a plugin that claims /api/payments/webhook
-      // collides with the app that already had one.
     },
   }
 }

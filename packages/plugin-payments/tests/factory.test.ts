@@ -5,6 +5,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { TheoApp } from 'theokit/server'
+
 import { stripePayments as payments } from '../src/stripe.js'
 import { createMemoryStore } from '../src/idempotency-store.js'
 
@@ -112,5 +114,51 @@ describe('payments() default-idempotency-store guard (T2.4 #202)', () => {
     payments({ secretKey: 'sk_test_xxx' })
     expect(spy).not.toHaveBeenCalled()
     spy.mockRestore()
+  })
+})
+
+/**
+ * A stand-in for what the framework passes to `register()`, typed as the REAL
+ * `TheoApp`. See tests/plugin.test.ts for why that matters (#42).
+ */
+function recordingApp(): { app: TheoApp; decorations: Map<string, unknown>; hooks: string[] } {
+  const decorations = new Map<string, unknown>()
+  const hooks: string[] = []
+  return {
+    app: {
+      decorateRequest: (key, value) => decorations.set(key, value),
+      addHook: (name) => hooks.push(name),
+    },
+    decorations,
+    hooks,
+  }
+}
+
+describe('stripePayments() as a TheoKit adapter', () => {
+  it('publishes the Stripe client on ctx.stripe, the @InjectStripeClient equivalent', () => {
+    const { app, decorations } = recordingApp()
+    payments({ secretKey: 'sk_test_adapter' }).register(app)
+
+    const client = decorations.get('stripe')
+    // Asserting the SHAPE rather than truthiness: a decoration holding the
+    // getter instead of the client would pass a truthy check and fail on the
+    // first `ctx.stripe.checkout.…` in a handler.
+    expect(client).toBeDefined()
+    expect(typeof (client as { checkout?: unknown }).checkout).toBe('object')
+  })
+
+  it('fails at BOOT when the secret key is missing, not mid-payment', () => {
+    // Rule 8 (fail fast) and the same reasoning plugin-voice states: a
+    // boot-time crash beats a 500 while somebody is trying to pay. Resolving
+    // the client during register() is what moves the failure earlier — before
+    // this, the plugin constructed happily and threw on first use.
+    const { app } = recordingApp()
+    expect(() => payments().register(app)).toThrow(/STRIPE_SECRET_KEY/)
+  })
+
+  it('registers no hook — it has no cross-cutting behaviour', () => {
+    const { app, hooks } = recordingApp()
+    payments({ secretKey: 'sk_test_adapter' }).register(app)
+    expect(hooks).toEqual([])
   })
 })

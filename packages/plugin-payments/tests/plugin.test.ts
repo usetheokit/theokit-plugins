@@ -5,6 +5,7 @@
  * consumer wired knew exactly one gateway while the types it programmed against
  * knew several. These tests hold that closed.
  */
+import type { TheoApp } from 'theokit/server'
 import { describe, expect, it, vi } from 'vitest'
 
 import { createMemoryStore } from '../src/idempotency-store.js'
@@ -34,6 +35,85 @@ function fakeProvider(name: string, event: Partial<PaymentEvent> = {}): PaymentP
 }
 
 const REQUEST = { rawBody: '{}', headers: {} }
+
+/**
+ * A stand-in for what the framework actually passes to `register()`.
+ *
+ * Typed as the REAL `TheoApp` from `theokit/server`, so the compiler — not a
+ * comment — is what proves the plugin speaks the framework's contract. The
+ * fabricated `TheoPluginApp` this replaces declared `registerRoute` and
+ * `hasRoute`, neither of which exists, and type-checked anyway because
+ * TypeScript is structural and the parameter was never used (#42).
+ */
+function recordingApp(): { app: TheoApp; decorations: Map<string, unknown>; hooks: string[] } {
+  const decorations = new Map<string, unknown>()
+  const hooks: string[] = []
+  const app: TheoApp = {
+    decorateRequest: (key, value) => decorations.set(key, value),
+    addHook: (name) => hooks.push(name),
+  }
+  return { app, decorations, hooks }
+}
+
+describe('payments() as a TheoKit adapter', () => {
+  it('decorates every request, so a handler reaches the gateways through ctx', () => {
+    // The whole point of being an adapter. Without this, `register()` is a no-op
+    // and nothing the plugin holds is reachable from a route handler — the
+    // consumer has to import and wire the plugin a second time by hand.
+    const { app, decorations } = recordingApp()
+    const plugin = payments({ providers: { stripe: fakeProvider('stripe') } })
+
+    plugin.register(app)
+
+    expect(decorations.has('payments')).toBe(true)
+  })
+
+  it('exposes only what a handler needs — not the store, not the registry', () => {
+    // ISP, and it buys a real safety property rather than tidiness: a handler
+    // holding `store` can claim or release an event id outside the dispatcher
+    // and defeat idempotency; one holding `registry` can rewire routing
+    // mid-request.
+    const { app, decorations } = recordingApp()
+    payments({ providers: { stripe: fakeProvider('stripe') } }).register(app)
+
+    const surface = decorations.get('payments') as Record<string, unknown>
+    expect(Object.keys(surface).sort()).toEqual(['handleWebhook', 'provider', 'providers'])
+  })
+
+  it('the decorated surface actually works, not just looks right', async () => {
+    const { app, decorations } = recordingApp()
+    const registry = new PaymentEventRegistry()
+    const seen: string[] = []
+    registry.register(
+      definePaymentWebhook('checkout.completed', (e) => {
+        seen.push(e.provider)
+        return Promise.resolve()
+      }),
+    )
+    payments({
+      providers: { stripe: fakeProvider('stripe') },
+      registry,
+      idempotencyStore: createMemoryStore(),
+    }).register(app)
+
+    const surface = decorations.get('payments') as {
+      handleWebhook: (g: string, r: typeof REQUEST) => Promise<{ status: string }>
+      provider: (k: string) => { name: string }
+    }
+    expect(surface.provider('stripe').name).toBe('stripe')
+    expect(await surface.handleWebhook('stripe', REQUEST)).toMatchObject({ status: 'ok' })
+    expect(seen).toEqual(['stripe'])
+  })
+
+  it('registers no hook, because it has no cross-cutting behaviour to add', () => {
+    // Stated as an assertion rather than left implicit: a payments plugin that
+    // silently added an onRequest hook would run on every request in the app,
+    // including the ones that never touch money.
+    const { app, hooks } = recordingApp()
+    payments({ providers: { stripe: fakeProvider('stripe') } }).register(app)
+    expect(hooks).toEqual([])
+  })
+})
 
 describe('payments()', () => {
   it('refuses to boot with no provider, rather than failing at the first checkout', () => {
@@ -143,11 +223,8 @@ describe('payments()', () => {
     expect(plugin.provider('stripe').name).toBe('stripe')
   })
 
-  it('registers into an app without claiming a route', () => {
-    // A plugin that grabs /api/payments/webhook collides with the app that
-    // already had one. The path stays the consumer's choice.
-    const registerRoute = vi.fn()
-    payments({ providers: { stripe: fakeProvider('stripe') } }).register({ registerRoute })
-    expect(registerRoute).not.toHaveBeenCalled()
-  })
+  // A test asserting `registerRoute` was never called used to live here. It
+  // could only ever pass: the method it named does not exist on `TheoApp`, so
+  // nothing could have called it (#42). The real contract is covered by
+  // "payments() as a TheoKit adapter" above.
 })

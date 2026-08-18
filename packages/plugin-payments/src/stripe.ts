@@ -21,12 +21,12 @@ import type Stripe from 'stripe'
 import { createMemoryStore } from './idempotency-store.js'
 import { type PaymentsOptions, resolveOptions } from './options.js'
 import { createStripeClientGetter } from './stripe-client.js'
-import type { PaymentsPlugin, TheoPluginApp } from './types.js'
+import type { PaymentsPlugin, TheoApp } from './types.js'
 
 export { StripeProvider, type StripeProviderOptions } from './providers/stripe.js'
 
 export type { PaymentsOptions, ResolvedPaymentsOptions, StripeApiVersion } from './options.js'
-export type { PaymentsPlugin, StripeWebhookHandler, TheoPluginApp } from './types.js'
+export type { PaymentsPlugin, StripeWebhookHandler, TheoApp, TheoPlugin } from './types.js'
 
 export {
   defineStripeWebhook,
@@ -109,13 +109,18 @@ export function stripePayments(opts: PaymentsOptions = {}): PaymentsPlugin {
     getStripeClient(): Stripe {
       return clientGetter.get()
     },
-    register(_app: TheoPluginApp): void {
-      // v0.1 does NOT auto-register routes — consumer wires their own webhook
-      // route via `defineRoute('/api/payments/webhook', { POST: ... })` and
-      // calls `processWebhook(...)` inside. This keeps the plugin framework-
-      // agnostic and lets consumers choose URL paths.
+    register(app: TheoApp): void {
+      // No route is registered because a plugin CANNOT register one: `TheoApp`
+      // offers `addHook` and `decorateRequest` and nothing else. Routes come
+      // from the `route()` builder in the consumer's own route files, where the
+      // handler calls `processWebhook(...)`. Earlier prose here presented that
+      // as a design choice and even promised an `autoRegisterRoutes` opt-in;
+      // both were written without reading the contract (#42).
       //
-      // Future v0.x may add `autoRegisterRoutes: true` opt-in.
+      // Resolving the client HERE rather than lazily is what moves a missing
+      // key from a 500 mid-payment to a crash at boot (Rule 8, and the same
+      // reasoning plugin-voice states for validating options synchronously).
+      app.decorateRequest<Stripe>('stripe', clientGetter.get())
     },
   }
 }

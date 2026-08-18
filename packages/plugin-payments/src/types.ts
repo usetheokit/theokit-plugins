@@ -1,21 +1,20 @@
 /**
  * @theokit/plugin-payments — runtime types.
  *
- * Per plan p6-plugin-payments v1.0. TheoPlugin shape is structurally declared
- * to keep peerDep on `theokit` minimal — at runtime the plugin runner accepts
- * any object with this shape via duck-typing.
+ * The plugin shape comes from the framework, not from here. A `TheoPluginApp`
+ * used to be declared locally, justified as "keeping the peerDep minimal" — it
+ * declared `registerRoute` and `hasRoute`, neither of which exists on `TheoApp`,
+ * and type-checked anyway because TypeScript is structural and the parameter was
+ * never used (#42). `import type` is erased at build, so importing the real
+ * contract costs nothing at runtime and the compiler checks it.
  */
 
 import type Stripe from 'stripe'
+import type { TheoApp, TheoPlugin } from 'theokit/server'
+
 import type { ResolvedPaymentsOptions } from './options.js'
 
-/** Minimal app surface the plugin's `register()` needs. */
-export interface TheoPluginApp {
-  /** Register a server route (used for /api/payments/webhook handler if consumer opts in). */
-  registerRoute?(path: string, method: string, handler: unknown): void
-  /** Register a test whether a server route is already registered. */
-  hasRoute?(path: string, method: string): boolean
-}
+export type { TheoApp, TheoPlugin }
 
 /** Stripe webhook handler descriptor returned by `defineStripeWebhook`. */
 export interface StripeWebhookHandler<T extends Stripe.Event['type'] = Stripe.Event['type']> {
@@ -26,12 +25,12 @@ export interface StripeWebhookHandler<T extends Stripe.Event['type'] = Stripe.Ev
 /**
  * The plugin shape this package emits.
  */
-export interface PaymentsPlugin {
+export interface PaymentsPlugin extends TheoPlugin {
   readonly name: '@theokit/plugin-payments'
   readonly kind: 'payments'
   readonly options: ResolvedPaymentsOptions
   /** Lazy singleton Stripe client. Throws actionable error if secretKey missing. */
   getStripeClient(): Stripe
-  /** Register the plugin into a theokit app. */
-  register(app: TheoPluginApp): void
+  /** Publish the Stripe client on `ctx.stripe`. See `stripePayments()`. */
+  register(app: TheoApp): void
 }

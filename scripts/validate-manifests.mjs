@@ -32,6 +32,21 @@
  *      so the guarantee survives someone publishing by hand — which is how the
  *      nine 2026-07-10 versions reached the registry, all without attestations.
  *
+ *   4. An honest `theokit` peer dependency, and no re-invented framework types
+ *      Eleven packages declared `theokit` as a peer; measured 2026-08-18, nine
+ *      imported nothing from it, and two declared their OWN `TheoPluginApp`
+ *      describing methods the framework does not have — `registerRoute`,
+ *      `hasRoute`, `registerCliCommand`, `registerDevtoolsTab`. Both type-checked,
+ *      because TypeScript is structural and the parameter was never used (#42).
+ *
+ *      In `plugin-db-drizzle` the `register()` body actually CALLED them behind
+ *      `if (app.registerCliCommand)` guards, so seven documented CLI verbs and a
+ *      devtools tab were a silent no-op for several releases (#43).
+ *
+ *      A peer nobody imports is a claim nobody checks, and a locally invented
+ *      framework interface is a fabricated citation in type form. Both are cheap
+ *      to detect and impossible to notice by reading.
+ *
  * Exits non-zero listing every violation, so one run tells you everything rather
  * than one thing per run.
  */
@@ -55,6 +70,38 @@ const PACKAGES_DIR = 'packages'
  */
 const LOCAL_PATH_PROTOCOL = /^(link|file):/
 
+/**
+ * Names the framework owns. A package declaring one of these locally is
+ * re-inventing a contract it could import, and nothing makes the invention match
+ * (#42). `import type` is erased at build, so importing the real one costs
+ * nothing at runtime — `plugin-voice` has done exactly that all along.
+ */
+const FRAMEWORK_OWNED_TYPES = ['TheoPluginApp', 'TheoApp', 'TheoPlugin']
+
+/**
+ * Packages allowed to declare a `theokit` peer without referencing it, each with
+ * the reason and the shape of the work that would remove the exemption.
+ *
+ * This is a triage list, not a suppression list. It exists because #42 asks for a
+ * DECISION per package rather than a blanket rewrite: some of these have a real
+ * server surface worth publishing on `ctx`, and one has none at all. An entry
+ * here means somebody looked; an absent entry means the gate refuses.
+ */
+const PEER_WITHOUT_USE_EXEMPT = {
+  'auth-github':
+    'Exchange + fetch helpers a route handler calls directly. Publishing them on ctx is the natural adapter step — see #42 item 2.',
+  'auth-magic-link':
+    'Same shape as auth-github: token issue/verify helpers called from the consumer route.',
+  'plugin-email':
+    'Holds an EmailProvider — the closest analogue to what plugin-payments now publishes on ctx.payments.',
+  'plugin-copilot':
+    'Holds a CopilotRuntime, which is the obvious ctx decoration. Deferred with payments/db-drizzle done first as the reference shape.',
+  'plugin-forms':
+    'zod + react-hook-form, client-side only. Has NO server surface, so the honest outcome is likely removing the peer rather than adapting.',
+  'plugin-realtime':
+    'Providers are in-memory and Yjs; never imports @theokit/sdk either, so it opens no socket. Adapter value unclear — measure before deciding.',
+}
+
 const violations = []
 
 function check(dir) {
@@ -63,6 +110,10 @@ function check(dir) {
 
   const pkg = JSON.parse(readFileSync(manifestPath, 'utf8'))
   const where = `${manifestPath} (${pkg.name ?? dir})`
+
+  // Rule 4 runs BEFORE the private-package early return: a fabricated framework
+  // type and a decorative peer are wrong whether or not the package publishes.
+  checkFrameworkContract(dir, pkg, where)
 
   // Private packages are never published, so provenance and repository do not apply.
   if (pkg.private === true) return
@@ -107,6 +158,67 @@ function check(dir) {
   }
 }
 
+/**
+ * Rule 4. Read the SOURCE, not the built output: a package can be honest without
+ * shipping the type in its `.d.ts` (auth-google imports values from
+ * `theokit/server/auth`), and `dist/` may be stale or absent on a fresh clone.
+ */
+function checkFrameworkContract(dir, pkg, where) {
+  const srcDir = join(PACKAGES_DIR, dir, 'src')
+  if (!existsSync(srcDir)) return
+
+  const sources = []
+  const walk = (d) => {
+    for (const entry of readdirSync(d, { withFileTypes: true })) {
+      const full = join(d, entry.name)
+      if (entry.isDirectory()) walk(full)
+      else if (/\.(ts|tsx|mts|cts)$/.test(entry.name)) sources.push(full)
+    }
+  }
+  walk(srcDir)
+
+  let referencesTheokit = false
+  for (const file of sources) {
+    const text = readFileSync(file, 'utf8')
+    // A real reference is an import specifier. `theokit` inside a comment or a
+    // string is not one — which is how plugin-canvas read as a consumer of the
+    // framework while only mentioning it in a JSDoc example.
+    if (/\bfrom\s+['"]theokit(\/[^'"]*)?['"]/.test(text)) referencesTheokit = true
+
+    for (const owned of FRAMEWORK_OWNED_TYPES) {
+      const declared = new RegExp(`\\b(interface|type)\\s+${owned}\\b`).test(text)
+      if (declared) {
+        // `TheoPluginApp` gets a different message on purpose: it is not a
+        // theokit export at all, it is the invented name (#42). Telling someone
+        // to import it would send them looking for something that never existed
+        // — the same mistake, one level up.
+        const advice =
+          owned === 'TheoPluginApp'
+            ? "no such type exists in theokit — the app passed to register() is `TheoApp`, with `addHook` and `decorateRequest`. Use `import type { TheoApp } from 'theokit/server'`"
+            : `import it instead: \`import type { ${owned} } from 'theokit/server'\` (erased at build, so no runtime coupling)`
+        violations.push(`${where}: ${file} declares \`${owned}\` locally — ${advice}. See #42.`)
+      }
+    }
+  }
+
+  const hasPeer = typeof pkg.peerDependencies?.theokit === 'string'
+  if (hasPeer && !referencesTheokit && !(dir in PEER_WITHOUT_USE_EXEMPT)) {
+    violations.push(
+      `${where}: declares a \`theokit\` peerDependency and imports nothing from it. Either use it (a TheoPlugin-shaped export, a ctx decoration, a hook) or drop the peer — or add ${dir} to PEER_WITHOUT_USE_EXEMPT with the reason. See #42 item 3.`,
+    )
+  }
+  if (!hasPeer && dir in PEER_WITHOUT_USE_EXEMPT) {
+    violations.push(
+      `${where}: listed in PEER_WITHOUT_USE_EXEMPT but declares no \`theokit\` peer — the exemption is stale, remove it.`,
+    )
+  }
+  if (referencesTheokit && dir in PEER_WITHOUT_USE_EXEMPT) {
+    violations.push(
+      `${where}: references theokit AND is exempted — the exemption is stale, remove ${dir} from PEER_WITHOUT_USE_EXEMPT.`,
+    )
+  }
+}
+
 for (const dir of readdirSync(PACKAGES_DIR).sort()) check(dir)
 
 if (violations.length > 0) {
@@ -117,5 +229,6 @@ if (violations.length > 0) {
 }
 
 console.log(
-  '✓ every package manifest is publishable (repository + directory, provenance, no escaping local paths)',
+  '✓ every package manifest is publishable (repository + directory, provenance, no escaping local paths)\n' +
+    '✓ no package re-invents a theokit type, and every `theokit` peer is used or triaged',
 )
