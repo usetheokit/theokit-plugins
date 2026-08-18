@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.4.0] - 2026-08-18
+
+### Added
+
 - **A contradição do HMAC da AbacatePay resolvida por entrega real, e um canal de secret que não está documentado (#44).** Um túnel público (`npx localtunnel`) mais `POST /webhooks/create` permitiram receber um `transparent.completed` de verdade e comparar o `X-Webhook-Signature` **que eles enviaram** contra as duas chaves candidatas. Resultado: bate com `base64(HMAC-SHA256(rawBody, CONSTANTE_PUBLICADA))`, e **não** com o secret do lojista, em base64 nem em hex. Ou seja, a assinatura é computada com uma chave que qualquer pessoa pode ler nos docs deles: prova que o corpo não foi alterado em trânsito e **não** que a AbacatePay enviou. É por isso que checá-la continua opt-in — ligar por default adicionaria uma verificação que **parece** autenticação e não é. (abacatepay-live-2026-08)
 
   O achado que muda a segurança: o secret por-lojista chega **também num header `x-webhook-secret`**, não documentado. O provider passou a preferi-lo à query string — secret em URL vai para log de proxy, histórico de browser e Referer, e query string é a parte da requisição que as pessoas colam em ticket. `verifyWebhook` aceita header, ou URL, ou os dois, e recusa quando nenhum traz o secret; antes exigia a URL.
