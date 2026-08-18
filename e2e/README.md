@@ -168,14 +168,15 @@ pnpm --filter @theokit/plugins-e2e env:example
 
 ## Current coverage, stated plainly
 
-| service               | suite                             | ran against the real API?                                                                                       |
-| --------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `email` (Resend)      | `tests/email/live.test.ts`        | **yes** — 4/4 against the live API, and it found a real bug on the first run                                    |
-| `auth-github`         | `tests/auth-github/live.test.ts`  | partly — measured against GitHub; the one live assertion needs `GH_OAUTH_CLIENT_SECRET`, gated behind sudo mode |
-| `auth-google`         | `tests/auth-google/live.test.ts`  | **yes** — 4/4: discovery with no credential, plus the token-exchange refusal                                    |
-| `voice` (OpenAI)      | `tests/voice/live.test.ts`        | **yes** — 3/3, including a TTS→STT round trip                                                                   |
-| `payments`, `copilot` | none yet                          | registered, so readiness tells you what to create                                                               |
-| **all 11 packages**   | `tests/consumer/packaged.test.ts` | **yes** — 45 assertions, no credentials needed                                                                  |
+| service                | suite                                                                | ran against the real API?                                                                                       |
+| ---------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `email` (Resend)       | `tests/email/live.test.ts`                                           | **yes** — 4/4 against the live API, and it found a real bug on the first run                                    |
+| `auth-github`          | `tests/auth-github/live.test.ts`                                     | partly — measured against GitHub; the one live assertion needs `GH_OAUTH_CLIENT_SECRET`, gated behind sudo mode |
+| `auth-google`          | `tests/auth-google/live.test.ts`                                     | **yes** — 4/4: discovery with no credential, plus the token-exchange refusal                                    |
+| `voice` (OpenAI)       | `tests/voice/live.test.ts`                                           | **yes** — 3/3, including a TTS→STT round trip                                                                   |
+| `copilot` (OpenRouter) | `packages/plugin-copilot/tests/integration/copilot-real-llm.test.ts` | **yes** — passes against gpt-4o-mini; lives in its package, see below                                           |
+| `payments` (Stripe)    | none yet                                                             | registered, so readiness tells you what to create                                                               |
+| **all 11 packages**    | `tests/consumer/packaged.test.ts`                                    | **yes** — 45 assertions, no credentials needed                                                                  |
 
 The first run is worth recording, because it is the whole argument for this
 package existing. Two of the four assertions failed, and neither failure was a
@@ -285,6 +286,29 @@ a design decision worth being told about rather than discovering later. The
 companion assertion checks the other side: every endpoint still https, because
 the guard allows any https host and would start rejecting real traffic the day one
 of them was not.
+
+### When a live suite belongs somewhere else
+
+`copilot` has real coverage and no directory here, and the registry says so
+through `coveredElsewhere` rather than letting readiness report it as a gap.
+"No suite in e2e/" and "not covered" are different claims, and printing the
+first as if it were the second is the exact confusion this package exists to
+prevent.
+
+Its probe needs an in-memory `CopilotRealtimeProvider` fixture the package does
+not export, and it already drives the whole path — `defineCopilot` +
+`CopilotRuntime` + `Agent.prompt` + OpenRouter. Copying it here would assert the
+same thing twice.
+
+```bash
+E2E_LIVE=1 pnpm --filter @theokit/plugin-copilot exec vitest run tests/integration/copilot-real-llm.test.ts
+```
+
+Two things keep that honest. The probe is gated on `E2E_LIVE` as well as the
+key, so `pnpm test` cannot spend money on it — which in turn means the nightly
+workflow has to invoke it by name, and does. And a readiness assertion checks the
+referenced file actually exists: a pointer to coverage that moved is worse than
+no pointer, because the report would claim the gap is closed while nothing runs.
 
 ### One naming rule, learned by hitting it
 

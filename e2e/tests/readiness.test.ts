@@ -56,7 +56,12 @@ describe('live-test readiness', () => {
     })
 
     const dirs = await testDirectories()
-    const withoutSuite = SERVICES.filter((s) => !dirs.includes(s.id)).map((s) => s.id)
+    // "no directory here" and "not covered" are different claims. Only the first
+    // is true for a service whose suite lives in its own package.
+    const withoutSuite = SERVICES.filter(
+      (s) => !dirs.includes(s.id) && s.coveredElsewhere === undefined,
+    ).map((s) => s.id)
+    const elsewhere = SERVICES.filter((s) => s.coveredElsewhere !== undefined)
     const crossCutting = dirs.filter((d) => CROSS_CUTTING_DIRS.has(d))
 
     const ready = rows.filter((r) => r.ready).length
@@ -72,6 +77,10 @@ describe('live-test readiness', () => {
       ...(crossCutting.length > 0
         ? [`  cross-cutting suites (no credential needed): ${crossCutting.join(', ')}`, '']
         : []),
+      ...elsewhere.flatMap((s) => [
+        `  ${s.id}: live suite lives outside e2e/ — ${s.coveredElsewhere?.path}`,
+        '',
+      ]),
     ]
     process.stdout.write(`${lines.join('\n')}\n`)
 
@@ -118,6 +127,25 @@ describe('live-test readiness', () => {
     for (const dir of await testDirectories()) {
       if (CROSS_CUTTING_DIRS.has(dir)) continue
       expect(ids, `tests/${dir}/ has no entry in SERVICES`).toContain(dir)
+    }
+  })
+
+  it('points every out-of-package suite at a file that exists', async () => {
+    // A pointer to coverage that moved or was deleted is worse than no pointer:
+    // the report would claim the gap is closed while nothing runs.
+    const { access } = await import('node:fs/promises')
+    // This file is e2e/tests/, so two levels up is the repo root. The consumer
+    // suite sits one directory deeper and needs three — copying that number here
+    // is what made this assertion fail against a path that existed.
+    const root = new URL('../../', import.meta.url).pathname
+    for (const spec of SERVICES) {
+      const ref = spec.coveredElsewhere
+      if (ref === undefined) continue
+      await expect(
+        access(`${root}${ref.path}`),
+        `${spec.id} points at ${ref.path}, which does not exist`,
+      ).resolves.toBeUndefined()
+      expect(ref.why.length, `${spec.id} must say why it lives elsewhere`).toBeGreaterThan(0)
     }
   })
 

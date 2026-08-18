@@ -71,6 +71,16 @@ export interface ServiceSpec {
   readonly target: readonly CredentialVar[]
   /** Anything that stops this service running unattended, or that costs money. */
   readonly caveat?: string
+  /**
+   * Path to a live suite that lives OUTSIDE this package, when duplicating it
+   * here would be redundant.
+   *
+   * Only for coverage that genuinely exists and genuinely runs. Reported by
+   * readiness so "no suite here" is never mistaken for "not covered" — the two
+   * are different, and conflating them is the failure this package exists to
+   * avoid.
+   */
+  readonly coveredElsewhere?: { readonly path: string; readonly why: string }
 }
 
 export const SERVICES: readonly ServiceSpec[] = [
@@ -150,6 +160,10 @@ export const SERVICES: readonly ServiceSpec[] = [
       },
     ],
     caveat: 'Costs money per run, in fractions of a cent. Keep the prompt short.',
+    coveredElsewhere: {
+      path: 'packages/plugin-copilot/tests/integration/copilot-real-llm.test.ts',
+      why: 'It needs an in-memory CopilotRealtimeProvider fixture that the package does not export, and it already drives the whole path — defineCopilot + CopilotRuntime + Agent.prompt + OpenRouter — so a copy here would assert the same thing twice. Gated on E2E_LIVE as well as the key, so `pnpm test` cannot spend money. Run: E2E_LIVE=1 pnpm --filter @theokit/plugin-copilot exec vitest run tests/integration/copilot-real-llm.test.ts',
+    },
   },
   {
     id: 'voice',

@@ -84,6 +84,16 @@ jobs:
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
           GOOGLE_OAUTH_REDIRECT_URI: ${{ secrets.GOOGLE_OAUTH_REDIRECT_URI }}
 
+      # plugin-copilot's real-LLM probe lives in its own package, because it needs
+      # an in-memory provider fixture that is not exported. It is gated on
+      # E2E_LIVE as well as the key, so `pnpm test` cannot reach it — which also
+      # means the nightly has to invoke it explicitly or it never runs at all.
+      - name: Live suite that lives in its package (copilot real LLM)
+        run: pnpm --filter @theokit/plugin-copilot exec vitest run tests/integration/copilot-real-llm.test.ts
+        env:
+          E2E_LIVE: '1'
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+
       - name: Live suites
         run: |
           if [ -n "${{ inputs.service }}" ]; then
