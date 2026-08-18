@@ -16,6 +16,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **`plugin-realtime`: uma edição Yjs nunca chegava aos outros clientes (#53).** `applyYjsUpdate` aplicava os bytes no `Y.Doc` do servidor e não notificava subscriber nenhum — nenhum observer no doc, nenhum `fanout` de `yjs-update`. Numa sala `storage: 'yjs'` a edição colaborativa parecia funcionar para quem digitava e não sincronizava com ninguém. `applyYjsAwareness` tinha a mesma omissão, então cursores remotos nunca apareciam. Efeito colateral: o ramo base64 do `frameToOutput` era código morto, porque nada produzia o frame que ele convertia.
+
+  Achado escrevendo o teste de integração do B-003 — os 57 testes existentes paravam antes do fio, e dois deles declaram `(in-process)` no próprio nome.
+
 ### Security
 
 ## [0.5.0] - 2026-08-18

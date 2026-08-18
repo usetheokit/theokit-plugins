@@ -324,6 +324,21 @@ export function createYjsRealtimeProvider(opts: YjsRealtimeProviderOptions = {})
         // than touch a destroyed doc.
         if (rooms.get(roomId) !== state) return
         yjs.applyUpdate(doc, bytes, connectionId)
+        // #53: applying to the server doc told nobody. Without this fanout a CRDT edit
+        // reaches the author's own screen and no other client ever — and the base64
+        // branch of `frameToOutput` was unreachable code, since nothing produced the
+        // frame it converts.
+        //
+        // The received bytes are rebroadcast rather than `Y.encodeStateAsUpdate(doc)`:
+        // O(update) instead of O(document) per keystroke, and it is what y-websocket
+        // does. A client joining mid-session therefore needs an initial sync, which is a
+        // separate concern from propagating a live edit.
+        //
+        // The author is NOT excluded. `fanout` has no listener→connectionId map, and
+        // adding one to save the author's own bytes would buy bandwidth with structure;
+        // Yjs is idempotent, so re-applying your own update is harmless. The frame
+        // carries `connectionId` precisely so a consumer can skip its own.
+        fanout(state, { type: 'yjs-update', connectionId, bytes })
       } finally {
         state.inflight -= 1
         gcIfEmpty(roomId, state)
@@ -346,6 +361,9 @@ export function createYjsRealtimeProvider(opts: YjsRealtimeProviderOptions = {})
         const { awareness, awMod } = await ensureYjs(roomId, state)
         if (rooms.get(roomId) !== state) return
         awMod.applyAwarenessUpdate(awareness, bytes, connectionId)
+        // #53: same omission as applyYjsUpdate — awareness (cursors, selections) was
+        // applied server-side and never propagated, so remote cursors never appeared.
+        fanout(state, { type: 'yjs-awareness', connectionId, bytes })
       } finally {
         state.inflight -= 1
         gcIfEmpty(roomId, state)
