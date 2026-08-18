@@ -45,20 +45,26 @@ describe('buildDbCommands (P#5 T2.1) — 7 verbs', () => {
     }
   })
 
-  it('buildArgs returns drizzle-kit args with schema flag for every verb', () => {
-    // Given: opts with explicit schemaPath
+  it('passes --schema to exactly the verbs drizzle-kit accepts it on (#48)', () => {
+    // This assertion used to demand `--schema` on EVERY drizzle-kit verb. That is
+    // not the real grammar: `migrate`, `studio` and `check` reject it, so the old
+    // expectation is what kept five broken verbs looking covered.
     const opts = resolveOptions({
       driver: 'postgres',
       url: 'postgres://x',
       schemaPath: './custom/schema.ts',
     })
 
-    // Then: every drizzle-kit verb passes --schema (seed is a user-script, #170).
-    for (const cmd of buildDbCommands(opts).filter((c) => c.kind === 'drizzle-kit')) {
+    const takesSchema = new Set<DbVerb>(['generate', 'push'])
+    for (const cmd of buildDbCommands(opts).filter((c) => c.kind !== 'user-script')) {
       const args = cmd.buildArgs(opts)
       expect(args[0]).toBe(cmd.verb)
-      expect(args).toContain('--schema')
-      expect(args).toContain('./custom/schema.ts')
+      if (takesSchema.has(cmd.verb)) {
+        expect(args, `${cmd.verb} takes --schema`).toContain('--schema')
+        expect(args).toContain('./custom/schema.ts')
+      } else {
+        expect(args, `drizzle-kit rejects --schema on ${cmd.verb}`).not.toContain('--schema')
+      }
     }
   })
 
@@ -99,39 +105,68 @@ describe('buildDbCommands (P#5 T2.1) — 7 verbs', () => {
     expect(() => seed.buildArgs(opts)).toThrow(/seed.*script/i)
   })
 
-  it("drizzle-kit verbs are kind:'drizzle-kit' (#170)", () => {
-    const opts = resolveOptions({ driver: 'sqlite', url: ':memory:' })
-    for (const verb of ['generate', 'migrate', 'push', 'studio', 'check', 'reset'] as DbVerb[]) {
-      expect(buildDbCommands(opts).find((c) => c.verb === verb)?.kind).toBe('drizzle-kit')
+  it('declares the kind each verb actually needs (#48)', () => {
+    // Three kinds, because drizzle-kit offers three shapes: flags, config-only,
+    // and no subcommand at all. Collapsing them into one is what spawned
+    // `drizzle-kit reset` — a command that exists in no version.
+    const opts = resolveOptions({ driver: 'sqlite', url: 'file:app.db' })
+    const kind = (v: DbVerb) => buildDbCommands(opts).find((c) => c.verb === v)?.kind
+
+    for (const verb of ['generate', 'push', 'check'] as DbVerb[]) {
+      expect(kind(verb), `${verb} is driven by flags`).toBe('drizzle-kit')
+    }
+    for (const verb of ['migrate', 'studio'] as DbVerb[]) {
+      expect(kind(verb), `${verb} accepts only --config`).toBe('drizzle-kit-with-config')
+    }
+    for (const verb of ['seed', 'reset'] as DbVerb[]) {
+      expect(kind(verb), `drizzle-kit has no ${verb} subcommand`).toBe('user-script')
     }
   })
 
-  it('test_connection_opts_forwarded_to_drizzle_kit (#169)', () => {
+  it('forwards --url only to push, the one verb that accepts it (#48)', () => {
+    // `migrate`/`studio` reject --url and --dialect (config-only); `check` takes
+    // --dialect but not --url. Only `push` takes both.
     const opts = resolveOptions({ driver: 'postgres', url: 'postgres://h/db' })
-    for (const verb of ['migrate', 'push', 'studio', 'check'] as DbVerb[]) {
-      const args = buildDbCommands(opts)
-        .find((c) => c.verb === verb)!
+    const argsOf = (v: DbVerb) =>
+      buildDbCommands(opts)
+        .find((c) => c.verb === v)!
         .buildArgs(opts)
-      expect(args).toContain('--dialect')
-      expect(args).toContain('postgresql') // driver → dialect mapped (NOT --driver)
-      expect(args).toContain('--url')
-      expect(args).toContain('postgres://h/db')
+
+    const push = argsOf('push')
+    expect(push).toContain('--dialect')
+    expect(push).toContain('postgresql') // driver → dialect mapped (NOT --driver)
+    expect(push).toContain('--url')
+    expect(push).toContain('postgres://h/db')
+
+    // `check` takes the dialect, never the url.
+    expect(argsOf('check')).toContain('--dialect')
+    expect(argsOf('check')).not.toContain('--url')
+
+    // The connection reaches the config-only verbs through the rendered config.
+    for (const verb of ['migrate', 'studio'] as DbVerb[]) {
+      expect(argsOf(verb)).not.toContain('--url')
+      expect(argsOf(verb)).toContain('--config')
     }
   })
 
-  it('generate does NOT receive connection flags (#169)', () => {
+  it('generate takes --dialect but never --url (#48)', () => {
+    // Inverted deliberately. The old assertion demanded NO --dialect on
+    // `generate`, citing "it only diffs the schema" — drizzle-kit makes dialect a
+    // REQUIRED param of generate and refuses the command without it.
     const opts = resolveOptions({ driver: 'postgres', url: 'postgres://h/db' })
     const args = buildDbCommands(opts)
       .find((c) => c.verb === 'generate')!
       .buildArgs(opts)
-    expect(args).not.toContain('--url')
-    expect(args).not.toContain('--dialect')
+    expect(args, 'generate refuses to run without a dialect').toContain('--dialect')
+    expect(args).toContain('postgresql')
+    expect(args, 'generate never opens a connection').not.toContain('--url')
   })
 
   it('omits --url when url is undefined (no corrupt arg vector) (#169)', () => {
     const opts = resolveOptions({ driver: 'sqlite' }) // url omitted
+    // `push` is the verb that carries --url now; `migrate` is config-only (#48).
     const args = buildDbCommands(opts)
-      .find((c) => c.verb === 'migrate')!
+      .find((c) => c.verb === 'push')!
       .buildArgs(opts)
     expect(args).not.toContain('--url')
     expect(args).toContain('--dialect')
@@ -156,12 +191,17 @@ describe('buildDbCommands (P#5 T2.1) — 7 verbs', () => {
       migrationsPath: './drizzle/migrations',
     })
 
-    // Then: only `generate` writes; other drizzle-kit verbs don't need --out.
-    // (seed is a user-script, #170 — excluded from the drizzle-kit arg shape.)
-    for (const verb of ['migrate', 'push', 'studio', 'reset', 'check'] as DbVerb[]) {
+    // `check` reads the migrations folder to verify it, so it takes --out too
+    // (#48) — the old list asserted otherwise and matched no real grammar.
+    for (const verb of ['migrate', 'push', 'studio'] as DbVerb[]) {
       const cmd = buildDbCommands(opts).find((c) => c.verb === verb)
       const args = cmd?.buildArgs(opts) ?? []
-      expect(args).not.toContain('--out')
+      expect(args, `${verb} takes no --out`).not.toContain('--out')
     }
+    const check = buildDbCommands(opts)
+      .find((c) => c.verb === 'check')!
+      .buildArgs(opts)
+    expect(check, 'check verifies the migrations folder').toContain('--out')
+    expect(check).toContain('./drizzle/migrations')
   })
 })

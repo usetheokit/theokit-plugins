@@ -19,11 +19,17 @@ export interface DbCommand {
   readonly verb: DbVerb
   readonly summary: string
   /**
-   * #170: how the runner executes this verb. `"drizzle-kit"` → spawn
-   * `drizzle-kit` with `buildArgs()`. `"user-script"` → run the user's script
-   * (`buildArgs()` returns the script path); drizzle-kit has no such subcommand.
+   * How the runner executes this verb.
+   *
+   * - `"drizzle-kit"` — spawn `drizzle-kit` with `buildArgs()` (#170).
+   * - `"drizzle-kit-with-config"` — `drizzle-kit` accepts ONLY `--config` for
+   *   this verb, measured against 0.31.10 (#48). The runner MUST write
+   *   `renderDrizzleConfig(opts)` to `opts.configPath` and then spawn. Skipping
+   *   the write leaves `--config` pointing at nothing.
+   * - `"user-script"` — run the user's script (`buildArgs()` returns its path);
+   *   drizzle-kit has no such subcommand.
    */
-  readonly kind: 'drizzle-kit' | 'user-script'
+  readonly kind: 'drizzle-kit' | 'drizzle-kit-with-config' | 'user-script'
   /**
    * #168: destructive verb the runner MUST gate behind an explicit `--force`
    * flag before executing. Enforcement lives in the CLI runner (it has the
@@ -57,13 +63,23 @@ export function buildDbCommands(opts: ResolvedDrizzleDbOptions): DbCommand[] {
   return VERBS.map((verb) => ({
     verb,
     summary: SUMMARIES[verb],
-    // #170: `seed` runs the user's script (drizzle-kit has no `seed` verb);
-    // every other verb is a drizzle-kit passthrough.
-    kind: verb === 'seed' ? ('user-script' as const) : ('drizzle-kit' as const),
+    kind: kindOf(verb),
     // #168: `reset` is destructive (drops the DB) — the runner must require --force.
     ...(verb === 'reset' ? { requiresForce: true } : {}),
-    buildArgs: () => (verb === 'seed' ? seedArgs(opts) : baseArgs(verb, opts)),
+    buildArgs: () => {
+      // #170 for `seed`, #48 for `reset`: drizzle-kit has neither subcommand, so
+      // both run a script the user supplies.
+      if (verb === 'seed') return scriptArgs('seed', opts.seedScript)
+      if (verb === 'reset') return scriptArgs('reset', opts.resetScript)
+      return baseArgs(verb, opts)
+    },
   }))
+}
+
+function kindOf(verb: DbVerb): DbCommand['kind'] {
+  if (verb === 'seed' || verb === 'reset') return 'user-script'
+  if (CONFIG_ONLY_VERBS.has(verb)) return 'drizzle-kit-with-config'
+  return 'drizzle-kit'
 }
 
 const SUMMARIES: Record<DbVerb, string> = {
@@ -77,23 +93,22 @@ const SUMMARIES: Record<DbVerb, string> = {
 }
 
 /**
- * Shared drizzle-kit invocation prefix for any verb. Subcommands may push
- * verb-specific flags on top (e.g., `reset --force`).
+ * The verbs drizzle-kit does not have: `seed` (#170) and `reset` (#48). Both run
+ * a script the user supplies, returned as the sole arg for `kind:"user-script"`.
+ *
+ * Fails loud when unconfigured. `reset` used to be spawned as
+ * `drizzle-kit reset`, a subcommand that does not exist in any version — the
+ * error a user got named drizzle-kit rather than the missing setting.
  */
-/**
- * #170: `seed` runs the user's configured script, not drizzle-kit. Returns the
- * script path (the runner executes it as a script per `kind:"user-script"`).
- * Throws a clear, actionable error when no seed script is configured — fail loud
- * instead of spawning a nonexistent `drizzle-kit seed` subcommand.
- */
-function seedArgs(opts: ResolvedDrizzleDbOptions): string[] {
-  if (opts.seedScript === undefined || opts.seedScript.length === 0) {
+function scriptArgs(verb: 'seed' | 'reset', script: string | undefined): string[] {
+  if (script === undefined || script.length === 0) {
     throw new Error(
-      'db seed: no seed script configured. Set `seedScript` on drizzleDb(...) ' +
-        'or `package.json#theokit.db.seed` to the path of your seed script.',
+      `db ${verb}: no ${verb} script configured. Set \`${verb}Script\` on drizzleDb(...) ` +
+        `or \`package.json#theokit.db.${verb}\` to the path of your ${verb} script. ` +
+        `drizzle-kit has no \`${verb}\` subcommand, so there is nothing to fall back to.`,
     )
   }
-  return [opts.seedScript]
+  return [script]
 }
 
 /** drizzle-kit's connection flag is `--dialect` (NOT `--driver`); map our driver. */
@@ -103,27 +118,93 @@ const DRIVER_TO_DIALECT: Record<DrizzleDriver, string> = {
   sqlite: 'sqlite',
 }
 
-/** Verbs that open a DB connection and therefore need `--dialect`/`--url` (#169). */
-const CONNECTION_VERBS: ReadonlySet<DbVerb> = new Set(['migrate', 'push', 'studio', 'check'])
+/**
+ * Which flags each verb accepts — measured against `drizzle-kit@0.31.10`
+ * (`drizzle-kit <verb> --help`), not inferred (#48).
+ *
+ * The previous version of this file applied two rules of its own invention:
+ * `--schema` on every verb, and `--dialect`/`--url` on a `CONNECTION_VERBS` set.
+ * Neither matches the real grammar, so five of the six passthrough verbs emitted
+ * a command line drizzle-kit refuses. `tests/integration/drizzle-kit-grammar.test.ts`
+ * is what holds this table to the binary: it spawns the real one per verb.
+ *
+ * `migrate` and `studio` are deliberately absent — they accept `--config` ONLY,
+ * so neither can be driven by flags at all. See § below.
+ */
+const ACCEPTS: Partial<Record<DbVerb, ReadonlySet<'schema' | 'out' | 'dialect' | 'url'>>> = {
+  generate: new Set(['dialect', 'schema', 'out']),
+  push: new Set(['dialect', 'schema', 'url']),
+  check: new Set(['dialect', 'out']),
+}
+
+/** Verbs drizzle-kit drives ONLY through `--config` — measured (#48). */
+const CONFIG_ONLY_VERBS: ReadonlySet<DbVerb> = new Set(['migrate', 'studio'])
+
+/**
+ * The `drizzle.config.ts` this plugin hands to the verbs that accept nothing
+ * else. Pure — returns the file's content; the runner writes it (#48).
+ *
+ * Synthesized from the options the caller already gave `drizzleDb(...)`, so the
+ * connection is declared once. The alternative — requiring the user to maintain
+ * a config beside the plugin options — lets the two diverge silently, and a
+ * `migrate` run against the wrong database is the failure that costs most.
+ */
+export function renderDrizzleConfig(opts: ResolvedDrizzleDbOptions): string {
+  if (opts.driver === undefined) {
+    throw new Error('db: cannot write a drizzle config without `driver`. Set it on drizzleDb(...).')
+  }
+  if (opts.url === undefined) {
+    throw new Error(
+      'db: cannot write a drizzle config without `url`. Set it on drizzleDb(...) or pass DATABASE_URL.',
+    )
+  }
+  return [
+    '// Generated by @theokit/plugin-db-drizzle. Do not edit — it is rewritten per run.',
+    "import { defineConfig } from 'drizzle-kit'",
+    '',
+    'export default defineConfig({',
+    `  dialect: ${JSON.stringify(DRIVER_TO_DIALECT[opts.driver])},`,
+    `  schema: ${JSON.stringify(opts.schemaPath)},`,
+    `  out: ${JSON.stringify(opts.migrationsPath)},`,
+    `  dbCredentials: { url: ${JSON.stringify(opts.url)} },`,
+    '})',
+    '',
+  ].join('\n')
+}
+
+function configArgs(verb: DbVerb, opts: ResolvedDrizzleDbOptions): string[] {
+  const args = [verb, '--config', opts.configPath]
+  // `studio` is the one config-only verb that also takes flags of its own.
+  if (verb === 'studio') {
+    args.push('--host', opts.studioHost, '--port', String(opts.studioPort))
+  }
+  return args
+}
 
 function baseArgs(verb: DbVerb, opts: ResolvedDrizzleDbOptions): string[] {
-  const args: string[] = [verb, '--schema', opts.schemaPath]
-  // The `out` flag is used by `generate` to write migration files into the
-  // configured migrations directory.
-  if (verb === 'generate') {
+  if (CONFIG_ONLY_VERBS.has(verb)) {
+    return configArgs(verb, opts)
+  }
+  const accepts = ACCEPTS[verb]
+  if (accepts === undefined) {
+    throw new Error(
+      `db ${verb}: drizzle-kit has no \`${verb}\` subcommand, so it cannot be a passthrough. See #48.`,
+    )
+  }
+  const args: string[] = [verb]
+  // Order follows drizzle-kit's own help output. Each flag is conditional on its
+  // source being set — pushing `--url undefined` would corrupt the arg vector.
+  if (accepts.has('dialect') && opts.driver !== undefined) {
+    args.push('--dialect', DRIVER_TO_DIALECT[opts.driver])
+  }
+  if (accepts.has('schema')) {
+    args.push('--schema', opts.schemaPath)
+  }
+  if (accepts.has('out')) {
     args.push('--out', opts.migrationsPath)
   }
-  // #169: forward the documented connection options to drizzle-kit for the verbs
-  // that need a live connection. `generate` only diffs the schema, so it is
-  // intentionally excluded. Each flag is conditional on its source being set —
-  // pushing `--url undefined` would corrupt the arg vector.
-  if (CONNECTION_VERBS.has(verb)) {
-    if (opts.driver !== undefined) {
-      args.push('--dialect', DRIVER_TO_DIALECT[opts.driver])
-    }
-    if (opts.url !== undefined) {
-      args.push('--url', opts.url)
-    }
+  if (accepts.has('url') && opts.url !== undefined) {
+    args.push('--url', opts.url)
   }
   return args
 }

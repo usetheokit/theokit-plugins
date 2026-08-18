@@ -51,6 +51,22 @@ export interface DrizzleDbOptions {
    * When unset, `db seed` errors instead of invoking a nonexistent subcommand.
    */
   seedScript?: string
+  /**
+   * Path to the user's reset script run by `db reset` (#48). `drizzle-kit` has
+   * no `reset` verb — the previous release spawned one anyway — so resetting
+   * runs THIS script. When unset, `db reset` errors instead of invoking a
+   * subcommand that does not exist.
+   */
+  resetScript?: string
+  /**
+   * Where the synthesized `drizzle.config.ts` is written (#48). `migrate` and
+   * `studio` accept ONLY `--config`, so the plugin renders one from these
+   * options and points the verb at it. Default: `./.theokit/drizzle.config.ts`.
+   *
+   * The file is rewritten on every run and is not meant to be edited or
+   * committed — add `.theokit/` to `.gitignore`.
+   */
+  configPath?: string
 }
 
 /**
@@ -64,12 +80,15 @@ export interface ResolvedDrizzleDbOptions {
   readonly migrationsPath: string
   readonly devtoolsTab: boolean
   readonly seedScript: string | undefined
+  readonly resetScript: string | undefined
   readonly studioHost: string
   readonly studioPort: number
+  readonly configPath: string
 }
 
 const DEFAULT_SCHEMA_PATH = './db/schema.ts'
 const DEFAULT_MIGRATIONS_PATH = './db/migrations'
+const DEFAULT_CONFIG_PATH = './.theokit/drizzle.config.ts'
 
 /**
  * Apply defaults to user-provided options. Pure; no I/O.
@@ -88,7 +107,9 @@ export function resolveOptions(opts: DrizzleDbOptions): ResolvedDrizzleDbOptions
     migrationsPath: opts.migrationsPath ?? DEFAULT_MIGRATIONS_PATH,
     devtoolsTab: opts.devtoolsTab ?? true,
     seedScript: opts.seedScript,
+    resetScript: opts.resetScript,
     studioHost: opts.studioHost ?? 'localhost',
     studioPort: opts.studioPort ?? 4983,
+    configPath: opts.configPath ?? DEFAULT_CONFIG_PATH,
   }
 }

@@ -25,7 +25,7 @@ export type { DrizzleDbPlugin, TheoApp, TheoPlugin } from './types.js'
 // ~30 assertions covering something no consumer could invoke (#43). Exporting
 // them is not new surface; it un-hides surface that already existed and is
 // already tested. Wire `buildDbCommands` into a package script of your own.
-export { buildDbCommands, type DbCommand, type DbVerb } from './cli/db.js'
+export { buildDbCommands, renderDrizzleConfig, type DbCommand, type DbVerb } from './cli/db.js'
 export { buildDevtoolsTab, type DrizzleDevtoolsTab } from './devtools.js'
 
 /**

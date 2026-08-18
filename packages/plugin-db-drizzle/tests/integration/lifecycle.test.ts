@@ -35,10 +35,16 @@ describe('plugin lifecycle smoke', () => {
     expect(plugin.options.driver).toBe('postgres')
   })
 
-  it('CLI verbs produce drizzle-kit-compatible args for sqlite in-memory', () => {
+  it("the caller's paths reach the commands the plugin builds", () => {
+    // Renamed from "produce drizzle-kit-compatible args", which this test could
+    // never establish: it never consulted drizzle-kit, and the args it blessed
+    // were rejected by the real binary on five of six verbs (#48). Compatibility
+    // is now asserted where it can be — `tests/integration/drizzle-kit-grammar.test.ts`
+    // spawns the actual drizzle-kit. What is left here is the narrower, honest
+    // claim: options given to `drizzleDb()` are the ones the commands carry.
     const plugin = drizzleDb({
       driver: 'sqlite',
-      url: ':memory:',
+      url: 'file:app.db',
       schemaPath: './db/schema.ts',
       migrationsPath: './db/migrations',
     })
@@ -47,17 +53,22 @@ describe('plugin lifecycle smoke', () => {
     // implementing methods that do not exist, so the old route to this assertion
     // was longer AND less true.
     const cmds = buildDbCommands(plugin.options)
+    const argsOf = (verb: string) => {
+      const cmd = cmds.find((c) => c.verb === verb)
+      expect(cmd, `${verb} missing`).toBeDefined()
+      return cmd?.buildArgs(plugin.options) ?? []
+    }
 
-    const migrate = cmds.find((c) => c.verb === 'migrate')
-    expect(migrate).toBeDefined()
-    const migrateArgs = migrate?.buildArgs(plugin.options) ?? []
-    expect(migrateArgs[0]).toBe('migrate')
-    expect(migrateArgs).toContain('./db/schema.ts')
+    const generate = argsOf('generate')
+    expect(generate[0]).toBe('generate')
+    expect(generate).toContain('./db/schema.ts')
+    expect(generate).toContain('./db/migrations')
 
-    const generate = cmds.find((c) => c.verb === 'generate')
-    const generateArgs = generate?.buildArgs(plugin.options) ?? []
-    expect(generateArgs).toContain('--out')
-    expect(generateArgs).toContain('./db/migrations')
+    // `migrate` carries the config path instead of the paths themselves — they
+    // travel inside the rendered config (#48).
+    const migrate = argsOf('migrate')
+    expect(migrate[0]).toBe('migrate')
+    expect(migrate).toContain(plugin.options.configPath)
   })
 
   it('multi-plugin scenario: two drizzleDb instances do not clobber each other', () => {
