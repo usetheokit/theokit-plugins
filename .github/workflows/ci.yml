@@ -42,6 +42,16 @@ jobs:
           node-version: 22
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+
+      # Cross-package imports resolve through each package's `exports` map, which points
+      # at `dist/` — so the workspace has to be BUILT before anything type-aware or
+      # runtime-loading touches it. Skipping this is invisible on a developer machine
+      # that has a stale `dist/` lying around, and fails only in CI: measured here as
+      # `Failed to resolve entry for package "@theokit/auth-magic-link"` and as a wall of
+      # `type that could not be resolved` from typescript-eslint.
+      - name: Build all packages (types the other gates resolve against)
+        run: pnpm build
+
       - name: ESLint (strict — zero warnings)
         run: pnpm lint
       - name: Prettier (format check)
@@ -60,6 +70,16 @@ jobs:
           node-version: 22
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+
+      # Cross-package imports resolve through each package's `exports` map, which points
+      # at `dist/` — so the workspace has to be BUILT before anything type-aware or
+      # runtime-loading touches it. Skipping this is invisible on a developer machine
+      # that has a stale `dist/` lying around, and fails only in CI: measured here as
+      # `Failed to resolve entry for package "@theokit/auth-magic-link"` and as a wall of
+      # `type that could not be resolved` from typescript-eslint.
+      - name: Build all packages (types the other gates resolve against)
+        run: pnpm build
+
       - run: pnpm typecheck
       - name: Check for circular dependencies (regression guard for the M1 canvas cycle fix)
         run: pnpm check:cycles
@@ -69,13 +89,12 @@ jobs:
       # unpassable on any commit (#13).
       - name: Validate package manifests (publishability)
         run: pnpm check:manifests
-      - name: Build all packages
-        run: pnpm build
       # The packaging contract, and the only check that looks at these packages
       # the way a consumer does: every `exports` subpath resolving to a file the
       # tarball actually ships, every declared .d.ts shipped, main entry importing
       # from dist/. Unit tests import from src/ through the workspace, so none of
-      # them can see a broken subpath — that is how #9 shipped. Runs here rather
+      # them can see a broken subpath — that is how #9 shipped. The build it needs now
+      # runs at the top of this job, ahead of typecheck. Runs here rather
       # than in integration.yml because it needs no credential and no network: a packaging
       # break is ours, not a provider's bad afternoon. Must come AFTER build.
       - name: Consumer smoke (packaging contract, all packages)
@@ -109,4 +128,14 @@ jobs:
           node-version: 22
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+
+      # Cross-package imports resolve through each package's `exports` map, which points
+      # at `dist/` — so the workspace has to be BUILT before anything type-aware or
+      # runtime-loading touches it. Skipping this is invisible on a developer machine
+      # that has a stale `dist/` lying around, and fails only in CI: measured here as
+      # `Failed to resolve entry for package "@theokit/auth-magic-link"` and as a wall of
+      # `type that could not be resolved` from typescript-eslint.
+      - name: Build all packages (types the other gates resolve against)
+        run: pnpm build
+
       - run: pnpm test

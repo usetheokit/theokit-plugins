@@ -50,6 +50,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Três jobs da CI rodavam antes do build, e nenhum podia passar num checkout limpo.** `lint`, `typecheck` e `test` faziam `install` e iam direto ao trabalho, mas os imports entre pacotes do workspace resolvem pelo `exports` de cada um, que aponta para `dist/`. Na minha máquina passava por causa de um `dist/` remanescente; na CI a mesma coisa falhava com `Failed to resolve entry for package "@theokit/auth-magic-link"` e uma parede de `type that could not be resolved`. O `pnpm build` passou a rodar antes dos três, e no job de typecheck ele **subiu** para antes do `typecheck` em vez de ficar depois. Reproduzido localmente apagando os 11 `dist/` antes de confirmar o fix — sem isso eu não teria como saber se consertei.
+
 - **`pnpm lint` estava vermelho e nada apontava.** Quatro dos nove erros eram do `magic-link-seam.test.ts`, escrito nesta mesma sequência de trabalho: o commit que o trouxe rodou testes e typecheck, e não rodou o lint. Os outros cinco eram meus também, nos dois arquivos de magic-link em `integration/`. Corrigidos — geradores `async` sem `await`, casts `as string` sobre um campo já tipado `string`, e um spread de `any` vindo de `Array.isArray` sobre `readonly string[]`.
 
 - **Um timeout na suíte de integração podia reportar `[object Object]`.** `integration/src/harness.ts` fazia `String(last)` sobre um erro capturado; um objeto lançado sem `toString` próprio virava `[object Object]`, transformando o relatório de timeout em beco sem saída. Passa a ler `.message` quando existe e a serializar o resto.
