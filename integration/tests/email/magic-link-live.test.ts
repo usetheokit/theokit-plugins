@@ -88,7 +88,7 @@ function onlyResult(results: readonly SendResult[]): SendResult {
 
 function signInRequest(email: string): IncomingMessage {
   const body = JSON.stringify({ email })
-  async function* chunks() {
+  function* chunks() {
     yield Buffer.from(body, 'utf8')
   }
   const req = chunks() as unknown as IncomingMessage
@@ -165,8 +165,8 @@ describeLive(EMAIL, 'magic-link outbound', () => {
     expect(message.from).toBe(required('RESEND_FROM_ADDRESS'))
     expect(message.subject).toContain(marker)
     // Both parts are populated by the shipped template, not by an override.
-    expect(typeof message.html, 'template rendered no HTML').toBe('string')
-    expect(typeof message.text, 'template rendered no text part').toBe('string')
+    expect(message.html, 'template rendered an empty HTML body').not.toBe('')
+    expect(message.text, 'template rendered no text part').toBeTruthy()
   }, 60_000)
 
   it('the link inside the transmitted message signs the user in', async () => {
@@ -180,7 +180,7 @@ describeLive(EMAIL, 'magic-link outbound', () => {
     // The href is read out of the HTML that went over the wire to Resend. This is the
     // strongest claim available without a readable mailbox: the bytes are the sent
     // ones, and the consumption is real. It is NOT proof of delivery — see the header.
-    const clicked = hrefFromHtml(onlyMessage(sent).html as string)
+    const clicked = hrefFromHtml(onlyMessage(sent).html)
     expect(clicked).toContain('https://app.usetheo.dev')
 
     const result = await auth.handleCallback(callbackRequest(clicked), {} as never)
@@ -195,7 +195,7 @@ describeLive(EMAIL, 'magic-link outbound', () => {
 
     await auth.startSignIn(signInRequest(required('EMAIL_TEST_RECIPIENT')))
     onlyResult(results)
-    const clicked = hrefFromHtml(onlyMessage(sent).html as string)
+    const clicked = hrefFromHtml(onlyMessage(sent).html)
 
     await auth.handleCallback(callbackRequest(clicked), {} as never)
     await expect(

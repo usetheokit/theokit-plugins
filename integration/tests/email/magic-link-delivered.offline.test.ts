@@ -105,7 +105,7 @@ function smtpProvider(): EmailProvider {
         // `EmailMessage.to` is `string | readonly string[]`; nodemailer wants a mutable
         // array. Copying is the honest conversion — casting the readonly away would let a
         // future mutation of the caller's array pass unnoticed.
-        to: Array.isArray(message.to) ? [...message.to] : (message.to as string),
+        to: typeof message.to === 'string' ? message.to : [...message.to],
         from: message.from,
         subject: message.subject,
         html: message.html,
@@ -118,7 +118,7 @@ function smtpProvider(): EmailProvider {
 
 function signInRequest(email: string): IncomingMessage {
   const body = JSON.stringify({ email })
-  async function* chunks() {
+  function* chunks() {
     yield Buffer.from(body, 'utf8')
   }
   const req = chunks() as unknown as IncomingMessage

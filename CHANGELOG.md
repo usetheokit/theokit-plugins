@@ -30,6 +30,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 
 - **Os testes e2e sem credencial passaram a rodar em toda PR, não só de madrugada.** O `magic-link-delivered` foi escrito em `e2e/tests/email/`, onde só o job noturno chega — uma PR passava verde por cima dele, e a quebra seria encontrada por quem lesse a execução das 04:00. `pnpm e2e:offline` roda tudo que não precisa de credencial (`tests/consumer/` mais qualquer `*.offline.test.ts`) e entrou no `ci.yml`. A convenção é mecânica de propósito: `readiness.test.ts` falha quando uma suíte sem credencial é escrita fora dela, e falha também se o `ci.yml` parar de invocar o comando.
+- **`pnpm lint` e `pnpm typecheck` passaram a cobrir a suíte de integração.** O `tsconfig.json` da raiz incluía apenas `packages/*/src` e `packages/*/tests`, e o padrão do lint apontava só para `packages/**` — então `integration/` era verificado por ninguém na CI, e o script `typecheck` que o próprio pacote declara nunca era invocado. Ao alargar os dois, apareceram **9 erros de lint** que nunca tinham sido vistos.
+
+- **`check:cycles` deixou de baixar o `madge` da rede a cada execução.** Era `npx --yes madge`, que busca a última versão em toda run de CI — um gate que instala ferramenta não-fixada da internet é problema de reproduzibilidade e de cadeia de suprimentos ao mesmo tempo. Agora é devDependency (`^8`), presa no lockfile.
+
 - **BREAKING (`@theokit/plugin-db-drizzle`) — os argumentos que cada verbo emite mudaram (#48).** Quem consome `buildDbCommands()` diretamente e depende da forma antiga precisa reler: `--schema` sai de `migrate`/`studio`/`check`, `--dialect` **entra** em `generate` (o drizzle-kit o exige lá), `--url` fica só em `push`, e `--out` passa a valer também para `check`. `DbCommand.kind` ganhou um terceiro valor, `'drizzle-kit-with-config'`: quem executa esses comandos **deve** escrever `renderDrizzleConfig(opts)` em `opts.configPath` antes do spawn, senão `--config` aponta para nada. `reset` deixou de ser `'drizzle-kit'` e passou a `'user-script'`.
 
 
@@ -45,6 +49,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Removed
 
 ### Fixed
+
+- **`pnpm lint` estava vermelho e nada apontava.** Quatro dos nove erros eram do `magic-link-seam.test.ts`, escrito nesta mesma sequência de trabalho: o commit que o trouxe rodou testes e typecheck, e não rodou o lint. Os outros cinco eram meus também, nos dois arquivos de magic-link em `integration/`. Corrigidos — geradores `async` sem `await`, casts `as string` sobre um campo já tipado `string`, e um spread de `any` vindo de `Array.isArray` sobre `readonly string[]`.
+
+- **Um timeout na suíte de integração podia reportar `[object Object]`.** `integration/src/harness.ts` fazia `String(last)` sobre um erro capturado; um objeto lançado sem `toString` próprio virava `[object Object]`, transformando o relatório de timeout em beco sem saída. Passa a ler `.message` quando existe e a serializar o resto.
 
 - **Os testes do `plugin-db-drizzle` conferiam os argumentos contra a nossa própria expectativa, nunca contra o drizzle-kit (#48).** Seis asserções afirmavam a forma errada e passavam verdes enquanto o CLI estava quebrado — a mesma classe de defeito de #43, um teste que confirma a fabricação em vez de pegá-la. Foram reescritas contra a gramática medida, e `tests/integration/drizzle-kit-grammar.test.ts` passou a **executar o drizzle-kit real** por verbo, além de provar num sqlite de verdade que `generate` escreve o migration e `migrate` cria a tabela. O antigo `tests/integration/lifecycle.test.ts` prometia "drizzle-kit-compatible args" sem nunca consultar o drizzle-kit; o nome foi corrigido para o que ele mede.
 

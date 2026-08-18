@@ -105,6 +105,9 @@ export async function waitFor<T>(
     }
     await new Promise((r) => setTimeout(r, interval))
   }
-  const suffix = last === undefined ? '' : ` — last error: ${String(last)}`
+  // `String(err)` on a thrown plain object yields `[object Object]`, which turns a timeout
+  // report into a dead end. Read the message when there is one.
+  const reason = last instanceof Error ? last.message : JSON.stringify(last)
+  const suffix = last === undefined ? '' : ` — last error: ${reason}`
   throw new Error(`timed out after ${opts.timeoutMs}ms waiting for ${opts.label}${suffix}`)
 }

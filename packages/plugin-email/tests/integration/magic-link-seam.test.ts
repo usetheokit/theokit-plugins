@@ -43,7 +43,7 @@ function capturingProvider(): { provider: EmailProvider; sent: EmailMessage[] } 
 /** A POST whose body carries the email, as `defaultResolveEmail` expects. */
 function signInRequest(email: string): IncomingMessage {
   const body = JSON.stringify({ email })
-  async function* chunks() {
+  function* chunks() {
     yield Buffer.from(body, 'utf8')
   }
   const req = chunks() as unknown as IncomingMessage
@@ -109,9 +109,9 @@ describe('the adapter this package ships satisfies the port auth-magic-link decl
     await auth.startSignIn(signInRequest('user@example.com'))
 
     const html = onlyMessage(sent).html
-    expect(typeof html, 'the default template renders HTML').toBe('string')
+    expect(html, 'the default template rendered an empty HTML body').not.toBe('')
 
-    const clicked = hrefFromHtml(html as string)
+    const clicked = hrefFromHtml(html)
     const result = await auth.handleCallback(callbackRequest(clicked), {} as never)
 
     expect(result.profile.email).toBe('user@example.com')
@@ -139,7 +139,7 @@ describe('the adapter this package ships satisfies the port auth-magic-link decl
     const { auth, sent } = wire('https://app.example.com/app?tenant=acme')
     await auth.startSignIn(signInRequest('tenant@example.com'))
 
-    const clicked = hrefFromHtml(onlyMessage(sent).html as string)
+    const clicked = hrefFromHtml(onlyMessage(sent).html)
     expect(clicked, 'the base query string was dropped').not.toContain('&amp;')
 
     const result = await auth.handleCallback(callbackRequest(clicked), {} as never)
@@ -151,7 +151,7 @@ describe('the adapter this package ships satisfies the port auth-magic-link decl
     // the round trip through the email, which is the only path a user takes.
     const { auth, sent } = wire('https://app.example.com')
     await auth.startSignIn(signInRequest('once@example.com'))
-    const clicked = hrefFromHtml(onlyMessage(sent).html as string)
+    const clicked = hrefFromHtml(onlyMessage(sent).html)
 
     await auth.handleCallback(callbackRequest(clicked), {} as never)
 
