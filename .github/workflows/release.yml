@@ -48,6 +48,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - name: Create Release PR or Publish
+        id: changesets
         uses: changesets/action@v1
         with:
           publish: pnpm release
@@ -62,7 +63,23 @@ jobs:
           # cannot be re-armed by someone dropping the `run`.
           version: pnpm run version:packages
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # RELEASE_PAT first, GITHUB_TOKEN as the fallback (#16).
+          #
+          # Opening the "Version Packages" PR needs a token allowed to create pull
+          # requests, and GITHUB_TOKEN is not — the ORGANISATION setting "Allow
+          # GitHub Actions to create and approve pull requests" is `false`, and it
+          # is a ceiling: a repository cannot override it (measured, the API answers
+          # 409 "The organization does not allow GitHub Actions to create or approve
+          # pull requests").
+          #
+          # Two ways out, and this line takes the safer one without demanding it.
+          # Flipping the org flag would also grant Actions the ability to APPROVE
+          # pull requests, in every repository of the org — a review-bypass vector
+          # next to required reviews. A PAT (or GitHub App token) in RELEASE_PAT
+          # confines the grant to this workflow. Absent the secret this expression
+          # falls back and the release behaves exactly as before, so adding it is
+          # the only step needed and nothing breaks meanwhile.
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
           # NPM_TOKEN intentionally absent — per technical-hardening-sprint plan v1.1 EC-2
           # absorbed: NPM_TOKEN env DISABLES OIDC trusted-publisher binding silently.
           # npm CLI prioritizes token auth over the OIDC token from id-token: write
@@ -70,3 +87,48 @@ jobs:
           # uses the GitHub Actions OIDC token automatically (requires npm dashboard
           # trusted-publisher binding configured at npmjs.com/package/<pkg>/settings).
           NPM_CONFIG_PROVENANCE: true
+      # The failure this closes is silence, not the missing permission (#16).
+      #
+      # When the token cannot open a pull request, `changesets/action` still
+      # pushes `changeset-release/main` and the job still goes GREEN. The
+      # changesets sit unconsumed, no version is bumped, and the only signal is a
+      # branch nobody is watching — which is how a broken release survived five
+      # runs over two months before anyone looked.
+      #
+      # `hasChangesets` true with an empty `pullRequestNumber` is exactly that
+      # state, and it is the only combination worth failing on: no changesets
+      # means nothing to release, and a published run has already done its job.
+      - name: Fail loudly if the release PR could not be opened
+        if: steps.changesets.outputs.hasChangesets == 'true' && steps.changesets.outputs.pullRequestNumber == '' && steps.changesets.outputs.published != 'true'
+        run: |
+          echo "::error title=Release PR was not created::changesets pushed the branch but could not open the pull request."
+          cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
+          ## Release PR was not created
+
+          `changeset-release/main` was pushed and the "Version Packages" pull request was not
+          opened, so **no version was bumped and nothing was published**. The changesets are
+          still pending.
+
+          The token used cannot create pull requests. Measured: the *organisation* setting
+          `Allow GitHub Actions to create and approve pull requests` is `false`, and it is a
+          ceiling — a repository cannot override it (the API answers `409 The organization does
+          not allow GitHub Actions to create or approve pull requests`).
+
+          ### Two ways to fix it
+
+          **Recommended — a scoped token.** Create a PAT (or GitHub App token) with `repo`
+          scope and add it as the `RELEASE_PAT` secret. This workflow already prefers it over
+          `GITHUB_TOKEN`, so nothing else changes. The grant stays confined to this workflow.
+
+          **Or — flip the organisation flag**, in Settings → Actions → General. One click, and
+          it also grants Actions the ability to **approve** pull requests in *every* repository
+          of the organisation, which is a review-bypass vector next to required reviews.
+
+          ### Meanwhile
+
+          Open the pull request by hand from `changeset-release/main` into `main`; the rest of
+          the release proceeds normally.
+
+          Tracked in #16.
+          SUMMARY
+          exit 1

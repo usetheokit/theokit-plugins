@@ -4,12 +4,21 @@ Standalone DB plugin for TheoKit — wraps drizzle-kit and `@theokit/orm` behind
 
 > **Status:** v0.1.0 initial publish on the `@next` tag. Promote to `@latest` is calendar-gated alongside the Onda 2 cohort.
 
+> **`theokit db <verb>` does not exist.** This README promised seven CLI
+> subcommands and a devtools tab for several releases; neither could ever run.
+> `register()` wired them by calling `app.registerCliCommand()` /
+> `app.registerDevtoolsTab()`, and the framework's `TheoApp` has only `addHook`
+> and `decorateRequest` — the calls sat behind `if (app.registerCliCommand)`
+> guards, so the result was a silent no-op rather than an error. The `theokit`
+> CLI itself knows `build`, `dev`, `doctor`, `start` and has no plugin extension
+> point. Tracked in #43; the command builders are still here and still tested,
+> reachable now as exported functions (see § Migrations and studio).
+
 ## What you get
 
-- One `drizzleDb(opts)` call wires drizzle into your TheoKit app.
-- Seven `theokit db <verb>` CLI subcommands: `generate / migrate / push / studio / reset / seed / check`.
-- Drizzle-kit studio passthrough (no custom UI baggage).
-- Opt-in devtools tab that IFRAMEs the studio when the TheoKit devtools overlay is loaded.
+- One `drizzleDb(opts)` call, carrying resolved options your own tooling can read.
+- `buildDbCommands(options)` — the seven drizzle-kit invocations as data, to wire into a script of your own.
+- `buildDevtoolsTab(options)` — the studio-IFRAME tab descriptor, for whatever overlay you actually have.
 
 `@theokit/orm` is a required peer — this plugin wraps it, never duplicates. Your Repository, `@InjectRepository`, `@Transactional`, and `OrmModule` keep working unchanged.
 
@@ -49,27 +58,58 @@ export default defineConfig({
 | `migrationsPath` | `string`                            | `'./db/migrations'` | Directory for generated migration files          |
 | `devtoolsTab`    | `boolean`                           | `true`              | Register a devtools-overlay tab when present     |
 
-## CLI verbs
+## Migrations and studio
 
-```bash
-theokit db generate    # Generate migration from schema diff
-theokit db migrate     # Apply pending migrations
-theokit db push        # Push schema directly (dev-only)
-theokit db studio      # Open drizzle-kit studio (visual DB explorer)
-theokit db reset --force  # Drop tables + re-apply all migrations
-theokit db seed        # Run the user-provided seed script
-theokit db check       # Check schema drift
+There is no `theokit db` command to call (see the note at the top). What the
+package gives you is the seven drizzle-kit invocations as data, so you wire them
+where your project already keeps its scripts:
+
+```ts
+// scripts/db.ts
+import { buildDbCommands, drizzleDb } from '@theokit/plugin-db-drizzle'
+import { spawnSync } from 'node:child_process'
+
+const plugin = drizzleDb({ driver: 'postgres', url: process.env.DATABASE_URL! })
+const verb = process.argv[2]
+const cmd = buildDbCommands(plugin.options).find((c) => c.verb === verb)
+if (!cmd) throw new Error(`unknown verb ${verb}`)
+
+spawnSync('npx', ['drizzle-kit', ...cmd.buildArgs(plugin.options)], { stdio: 'inherit' })
 ```
 
-All verbs shell out to `drizzle-kit` via Node child_process. If you don't install `drizzle-kit`, your runtime app still works — only the CLI verbs error out with an actionable message.
+```json
+{ "scripts": { "db": "tsx scripts/db.ts" } }
+```
 
-## Devtools tab (opt-in)
+```bash
+pnpm db generate    # migration from schema diff
+pnpm db migrate     # apply pending migrations
+pnpm db push        # push schema directly (dev-only)
+pnpm db studio      # drizzle-kit studio (visual DB explorer)
+pnpm db reset       # drop tables + re-apply all migrations
+pnpm db seed        # run the user-provided seed script
+pnpm db check       # check schema drift
+```
 
-When the TheoKit devtools overlay (G4) is loaded, the plugin registers a "Database" tab that IFRAMEs `http://localhost:4983` (drizzle-kit's default studio port). Run `theokit db studio` in another terminal to populate it.
+Every verb shells out to `drizzle-kit`. Without it installed your runtime app
+still works — only these fail, with drizzle-kit's own message.
 
-Opt out via `drizzleDb({ devtoolsTab: false, ... })`.
+## Devtools tab
 
-**Production note:** the devtools overlay is dev-only. Production builds tree-shake the tab module — no IFRAME is emitted to your shipped bundle.
+`buildDevtoolsTab(options)` returns a `{ id, label, mount }` descriptor that
+IFRAMEs `http://localhost:4983` (drizzle-kit's default studio port). Mount it in
+whatever overlay you have:
+
+```ts
+import { buildDevtoolsTab, drizzleDb } from '@theokit/plugin-db-drizzle'
+
+const tab = buildDevtoolsTab(drizzleDb({ driver: 'sqlite', url: ':memory:' }).options)
+tab.mount(document.getElementById('panel')!)
+```
+
+The plugin does **not** register it for you — there is no framework hook to
+register it through (#43). `drizzleDb({ devtoolsTab: false })` still resolves to
+`false` in `options`, so your own wiring can honour the flag.
 
 ## RLS / auth integration
 

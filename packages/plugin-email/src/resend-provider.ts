@@ -5,8 +5,19 @@
  * Blueprint ADR D2 — Resend is required peer.
  *
  * Wraps `new Resend(apiKey)` + `resend.emails.send()`. Maps `EmailMessage`
- * to Resend's API shape. `idempotencyKey` maps to `Idempotency-Key` HTTP
- * header (Resend's documented dedup mechanism — D5).
+ * to Resend's API shape.
+ *
+ * `idempotencyKey` goes in the SDK's SECOND argument, not in the payload.
+ * `payload.headers` are MIME headers of the message; the deduplication header
+ * is an HTTP header of the request, and the SDK exposes it only as
+ * `send(payload, { idempotencyKey })` (`CreateEmailRequestOptions`, resend
+ * 4.8.0: "If provided, will be sent as the `Idempotency-Key` header").
+ *
+ * Until 2026-08-17 it was written into `payload.headers`, which made the key a
+ * decorative MIME header and meant Resend never deduplicated anything. The unit
+ * test asserted the wrong location under the right name, so it passed; the live
+ * e2e suite sent the same key twice, got two different ids back, and that is
+ * how it was found.
  */
 
 import type { EmailMessage, EmailProvider, SendResult } from './types.js'
@@ -31,13 +42,31 @@ export interface ResendSendPayload {
   headers?: Record<string, string>
 }
 
+/**
+ * Request-level options. Distinct from the payload on purpose: these become HTTP
+ * headers, while the payload becomes the message.
+ */
+export interface ResendSendRequestOptions {
+  idempotencyKey?: string
+}
+
 export interface ResendClientLike {
   emails: {
-    send(payload: ResendSendPayload): Promise<{
+    send(
+      payload: ResendSendPayload,
+      options?: ResendSendRequestOptions,
+    ): Promise<{
       data?: { id: string } | null
       error?: { message?: string; name?: string } | null
     }>
   }
+}
+
+/** Second argument to `emails.send`, omitted entirely when there is nothing to send. */
+function requestOptions(message: EmailMessage): ResendSendRequestOptions | undefined {
+  return message.idempotencyKey === undefined
+    ? undefined
+    : { idempotencyKey: message.idempotencyKey }
 }
 
 export interface ResendProviderOptions {
@@ -68,7 +97,7 @@ export function ResendProvider(opts: ResendProviderOptions): EmailProvider {
       const payload = buildPayload(message)
       let result: Awaited<ReturnType<ResendClientLike['emails']['send']>>
       try {
-        result = await client.emails.send(payload)
+        result = await client.emails.send(payload, requestOptions(message))
       } catch (cause) {
         throw new EmailSendError('Resend send failed', {
           provider: 'resend',
@@ -87,11 +116,12 @@ export function ResendProvider(opts: ResendProviderOptions): EmailProvider {
   }
 }
 
+/**
+ * MIME headers of the message. `idempotencyKey` is deliberately NOT merged in
+ * here — it is a request header, handled in the send options.
+ */
 function buildHeaders(message: EmailMessage): Record<string, string> | undefined {
   const headers: Record<string, string> = { ...(message.headers ?? {}) }
-  if (message.idempotencyKey !== undefined) {
-    headers['Idempotency-Key'] = message.idempotencyKey
-  }
   return Object.keys(headers).length > 0 ? headers : undefined
 }
 

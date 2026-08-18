@@ -2,7 +2,7 @@
 
 Voice (Speech-to-Text + Text-to-Speech) plugin for [TheoKit](https://github.com/usetheokit/theokit).
 
-> **Status:** 0.7.0 — STT handler, TTS handler, and UI components (`VoiceRecorderBar`, `TalkOptions`, `Alert`, `useTts`) are shipped. See [theokit-ui-parity-plan.md](https://github.com/usetheodev/theokit-tools/blob/main/.claude/knowledge-base/plans/theokit-ui-parity-plan.md) Phase 3.
+> **Status:** 0.7.0 — STT handler, TTS handler, and UI components (`VoiceRecorderBar`, `TalkOptions`, `Alert`, `useTts`) are shipped. The OpenAI path is exercised against the live API on every nightly run, including a TTS→STT round trip; the Groq STT backend is covered only when a `GROQ_API_KEY` is present.
 
 ## Why this plugin
 
