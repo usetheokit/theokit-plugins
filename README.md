@@ -49,7 +49,7 @@ The list below is **hypothetical**. Each item will only become a real package wh
 
 ## How to propose a plugin
 
-1. Open a discussion at [usetheodev/theokit](https://github.com/usetheokit/theokit/discussions) titled `[plugin proposal] <name>`.
+1. Open an issue titled `[plugin proposal] <name>` on [usetheokit/theokit](https://github.com/usetheokit/theokit/issues).
 2. Show: real production use case, 3+ requests from others, why it can't be a core primitive.
 3. If accepted, a maintainer creates the package in this repo's `packages/`.
 
@@ -57,7 +57,7 @@ The list below is **hypothetical**. Each item will only become a real package wh
 
 Use the naming convention `@<your-scope>/theokit-plugin-<name>` (e.g., `@acme/theokit-plugin-stripe`). Publish wherever. Add a `theokit-plugin` keyword in `package.json`. Eventually a "community plugins" page in TheoKit docs will link verified ones.
 
-See [`docs/concepts/plugins.md`](https://github.com/usetheokit/theokit/blob/main/docs/concepts/plugins.md) §7 for the full plugin authoring guide.
+See the [plugin authoring guide](https://theokit.dev/docs/plugins) for the full contract.
 
 ## Repository layout (when populated)
 
