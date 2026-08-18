@@ -27,7 +27,7 @@
  * rather than assumed to be.
  */
 
-import { AddressInfo } from 'node:net'
+import type { AddressInfo } from 'node:net'
 
 import * as Y from 'yjs'
 import { WebSocket, WebSocketServer } from 'ws'
@@ -211,14 +211,14 @@ describe('frames survive a real WebSocket', () => {
     // server must release the connection. #195 was exactly this leak, found in-process;
     // this asserts it across the socket the tab actually used.
     controller.abort()
-    const [, presence] = await Promise.all([
-      new Promise((r) => setTimeout(r, 100)),
-      provider.roomPresence?.('doc') ?? Promise.resolve([]),
-    ])
+    await new Promise((r) => setTimeout(r, 100))
 
-    expect(
-      Array.isArray(presence) ? presence.some((p) => p.connectionId === 'alice') : false,
-      'alice is still present after her socket closed',
-    ).toBe(false)
+    // `getPresence` is the provider's own snapshot, keyed by connectionId. If the abort had
+    // not released the connection, alice would still be in it — which is the leak #195 was
+    // about, asserted here across the socket a real tab would have used.
+    const presence = await provider.getPresence('doc')
+    expect(Object.keys(presence), 'alice is still present after her socket closed').not.toContain(
+      'alice',
+    )
   })
 })

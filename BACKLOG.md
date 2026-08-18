@@ -41,14 +41,14 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ### Open (6)
 
-| Item | Title | Status | Severity |
-|---|---|---|---|
-| [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `raw` | — |
-| [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention--) | The request-decoration namespace is global and has no convention | `raw` | — |
-| [`B-003`](#b-003--plugin-realtimes-integration-tests-never-open-a-websocket--) | `plugin-realtime`'s integration tests never open a WebSocket | `raw` | — |
-| [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain--) | No test asserts that a package belongs to exactly one domain | `raw` | — |
-| [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams--) | The `plugin-` prefix names four different integration seams | `raw` | — |
-| [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it----) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `raw` | — |
+| Item                                                                                                | Title                                                                          | Status | Severity |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------ | -------- |
+| [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `raw`  | —        |
+| [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention--)               | The request-decoration namespace is global and has no convention               | `raw`  | —        |
+| [`B-003`](#b-003--plugin-realtimes-integration-tests-never-open-a-websocket--)                      | `plugin-realtime`'s integration tests never open a WebSocket                   | `raw`  | —        |
+| [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain--)                   | No test asserts that a package belongs to exactly one domain                   | `raw`  | —        |
+| [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams--)                      | The `plugin-` prefix names four different integration seams                    | `raw`  | —        |
+| [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it----)         | The root `v*` tag convention is dead and the CHANGELOG still implies it        | `raw`  | —        |
 
 ### In flight (0)
 
@@ -56,10 +56,10 @@ _None._
 
 ### Closed (2)
 
-| Item | Title | Status | Severity |
-|---|---|---|---|
-| [`B-004`](#b-004--auth-magic-link-has-no-live-suite-while-the-other-two-auth-providers-do-x) | `auth-magic-link` has no live suite while the other two auth providers do | `shipped` | — |
-| [`B-006`](#b-006--backlog-init-assumed-an-umbrella-and-would-have-refused-to-run-here-x) | `/backlog-init` assumed an umbrella and would have refused to run here | `shipped` | — |
+| Item                                                                                         | Title                                                                     | Status    | Severity |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | --------- | -------- |
+| [`B-004`](#b-004--auth-magic-link-has-no-live-suite-while-the-other-two-auth-providers-do-x) | `auth-magic-link` has no live suite while the other two auth providers do | `shipped` | —        |
+| [`B-006`](#b-006--backlog-init-assumed-an-umbrella-and-would-have-refused-to-run-here-x)     | `/backlog-init` assumed an umbrella and would have refused to run here    | `shipped` | —        |
 
 <!-- BACKLOG-INDEX:END -->
 
@@ -255,7 +255,7 @@ dod:
 - no package is renamed before B-001 exists, so the conformance test proves the move did not break
   integration
 
-## B-008 — The root `v*` tag convention is dead and the CHANGELOG still implies it   [ ]
+## B-008 — The root `v*` tag convention is dead and the CHANGELOG still implies it [ ]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `root-tag-convention-dead`).
 
@@ -265,16 +265,17 @@ suggested_mode: review
 source: human
 evidence: none-yet
 why_now: measured 2026-08-18 while cutting 0.5.0 — `git tag` holds `v0.1.0`, `v0.2.0` and
-  `v0.3.0` and then stops, while `CHANGELOG.md` records `## [0.4.0] - 2026-08-18` as released.
-  `changesets/action` tags per package (`@theokit/plugin-email@0.1.3` and so on) and never
-  tagged the root, so the root convention ended without anyone deciding it should. A reader
-  who trusts the CHANGELOG headers looks for a tag that does not exist, and `git describe`
-  answers with a package tag instead of a release.
+`v0.3.0` and then stops, while `CHANGELOG.md` records `## [0.4.0] - 2026-08-18` as released.
+`changesets/action` tags per package (`@theokit/plugin-email@0.1.3` and so on) and never
+tagged the root, so the root convention ended without anyone deciding it should. A reader
+who trusts the CHANGELOG headers looks for a tag that does not exist, and `git describe`
+answers with a package tag instead of a release.
 status: raw
 dod:
-  - a decision recorded as an ADR: either the release flow creates the root tag again, or the
-    CHANGELOG stops using version headers that nothing backs
-  - whichever is chosen, `0.4.0` and `0.5.0` are reconciled rather than left as the two
-    versions that exist only in prose
-  - if the root tag is revived, something fails when a release lands without it — the
-    convention died silently precisely because nothing checked
+
+- a decision recorded as an ADR: either the release flow creates the root tag again, or the
+  CHANGELOG stops using version headers that nothing backs
+- whichever is chosen, `0.4.0` and `0.5.0` are reconciled rather than left as the two
+  versions that exist only in prose
+- if the root tag is revived, something fails when a release lands without it — the
+  convention died silently precisely because nothing checked

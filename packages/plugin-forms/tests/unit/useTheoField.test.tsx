@@ -3,7 +3,7 @@
  */
 import { act, renderHook } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { FormProvider, useForm } from 'react-hook-form'
+import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form'
 import { describe, expect, it } from 'vitest'
 import { useTheoField } from '../../src/hooks/useTheoField.js'
 
@@ -36,7 +36,7 @@ describe('useTheoField', () => {
   })
 
   it('reflects setError via the RHF form context — isInvalid + error.message populate', () => {
-    let formApi: ReturnType<typeof useForm> | null = null
+    let formApi: UseFormReturn<{ name: string }> | null = null
     const wrapper = ({ children }: { children: ReactNode }) => {
       formApi = useForm({ defaultValues: { name: '' } })
       return <FormProvider {...formApi}>{children}</FormProvider>

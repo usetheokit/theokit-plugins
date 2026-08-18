@@ -168,7 +168,10 @@ describe('createOrmStore against a real sqlite database', () => {
       store.consumeToken({ token: RAW_TOKEN }),
     ])
 
-    expect([a, b].filter((r) => r !== null), 'both callers consumed the same token').toHaveLength(1)
+    expect(
+      [a, b].filter((r) => r !== null),
+      'both callers consumed the same token',
+    ).toHaveLength(1)
   })
 
   it('a SELECT-then-UPDATE repository loses single-use — which is why the interface forbids it', async () => {

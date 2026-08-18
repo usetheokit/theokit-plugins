@@ -131,8 +131,8 @@ describe('T3.4 — VoiceRecorderBar', () => {
 
   it('sends FormData to the STT endpoint with CSRF header by default', async () => {
     const rec = fakeRecorder()
-    let capturedInit: RequestInit | null = null
-    const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
+    let capturedInit: RequestInit | undefined
+    const fetchImpl = vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {
       capturedInit = init
       return Promise.resolve(jsonResponse({ transcript: 'x', durationMs: 1 }))
     })
