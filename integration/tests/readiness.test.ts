@@ -135,7 +135,7 @@ describe('live-test readiness', () => {
     // A pointer to coverage that moved or was deleted is worse than no pointer:
     // the report would claim the gap is closed while nothing runs.
     const { access } = await import('node:fs/promises')
-    // This file is e2e/tests/, so two levels up is the repo root. The consumer
+    // This file is integration/tests/, so two levels up is the repo root. The consumer
     // suite sits one directory deeper and needs three — copying that number here
     // is what made this assertion fail against a path that existed.
     const root = new URL('../../', import.meta.url).pathname
@@ -174,17 +174,67 @@ describe('the registry reaches CI', () => {
     // author's machine — the single most convincing way to believe you have
     // coverage you do not have.
     const workflow = readFileSync(
-      new URL('../../.github/workflows/e2e.yml', import.meta.url),
+      new URL('../../.github/workflows/integration.yml', import.meta.url),
       'utf8',
     )
     const unmapped = allVariableNames().filter((name) => !workflow.includes(`${name}:`))
-    expect(unmapped, 'registry variables with no env: mapping in e2e.yml').toEqual([])
+    expect(unmapped, 'registry variables with no env: mapping in integration.yml').toEqual([])
+  })
+
+  it('runs every credential-free suite on every PR, not just nightly', async () => {
+    // The failure this prevents, also committed by the author of this test:
+    // `magic-link-delivered` needs no credential and catches a real encoding bug, and
+    // it was written into `tests/email/` where only the nightly `pnpm integration` reaches it.
+    // A suite that runs once a day is not a gate — a PR can go green past it, and the
+    // break is found by whoever reads the 04:00 run.
+    //
+    // The convention is mechanical so the next one cannot be forgotten: a suite that
+    // calls no `required(...)` and does not go through `describeLive(...)` needs no
+    // credential, so it must either live in `tests/consumer/` or be named
+    // `*.offline.test.ts` — the two things `pnpm integration:offline` runs, and the only
+    // command `ci.yml` invokes.
+    const { readdir, readFile } = await import('node:fs/promises')
+    const root = new URL('.', import.meta.url)
+
+    const files: string[] = []
+    for (const entry of await readdir(root, { withFileTypes: true })) {
+      if (entry.isFile() && entry.name.endsWith('.test.ts')) files.push(entry.name)
+      if (!entry.isDirectory()) continue
+      for (const inner of await readdir(new URL(`${entry.name}/`, root))) {
+        if (inner.endsWith('.test.ts')) files.push(`${entry.name}/${inner}`)
+      }
+    }
+
+    const stranded: string[] = []
+    for (const file of files) {
+      // `readiness.test.ts` itself is the report; it always runs and needs nothing.
+      if (file === 'readiness.test.ts') continue
+      const source = await readFile(new URL(file, root), 'utf8')
+      const needsCredential = /\brequired\(/.test(source) || /\bdescribeLive\(/.test(source)
+      if (needsCredential) continue
+      const reachable = file.startsWith('consumer/') || file.includes('.offline.test.ts')
+      if (!reachable) stranded.push(file)
+    }
+
+    expect(
+      stranded,
+      'credential-free suites that only the nightly run reaches — rename to *.offline.test.ts',
+    ).toEqual([])
+  })
+
+  it('gives ci.yml the offline command, so the convention has somewhere to land', () => {
+    // The other half: the convention is worthless if nothing invokes it. This is the
+    // assertion that would have failed before `integration:offline` existed.
+    const ci = readFileSync(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8')
+    expect(ci, 'ci.yml never runs the credential-free integration suites').toContain(
+      'integration:offline',
+    )
   })
 
   it('gives each mapped variable a secret reference, not a literal', () => {
     // A literal in the workflow would be a credential in the public history.
     const workflow = readFileSync(
-      new URL('../../.github/workflows/e2e.yml', import.meta.url),
+      new URL('../../.github/workflows/integration.yml', import.meta.url),
       'utf8',
     )
     const literals = allVariableNames().filter((name) => {

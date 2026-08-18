@@ -32,7 +32,7 @@ permissions:
 concurrency:
   # Never two live runs at once: they would race for the same provider rate
   # limit and, for email, interleave into the same mailbox.
-  group: e2e-live
+  group: integration-live
   cancel-in-progress: false
 
 jobs:
@@ -41,6 +41,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Scopes the secrets to this workflow rather than the whole repository.
+    # NOT renamed with the directory: this is a GitHub Environment declared in repo
+    # settings, and the name here must match it. Renaming one side alone breaks the
+    # job by pointing at an environment that does not exist.
     environment: e2e
     steps:
       - uses: actions/checkout@v4
@@ -60,10 +63,10 @@ jobs:
       # up and what each missing one still needs. When a credential expires this
       # is the line in the log that says so.
       - name: Readiness report
-        run: pnpm e2e:readiness
+        run: pnpm integration:readiness
         env:
           E2E_LIVE: '1'
-          # Same names as `e2e/.env`, so a suite never knows which source it got.
+          # Same names as `integration/.env`, so a suite never knows which source it got.
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           RESEND_FROM_ADDRESS: ${{ secrets.RESEND_FROM_ADDRESS }}
           EMAIL_TEST_RECIPIENT: ${{ secrets.EMAIL_TEST_RECIPIENT }}
@@ -100,9 +103,9 @@ jobs:
       - name: Live suites
         run: |
           if [ -n "${{ inputs.service }}" ]; then
-            pnpm --filter @theokit/plugins-e2e exec vitest run "tests/${{ inputs.service }}"
+            pnpm --filter @theokit/plugins-integration exec vitest run "tests/${{ inputs.service }}"
           else
-            pnpm e2e
+            pnpm integration
           fi
         env:
           E2E_LIVE: '1'

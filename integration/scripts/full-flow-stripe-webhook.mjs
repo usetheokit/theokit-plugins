@@ -20,7 +20,7 @@
  *
  * Run it after changing anything in the webhook path:
  *
- *   pnpm --filter @theokit/plugins-e2e flow:stripe-webhook
+ *   pnpm --filter @theokit/plugins-integration flow:stripe-webhook
  *
  * It is a script rather than a test because it needs the `stripe` binary and an
  * outbound tunnel. Two rules, both about not lying to yourself:
@@ -125,7 +125,7 @@ function env(name) {
 
 const apiKey = env('STRIPE_SECRET_KEY')
 if (!apiKey) {
-  console.error('missing STRIPE_SECRET_KEY (e2e/.env or the environment)')
+  console.error('missing STRIPE_SECRET_KEY (integration/.env or the environment)')
   process.exit(1)
 }
 if (!apiKey.startsWith('sk_test_')) {

@@ -31,7 +31,7 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -51,7 +51,6 @@ interface Manifest {
 
 /** Packages under packages/, in directory order. */
 function packageDirs(): string[] {
-  const { readdirSync, existsSync } = require('node:fs') as typeof import('node:fs')
   return readdirSync(join(REPO_ROOT, 'packages'))
     .filter((d) => existsSync(join(REPO_ROOT, 'packages', d, 'package.json')))
     .sort()
@@ -195,9 +194,10 @@ describe('consumer smoke — the packaging contract', () => {
         const main = pkg.exports?.['.']
         const runtime = typeof main === 'string' ? main : main?.import
         if (runtime === undefined) return
-        const mod: Record<string, unknown> = await import(
-          join(REPO_ROOT, 'packages', dir, normalize(runtime))
-        )
+        const mod = (await import(join(REPO_ROOT, 'packages', dir, normalize(runtime)))) as Record<
+          string,
+          unknown
+        >
         expect(Object.keys(mod).length, `${pkg.name} main entry exports nothing`).toBeGreaterThan(0)
       }, 30_000)
     })

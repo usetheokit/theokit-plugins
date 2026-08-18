@@ -40,6 +40,7 @@
     }
   },
   "devDependencies": {
+    "@theokit/auth-magic-link": "workspace:^",
     "@types/node": "^22.0.0",
     "resend": "^4.0.0",
     "theokit": "^0.48.7",
