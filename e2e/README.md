@@ -211,6 +211,21 @@ id, login, name, an email resolved from `/user/emails`, https avatar. The script
 reports the SHAPE of each field and never its contents, because that is a real
 person's name and address.
 
+Two rules for running it properly, both learned by doing it wrong first:
+
+**Click the button, don't call `click()`.** Driving the consent screen with
+injected JavaScript produces an untrusted event and can bypass validation the UI
+applies to a real gesture. Use the browser's own input dispatch, which is what a
+person's mouse does.
+
+**Revoke before re-running.** Once the app is authorized, GitHub skips the consent
+screen and redirects straight through — so a second run quietly exercises a
+shorter path than a first-time user takes, and the consent screen itself is never
+seen. Revoke at `github.com/settings/connections/applications/<client_id>` first.
+Done that way, the screen returned, listed exactly the two scopes requested, and
+warned that `localhost:3000` is "Not owned or operated by GitHub" — none of which
+the shortcut would have shown.
+
 ### One naming rule, learned by hitting it
 
 Variable names here double as GitHub Actions secret names, and the API refuses

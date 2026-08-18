@@ -21,6 +21,23 @@
  *
  *   pnpm --filter @theokit/plugins-e2e flow:github
  *
+ * Two rules for doing it properly, both learned by doing it wrong first:
+ *
+ * 1. CLICK THE BUTTON. Driving the consent screen with `btn.click()` from
+ *    injected JavaScript is not the same interaction: it produces an untrusted
+ *    event and can bypass validation the UI applies to a real gesture. Use the
+ *    browser's own input dispatch (Chrome DevTools `click` on the element), which
+ *    is what a person's mouse does.
+ *
+ * 2. REVOKE FIRST, at
+ *    github.com/settings/connections/applications/<client_id>. Once the app is
+ *    authorized, GitHub skips the consent screen and redirects straight through —
+ *    so a second run silently tests a shorter path than a first-time user takes,
+ *    and the consent screen itself (scopes shown, redirect warned) is never
+ *    exercised. Verified 2026-08-17: after revoking, the screen came back, listed
+ *    "Email addresses (read-only), profile information (read-only)", and warned
+ *    that localhost:3000 is "Not owned or operated by GitHub".
+ *
  * It starts a callback listener on 127.0.0.1:3000, prints the authorize URL for
  * you to open, captures the code, and reports the SHAPE of the resulting
  * profile — never its contents, because that is a real person's name and email.
