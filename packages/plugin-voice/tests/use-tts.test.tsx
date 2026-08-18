@@ -116,7 +116,8 @@ describe('useTts', () => {
   it('per-call voice/speed override the hook defaults', async () => {
     let capturedBody: Record<string, unknown> = {}
     const fetchImpl = vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {
-      capturedBody = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
+      const body = init?.body
+      capturedBody = JSON.parse(typeof body === 'string' ? body : '{}') as Record<string, unknown>
       return Promise.resolve(mp3Response())
     })
     const audio = makeAudio()

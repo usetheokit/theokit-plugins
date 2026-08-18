@@ -120,7 +120,14 @@ async function collect(
       client.on('message', (raw) => {
         // Parse the bytes the socket delivered — not an object we still hold a reference
         // to. This is the whole reason the suite exists.
-        const frame = JSON.parse(String(raw)) as RealtimeSubscriptionOutput
+        // `ws` hands back `RawData`, which may be a Buffer, an ArrayBuffer or an array of
+        // Buffers. `String()` on the last one yields "[object Object]" — decode the bytes.
+        const text = Buffer.isBuffer(raw)
+          ? raw.toString('utf8')
+          : Array.isArray(raw)
+            ? Buffer.concat(raw).toString('utf8')
+            : Buffer.from(raw).toString('utf8')
+        const frame = JSON.parse(text) as RealtimeSubscriptionOutput
         got.push(frame)
         if (want(frame)) {
           clearTimeout(timer)
@@ -181,7 +188,7 @@ describe('frames survive a real WebSocket', () => {
     const received = new Y.Doc()
     Y.applyUpdate(received, decoded)
 
-    expect(received.getText('body').toString()).toBe('hello from the wire')
+    expect(received.getText('body').toJSON()).toBe('hello from the wire')
   })
 
   it('the encoding is load-bearing: the raw Uint8Array would not survive JSON', () => {

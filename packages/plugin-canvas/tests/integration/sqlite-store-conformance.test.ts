@@ -153,7 +153,7 @@ describe('the sqlite store obeys the same contract as the in-memory one', () => 
           kind: 'code',
           language: 'ts',
           content: 'const a = 1',
-        } as Partial<Artifact>),
+        }),
         read: (a) => (a as { content: string }).content,
       },
       {
@@ -174,7 +174,7 @@ describe('the sqlite store obeys the same contract as the in-memory one', () => 
           kind: 'html',
           srcdoc: '<p>hi</p>',
           sandbox: 'minimal',
-        } as Partial<Artifact>),
+        }),
         read: (a) => (a as { srcdoc: string }).srcdoc,
       },
     ]
