@@ -8,13 +8,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **`db generate`, `db migrate`, `db studio`, `db check` e `db reset` passaram a funcionar (#48).** Antes, cinco dos seis verbos que o plugin declarava como passthrough do `drizzle-kit` montavam uma linha de comando que o binário **recusa** — `theokit db generate` respondia `Please provide required params: dialect`, e `theokit db reset` invocava um subcomando que não existe em nenhuma versão do drizzle-kit. Só `db push` funcionava. Cada verbo agora recebe exatamente os flags que o `drizzle-kit@0.31.10` aceita, medidos contra o binário.
+
+- **`renderDrizzleConfig(options)` exportado.** `migrate` e `studio` aceitam **só** `--config`, então o plugin sintetiza o `drizzle.config.ts` a partir das opções que você já passou em `drizzleDb(...)` — a conexão continua declarada num único lugar. O arquivo é escrito em `configPath` (default `./.theokit/drizzle.config.ts`) e reescrito a cada execução: **adicione `.theokit/` ao seu `.gitignore`**.
+
+- **Opção `resetScript`.** `db reset` roda o seu script, como `db seed` já fazia. Sem script configurado, o erro nomeia a configuração que falta em vez de nomear o drizzle-kit.
+
+- **`db studio` abre (#49).** Com os argumentos já corrigidos por #48, o verbo ainda morria ao ler o config: o `drizzle-kit@0.31.10` importa `drizzle-orm/singlestore-core`, subpath que só existe a partir do `drizzle-orm@0.37.0` — e o peer do pacote aceitava `>=0.36.0`. O piso subiu para `>=0.37.0`. Medido: falha em 0.36.4, sobe em 0.45.2 (`Drizzle Studio is up and running`), honrando o `studioHost`/`studioPort` que você passar.
+
 ### Changed
+
+- **BREAKING (`@theokit/plugin-db-drizzle`) — os argumentos que cada verbo emite mudaram (#48).** Quem consome `buildDbCommands()` diretamente e depende da forma antiga precisa reler: `--schema` sai de `migrate`/`studio`/`check`, `--dialect` **entra** em `generate` (o drizzle-kit o exige lá), `--url` fica só em `push`, e `--out` passa a valer também para `check`. `DbCommand.kind` ganhou um terceiro valor, `'drizzle-kit-with-config'`: quem executa esses comandos **deve** escrever `renderDrizzleConfig(opts)` em `opts.configPath` antes do spawn, senão `--config` aponta para nada. `reset` deixou de ser `'drizzle-kit'` e passou a `'user-script'`.
+
+- **BREAKING (`@theokit/plugin-db-drizzle`) — o peer `drizzle-orm` passou a exigir `>=0.37.0` (#49).** O intervalo anterior (`>=0.36.0`) admitia versões em que `db studio` não abre, então nunca foi um intervalo válido para o verbo. Projetos em `drizzle-orm@0.36.x` precisam subir. Deliberadamente NÃO mexemos no peer do `plugin-payments`, que também declara `>=0.36.0`: ele não dirige o drizzle-kit, e não há medição que justifique apertá-lo.
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+
+- **Os testes do `plugin-db-drizzle` conferiam os argumentos contra a nossa própria expectativa, nunca contra o drizzle-kit (#48).** Seis asserções afirmavam a forma errada e passavam verdes enquanto o CLI estava quebrado — a mesma classe de defeito de #43, um teste que confirma a fabricação em vez de pegá-la. Foram reescritas contra a gramática medida, e `tests/integration/drizzle-kit-grammar.test.ts` passou a **executar o drizzle-kit real** por verbo, além de provar num sqlite de verdade que `generate` escreve o migration e `migrate` cria a tabela. O antigo `tests/integration/lifecycle.test.ts` prometia "drizzle-kit-compatible args" sem nunca consultar o drizzle-kit; o nome foi corrigido para o que ele mede.
 
 ### Security
 
