@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **Opção `resetScript`.** `db reset` roda o seu script, como `db seed` já fazia. Sem script configurado, o erro nomeia a configuração que falta em vez de nomear o drizzle-kit.
 
+- **A costura `@theokit/plugin-email` ↔ `@theokit/auth-magic-link` passou a ser exercitada de verdade.** O `sendMagicLink()` existe para satisfazer a porta `sendEmail` que o `auth-magic-link` declara, e os dois pacotes tinham boa cobertura — cada um contra a **própria ideia** do outro. A única asserção de compatibilidade dizia "returns a SendMagicLinkFn-compatible async function", verificada dentro do pacote de e-mail contra o tipo dele mesmo; nada nunca entregou o adaptador real à porta real. Agora quatro asserções percorrem o caminho inteiro: `startSignIn` cunha e persiste o token, o template renderiza, a URL é recuperada do HTML como um cliente de e-mail faria, e `handleCallback` a aceita. Cobre também o corpo em texto puro, uma base de callback que já tem query string (onde o `&` vira `&amp;` no href), e uso único ponta a ponta.
+
 - **`db studio` abre (#49).** Com os argumentos já corrigidos por #48, o verbo ainda morria ao ler o config: o `drizzle-kit@0.31.10` importa `drizzle-orm/singlestore-core`, subpath que só existe a partir do `drizzle-orm@0.37.0` — e o peer do pacote aceitava `>=0.36.0`. O piso subiu para `>=0.37.0`. Medido: falha em 0.36.4, sobe em 0.45.2 (`Drizzle Studio is up and running`), honrando o `studioHost`/`studioPort` que você passar.
 
 ### Changed
