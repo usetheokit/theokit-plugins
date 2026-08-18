@@ -172,7 +172,7 @@ pnpm --filter @theokit/plugins-e2e env:example
 | ------------------------------ | --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `email` (Resend)               | `tests/email/live.test.ts`        | **yes** — 4/4 against the live API, and it found a real bug on the first run                                    |
 | `auth-github`                  | `tests/auth-github/live.test.ts`  | partly — measured against GitHub; the one live assertion needs `GH_OAUTH_CLIENT_SECRET`, gated behind sudo mode |
-| `auth-google`                  | `tests/auth-google/live.test.ts`  | **yes** — 3/3 against Google's real discovery document, with no credential                                      |
+| `auth-google`                  | `tests/auth-google/live.test.ts`  | **yes** — 4/4: discovery with no credential, plus the token-exchange refusal                                    |
 | `payments`, `copilot`, `voice` | none yet                          | registered, so readiness tells you what to create                                                               |
 | **all 11 packages**            | `tests/consumer/packaged.test.ts` | **yes** — 45 assertions, no credentials needed                                                                  |
 
