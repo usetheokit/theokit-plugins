@@ -10,6 +10,7 @@
  * services passing. Printing the gap turns that glance into information.
  */
 
+import { readFileSync } from 'node:fs'
 import { readdir } from 'node:fs/promises'
 
 import { describe, expect, it } from 'vitest'
@@ -158,5 +159,38 @@ describe('live-test readiness', () => {
         expect(cred.where.length, `${cred.name}.where`).toBeGreaterThan(0)
       }
     }
+  })
+})
+
+describe('the registry reaches CI', () => {
+  it('maps every registry variable into the e2e workflow', () => {
+    // The failure this prevents, committed by the author of this very test:
+    // STRIPE_TEST_RECURRING_PRICE_ID was added to the registry and to a local
+    // .env, and to neither the workflow nor the repository secrets. Locally the
+    // suite ran; nightly it would have skipped forever, printing a variable name
+    // as missing while a green tick sat beside it.
+    //
+    // A variable absent here is a suite that is dark in CI and bright on the
+    // author's machine — the single most convincing way to believe you have
+    // coverage you do not have.
+    const workflow = readFileSync(
+      new URL('../../.github/workflows/e2e.yml', import.meta.url),
+      'utf8',
+    )
+    const unmapped = allVariableNames().filter((name) => !workflow.includes(`${name}:`))
+    expect(unmapped, 'registry variables with no env: mapping in e2e.yml').toEqual([])
+  })
+
+  it('gives each mapped variable a secret reference, not a literal', () => {
+    // A literal in the workflow would be a credential in the public history.
+    const workflow = readFileSync(
+      new URL('../../.github/workflows/e2e.yml', import.meta.url),
+      'utf8',
+    )
+    const literals = allVariableNames().filter((name) => {
+      const line = workflow.split('\n').find((l) => l.trim().startsWith(`${name}:`))
+      return line !== undefined && !line.includes('${{ secrets.')
+    })
+    expect(literals, 'variables set to a literal instead of a secret').toEqual([])
   })
 })
