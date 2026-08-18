@@ -175,7 +175,7 @@ pnpm --filter @theokit/plugins-e2e env:example
 | `auth-google`          | `tests/auth-google/live.test.ts`                                     | **yes** — 4/4: discovery with no credential, plus the token-exchange refusal                                    |
 | `voice` (OpenAI)       | `tests/voice/live.test.ts`                                           | **yes** — 3/3, including a TTS→STT round trip                                                                   |
 | `copilot` (OpenRouter) | `packages/plugin-copilot/tests/integration/copilot-real-llm.test.ts` | **yes** — passes against gpt-4o-mini; lives in its package, see below                                           |
-| `payments` (Stripe)    | none yet                                                             | registered, so readiness tells you what to create                                                               |
+| `payments` (Stripe)    | `tests/payments/live.test.ts`                                        | **yes** — 4/4 against the live test-mode API, including the idempotency round trip                              |
 | **all 11 packages**    | `tests/consumer/packaged.test.ts`                                    | **yes** — 45 assertions, no credentials needed                                                                  |
 
 The first run is worth recording, because it is the whole argument for this
@@ -198,6 +198,40 @@ flake:
    passed.
 
 One live run, one wrong assertion of ours corrected, one shipped bug found.
+
+### `payments` and the assertion that was measured, then not written
+
+The Stripe suite carries the same idempotency round trip as `email`, for the
+same reason: `StripeProvider` passes the key as the **second** argument of
+`sessions.create` — a request option, not a param — and both spellings
+type-check. That is precisely the shape of #37. It passed on the first live run,
+and to be sure the assertion could fail at all, the #37 defect was planted back
+into the provider (key moved into the payload) and the suite went red with two
+different session ids; restoring it returned the four greens. An assertion never
+seen to fail is an assertion nobody has tested.
+
+A fourth assertion was designed, measured, and deliberately **not** written: a
+check that every key of the provider's `EVENT_MAP` is still a real Stripe event
+type. `GET /v1/events?types[]=…` looked like the way to ask it. Measured
+2026-08-18, `types[]=checkout.session.this_does_not_exist` returns **HTTP 200
+with an empty list** — indistinguishable from a valid type with no matching
+events. The assertion would have passed with a fabricated event name, which is
+the `auth-github` failure again, caught this time before the code existed rather
+than after. Stripe publishes no endpoint enumerating valid event types, so that
+map stays covered by review.
+
+Two things the suite needs that are easy to get wrong, both now stated in the
+registry and in `.env.example`:
+
+- **`STRIPE_TEST_PRICE_ID` must be a ONE-TIME price.** `StripeProvider`
+  hardcodes `mode: 'payment'`, and Stripe refuses a recurring price in that mode.
+  Every one of the ten active prices on this project's test account is recurring,
+  so the suite could not borrow one — it points at a throwaway product named
+  `theokit-e2e — do not use`. That the real catalogue is unusable by the neutral
+  contract is a finding of its own, filed as #39.
+- **A `sk_live_` key makes the whole suite skip**, with that as the printed
+  reason. `unsafeReason()` treats a live key as _not configured_, not as
+  something to be careful with.
 
 ### Why `auth-github` holds exactly one assertion
 

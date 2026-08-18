@@ -131,12 +131,13 @@ export const SERVICES: readonly ServiceSpec[] = [
     target: [
       {
         name: 'STRIPE_TEST_PRICE_ID',
-        what: 'Price id in test mode the suite may build a checkout session for',
-        where: 'dashboard.stripe.com/test/products → create a product with any price',
+        what: 'ONE-TIME price id in test mode the suite may build a checkout session for',
+        where:
+          'dashboard.stripe.com/test/products → create a product with a one-time price. It must NOT be recurring: StripeProvider hardcodes mode:"payment", and Stripe refuses a recurring price in that mode ("You specified `payment` mode but passed a recurring price"). Point this at a throwaway product — the one in use is named "theokit-e2e — do not use", not anything from a real catalogue.',
       },
     ],
     caveat:
-      'Test mode only. The readiness report refuses to treat a key that does not start with sk_test_ as ready.',
+      'Test mode only. The readiness report refuses to treat a key that does not start with sk_test_ as ready, and the sk_test_ prefix is re-asserted on the response of a real call (session ids come back cs_test_…), not just at credential-check time. Sessions are not cleaned up; they expire in 24h. Measured 2026-08-18 and deliberately NOT asserted: GET /v1/events?types[]=… does not validate the event type — a fabricated name returns HTTP 200 with an empty list, exactly like a valid one with no matches — so a check that the provider EVENT_MAP keys are still real Stripe events would pass with an invented name. Stripe publishes no endpoint enumerating valid types; that map is covered by review, not by this suite.',
   },
   {
     id: 'copilot',
