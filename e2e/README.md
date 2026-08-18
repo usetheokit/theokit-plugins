@@ -220,6 +220,47 @@ the `auth-github` failure again, caught this time before the code existed rather
 than after. Stripe publishes no endpoint enumerating valid event types, so that
 map stays covered by review.
 
+### The inbound leg, and why the suite cannot cover it
+
+The thirteen assertions above are all OUTBOUND. The webhook path is the other
+direction, and until it was measured the coverage looked complete while the
+interesting half was missing: `packages/plugin-payments/tests/webhook-crypto.test.ts`
+signs its payloads with `stripe.webhooks.generateTestHeaderString`, which is
+Stripe's own SDK computing a genuine HMAC — but **the bytes are produced in our
+process**. That proves our wiring passes the raw body and header through
+unaltered. It cannot prove that what Stripe's infrastructure transmits is what
+we know how to verify.
+
+`pnpm --filter @theokit/plugins-e2e flow:stripe-webhook` closes it. `stripe
+listen` opens a tunnel, `stripe trigger` makes Stripe create a real event on the
+account, and Stripe delivers it — body and `stripe-signature` both theirs. The
+receiver is the shipped plugin, `payments({ providers }).handleWebhook`.
+
+It is a script rather than a test because it needs the `stripe` binary and an
+outbound tunnel, the same reason `flow:github` is a script. Test mode is
+enforced rather than assumed: the CLI config on a developer machine may hold an
+`rk_live_` key, so `--api-key` is passed explicitly from `STRIPE_SECRET_KEY` and
+refused unless it starts with `sk_test_`.
+
+**What it reaches, stated by tier** (measured 2026-08-18):
+
+| Tier                     | EVENT_MAP entries                                                                   | What is proven                                                                                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Live delivery            | `checkout.session.completed`, `payment_intent.payment_failed`, `charge.refunded`    | signature verified against bytes Stripe sent, **and** the mapping                                                                                      |
+| Fetched from the account | `checkout.session.expired`, `charge.dispute.created`                                | the mapping, against a real event name Stripe chose. No signature — a fetched event never had one                                                      |
+| Unverifiable here        | `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` | nothing. `/v1/events` shows **zero** of each on the account after triggering; they need a delayed-notification method actually completed by a customer |
+
+The middle tier exists because those two events _are_ emitted — `/v1/events`
+shows three of each — just minutes to hours after the trigger, on Stripe's
+clock. Waiting for them would make the run take an unknown length of time;
+fetching them verifies the half that a fetch can verify, and the table says
+which half that is.
+
+This also closes, by another route, the check declared impossible above:
+`/v1/events?types[]=` accepts a fabricated event name with HTTP 200, so it can
+confirm nothing. An event Stripe actually emitted, carrying the name we map,
+can.
+
 Two things the suite needs that are easy to get wrong, both now stated in the
 registry and in `.env.example`:
 
