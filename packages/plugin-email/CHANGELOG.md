@@ -1,5 +1,28 @@
 # @theokit/plugin-email
 
+## 0.1.4
+
+### Patch Changes
+
+- 1ccbedf: O e-mail de magic-link passou a ser enviado de verdade na suíte e2e.
+
+  A suíte live de e-mail enviava um `<p>marker</p>` montado à mão, então o template que o usuário
+  recebe nunca tinha passado pela API real. Agora percorre `magicLink()` → `sendMagicLink()` →
+  `ResendProvider` → HTTP real, e afirma o UUID de message-id devolvido pelo Resend antes de alegar
+  nada sobre o conteúdo.
+
+  Não prova entrega: o destinatário é o endereço de sandbox `resend.dev` (aceita e descarta) e a chave
+  é restrita a envio, então a mensagem não pode ser lida de volta. Somente testes.
+
+- 64fa27a: A compatibilidade entre `sendMagicLink()` e a porta `sendEmail` do `@theokit/auth-magic-link`
+  passou a ser verificada com os dois pacotes reais, em vez de afirmada contra o tipo local.
+
+  Quatro asserções percorrem o caminho que o usuário percorre: token cunhado e persistido, template
+  renderizado, URL extraída do HTML como um cliente de e-mail faria, `handleCallback` aceitando. Uma
+  mutação de 4 caracteres na URL do href derruba 3 delas — o que a suíte anterior não detectava.
+
+  Somente testes; nenhuma mudança de comportamento no pacote publicado.
+
 ## 0.1.3
 
 ### Patch Changes

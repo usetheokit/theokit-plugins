@@ -8,6 +8,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.5.0] - 2026-08-18
+
+**Por que 0.5.0 e não 1.0.0.** A regra mecânica de `cycle-release.md` derivaria `major`: há
+entradas em `Changed` começando com **BREAKING**. Mas `1.0.0` é uma afirmação sobre maturidade,
+e `rules/public-copy.md § 3` proíbe `production-ready` sem evidência medida de uso sustentado
+em produção — que o `dogfood-golden-rule.md` também exige e que não existe. O breaking está
+contido em `@theokit/plugin-db-drizzle`, ele mesmo em 0.x, onde `^0.2.0` **não** resolve para
+`0.3.0`: quem depende do range antigo não recebe a mudança sem agir. Mesmo raciocínio aplicado
+em 0.4.0.
+
+### Added
+
 - **`db generate`, `db migrate`, `db studio`, `db check` e `db reset` passaram a funcionar (#48).** Antes, cinco dos seis verbos que o plugin declarava como passthrough do `drizzle-kit` montavam uma linha de comando que o binário **recusa** — `theokit db generate` respondia `Please provide required params: dialect`, e `theokit db reset` invocava um subcomando que não existe em nenhuma versão do drizzle-kit. Só `db push` funcionava. Cada verbo agora recebe exatamente os flags que o `drizzle-kit@0.31.10` aceita, medidos contra o binário.
 
 - **`renderDrizzleConfig(options)` exportado.** `migrate` e `studio` aceitam **só** `--config`, então o plugin sintetiza o `drizzle.config.ts` a partir das opções que você já passou em `drizzleDb(...)` — a conexão continua declarada num único lugar. O arquivo é escrito em `configPath` (default `./.theokit/drizzle.config.ts`) e reescrito a cada execução: **adicione `.theokit/` ao seu `.gitignore`**.
