@@ -138,6 +138,27 @@ not-set, never the value, and there is a test asserting it stays that way.
 
 ---
 
+## Two filenames here trip the secret gate, by name
+
+`hooks/stop-validation.sh` blocks a session whose diff contains a file matching
+`.env*` / `credentials*` / `*.pem` / `*.key`. Two files in this directory match by
+name and are committed on purpose:
+
+| File | Why it is not a secret |
+|---|---|
+| `.env.example` | The template. 20 keys, all empty; the single value is `E2E_LIVE=0`, a boolean flag. Its whole purpose is to be committed so nobody has to guess which variables exist. |
+| `src/credentials.ts` | Resolution logic only — it reads `process.env` and answers set/not-set. It never returns a value into a report. The strings that look like credentials are prefix guards: `startsWith('sk_test_')` and `startsWith('abc_dev_')`, which **refuse** to run against a live key. |
+
+Verified 2026-08-18 when the directory was renamed from `e2e/`: both files moved as
+`R100` renames with byte-identical SHA-256, so the gate fired on the paths appearing
+in a diff, not on any content change.
+
+The gate is doing its job — a file named `credentials.ts` deserves a human look, and
+the correct answer is to look, record what was found, and move on. Do not widen the
+hook's pattern to exclude `.env.example`: silencing the class would also silence a
+real `.env` added later, and the rule this repo states about its gates is *fix the
+code, not the threshold*.
+
 ## Layout
 
 ```
