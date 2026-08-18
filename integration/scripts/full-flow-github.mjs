@@ -19,7 +19,7 @@
  *
  * Run it after changing anything in that path:
  *
- *   pnpm --filter @theokit/plugins-e2e flow:github
+ *   pnpm --filter @theokit/plugins-integration flow:github
  *
  * Two rules for doing it properly, both learned by doing it wrong first:
  *
@@ -68,7 +68,7 @@ const missing = ['GH_OAUTH_CLIENT_ID', 'GH_OAUTH_CLIENT_SECRET', 'GH_OAUTH_CALLB
   (k) => !env[k],
 )
 if (missing.length > 0) {
-  console.error(`missing ${missing.join(', ')} — see pnpm e2e:readiness`)
+  console.error(`missing ${missing.join(', ')} — see pnpm integration:readiness`)
   process.exit(1)
 }
 

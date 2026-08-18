@@ -11,8 +11,8 @@
   "scripts": {
     "build": "pnpm -r --filter='./packages/*' run build",
     "test": "pnpm -r --filter='./packages/*' run test",
-    "e2e": "pnpm --filter @theokit/plugins-e2e e2e",
-    "e2e:readiness": "pnpm --filter @theokit/plugins-e2e readiness",
+    "integration": "pnpm --filter @theokit/plugins-integration integration",
+    "integration:readiness": "pnpm --filter @theokit/plugins-integration readiness",
     "typecheck": "tsc --noEmit",
     "check:cycles": "npx --yes madge --circular --extensions ts,tsx packages/*/src",
     "check:manifests": "node scripts/validate-manifests.mjs",
@@ -23,8 +23,8 @@
     "version:packages": "changeset version",
     "release": "pnpm build && changeset publish",
     "prepare": "[ -n \"$CI\" ] || git config core.hooksPath .githooks 2>/dev/null || true",
-    "e2e:consumer": "pnpm --filter @theokit/plugins-e2e consumer",
-    "e2e:offline": "pnpm --filter @theokit/plugins-e2e offline"
+    "integration:consumer": "pnpm --filter @theokit/plugins-integration consumer",
+    "integration:offline": "pnpm --filter @theokit/plugins-integration offline"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",

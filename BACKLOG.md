@@ -139,14 +139,14 @@ repo: auth-magic-link
 suggested_mode: live-test
 source: human
 evidence: none-yet
-why_now: measured 2026-08-18 — `e2e/tests/` held live suites for `auth-github` (2) and `auth-google`
+why_now: measured 2026-08-18 — `integration/tests/` held live suites for `auth-github` (2) and `auth-google`
   (5) and none for `auth-magic-link`. The only cross-package coverage was offline and sent no email.
 status: shipped
 resolution: the journey is covered by two suites, because no single transport could carry all of it.
-  `e2e/tests/email/magic-link-live.test.ts` — the real template through the real Resend API, asserting
+  `integration/tests/email/magic-link-live.test.ts` — the real template through the real Resend API, asserting
   the message-id UUID Resend returns before claiming anything about the payload (mutation-verified: an
   invalid key turns all three red with `401`).
-  `e2e/tests/email/magic-link-delivered.test.ts` — a real SMTP server, real MIME over TCP, the link
+  `integration/tests/email/magic-link-delivered.test.ts` — a real SMTP server, real MIME over TCP, the link
   taken from the message that ARRIVED and parsed back from its wire format. Needs no credential at
   all: verified passing under `env -i`.
   Together: Resend accepts what we send, and a received message yields a link that signs the user in.

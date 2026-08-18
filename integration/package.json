@@ -1,5 +1,5 @@
 {
-  "name": "@theokit/plugins-e2e",
+  "name": "@theokit/plugins-integration",
   "version": "0.0.0",
   "private": true,
   "description": "Live end-to-end tests against the real provider APIs. Deliberately has no \"test\" script: `pnpm test` must never spend money or send real email.",
@@ -8,8 +8,8 @@
   "scripts": {
     "consumer": "vitest run tests/consumer",
     "offline": "vitest run tests/consumer .offline.test.ts",
-    "e2e": "vitest run",
-    "e2e:watch": "vitest",
+    "integration": "vitest run",
+    "integration:watch": "vitest",
     "env:example": "tsx scripts/env-example.ts",
     "flow:github": "node scripts/full-flow-github.mjs",
     "flow:stripe-webhook": "node scripts/full-flow-stripe-webhook.mjs",

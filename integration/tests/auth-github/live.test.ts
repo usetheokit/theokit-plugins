@@ -109,7 +109,7 @@ describeManualOAuth(GH, 'full consent round trip', () => {
     // browser redirect after a consent click, so a runner with no session cannot
     // obtain one; a workstation with a logged-in browser can, and does:
     //
-    //   pnpm --filter @theokit/plugins-e2e flow:github
+    //   pnpm --filter @theokit/plugins-integration flow:github
     //
     // That script covers what this suite cannot — the SUCCESS path of the
     // exchange, plus githubFetchUser and githubResolveEmail, which no other test

@@ -1,4 +1,4 @@
-# `@theokit/plugins-e2e`
+# `@theokit/plugins-integration`
 
 Live tests. Real credentials, real APIs, real email, real money.
 
@@ -18,12 +18,12 @@ error we claim to return**.
 ## Running
 
 ```bash
-cp e2e/.env.example e2e/.env     # then fill in what you have
-pnpm e2e                         # or: pnpm --filter @theokit/plugins-e2e e2e
-pnpm e2e:readiness               # what is configured, what each gap needs
+cp integration/.env.example integration/.env     # then fill in what you have
+pnpm integration                         # or: pnpm --filter @theokit/plugins-integration integration
+pnpm integration:readiness               # what is configured, what each gap needs
 ```
 
-Nothing runs without `E2E_LIVE=1`. A stray `pnpm e2e` cannot spend money or send
+Nothing runs without `E2E_LIVE=1`. A stray `pnpm integration` cannot spend money or send
 email.
 
 **`pnpm test` never runs these.** This package deliberately has no `test`
@@ -141,7 +141,7 @@ not-set, never the value, and there is a test asserting it stays that way.
 ## Layout
 
 ```
-e2e/
+integration/
 ├── src/
 │   ├── services.ts      the registry — every credential, what it is, where to get it
 │   ├── credentials.ts   .env locally, repository secrets in CI; identical names
@@ -161,7 +161,7 @@ first.
 `.env.example` is generated, so it cannot drift from what the code reads:
 
 ```bash
-pnpm --filter @theokit/plugins-e2e env:example
+pnpm --filter @theokit/plugins-integration env:example
 ```
 
 ---
@@ -231,7 +231,7 @@ process**. That proves our wiring passes the raw body and header through
 unaltered. It cannot prove that what Stripe's infrastructure transmits is what
 we know how to verify.
 
-`pnpm --filter @theokit/plugins-e2e flow:stripe-webhook` closes it. `stripe
+`pnpm --filter @theokit/plugins-integration flow:stripe-webhook` closes it. `stripe
 listen` opens a tunnel, `stripe trigger` makes Stripe create a real event on the
 account, and Stripe delivers it — body and `stripe-signature` both theirs. The
 receiver is the shipped plugin, `payments({ providers }).handleWebhook`.
@@ -303,7 +303,7 @@ no browser session, so it genuinely cannot obtain an authorization code. A
 workstation with a logged-in browser can — and the script does it:
 
 ```bash
-pnpm --filter @theokit/plugins-e2e flow:github
+pnpm --filter @theokit/plugins-integration flow:github
 ```
 
 It starts a callback listener on port 3000, prints the authorize URL, captures the
@@ -366,7 +366,7 @@ of them was not.
 
 `copilot` has real coverage and no directory here, and the registry says so
 through `coveredElsewhere` rather than letting readiness report it as a gap.
-"No suite in e2e/" and "not covered" are different claims, and printing the
+"No suite in integration/" and "not covered" are different claims, and printing the
 first as if it were the second is the exact confusion this package exists to
 prevent.
 
@@ -403,8 +403,8 @@ service, because this failure is invisible until the nightly run.
 
 ## Adding a service
 
-1. Create the credentials; `pnpm e2e:readiness` tells you which and where.
-2. Put them in `e2e/.env`, and add them as repository secrets for CI.
+1. Create the credentials; `pnpm integration:readiness` tells you which and where.
+2. Put them in `integration/.env`, and add them as repository secrets for CI.
 3. Add the entry to `src/services.ts`, then regenerate `.env.example`.
 4. Write `tests/<id>/live.test.ts`. Start from `tests/email/live.test.ts` —
    auth, payload shape, error mapping, in that order.

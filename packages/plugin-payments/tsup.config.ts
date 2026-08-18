@@ -4,7 +4,7 @@ export default defineConfig({
   // One entry per `exports` subpath in package.json. These two lists must stay
   // in step: a subpath with no entry here resolves to a file the tarball does
   // not ship, which is exactly how #9 reached npm and stayed broken for weeks.
-  // `pnpm e2e:consumer` asserts the correspondence on every CI run.
+  // `pnpm integration:consumer` asserts the correspondence on every CI run.
   entry: ['src/index.ts', 'src/stripe.ts', 'src/abacatepay.ts'],
   format: ['esm'],
   dts: true,

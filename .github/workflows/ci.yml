@@ -76,12 +76,12 @@ jobs:
       # tarball actually ships, every declared .d.ts shipped, main entry importing
       # from dist/. Unit tests import from src/ through the workspace, so none of
       # them can see a broken subpath — that is how #9 shipped. Runs here rather
-      # than in e2e.yml because it needs no credential and no network: a packaging
+      # than in integration.yml because it needs no credential and no network: a packaging
       # break is ours, not a provider's bad afternoon. Must come AFTER build.
       - name: Consumer smoke (packaging contract, all packages)
-        run: pnpm e2e:consumer
+        run: pnpm integration:consumer
 
-      # Every e2e suite that needs no credential — `tests/consumer/` plus anything named
+      # Every integration suite that needs no credential — `tests/consumer/` plus anything named
       # `*.offline.test.ts`. It runs here, on every PR, because a suite the nightly job is
       # the only one to reach is not a gate: a PR goes green past it and the break is
       # found by whoever reads the 04:00 run.
@@ -92,9 +92,9 @@ jobs:
       # test can see. Zero credentials, zero network beyond localhost.
       #
       # `readiness.test.ts` fails when a credential-free suite is written outside the
-      # convention, and when this step stops naming `e2e:offline`.
-      - name: Offline e2e suites (credential-free, every PR)
-        run: pnpm e2e:offline
+      # convention, and when this step stops naming `integration:offline`.
+      - name: Offline integration suites (credential-free, every PR)
+        run: pnpm integration:offline
 
   test:
     name: Unit tests
