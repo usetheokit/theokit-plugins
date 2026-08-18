@@ -132,24 +132,40 @@ dod:
 ## B-004 — `auth-magic-link` has no live suite while the other two auth providers do   [ ]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `magic-link-live-delivery`).
+> Partially covered the same day — the send leg is live; the inbox leg is BLOCKED. See `blocked_on:`.
 
 domain: auth-provider
 repo: auth-magic-link
 suggested_mode: live-test
 source: human
 evidence: none-yet
-why_now: measured 2026-08-18 — `e2e/tests/` holds live suites for `auth-github` (2) and `auth-google`
+why_now: measured 2026-08-18 — `e2e/tests/` held live suites for `auth-github` (2) and `auth-google`
   (5) and none for `auth-magic-link`. The cross-package seam is covered offline by
   `packages/plugin-email/tests/integration/magic-link-seam.test.ts`, which sends no email and must not
-  be read as live coverage. What is unproven is the leg a user actually takes: a link that arrives in
-  a real inbox and signs them in.
+  be read as live coverage.
 status: raw
+progress: `e2e/tests/email/magic-link-live.test.ts` now sends the real magic-link message through the
+  real Resend API — real `magicLink()`, real `sendMagicLink()`, real HTTP — and asserts the response
+  is a Resend message-id UUID before claiming anything about the payload. Verified by mutation: an
+  invalid key turns all three red with `EmailSendError … statusCode: 401`. The link asserted is the
+  one transmitted, recovered from the outgoing HTML, and the token is proven single-use after a real
+  send.
+blocked_on: reading the message back. Two measurements, both 2026-08-18 —
+  (1) `EMAIL_TEST_RECIPIENT` is on `resend.dev`, Resend's sandbox address: it accepts and discards,
+  there is no mailbox behind it;
+  (2) `RESEND_API_KEY` is send-restricted — `GET /emails` answers
+  `401 restricted_api_key: This API key is restricted to only send emails`, so the message cannot be
+  read back even from Resend's own store.
+  Closing this needs a human decision: a mailbox the suite can read (IMAP, or a test-inbox service
+  with an API), a Resend key with read scope plus a real recipient, or Resend Inbound on a domain we
+  control. Each proves a different thing, and none can be chosen from inside the repo.
 dod:
   - a real send through the configured transport, with the link recovered from what was delivered
-    rather than from what we generated
-  - the run SKIPs honestly when the credential is absent, per the existing harness
+    rather than from what we generated                                          [ ] blocked
+  - the run SKIPs honestly when the credential is absent, per the existing harness          [x]
   - if the delivered message cannot be read back, the item is reclassified rather than downgraded to
-    a send-only assertion that claims more than it proves
+    a send-only assertion that claims more than it proves                                   [x]
+    (honoured: the new file's header states in full what it does NOT prove, and this item stays open)
 
 ## B-005 — No test asserts that a package belongs to exactly one domain   [ ]
 

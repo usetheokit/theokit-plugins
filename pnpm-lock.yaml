@@ -50,6 +50,9 @@ importers:
       '@theokit/auth-google':
         specifier: workspace:*
         version: link:../packages/auth-google
+      '@theokit/auth-magic-link':
+        specifier: workspace:^
+        version: link:../packages/auth-magic-link
       '@theokit/plugin-copilot':
         specifier: workspace:*
         version: link:../packages/plugin-copilot
