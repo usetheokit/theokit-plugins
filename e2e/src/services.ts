@@ -172,7 +172,7 @@ export const SERVICES: readonly ServiceSpec[] = [
       },
     ],
     caveat:
-      'Costs money per run. GROQ_API_KEY is optional and only lights up the Groq STT backend; without it that one test skips and the OpenAI path still runs.',
+      'Costs a fraction of a cent per run: one short tts-1 sentence plus one whisper transcription of the ~1s clip it produces. GROQ_API_KEY is optional and only lights up the Groq STT backend; without it that one test skips and the OpenAI path still runs. Note the variable is OPENAI_API_KEY, not OPEN_AI_API_KEY — the plugin itself falls back to the former (DEFAULT_STT_ENV_VAR/DEFAULT_TTS_ENV_VAR), so the other spelling looks configured and silently is not.',
   },
   {
     id: 'auth-github',
