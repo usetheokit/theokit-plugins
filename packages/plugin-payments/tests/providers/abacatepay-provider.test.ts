@@ -179,7 +179,12 @@ describe('AbacatePayProvider.createCheckout', () => {
     expect(fetchImpl).not.toHaveBeenCalled()
   })
 
-  it('treats HTTP 200 with a non-null error as a failure, not a success', async () => {
+  it('treats HTTP 200 with a non-null error as a failure — defensive, not observed', async () => {
+    // Measured 2026-08-18: every real refusal arrives with a 4xx (400 "No
+    // products found", 422 on a malformed body). This covers a shape the API has
+    // never produced, kept because the guard costs nothing and a success-looking
+    // 200 would otherwise hand back `undefined` as a checkout URL. Labelled so
+    // nobody reads it as a measured contract.
     const fetchImpl = makeFetch(() =>
       jsonResponse({ data: null, success: false, error: 'Produto não encontrado' }, 200),
     )

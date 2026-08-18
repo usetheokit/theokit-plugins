@@ -11,9 +11,15 @@
  *    it is anything else — a payments plugin that quietly changes the currency
  *    of a charge is a payments plugin that loses money.
  *
- * 2. Responses are `{ data, success, error }` and an error can arrive with an
- *    HTTP 200. Checking `res.ok` alone would treat a refusal as a success and
- *    return `undefined` as a checkout URL, so both are checked.
+ * 2. Responses are `{ data, success, error }`. Both `res.ok` and `error` are
+ *    checked, and that is DEFENSIVE rather than observed: measured 2026-08-18,
+ *    every refusal so far arrived with a 4xx (400 "No products found",
+ *    422 on a malformed body), never a 200. An earlier version of this comment
+ *    asserted that an error "can arrive with an HTTP 200" — that came from the
+ *    docs' description of the envelope, not from a response, and it is corrected
+ *    here rather than left standing. The check stays because it costs nothing and
+ *    a `success: false` body behind a 200 would otherwise return `undefined` as a
+ *    checkout URL.
  *
  * 3. No idempotency mechanism is documented. `CheckoutInput.idempotencyKey` is
  *    therefore IGNORED here, deliberately and visibly (see `createCheckout`),
@@ -234,8 +240,8 @@ export function AbacatePayProvider(
       )
     }
 
-    // See the file docstring: an error can arrive alongside HTTP 200, so the
-    // status alone is not the verdict.
+    // Defensive on both axes — see point 2 of the file docstring for why the
+    // 200-with-error case is guarded but has never been observed.
     if (!res.ok || (envelope.error !== null && envelope.error !== undefined)) {
       throw new PaymentProviderError(
         PROVIDER,
