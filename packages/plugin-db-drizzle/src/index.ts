@@ -14,13 +14,19 @@
  * @public
  */
 
-import { buildDbCommands } from './cli/db.js'
-import { buildDevtoolsTab } from './devtools.js'
 import { type DrizzleDbOptions, resolveOptions } from './options.js'
-import type { DrizzleDbPlugin, TheoPluginApp } from './types.js'
+import type { DrizzleDbPlugin, TheoApp } from './types.js'
 
 export type { DrizzleDbOptions, DrizzleDriver, ResolvedDrizzleDbOptions } from './options.js'
-export type { DrizzleDbPlugin, TheoPluginApp } from './types.js'
+export type { DrizzleDbPlugin, TheoApp, TheoPlugin } from './types.js'
+
+// Exported because the alternative is dead code. These two were reachable only
+// from a `register()` that called a nonexistent API, and from their own tests —
+// ~30 assertions covering something no consumer could invoke (#43). Exporting
+// them is not new surface; it un-hides surface that already existed and is
+// already tested. Wire `buildDbCommands` into a package script of your own.
+export { buildDbCommands, type DbCommand, type DbVerb } from './cli/db.js'
+export { buildDevtoolsTab, type DrizzleDevtoolsTab } from './devtools.js'
 
 /**
  * Create a `@theokit/plugin-db-drizzle` plugin instance.
@@ -51,30 +57,25 @@ export function drizzleDb(opts: DrizzleDbOptions): DrizzleDbPlugin {
     name: '@theokit/plugin-db-drizzle',
     kind: 'db',
     options: resolved,
-    register(app: TheoPluginApp): void {
-      // Wire CLI verbs under the canonical `db` namespace. EC-4 conflict
-      // guard: if orm already registered a `db` namespace, EXTEND it
-      // instead of replacing — preserves orm's existing 6 verbs while
-      // adding plugin-specific ones (e.g., `seed`).
-      if (app.registerCliCommand) {
-        const commands = buildDbCommands(resolved)
-        // #171 (EC-4): when the `db` namespace already exists (e.g. @theokit/orm
-        // registered it), we EXTEND it with the drizzle verbs (the runner merges
-        // late entries). Make the conflict path observably different from the
-        // fresh path — warn the operator so a silent namespace collision can't
-        // hide which layer owns which verbs — instead of two identical branches.
-        if (app.hasCliCommand?.('db')) {
-          console.warn(
-            "[plugin-db-drizzle] CLI namespace 'db' is already registered — extending it with the drizzle verbs (generate/migrate/push/studio/reset/seed/check).",
-          )
-        }
-        app.registerCliCommand('db', commands)
-      }
-      // Devtools-tab opt-in. Graceful no-op when overlay (G4) absent OR
-      // user passed `devtoolsTab: false`.
-      if (resolved.devtoolsTab && app.registerDevtoolsTab) {
-        app.registerDevtoolsTab(buildDevtoolsTab(resolved))
-      }
+    register(_app: TheoApp): void {
+      // Deliberately empty, and the reason is worth stating because the previous
+      // body was not.
+      //
+      // It called `app.registerCliCommand('db', …)` and
+      // `app.registerDevtoolsTab(…)` behind `if (app.registerCliCommand)`
+      // guards. Neither method exists on `TheoApp` — the framework passes
+      // `addHook` and `decorateRequest`, nothing more — so the guards were
+      // always false and seven documented CLI verbs plus a devtools tab were a
+      // silent no-op (#43). The `theokit` CLI itself knows build / dev / doctor
+      // / start and has no plugin extension point, so there was nowhere for the
+      // verbs to go even had the call landed.
+      //
+      // Nothing replaces it here because this plugin has no runtime surface to
+      // publish: `DrizzleDbPlugin` carries name/kind/options and no client. It
+      // hands DATABASE_URL to the consumer's drizzle-kit and never connects,
+      // which is also why `e2e/src/services.ts` excludes it from the live
+      // suites. `buildDbCommands` stays tested and is exported below so a
+      // consumer can wire it into their own script (#43, fix option 2).
     },
   }
 }

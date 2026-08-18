@@ -8,27 +8,29 @@
  * is assignable to this one.
  */
 
+import type { TheoApp, TheoPlugin } from 'theokit/server'
+
 import type { ResolvedDrizzleDbOptions } from './options.js'
 
-/** Minimal app surface the plugin's `register()` needs. */
-export interface TheoPluginApp {
-  /** Register a DI module (e.g., `OrmModule.forRoot()`). Optional — graceful no-op when absent. */
-  registerModule?: (module: unknown) => void
-  /** Register a CLI subcommand namespace (e.g., 'db' with the 7 verbs). */
-  registerCliCommand?: (namespace: string, commands: unknown) => void
-  /** Register a devtools-overlay tab (G4 backward-compat hook). */
-  registerDevtoolsTab?: (tab: unknown) => void
-  /** Test whether a CLI namespace is already registered (EC-4 conflict guard). */
-  hasCliCommand?: (namespace: string) => boolean
-}
+export type { TheoApp, TheoPlugin }
+
+// A locally invented `TheoPluginApp` used to live here, declaring
+// `registerModule`, `registerCliCommand`, `registerDevtoolsTab` and
+// `hasCliCommand`. None of the four exists on the framework's `TheoApp`, and it
+// type-checked anyway because TypeScript is structural (#42). Worse than in the
+// sibling packages: this plugin's `register()` actually CALLED them, so the
+// documented CLI verbs and devtools tab were a silent no-op (#43).
+//
+// `import type` is erased at build, so importing the real contract costs nothing
+// at runtime and the compiler checks it.
 
 /**
  * The plugin shape this package emits. Mirrors theokit's `TheoPlugin` SDK
  * (ADR-0008 in theokit) but kept local to avoid runtime coupling.
  */
-export interface DrizzleDbPlugin {
+export interface DrizzleDbPlugin extends TheoPlugin {
   readonly name: '@theokit/plugin-db-drizzle'
   readonly kind: 'db'
   readonly options: ResolvedDrizzleDbOptions
-  register: (app: TheoPluginApp) => void
+  register: (app: TheoApp) => void
 }

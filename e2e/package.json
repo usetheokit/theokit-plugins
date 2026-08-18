@@ -1,0 +1,32 @@
+{
+  "name": "@theokit/plugins-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Live end-to-end tests against the real provider APIs. Deliberately has no \"test\" script: `pnpm test` must never spend money or send real email.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "consumer": "vitest run tests/consumer",
+    "e2e": "vitest run",
+    "e2e:watch": "vitest",
+    "env:example": "tsx scripts/env-example.ts",
+    "flow:github": "node scripts/full-flow-github.mjs",
+    "flow:stripe-webhook": "node scripts/full-flow-stripe-webhook.mjs",
+    "readiness": "vitest run tests/readiness.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@theokit/auth-github": "workspace:*",
+    "@theokit/auth-google": "workspace:*",
+    "@theokit/plugin-copilot": "workspace:*",
+    "@theokit/plugin-email": "workspace:*",
+    "@theokit/plugin-payments": "workspace:*",
+    "@theokit/plugin-voice": "workspace:*",
+    "@types/node": "^25.6.2",
+    "stripe": "^14.8.0",
+    "theokit": "^0.48.7",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.8"
+  }
+}

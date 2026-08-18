@@ -13,7 +13,7 @@ Email plugin for TheoKit — `EmailProvider` interface + Resend default + React 
 - `renderReactEmail(component)` — optional React Email render bridge (dynamic peer import; zero cost when unused).
 - `sendMagicLink(provider, opts)` — returns a `SendMagicLinkFn`-compatible function for wiring with `@theokit/auth-magic-link`.
 - Default plain-HTML/text magic-link templates (no React Email required).
-- Idempotency: `EmailMessage.idempotencyKey` → `Idempotency-Key` HTTP header passthrough.
+- Idempotency: `EmailMessage.idempotencyKey` → the SDK's request options, which set the `Idempotency-Key` HTTP header.
 
 ## Install
 
@@ -171,7 +171,10 @@ The default templates ship plain HTML + text bodies (no React Email required) wi
 
 ## Idempotency
 
-Resend supports the `Idempotency-Key` HTTP header for deduplication. Plugin-email maps `EmailMessage.idempotencyKey` to this header automatically:
+Resend deduplicates on the `Idempotency-Key` **HTTP request header**. Plugin-email passes
+`EmailMessage.idempotencyKey` through the Resend SDK's request options, which is what
+sets that header — sending the same key twice returns the same message id instead of
+delivering twice:
 
 ```ts
 await email.send({

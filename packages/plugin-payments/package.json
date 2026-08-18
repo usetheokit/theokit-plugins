@@ -1,7 +1,7 @@
 {
   "name": "@theokit/plugin-payments",
-  "version": "0.2.1",
-  "description": "Stripe-only payments plugin for TheoKit — defineStripeWebhook typed dispatcher + signature verification + idempotency (memory or @theokit/orm-backed) + createCheckoutSession helper (Stripe-hosted page passthrough). Form 4 Hybrid per plan p6-plugin-payments v1.0.",
+  "version": "0.3.0",
+  "description": "Multi-provider payments plugin for TheoKit — one neutral PaymentProvider contract with Stripe and AbacatePay (PIX) behind subpath exports, webhook signature verification, idempotent dispatch, and PIX as a typed optional capability.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -9,7 +9,16 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./stripe": {
+      "types": "./dist/stripe.d.ts",
+      "import": "./dist/stripe.js"
+    },
+    "./abacatepay": {
+      "types": "./dist/abacatepay.d.ts",
+      "import": "./dist/abacatepay.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -17,7 +26,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean",
+    "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -58,7 +67,10 @@
     "payments",
     "webhooks",
     "checkout",
-    "subscriptions"
+    "subscriptions",
+    "abacatepay",
+    "pix",
+    "brazil"
   ],
   "author": "@theokit",
   "repository": {

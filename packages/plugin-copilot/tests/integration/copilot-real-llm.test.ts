@@ -19,8 +19,25 @@ import { defineCopilot } from '../../src/define-copilot.js'
 import { CopilotRuntime } from '../../src/internal/runtime.js'
 import type { CopilotAgentLike, CopilotFrame, CopilotRealtimeProvider } from '../../src/types.js'
 
+/**
+ * Gated on E2E_LIVE as well as on the key, added 2026-08-17 alongside `e2e/`.
+ *
+ * The key alone was not enough of a gate. `pnpm test` runs on every push and
+ * reaches this file, so anyone with OPENROUTER_API_KEY exported — which is
+ * everyone who has ever run this probe once — paid for an LLM round trip on
+ * every unrelated test run, without asking for it. Costing money must be opted
+ * into, not inherited from a shell that happens to have a key in it.
+ *
+ * It stays in the package rather than moving to `e2e/` because it needs an
+ * in-memory CopilotRealtimeProvider fixture that is not exported. The gate is
+ * the same one `e2e/` uses, so `E2E_LIVE=1` opts into both together.
+ */
+const LIVE_OPTED_IN = process.env.E2E_LIVE !== undefined && process.env.E2E_LIVE !== '0'
+
 const HAS_OPENROUTER =
-  typeof process.env.OPENROUTER_API_KEY === 'string' && process.env.OPENROUTER_API_KEY.length > 0
+  LIVE_OPTED_IN &&
+  typeof process.env.OPENROUTER_API_KEY === 'string' &&
+  process.env.OPENROUTER_API_KEY.length > 0
 
 const passthroughSchema = {
   safeParse: (v: unknown) => ({ success: true as const, data: v }),

@@ -81,13 +81,17 @@ describe('ResendProvider factory (P#7 T1.3)', () => {
 
   it("returns a provider with name='resend'", () => {
     const provider = ResendProvider({
-      client: makeMockResendClient(() => Promise.resolve({ data: { id: 're_xxx' } })),
+      client: makeMockResendClient(() =>
+        Promise.resolve({ data: { id: 'b1f0e0c2-0000-4000-8000-000000000003' } }),
+      ),
     })
     expect(provider.name).toBe('resend')
   })
 
   it('send() invokes resend.emails.send with mapped payload', async () => {
-    const send = vi.fn(() => Promise.resolve({ data: { id: 're_xxx' } }))
+    const send = vi.fn(() =>
+      Promise.resolve({ data: { id: 'b1f0e0c2-0000-4000-8000-000000000003' } }),
+    )
     const provider = ResendProvider({ client: makeMockResendClient(send) })
 
     await provider.send({
@@ -112,8 +116,17 @@ describe('ResendProvider factory (P#7 T1.3)', () => {
     expect(payload.replyTo).toBe('reply@app.test')
   })
 
-  it('idempotencyKey maps to Idempotency-Key HTTP header', async () => {
-    const send = vi.fn(() => Promise.resolve({ data: { id: 're_xxx' } }))
+  it('idempotencyKey goes in the request options, not in the message headers', async () => {
+    // This assertion used to read `payload.headers['Idempotency-Key']` under the
+    // name "maps to Idempotency-Key HTTP header". Both cannot be true:
+    // `payload.headers` are MIME headers of the message, and the dedup header is
+    // an HTTP header of the request, which the SDK exposes only as the second
+    // argument (`CreateEmailRequestOptions`). The old test passed while Resend
+    // never deduplicated a thing; the live e2e suite sent one key twice, got two
+    // different ids, and that is how it surfaced.
+    const send = vi.fn(() =>
+      Promise.resolve({ data: { id: 'b1f0e0c2-0000-4000-8000-000000000001' } }),
+    )
     const provider = ResendProvider({ client: makeMockResendClient(send) })
 
     await provider.send({
@@ -124,13 +137,19 @@ describe('ResendProvider factory (P#7 T1.3)', () => {
       idempotencyKey: 'msg_abc123',
     })
 
-    const callList = send.mock.calls as unknown as { headers?: Record<string, string> }[][]
-    const payload = callList[0]?.[0] ?? {}
-    expect(payload.headers?.['Idempotency-Key']).toBe('msg_abc123')
+    const call = send.mock.calls[0] as unknown as [
+      { headers?: Record<string, string> },
+      { idempotencyKey?: string } | undefined,
+    ]
+    expect(call[1]?.idempotencyKey).toBe('msg_abc123')
+    // And it must NOT leak into the message as a decorative MIME header.
+    expect(call[0]?.headers?.['Idempotency-Key']).toBeUndefined()
   })
 
-  it('merges custom headers with Idempotency-Key', async () => {
-    const send = vi.fn(() => Promise.resolve({ data: { id: 're_xxx' } }))
+  it('keeps custom MIME headers separate from the idempotency key', async () => {
+    const send = vi.fn(() =>
+      Promise.resolve({ data: { id: 'b1f0e0c2-0000-4000-8000-000000000002' } }),
+    )
     const provider = ResendProvider({ client: makeMockResendClient(send) })
 
     await provider.send({
@@ -142,12 +161,13 @@ describe('ResendProvider factory (P#7 T1.3)', () => {
       headers: { 'X-Custom': 'value' },
     })
 
-    const callList = send.mock.calls as unknown as { headers?: Record<string, string> }[][]
-    const payload = callList[0]?.[0] ?? {}
-    expect(payload.headers).toEqual({
-      'X-Custom': 'value',
-      'Idempotency-Key': 'key_1',
-    })
+    const call = send.mock.calls[0] as unknown as [
+      { headers?: Record<string, string> },
+      { idempotencyKey?: string } | undefined,
+    ]
+    // The consumer's own headers still travel with the message, untouched.
+    expect(call[0]?.headers).toEqual({ 'X-Custom': 'value' })
+    expect(call[1]?.idempotencyKey).toBe('key_1')
   })
 
   it('throws EmailSendError when Resend returns error response', async () => {
@@ -169,7 +189,9 @@ describe('ResendProvider factory (P#7 T1.3)', () => {
 
   it('returns SendResult shape on success', async () => {
     const provider = ResendProvider({
-      client: makeMockResendClient(() => Promise.resolve({ data: { id: 're_42' } })),
+      client: makeMockResendClient(() =>
+        Promise.resolve({ data: { id: 'b1f0e0c2-0000-4000-8000-000000000042' } }),
+      ),
     })
     const result = await provider.send({
       to: 'x@y.com',
@@ -177,7 +199,7 @@ describe('ResendProvider factory (P#7 T1.3)', () => {
       subject: 't',
       html: '<p>t</p>',
     })
-    expect(result.id).toBe('re_42')
+    expect(result.id).toBe('b1f0e0c2-0000-4000-8000-000000000042')
     expect(result.provider).toBe('resend')
   })
 

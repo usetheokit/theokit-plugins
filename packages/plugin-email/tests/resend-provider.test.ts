@@ -62,12 +62,14 @@ describe('ResendProvider error context', () => {
 
   it('returns SendResult on success', async () => {
     const provider = ResendProvider({
-      client: makeMockClient(() => Promise.resolve({ data: { id: 're_success_123' } })),
+      client: makeMockClient(() =>
+        Promise.resolve({ data: { id: 'b1f0e0c2-0000-4000-8000-000000000123' } }),
+      ),
     })
 
     const result = await provider.send(MINIMAL_MESSAGE)
 
-    expect(result.id).toBe('re_success_123')
+    expect(result.id).toBe('b1f0e0c2-0000-4000-8000-000000000123')
     expect(result.provider).toBe('resend')
     expect(result.raw).toBeDefined()
   })

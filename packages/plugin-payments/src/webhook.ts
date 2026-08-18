@@ -9,6 +9,11 @@
 import type Stripe from 'stripe'
 
 import type { IdempotencyStore } from './idempotency-store.js'
+import {
+  type DispatchOutcome,
+  runIdempotently,
+  type SanitizedWebhookError,
+} from './idempotent-dispatch.js'
 import type { StripeWebhookHandler } from './types.js'
 
 /**
@@ -151,6 +156,12 @@ export function verifyAndParseWebhook(
   }
 }
 
+// `SanitizedWebhookError` now lives in ./idempotent-dispatch.js, shared with the
+// neutral multi-provider path. Re-exported so the Stripe surface is unchanged.
+export type { SanitizedWebhookError }
+
+export type WebhookResult = DispatchOutcome | { status: 'signature_invalid'; message: string }
+
 /**
  * High-level webhook handler that combines:
  * - signature verification (`stripe.webhooks.constructEvent`)
@@ -163,44 +174,6 @@ export function verifyAndParseWebhook(
  *   - `signature_invalid` (400) — reject with error message
  *   - `handler_error` (500) — consumer's handler threw
  */
-/**
- * A sanitized error surfaced to the HTTP layer. NEVER carries the raw handler
- * error (which may contain PII/secrets, #201) — `code` is a stable control-flow
- * token and `message` is a fixed generic string. The full error is logged
- * server-side (redacted) by `processWebhook`.
- */
-export interface SanitizedWebhookError {
-  code: string
-  message: string
-}
-
-export type WebhookResult =
-  | { status: 'ok'; eventId: string; duplicate: boolean }
-  | { status: 'signature_invalid'; message: string }
-  | { status: 'handler_error'; eventId: string; error: SanitizedWebhookError }
-
-/**
- * Redact known secret shapes (Stripe keys, basic-auth credentials in URLs) from
- * a value before it is logged. Best-effort defense-in-depth — the primary
- * guarantee is that the raw error never crosses the HTTP boundary at all.
- */
-function redactSecrets(value: unknown): string {
-  const text =
-    value instanceof AggregateError
-      ? `AggregateError: ${value.message} [${value.errors
-          .map((e) => (e instanceof Error ? e.message : String(e)))
-          .join(' | ')}]`
-      : value instanceof Error
-        ? `${value.name}: ${value.message}`
-        : String(value)
-  return text
-    .replace(
-      /\b(whsec|sk_live|sk_test|pk_live|pk_test|rk_live|rk_test)_[A-Za-z0-9]+/g,
-      '$1_***REDACTED***',
-    )
-    .replace(/\/\/[^:/@\s]+:[^@/\s]+@/g, '//***:***@')
-}
-
 export async function processWebhook(opts: {
   stripe: Stripe
   rawBody: string
@@ -223,39 +196,9 @@ export async function processWebhook(opts: {
     }
     throw err
   }
-  // Claim the event BEFORE dispatch so duplicates and concurrent deliveries
-  // dedupe (markProcessed is atomic). The claim is COMMITTED only if dispatch
-  // succeeds; on failure it is released so Stripe's retry re-runs (#167).
-  const isNew = await opts.store.markProcessed(event.id)
-  if (!isNew) {
-    return { status: 'ok', eventId: event.id, duplicate: true }
-  }
-  try {
-    await opts.registry.dispatch(event)
-  } catch (error) {
-    // #167: release the claim so the retry re-runs the handler. Best-effort —
-    // if release itself fails the claim persists (retry would dedupe); log it.
-    try {
-      await opts.store.release(event.id)
-    } catch (releaseError) {
-      // #F-dom-pay-5: redact before logging — a release() failure (e.g. a DB
-      // error) may carry credentials, same as the handler-error path below.
-      console.error('[plugin-payments] failed to release idempotency claim after handler error:', {
-        eventId: event.id,
-        releaseError: redactSecrets(releaseError),
-      })
-    }
-    // #201: log the FULL error server-side (redacted), expose only a sanitized
-    // {code,message} at the HTTP boundary so secrets/PII never leak to the caller.
-    console.error('[plugin-payments] webhook handler error:', {
-      eventId: event.id,
-      error: redactSecrets(error),
-    })
-    return {
-      status: 'handler_error',
-      eventId: event.id,
-      error: { code: 'handler_error', message: 'One or more webhook handlers failed.' },
-    }
-  }
-  return { status: 'ok', eventId: event.id, duplicate: false }
+  return runIdempotently({
+    eventId: event.id,
+    store: opts.store,
+    dispatch: () => opts.registry.dispatch(event),
+  })
 }

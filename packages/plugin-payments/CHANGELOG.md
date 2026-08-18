@@ -1,5 +1,112 @@
 # @theokit/plugin-payments
 
+## 0.3.0
+
+### Minor Changes
+
+- 74b7c71: Multi-provider: Stripe and AbacatePay behind one neutral contract. **Breaking.**
+
+  The package was Stripe-shaped all the way down — `payments()` returned a `getStripeClient()`, the webhook dispatcher spoke `Stripe.Event`, and the only way to take PIX in Brazil was not to use this plugin. Adding a second gateway alongside the first would have meant two parallel surfaces that share nothing.
+
+  **What the neutral surface gives you** (`@theokit/plugin-payments`): `PaymentProvider` — `createCheckout` + `verifyWebhook` — plus `processPaymentWebhook`, which verifies, deduplicates and dispatches for any provider. Application code written against it switches gateways without a rewrite.
+
+  **What stays gateway-specific**: `@theokit/plugin-payments/stripe` and `@theokit/plugin-payments/abacatepay`. Subpaths, not one bundle: a Brazilian shop taking only PIX gets no Stripe SDK types in its build, and neither peer dependency is needed unless the matching subpath is imported.
+
+  **PIX is a typed optional capability, not a lowest common denominator.** AbacatePay serves an inline QR payload; Stripe has no equivalent. Rather than give `PaymentProvider` a `createPixCharge` that Stripe would have to throw from, it lives on `PixCapableProvider` behind the `supportsPix` type guard — so the compiler stops the call on Stripe, and AbacatePay is not amputated to fit.
+
+  Migration — every Stripe export moved to the `/stripe` subpath, nothing was removed or renamed:
+
+  ```diff
+  -import { payments, defineStripeWebhook, processWebhook } from '@theokit/plugin-payments'
+  +import { payments, defineStripeWebhook, processWebhook } from '@theokit/plugin-payments/stripe'
+  ```
+
+  `createMemoryStore`, `createOrmStore`, `IdempotencyStore`, `formatAmountForStripe` and `formatAmountForDisplay` stay on the top-level import — idempotency and minor-unit arithmetic are not Stripe's.
+
+  Also in this release:
+  - **`verifyWebhook` now always rejects, never throws synchronously.** A missing signature header or an unconfigured secret used to escape a caller's `.catch()` and take down the request instead of returning a 400.
+  - **Event ids are namespaced per provider** in the shared idempotency store. Two gateways can both emit `evt_1`; unnamespaced, the second would be swallowed as a duplicate and that payment silently never fulfilled.
+  - **AbacatePay's `?webhookSecret=` is verified in constant time, and verification refuses to run without the request URL** rather than falling back to no check. Its HMAC header is opt-in via `signatureKey`, because the key its docs publish is a global constant — that proves the body was not altered, not that AbacatePay sent it.
+  - **`node:` import prefixes survive the build** (`removeNodeProtocol: false`). tsup was rewriting `node:crypto` to bare `crypto`, which Deno, Bun and Workers-style runtimes do not resolve. The other packages in the repo still ship that way — tracked in usetheokit/theokit-plugins#38.
+
+  **The contract covers the whole lifecycle, not just the start of it.** A payments plugin that can only create a checkout leaves every consumer reaching around it to the gateway SDK for the parts that actually run a business:
+
+  | Method                        | Why it is in the base contract                                                                                                                                                                                                                                |
+  | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `retrieveCheckout(reference)` | Webhook delivery is at-least-once, which is not at-least-one. A dropped delivery, a deploy inside the retry window, or an endpoint that 500s past the give-up point all end with a paid customer and an unfulfilled order. Reconciliation needs a way to ASK. |
+  | `refund(input)`               | Both gateways refund in full. Partial refunds are a capability (`supportsPartialRefund`) because AbacatePay refunds integrally and documents that it does.                                                                                                    |
+
+  `mode: 'subscription'` on `CheckoutInput` closes #39 — the contract previously hardcoded `mode: 'payment'`, so it could not begin a recurring charge on either provider. Ending one is `cancelSubscription`, behind `supportsSubscriptions`. The split follows a rule rather than a mood: a **value** a provider cannot serve is validated and refused at runtime (AbacatePay rejects non-BRL the same way), while a **method** it does not have must be visible to the compiler, or every consumer writes a call that type-checks and throws.
+
+  **Verified against the live Stripe API, without a browser.** Thirteen assertions run nightly, including the ones a fake cannot support: the same idempotency key returning the same session; a real charge confirmed with `pm_card_visa` then refunded in full and in part; a real `active` subscription cancelled and then re-read from Stripe to confirm it stuck. The AbacatePay provider is implemented from published documentation and covered only against a fake — nobody here has an account, and the README says so where a reader will see it before wiring it.
+
+  That distinction earned its keep immediately: AbacatePay's own docs contradict themselves on the status endpoint, and measuring settled it. `/checkouts/get` answers 401 unauthenticated (exists), `/checkouts/one` — the one their `llms.txt` index names — answers 400, identical to a route that does not exist.
+
+  **The plugin is multi-provider too, not just the types.** `payments({ providers })` on the top-level import holds the gateways, one idempotency store and one handler registry, so a webhook route is `plugin.handleWebhook(gateway, request)`. Until now the contract knew several gateways while the thing a consumer actually wires into `theo.config.ts` knew exactly one — the `/stripe` factory returning `getStripeClient()`.
+
+  Providers are keyed by the name the app routes them under rather than by `provider.name`: two Stripe accounts is a real shape (marketplace, separate legal entities) and deriving the key would silently collapse them. No route is auto-registered — a plugin claiming `/api/payments/webhook` collides with the app that already had one.
+
+  The single-gateway Stripe factory is renamed `stripePayments()`. Two factories called `payments` in two subpaths is a footgun, and the one to reach for by default is the multi-provider one. It keeps its reason to exist: it pairs with `defineStripeWebhook`, which narrows `Stripe.Event` in a way the neutral contract cannot express.
+
+  ```diff
+  -import { payments } from '@theokit/plugin-payments/stripe'
+  +import { stripePayments } from '@theokit/plugin-payments/stripe'
+  ```
+
+  Five new tests run the webhook path against Stripe's **real** signature crypto — `generateTestHeaderString` producing a genuine `t=…,v1=…`, verified by the untouched `constructEvent` — covering a tampered body, a wrong secret and a stale timestamp. Every other test of that path mocks `constructEvent`, so none of them ever ran the HMAC and none could catch our wiring mangling the raw body. They were written in the e2e package and moved out of it: they make no network call, and gating credential-free assertions behind a credential trades feedback on every push for feedback once a night.
+
+- c351485: The plugins are TheoKit adapters now, and two of them stop typing against an API that does not exist (#42).
+
+  Measured across the eleven packages: **none** used the framework's plugin authoring API, and two declared a local `TheoPluginApp` describing methods `TheoApp` does not have — `registerRoute`/`hasRoute` in payments, `registerModule`/`registerCliCommand`/`registerDevtoolsTab`/`hasCliCommand` in db-drizzle. Both type-checked, because TypeScript is structural and the parameter was never used. The real contract is `{ addHook, decorateRequest }`, and `import type` is erased at build — so importing the real one costs nothing at runtime, which `plugin-voice` had been documenting two directories away.
+
+  **`@theokit/plugin-payments`** — `register()` publishes the gateways on `ctx.payments`, the `@InjectStripeClient` equivalent:
+
+  ```ts
+  const result = await ctx.payments.handleWebhook(params.gateway, { rawBody, headers, url })
+  ```
+
+  That surface is deliberately narrower than the plugin — `providers`, `provider(key)`, `handleWebhook`, and **not** `store` or `registry`. The narrowing buys a safety property rather than tidiness: a handler holding `store` can claim or release an event id outside the dispatcher and defeat idempotency; one holding `registry` can rewire routing mid-request.
+
+  `stripePayments()` publishes the client on `ctx.stripe` and resolves it **at boot**, so a missing `STRIPE_SECRET_KEY` crashes on startup instead of 500-ing while somebody is paying.
+
+  **`@theokit/plugin-db-drizzle`** — `register()` used to call the invented methods behind `if (app.registerCliCommand)` guards, so seven documented CLI verbs and a devtools tab were a silent no-op for several releases (#43). The dead branches are gone and `register()` is now empty _by decision_, with the reason stated: this plugin has no runtime surface to publish.
+
+  `buildDbCommands` and `buildDevtoolsTab` are **exported** — they were reachable only from a `register()` calling a nonexistent API and from their own ~30 assertions, so exporting them un-hides surface that already existed and was already tested. The README no longer promises `theokit db <verb>`, which the `theokit` CLI (build / dev / doctor / start) has never had; it shows the script you wire yourself, and that example was executed before shipping.
+
+  **BREAKING** in both: `TheoPluginApp` is gone. `register(app)` now takes the framework's `TheoApp`. Anything calling it with a hand-rolled object needs `{ addHook, decorateRequest }` — which is what the plugin runner has always passed.
+
+### Patch Changes
+
+- fd75f1c: The AbacatePay webhook HMAC contradiction is settled by a real delivery, and the secret has an undocumented second channel (#44).
+
+  Their docs disagreed about which key signs: the webhooks reference says the `secret` you provided, the security page hardcodes a global constant. A public tunnel plus `POST /webhooks/create` made it possible to receive a genuine `transparent.completed` and compare the `X-Webhook-Signature` **they sent** against both candidates.
+
+  It matches `base64(HMAC-SHA256(rawBody, THE_PUBLISHED_CONSTANT))`, and not the merchant secret in base64 or hex. So the signature is computed with a key anyone can read in their own documentation: it proves the body was not altered in transit and **not** that AbacatePay sent it. Verifying it therefore stays opt-in — enabling it by default would add a check that looks like authentication and is not.
+
+  **The security-relevant find: the per-merchant secret also arrives in an `x-webhook-secret` header**, which is documented nowhere. The provider now prefers it over the query string, because a secret in a URL reaches proxy logs, browser history and Referer. `verifyWebhook` accepts the header, the url, or both, and refuses when neither carries the secret — previously it required the url.
+
+  The capture is now an offline regression fixture (`tests/abacatepay-real-delivery.test.ts`) that runs on every push with no credential. One of its assertions states that the signature does **not** verify under the merchant secret: if AbacatePay switches, that test goes red and says the default needs revisiting, instead of the change passing unnoticed.
+
+  Two more things their docs omit, found on the way: `POST /webhooks/create` requires a `secret` of **at least 32 characters**, and `POST /webhooks/delete` needs more than the "Leitura e escrita" scope — it answers "Insufficient permissions".
+
+- 97aaf84: The AbacatePay provider is exercised against the live sandbox API, and three defects came out of it (#41).
+
+  Until now every AbacatePay path was written from published documentation and covered only against a fake `fetch`, with the README saying so in a warning block. Twelve live assertions now cover hosted checkout, inline PIX with a payable BR Code, status reconciliation across both resource kinds, a full refund confirmed by **re-reading the charge**, and the typed refusals. Writing them refuted the documentation three times.
+
+  **A successful refund was reported as a failure.** The docs show `{ refundPublicId }`; the API returns `{ id, status: "COMPLETE", amount, originalId, createdAt }`. Reading only the documented key made the provider throw `refund_failed` on **every refund that worked** — and no unit test could catch it, because the fake was written from the same docs. Both keys are accepted now, and the fake teaches the measured shape.
+
+  **Refund routing by id prefix is restored.** The docs' prefix table claims `/checkouts/refund` accepts `bill_`, `char_`, `pix_char_` and `card_`, which made the branch look like one that could only be wrong — it was removed on exactly that argument. The API: `POST /checkouts/refund { id: "pix_char_…" }` answers `"Use a rota /v2/transparents/refund para reembolsar cobranças transparentes."`
+
+  **`methods` is now a provider option, and PIX-only stores need it.** Without it, `/checkouts/create` inherits the API default and answers `"CARD is not available for this store"`, so no checkout could be created at all. AbacatePay has since commented CARD out of its own docs.
+
+  ```ts
+  AbacatePayProvider({ apiKey: process.env.ABACATEPAY_API_KEY!, methods: ['PIX'] })
+  ```
+
+  Sandbox is enforced, not assumed: a key that does not start with `abc_dev_` is treated as _not configured_, mirroring the `sk_test_` rule, and every resource created comes back `devMode: true`.
+
+  Still uncovered, for measured reasons: subscriptions (AbacatePay commented the section out of its docs; the endpoint answers `"PIX Automático is not available for this store"`), inbound webhook delivery (needs a public HTTPS endpoint), and `GET /store/get` (a documented route that answers "Not found").
+
 ## 0.2.1
 
 ### Patch Changes
