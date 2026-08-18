@@ -198,8 +198,9 @@ describeLive(EMAIL, 'magic-link outbound', () => {
     const clicked = hrefFromHtml(onlyMessage(sent).html)
 
     await auth.handleCallback(callbackRequest(clicked), {} as never)
-    await expect(
-      auth.handleCallback(callbackRequest(clicked), {} as never),
-    ).rejects.toMatchObject({ name: 'MagicLinkAuthError', code: 'invalid_or_expired_token' })
+    await expect(auth.handleCallback(callbackRequest(clicked), {} as never)).rejects.toMatchObject({
+      name: 'MagicLinkAuthError',
+      code: 'invalid_or_expired_token',
+    })
   }, 60_000)
 })

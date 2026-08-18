@@ -158,9 +158,7 @@ describe('the adapter this package ships satisfies the port auth-magic-link decl
     // Assert the typed error and its code, not the prose: the message is wording
     // and may be improved, the code is the contract a caller branches on
     // (`rules/error-handling.md` § 2).
-    await expect(
-      auth.handleCallback(callbackRequest(clicked), {} as never),
-    ).rejects.toMatchObject({
+    await expect(auth.handleCallback(callbackRequest(clicked), {} as never)).rejects.toMatchObject({
       name: 'MagicLinkAuthError',
       code: 'invalid_or_expired_token',
     })

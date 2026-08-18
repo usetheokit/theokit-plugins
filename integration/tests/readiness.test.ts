@@ -226,7 +226,9 @@ describe('the registry reaches CI', () => {
     // The other half: the convention is worthless if nothing invokes it. This is the
     // assertion that would have failed before `integration:offline` existed.
     const ci = readFileSync(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8')
-    expect(ci, 'ci.yml never runs the credential-free integration suites').toContain('integration:offline')
+    expect(ci, 'ci.yml never runs the credential-free integration suites').toContain(
+      'integration:offline',
+    )
   })
 
   it('gives each mapped variable a secret reference, not a literal', () => {

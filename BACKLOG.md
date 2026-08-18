@@ -41,13 +41,13 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ### Open (5)
 
-| Item | Title | Status | Severity |
-|---|---|---|---|
-| [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims----) | Nothing verifies that what a package exports is accepted by the seam it claims | `raw` | — |
-| [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention----) | The request-decoration namespace is global and has no convention | `raw` | — |
-| [`B-003`](#b-003--plugin-realtimes-integration-tests-never-open-a-websocket----) | `plugin-realtime`'s integration tests never open a WebSocket | `raw` | — |
-| [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain----) | No test asserts that a package belongs to exactly one domain | `raw` | — |
-| [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams----) | The `plugin-` prefix names four different integration seams | `raw` | — |
+| Item                                                                                                  | Title                                                                          | Status | Severity |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------ | -------- |
+| [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims----) | Nothing verifies that what a package exports is accepted by the seam it claims | `raw`  | —        |
+| [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention----)               | The request-decoration namespace is global and has no convention               | `raw`  | —        |
+| [`B-003`](#b-003--plugin-realtimes-integration-tests-never-open-a-websocket----)                      | `plugin-realtime`'s integration tests never open a WebSocket                   | `raw`  | —        |
+| [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain----)                   | No test asserts that a package belongs to exactly one domain                   | `raw`  | —        |
+| [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams----)                      | The `plugin-` prefix names four different integration seams                    | `raw`  | —        |
 
 ### In flight (0)
 
@@ -55,16 +55,16 @@ _None._
 
 ### Closed (2)
 
-| Item | Title | Status | Severity |
-|---|---|---|---|
-| [`B-004`](#b-004--auth-magic-link-has-no-live-suite-while-the-other-two-auth-providers-do---x) | `auth-magic-link` has no live suite while the other two auth providers do | `shipped` | — |
-| [`B-006`](#b-006--backlog-init-assumed-an-umbrella-and-would-have-refused-to-run-here---x) | `/backlog-init` assumed an umbrella and would have refused to run here | `shipped` | — |
+| Item                                                                                           | Title                                                                     | Status    | Severity |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | --------- | -------- |
+| [`B-004`](#b-004--auth-magic-link-has-no-live-suite-while-the-other-two-auth-providers-do---x) | `auth-magic-link` has no live suite while the other two auth providers do | `shipped` | —        |
+| [`B-006`](#b-006--backlog-init-assumed-an-umbrella-and-would-have-refused-to-run-here---x)     | `/backlog-init` assumed an umbrella and would have refused to run here    | `shipped` | —        |
 
 <!-- BACKLOG-INDEX:END -->
 
 ## Items
 
-## B-001 — Nothing verifies that what a package exports is accepted by the seam it claims   [ ]
+## B-001 — Nothing verifies that what a package exports is accepted by the seam it claims [ ]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `seam-conformance-tests`).
 
@@ -74,20 +74,21 @@ suggested_mode: review
 source: human
 evidence: none-yet
 why_now: measured 2026-08-18 — exactly 1 of 11 packages decorates the request (`plugin-payments`,
-  via `PAYMENTS_DECORATION_KEY`); `plugin-db-drizzle` has a `register(_app)` that deliberately does
-  nothing; a grep hit in `plugin-canvas` was `DOMPurify.addHook`, unrelated. #42 shipped because a
-  package typed against a framework API that did not exist, and nothing in CI would catch the same
-  class of defect today.
+via `PAYMENTS_DECORATION_KEY`); `plugin-db-drizzle` has a `register(_app)` that deliberately does
+nothing; a grep hit in `plugin-canvas` was `DOMPurify.addHook`, unrelated. #42 shipped because a
+package typed against a framework API that did not exist, and nothing in CI would catch the same
+class of defect today.
 status: raw
 dod:
-  - a test per integrating package that hands its export to the real framework surface it claims —
-    `createPluginRunnerFromConfig` from `theokit/server/plugins` for a plugin, the `AuthProvider`
-    contract from `@theokit/sdk/server/auth` for an auth provider
-  - the test fails when the export's shape stops matching, not only when a type annotation changes
-  - a package that integrates through neither seam is exempt by an explicit declaration, not by
-    silence
 
-## B-002 — The request-decoration namespace is global and has no convention   [ ]
+- a test per integrating package that hands its export to the real framework surface it claims —
+  `createPluginRunnerFromConfig` from `theokit/server/plugins` for a plugin, the `AuthProvider`
+  contract from `@theokit/sdk/server/auth` for an auth provider
+- the test fails when the export's shape stops matching, not only when a type annotation changes
+- a package that integrates through neither seam is exempt by an explicit declaration, not by
+  silence
+
+## B-002 — The request-decoration namespace is global and has no convention [ ]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `decoration-key-convention`).
 
@@ -97,18 +98,19 @@ suggested_mode: review
 source: human
 evidence: none-yet
 why_now: `theokit/server/plugins` exports `DuplicateDecorationError` (measured in
-  `dist/server/plugins/index.d.ts`, theokit@0.48.7). Two packages claiming one key fail at runtime in
-  the consumer's app, for a reason neither package's own tests can see. Today only one key exists
-  (`payments`), so the collision is latent rather than observed — and every package added to this
-  domain increases the chance nobody notices until a consumer installs two of them.
+`dist/server/plugins/index.d.ts`, theokit@0.48.7). Two packages claiming one key fail at runtime in
+the consumer's app, for a reason neither package's own tests can see. Today only one key exists
+(`payments`), so the collision is latent rather than observed — and every package added to this
+domain increases the chance nobody notices until a consumer installs two of them.
 status: raw
 dod:
-  - a documented naming rule for decoration keys, in a rule file rather than in prose in one package
-  - a monorepo-wide check that fails when two packages declare the same key
-  - the check covers keys declared as string literals, since that is how the one existing key is
-    written
 
-## B-003 — `plugin-realtime`'s integration tests never open a WebSocket   [ ]
+- a documented naming rule for decoration keys, in a rule file rather than in prose in one package
+- a monorepo-wide check that fails when two packages declare the same key
+- the check covers keys declared as string literals, since that is how the one existing key is
+  written
+
+## B-003 — `plugin-realtime`'s integration tests never open a WebSocket [ ]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `realtime-in-process-only`).
 
@@ -118,18 +120,19 @@ suggested_mode: review
 source: human
 evidence: none-yet
 why_now: measured 2026-08-18 — the package has 57 tests including
-  `tests/integration/presence-multi-client.test.ts` and
-  `tests/integration/yjs-awareness-convergence.test.ts`, and both run in-process. The package's
-  description says it consumes `@theokit/sdk@>=1.7.0 subscribe` for WS transport, so the transport is
-  the part a consumer depends on and the part nothing exercises. This is the same shape as #48: a
-  suite that agrees with its author about a boundary it never crosses.
+`tests/integration/presence-multi-client.test.ts` and
+`tests/integration/yjs-awareness-convergence.test.ts`, and both run in-process. The package's
+description says it consumes `@theokit/sdk@>=1.7.0 subscribe` for WS transport, so the transport is
+the part a consumer depends on and the part nothing exercises. This is the same shape as #48: a
+suite that agrees with its author about a boundary it never crosses.
 status: raw
 dod:
-  - presence and broadcast asserted across two clients over a real WebSocket connection
-  - a disconnect/reconnect case, since presence that never expires is the characteristic defect here
-  - the test fails if the transport is swapped for an in-process stub
 
-## B-004 — `auth-magic-link` has no live suite while the other two auth providers do   [x]
+- presence and broadcast asserted across two clients over a real WebSocket connection
+- a disconnect/reconnect case, since presence that never expires is the characteristic defect here
+- the test fails if the transport is swapped for an in-process stub
+
+## B-004 — `auth-magic-link` has no live suite while the other two auth providers do [x]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `magic-link-live-delivery`).
 > Closed the same day across two suites — see `resolution:`.
@@ -140,38 +143,39 @@ suggested_mode: live-test
 source: human
 evidence: none-yet
 why_now: measured 2026-08-18 — `integration/tests/` held live suites for `auth-github` (2) and `auth-google`
-  (5) and none for `auth-magic-link`. The only cross-package coverage was offline and sent no email.
+(5) and none for `auth-magic-link`. The only cross-package coverage was offline and sent no email.
 status: shipped
 resolution: the journey is covered by two suites, because no single transport could carry all of it.
-  `integration/tests/email/magic-link-live.test.ts` — the real template through the real Resend API, asserting
-  the message-id UUID Resend returns before claiming anything about the payload (mutation-verified: an
-  invalid key turns all three red with `401`).
-  `integration/tests/email/magic-link-delivered.test.ts` — a real SMTP server, real MIME over TCP, the link
-  taken from the message that ARRIVED and parsed back from its wire format. Needs no credential at
-  all: verified passing under `env -i`.
-  Together: Resend accepts what we send, and a received message yields a link that signs the user in.
+`integration/tests/email/magic-link-live.test.ts` — the real template through the real Resend API, asserting
+the message-id UUID Resend returns before claiming anything about the payload (mutation-verified: an
+invalid key turns all three red with `401`).
+`integration/tests/email/magic-link-delivered.test.ts` — a real SMTP server, real MIME over TCP, the link
+taken from the message that ARRIVED and parsed back from its wire format. Needs no credential at
+all: verified passing under `env -i`.
+Together: Resend accepts what we send, and a received message yields a link that signs the user in.
 found_a_real_failure_mode: quoted-printable breaks lines at column 76, and a magic-link URL is longer
-  than that. Measured on the wire: `…token=3DFwjS2sHm5q2XCdvqB6cIvbhtiOOYL1BvU1=` at column 76 with
-  the rest on the next line. Every JSON-transport test in this repo stays green through it, and any
-  consumer wiring SMTP — the obvious self-hosting choice — takes that path. The test asserts the split
-  actually occurred before asserting recovery, so it cannot pass without exercising the case; a naive
-  extraction from the raw bytes fails 3 of its 6 assertions.
+than that. Measured on the wire: `…token=3DFwjS2sHm5q2XCdvqB6cIvbhtiOOYL1BvU1=` at column 76 with
+the rest on the next line. Every JSON-transport test in this repo stays green through it, and any
+consumer wiring SMTP — the obvious self-hosting choice — takes that path. The test asserts the split
+actually occurred before asserting recovery, so it cannot pass without exercising the case; a naive
+extraction from the raw bytes fails 3 of its 6 assertions.
 still_not_proven: that Resend itself delivered to a mailbox. `EMAIL_TEST_RECIPIENT` is on `resend.dev`
-  (accepts and discards) and the key is send-restricted (`GET /emails` → `401 restricted_api_key`).
-  Closing that would need a readable mailbox, a read-scoped key with a real recipient, or Resend
-  Inbound — each a credential decision, and none of them a gap in this repository's code. Recorded
-  here rather than left as an open item, because what remains is an environment choice, not work.
+(accepts and discards) and the key is send-restricted (`GET /emails` → `401 restricted_api_key`).
+Closing that would need a readable mailbox, a read-scoped key with a real recipient, or Resend
+Inbound — each a credential decision, and none of them a gap in this repository's code. Recorded
+here rather than left as an open item, because what remains is an environment choice, not work.
 dod:
-  - a real send through the configured transport, with the link recovered from what was delivered
-    rather than from what we generated                                                     [x]
-    (SMTP: recovered from the received MIME. Resend: send proven, delivery not readable.)
-  - the run SKIPs honestly when the credential is absent, per the existing harness         [x]
-  - if the delivered message cannot be read back, the item is reclassified rather than downgraded to
-    a send-only assertion that claims more than it proves                                 [x]
-    (honoured: the send-only file states in full what it does not prove, and a second suite was
-    written to cover the leg it could not.)
 
-## B-005 — No test asserts that a package belongs to exactly one domain   [ ]
+- a real send through the configured transport, with the link recovered from what was delivered
+  rather than from what we generated [x]
+  (SMTP: recovered from the received MIME. Resend: send proven, delivery not readable.)
+- the run SKIPs honestly when the credential is absent, per the existing harness [x]
+- if the delivered message cannot be read back, the item is reclassified rather than downgraded to
+  a send-only assertion that claims more than it proves [x]
+  (honoured: the send-only file states in full what it does not prove, and a second suite was
+  written to cover the leg it could not.)
+
+## B-005 — No test asserts that a package belongs to exactly one domain [ ]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `route-domain-uniqueness-test`).
 
@@ -181,19 +185,20 @@ suggested_mode: review
 source: human
 evidence: none-yet
 why_now: `.claude/rules/cycle-backlog.md § Domain routing` claimed the invariant was covered by
-  `tests/test_route_domain.py::test_no_repo_belongs_to_two_domains`. Verified 2026-08-18: no such file
-  exists anywhere in this repository, and `.claude/tests/` does not exist either. The citation was
-  removed rather than restated. A package listed under two domains would make routing depend on dict
-  iteration order — the same item routing differently on different runs, with nothing failing.
+`tests/test_route_domain.py::test_no_repo_belongs_to_two_domains`. Verified 2026-08-18: no such file
+exists anywhere in this repository, and `.claude/tests/` does not exist either. The citation was
+removed rather than restated. A package listed under two domains would make routing depend on dict
+iteration order — the same item routing differently on different runs, with nothing failing.
 status: raw
 dod:
-  - a test that fails when one package name appears in two rows of the routing table
-  - it lives where `install.sh` actually copies it, since the previous invariant was lost precisely
-    because `tests/` was not copied into consumer repos
-  - `python3 .claude/scripts/route_domain.py` keeps exiting 3 on a domain whose specialist file is
-    absent
 
-## B-006 — `/backlog-init` assumed an umbrella and would have refused to run here   [x]
+- a test that fails when one package name appears in two rows of the routing table
+- it lives where `install.sh` actually copies it, since the previous invariant was lost precisely
+  because `tests/` was not copied into consumer repos
+- `python3 .claude/scripts/route_domain.py` keeps exiting 3 on a domain whose specialist file is
+  absent
+
+## B-006 — `/backlog-init` assumed an umbrella and would have refused to run here [x]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `backlog-init-single-repo`).
 > Resolved the same day, directly — see `note:` below.
@@ -204,28 +209,29 @@ suggested_mode: review
 source: human
 evidence: none-yet
 why_now: `.claude/skills/backlog-init/SKILL.md` declared it created the registry "at the umbrella
-  root" and its step 0.2 exited FATAL with "no umbrella detected — the registry spans repos, run at
-  the workspace root". This repository is a single repo, so the bootstrap contradicted the rule.
+root" and its step 0.2 exited FATAL with "no umbrella detected — the registry spans repos, run at
+the workspace root". This repository is a single repo, so the bootstrap contradicted the rule.
 status: shipped
 note: the umbrella concept is gone from every skill, rule and script — verified by
-  `grep -ril umbrella .claude/` returning nothing. Step 0.2 now asserts `packages/` and
-  `package.json` are present instead of demanding sibling checkouts; Step 1 inventories
-  `packages/*/package.json` and routes each through `scripts/route_domain.py`; Step 3 records
-  exclusions in prose and explicitly forbids copying the routing table into this file. The one
-  surviving match anywhere is `packages/plugin-voice/CHANGELOG.md`, which uses the word for a barrel
-  export in an already-released entry — Unbreakable Rule 6 forbids editing those.
+`grep -ril umbrella .claude/` returning nothing. Step 0.2 now asserts `packages/` and
+`package.json` are present instead of demanding sibling checkouts; Step 1 inventories
+`packages/*/package.json` and routes each through `scripts/route_domain.py`; Step 3 records
+exclusions in prose and explicitly forbids copying the routing table into this file. The one
+surviving match anywhere is `packages/plugin-voice/CHANGELOG.md`, which uses the word for a barrel
+export in an already-released entry — Unbreakable Rule 6 forbids editing those.
 note_on_status: `shipped` overstates this one, and the vocabulary has no better value. The change is
-  in the working tree and will ride the next release; nothing is published. Read it as "the work is
-  done", not as "a consumer has it". The registry cannot currently express that difference, and
-  saying so here is cheaper than inventing a sixth status nobody else honours.
+in the working tree and will ride the next release; nothing is published. Read it as "the work is
+done", not as "a consumer has it". The registry cannot currently express that difference, and
+saying so here is cheaper than inventing a sixth status nobody else honours.
 dod:
-  - `/backlog-init` succeeds in a single-repository project and builds the routing table from
-    `packages/*/package.json`                                                              [x]
-  - the umbrella path is removed outright rather than left as prose that contradicts the rule  [x]
-  - the routing table it writes goes only into `rules/cycle-backlog.md`, never a second copy in
-    `BACKLOG.md`                                                                           [x]
 
-## B-007 — The `plugin-` prefix names four different integration seams   [ ]
+- `/backlog-init` succeeds in a single-repository project and builds the routing table from
+  `packages/*/package.json` [x]
+- the umbrella path is removed outright rather than left as prose that contradicts the rule [x]
+- the routing table it writes goes only into `rules/cycle-backlog.md`, never a second copy in
+  `BACKLOG.md` [x]
+
+## B-007 — The `plugin-` prefix names four different integration seams [ ]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `plugin-prefix-overloaded`).
 
@@ -235,14 +241,15 @@ suggested_mode: evolve
 source: human
 evidence: none-yet
 why_now: measured 2026-08-18 — `plugin-payments` is a `TheoPlugin`, `plugin-forms` is React and Zod
-  with no server seam, `plugin-db-drizzle` is a set of CLI descriptors, and `plugin-email` is a
-  function library. Four consumption models behind one prefix: what a developer learns from one
-  package transfers to none of the others. This is a naming and API-surface decision on already
-  published packages, so it is registered rather than acted on.
+with no server seam, `plugin-db-drizzle` is a set of CLI descriptors, and `plugin-email` is a
+function library. Four consumption models behind one prefix: what a developer learns from one
+package transfers to none of the others. This is a naming and API-surface decision on already
+published packages, so it is registered rather than acted on.
 status: raw
 dod:
-  - each package's README opens with the export going into the exact config field that consumes it
-  - a decision, recorded as an ADR, on whether the prefix is corrected (breaking, needs a major) or
-    kept with the seam documented per package
-  - no package is renamed before B-001 exists, so the conformance test proves the move did not break
-    integration
+
+- each package's README opens with the export going into the exact config field that consumes it
+- a decision, recorded as an ADR, on whether the prefix is corrected (breaking, needs a major) or
+  kept with the seam documented per package
+- no package is renamed before B-001 exists, so the conformance test proves the move did not break
+  integration

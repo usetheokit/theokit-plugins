@@ -165,18 +165,15 @@ describe('the args we emit are a command line drizzle-kit accepts', () => {
       const resolved = resolveOptions(OPTIONS)
       const cmd = buildDbCommands(resolved).find((c) => c.verb === verb)
       expect(cmd, `${verb} missing from buildDbCommands`).toBeDefined()
-      expect(
-        cmd?.kind,
-        `${verb} must reach the real binary somehow`,
-      ).toMatch(/^drizzle-kit(-with-config)?$/)
+      expect(cmd?.kind, `${verb} must reach the real binary somehow`).toMatch(
+        /^drizzle-kit(-with-config)?$/,
+      )
 
       const project = newProject()
       const args = argsFor(project, verb)
       // `studio` never exits; the rest complete on their own in well under a second.
       const { out, refused } =
-        verb === 'studio'
-          ? await runUntil(project, args, /up and running/i)
-          : run(project, args)
+        verb === 'studio' ? await runUntil(project, args, /up and running/i) : run(project, args)
       expect(refused, `drizzle-kit refused our ${verb} args — ${refused}`).toBeUndefined()
 
       // Absence of a refusal is weak evidence on its own: a binary that died
@@ -196,36 +193,38 @@ describe('the args we emit are a command line drizzle-kit accepts', () => {
       // came up, and that it came up on OUR host and port.
       if (verb === 'studio') {
         expect(out, 'studio never reported itself as running').toMatch(/up and running/i)
-        expect(out, 'studio ignored the host/port we passed').toMatch(
-          /port=45987.*host=localhost/,
-        )
+        expect(out, 'studio ignored the host/port we passed').toMatch(/port=45987.*host=localhost/)
       }
     })
   }
 })
 
 describe('the database actually changes', () => {
-  it('generate writes a migration, and migrate applies it to a real sqlite file', { timeout: 60_000 }, () => {
-    const project = newProject()
-    const gen = run(project, argsFor(project, 'generate'))
-    expect(gen.refused, `generate refused — ${gen.refused}`).toBeUndefined()
+  it(
+    'generate writes a migration, and migrate applies it to a real sqlite file',
+    { timeout: 60_000 },
+    () => {
+      const project = newProject()
+      const gen = run(project, argsFor(project, 'generate'))
+      expect(gen.refused, `generate refused — ${gen.refused}`).toBeUndefined()
 
-    const migrationsDir = join(project, 'db/migrations')
-    expect(existsSync(migrationsDir), 'generate produced no migrations directory').toBe(true)
-    expect(
-      readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).length,
-      'generate produced no .sql migration',
-    ).toBeGreaterThan(0)
+      const migrationsDir = join(project, 'db/migrations')
+      expect(existsSync(migrationsDir), 'generate produced no migrations directory').toBe(true)
+      expect(
+        readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).length,
+        'generate produced no .sql migration',
+      ).toBeGreaterThan(0)
 
-    const mig = run(project, argsFor(project, 'migrate'))
-    expect(mig.refused, `migrate refused — ${mig.refused}`).toBeUndefined()
+      const mig = run(project, argsFor(project, 'migrate'))
+      expect(mig.refused, `migrate refused — ${mig.refused}`).toBeUndefined()
 
-    // The claim under test is "applied to the database", so read the database.
-    const db = new Database(join(project, 'app.db'), { readonly: true })
-    const found = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?")
-      .all('users')
-    db.close()
-    expect(found.length, 'migrate did not create the users table in the real database').toBe(1)
-  })
+      // The claim under test is "applied to the database", so read the database.
+      const db = new Database(join(project, 'app.db'), { readonly: true })
+      const found = db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?")
+        .all('users')
+      db.close()
+      expect(found.length, 'migrate did not create the users table in the real database').toBe(1)
+    },
+  )
 })

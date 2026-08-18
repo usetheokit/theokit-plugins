@@ -97,7 +97,12 @@ afterAll(async () => {
  * builds real MIME and speaks real SMTP to the server above.
  */
 function smtpProvider(): EmailProvider {
-  const transport = createTransport({ host: '127.0.0.1', port, secure: false, tls: { rejectUnauthorized: false } })
+  const transport = createTransport({
+    host: '127.0.0.1',
+    port,
+    secure: false,
+    tls: { rejectUnauthorized: false },
+  })
   return {
     name: 'smtp',
     async send(message: EmailMessage): Promise<SendResult> {

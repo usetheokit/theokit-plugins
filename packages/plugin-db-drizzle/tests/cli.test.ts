@@ -127,7 +127,10 @@ describe('buildDbCommands (P#5 T2.1) — 7 verbs', () => {
     // `migrate`/`studio` reject --url and --dialect (config-only); `check` takes
     // --dialect but not --url. Only `push` takes both.
     const opts = resolveOptions({ driver: 'postgres', url: 'postgres://h/db' })
-    const argsOf = (v: DbVerb) => buildDbCommands(opts).find((c) => c.verb === v)!.buildArgs(opts)
+    const argsOf = (v: DbVerb) =>
+      buildDbCommands(opts)
+        .find((c) => c.verb === v)!
+        .buildArgs(opts)
 
     const push = argsOf('push')
     expect(push).toContain('--dialect')
@@ -195,7 +198,9 @@ describe('buildDbCommands (P#5 T2.1) — 7 verbs', () => {
       const args = cmd?.buildArgs(opts) ?? []
       expect(args, `${verb} takes no --out`).not.toContain('--out')
     }
-    const check = buildDbCommands(opts).find((c) => c.verb === 'check')!.buildArgs(opts)
+    const check = buildDbCommands(opts)
+      .find((c) => c.verb === 'check')!
+      .buildArgs(opts)
     expect(check, 'check verifies the migrations folder').toContain('--out')
     expect(check).toContain('./drizzle/migrations')
   })
