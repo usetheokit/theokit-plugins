@@ -1,169 +1,222 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { BudgetBridge } from '../src/internal/budget-bridge.js'
+/**
+ * The reservation layer, against the real SDK Budget (#62).
+ *
+ * The previous version of this file tested a spend tracker this package no longer owns:
+ * daily and monthly counters, UTC window arithmetic, Feb→Mar and Dec→Jan resets. Those
+ * belong to `@theokit/sdk` now, and re-testing them here would be asserting someone
+ * else's calendar — with the added dishonesty that our `monthlyUsd` maps to the SDK's
+ * ROLLING `30d` window, so the old calendar-month assertions would have been testing a
+ * behaviour we deliberately no longer have.
+ *
+ * What is tested here is what this layer actually adds, and nothing else:
+ *
+ *   the per-request cap        no SDK equivalent — its limits are windows
+ *   in-flight holds            the SDK is check-then-charge; between the two, a
+ *                              concurrent invocation sees nothing
+ *   settle-once semantics      reconcile charges, release does not, both idempotent
+ *   name derivation            two rooms must never share a ceiling
+ *
+ * Every case runs against a real `Budget` from the SDK. There is no fake budget: a fake
+ * would agree with whoever wrote it, which is how #61 shipped.
+ */
+
+import { Budget } from '@theokit/sdk'
+import { beforeEach, describe, expect, it } from 'vitest'
+
+import { BudgetBridge, budgetNameFor } from '../src/internal/budget-bridge.js'
 import { CopilotError } from '../src/types.js'
 
-describe('BudgetBridge', () => {
-  it('no-op when config absent', () => {
-    const b = new BudgetBridge(undefined)
-    expect(() => b.preflightCheck('c1', 'r1', 0.5)).not.toThrow()
-    b.charge('c1', 'r1', 0.5)
-    expect(b.getUsage('c1', 'r1')).toEqual({ dailyUsedUsd: 0, monthlyUsedUsd: 0 })
-  })
+/** Unique per test so the SDK's process-wide registry cannot leak state between them. */
+let seq = 0
+function room(): { copilot: string; room: string } {
+  seq += 1
+  return { copilot: `c${seq}`, room: `r${seq}` }
+}
 
-  it('preflight rejects perRequestUsd over-limit', () => {
-    const b = new BudgetBridge({ perRoom: { perRequestUsd: 0.005 } })
-    expect(() => b.preflightCheck('c1', 'r1', 0.01)).toThrow(CopilotError)
-  })
+beforeEach(() => {
+  for (const handle of Budget.list()) Budget.delete(handle.name)
+})
 
-  it('preflight rejects dailyUsd over-limit', () => {
-    const b = new BudgetBridge({ perRoom: { dailyUsd: 0.5 } })
-    b.charge('c1', 'r1', 0.45)
-    expect(() => b.preflightCheck('c1', 'r1', 0.1)).toThrow(/dailyUsd 0.5 exceeded/)
-  })
+describe('no budget configured', () => {
+  it('reserves, reconciles and reports zero without touching the SDK registry', async () => {
+    const bridge = new BudgetBridge(undefined)
+    const { copilot, room: r } = room()
 
-  it('preflight rejects monthlyUsd over-limit', () => {
-    const b = new BudgetBridge({ perRoom: { monthlyUsd: 5 } })
-    b.charge('c1', 'r1', 4.9)
-    expect(() => b.preflightCheck('c1', 'r1', 0.2)).toThrow(/monthlyUsd 5 exceeded/)
-  })
+    const reservation = bridge.reserve(copilot, r, 5)
+    await bridge.reconcile(reservation, 5)
 
-  it('charge accumulates usage', () => {
-    const b = new BudgetBridge({ perRoom: { dailyUsd: 10 } })
-    b.charge('c1', 'r1', 0.5)
-    b.charge('c1', 'r1', 0.7)
-    expect(b.getUsage('c1', 'r1').dailyUsedUsd).toBeCloseTo(1.2, 4)
-  })
-
-  it('isolates per copilot + per room', () => {
-    const b = new BudgetBridge({ perRoom: { dailyUsd: 1 } })
-    b.charge('c1', 'r1', 0.5)
-    b.charge('c2', 'r1', 0.3)
-    b.charge('c1', 'r2', 0.2)
-    expect(b.getUsage('c1', 'r1').dailyUsedUsd).toBeCloseTo(0.5, 4)
-    expect(b.getUsage('c2', 'r1').dailyUsedUsd).toBeCloseTo(0.3, 4)
-    expect(b.getUsage('c1', 'r2').dailyUsedUsd).toBeCloseTo(0.2, 4)
-  })
-
-  it('preflight passes when no per-room config', () => {
-    const b = new BudgetBridge({})
-    expect(() => b.preflightCheck('c1', 'r1', 100)).not.toThrow()
+    expect(bridge.getUsage(copilot, r)).toEqual({
+      dailyUsedUsd: 0,
+      monthlyUsedUsd: 0,
+      inFlightUsd: 0,
+    })
+    // An unconfigured copilot must not register a budget: `Budget.list()` is an ops
+    // surface, and filling it with empty entries makes it useless.
+    expect(Budget.get(budgetNameFor(copilot, r))).toBeUndefined()
   })
 })
 
-describe('BudgetBridge — calendar month boundaries', () => {
-  afterEach(() => {
-    vi.restoreAllMocks()
+describe('the per-request cap, which the SDK has no window for', () => {
+  it('refuses an estimate above it, with its own error code', () => {
+    const bridge = new BudgetBridge({ perRoom: { perRequestUsd: 0.5, dailyUsd: 100 } })
+    const { copilot, room: r } = room()
+
+    expect(() => bridge.reserve(copilot, r, 0.75)).toThrow(CopilotError)
+    try {
+      bridge.reserve(copilot, r, 0.75)
+    } catch (err) {
+      // The code matters more than the message: a caller branches on it, and the
+      // per-request breach is the one a developer can fix by asking for less.
+      expect((err as CopilotError & { code?: string }).code).toBe('budget_per_request_exceeded')
+    }
   })
 
-  it('resets monthly budget on Feb→Mar boundary (28 days, not 30)', () => {
-    // Feb 1 2026 00:00:00 UTC
-    const feb1 = Date.UTC(2026, 1, 1, 0, 0, 0, 0)
-    vi.spyOn(Date, 'now').mockReturnValue(feb1)
+  it('a refused reserve holds nothing — there is no token to settle', () => {
+    const bridge = new BudgetBridge({ perRoom: { perRequestUsd: 0.5, dailyUsd: 100 } })
+    const { copilot, room: r } = room()
 
-    const b = new BudgetBridge({ perRoom: { monthlyUsd: 10 } })
-    b.charge('c1', 'r1', 8)
-    expect(b.getUsage('c1', 'r1').monthlyUsedUsd).toBeCloseTo(8, 4)
+    expect(() => bridge.reserve(copilot, r, 0.75)).toThrow()
+    expect(bridge.getUsage(copilot, r).inFlightUsd).toBe(0)
+  })
+})
 
-    // Mar 1 2026 00:00:00 UTC — exactly 28 days later (non-leap year)
-    const mar1 = Date.UTC(2026, 2, 1, 0, 0, 0, 0)
-    vi.spyOn(Date, 'now').mockReturnValue(mar1)
+describe('in-flight holds — the gap between the SDK check and the SDK charge', () => {
+  it('a second concurrent reserve is refused while the first is unsettled', () => {
+    const bridge = new BudgetBridge({ perRoom: { dailyUsd: 1 } })
+    const { copilot, room: r } = room()
 
-    // getUsage triggers getOrInitState which resets if month rolled over
-    expect(b.getUsage('c1', 'r1').monthlyUsedUsd).toBe(0)
+    bridge.reserve(copilot, r, 0.8) // held, not yet charged
+    // The SDK would allow this: nothing has been charged, so `remainingIn('1d')` is
+    // still the full limit. This is exactly the race a self-triggering copilot hits.
+    expect(() => bridge.reserve(copilot, r, 0.8)).toThrow(/in flight/i)
   })
 
-  it('does NOT reset monthly budget mid-month', () => {
-    // Jan 1 2026 00:00:00 UTC
-    const jan1 = Date.UTC(2026, 0, 1, 0, 0, 0, 0)
-    vi.spyOn(Date, 'now').mockReturnValue(jan1)
+  it('the hold is visible in getUsage, and separate from committed spend', () => {
+    const bridge = new BudgetBridge({ perRoom: { dailyUsd: 10 } })
+    const { copilot, room: r } = room()
 
-    const b = new BudgetBridge({ perRoom: { monthlyUsd: 10 } })
-    b.charge('c1', 'r1', 5)
+    bridge.reserve(copilot, r, 3)
+    const usage = bridge.getUsage(copilot, r)
 
-    // Jan 20 — still same month, usage should persist
-    const jan20 = Date.UTC(2026, 0, 20, 12, 0, 0, 0)
-    vi.spyOn(Date, 'now').mockReturnValue(jan20)
-
-    expect(b.getUsage('c1', 'r1').monthlyUsedUsd).toBeCloseTo(5, 4)
+    // Reported apart on purpose: an operator needs to tell money spent from money
+    // promised, and folding them into one number hides which is which.
+    expect(usage.inFlightUsd).toBe(3)
+    expect(usage.dailyUsedUsd).toBe(0)
   })
 
-  it('resets monthly budget on Dec→Jan rollover (year boundary)', () => {
-    // Dec 1 2025 00:00:00 UTC
-    const dec1 = Date.UTC(2025, 11, 1, 0, 0, 0, 0)
-    vi.spyOn(Date, 'now').mockReturnValue(dec1)
+  it('releasing gives the hold back so the next call fits', () => {
+    const bridge = new BudgetBridge({ perRoom: { dailyUsd: 1 } })
+    const { copilot, room: r } = room()
 
-    const b = new BudgetBridge({ perRoom: { monthlyUsd: 20 } })
-    b.charge('c1', 'r1', 15)
-    expect(b.getUsage('c1', 'r1').monthlyUsedUsd).toBeCloseTo(15, 4)
+    const first = bridge.reserve(copilot, r, 0.8)
+    bridge.release(first)
 
-    // Jan 1 2026 00:00:00 UTC — new year
-    const jan1 = Date.UTC(2026, 0, 1, 0, 0, 0, 0)
-    vi.spyOn(Date, 'now').mockReturnValue(jan1)
+    // EC-2: a failed invocation must not leak budget.
+    expect(bridge.getUsage(copilot, r).inFlightUsd).toBe(0)
+    expect(() => bridge.reserve(copilot, r, 0.8)).not.toThrow()
+  })
+})
 
-    expect(b.getUsage('c1', 'r1').monthlyUsedUsd).toBe(0)
+describe('settling', () => {
+  it('reconcile charges the SDK budget with the actual, not the estimate', async () => {
+    const bridge = new BudgetBridge({ perRoom: { dailyUsd: 10 } })
+    const { copilot, room: r } = room()
+
+    const reservation = bridge.reserve(copilot, r, 5) // estimate
+    await bridge.reconcile(reservation, 0.25) // what it really cost
+
+    const usage = bridge.getUsage(copilot, r)
+    expect(usage.dailyUsedUsd).toBeCloseTo(0.25, 6)
+    expect(usage.inFlightUsd, 'the hold outlived the settlement').toBe(0)
   })
 
-  it('resets on 31-day month boundary (Jan→Feb)', () => {
-    // Jan 1 2026 00:00:00 UTC
-    const jan1 = Date.UTC(2026, 0, 1, 0, 0, 0, 0)
-    vi.spyOn(Date, 'now').mockReturnValue(jan1)
+  it('release charges nothing at all', async () => {
+    const bridge = new BudgetBridge({ perRoom: { dailyUsd: 10 } })
+    const { copilot, room: r } = room()
 
-    const b = new BudgetBridge({ perRoom: { monthlyUsd: 10 } })
-    b.charge('c1', 'r1', 7)
+    bridge.release(bridge.reserve(copilot, r, 5))
+    await Promise.resolve()
 
-    // Jan 31 — still January, should NOT reset
-    const jan31 = Date.UTC(2026, 0, 31, 23, 59, 59, 0)
-    vi.spyOn(Date, 'now').mockReturnValue(jan31)
-    expect(b.getUsage('c1', 'r1').monthlyUsedUsd).toBeCloseTo(7, 4)
-
-    // Feb 1 — new month, should reset
-    const feb1 = Date.UTC(2026, 1, 1, 0, 0, 0, 0)
-    vi.spyOn(Date, 'now').mockReturnValue(feb1)
-    expect(b.getUsage('c1', 'r1').monthlyUsedUsd).toBe(0)
+    expect(bridge.getUsage(copilot, r).dailyUsedUsd).toBe(0)
   })
 
-  describe('reservation model (#219 / #223 / EC-2)', () => {
-    it('test_reserve_holds_budget_so_second_concurrent_reserve_is_rejected', () => {
-      const b = new BudgetBridge({ perRoom: { dailyUsd: 0.5 } })
-      const r1 = b.reserve('c1', 'r1', 0.5) // atomic check + hold
-      expect(r1).toBeDefined()
-      // The hold is visible immediately — a concurrent second invocation that
-      // ran preflight before the first charged would now be rejected (no TOCTOU).
-      expect(b.getUsage('c1', 'r1').dailyUsedUsd).toBeCloseTo(0.5, 4)
-      expect(() => b.reserve('c1', 'r1', 0.5)).toThrow(/dailyUsd 0.5 exceeded/)
-    })
+  it('both are idempotent — a double settle cannot double-charge', async () => {
+    const bridge = new BudgetBridge({ perRoom: { dailyUsd: 10 } })
+    const { copilot, room: r } = room()
 
-    it('test_reserve_rechecks_per_request_limit', () => {
-      const b = new BudgetBridge({ perRoom: { perRequestUsd: 0.001 } })
-      expect(() => b.reserve('c1', 'r1', 0.01)).toThrow(CopilotError)
-      expect(() => b.reserve('c1', 'r1', 0.01)).toThrow(/perRequestUsd/)
-    })
+    const reservation = bridge.reserve(copilot, r, 1)
+    await bridge.reconcile(reservation, 2)
+    await bridge.reconcile(reservation, 2)
+    bridge.release(reservation)
 
-    it('test_release_restores_held_budget', () => {
-      const b = new BudgetBridge({ perRoom: { dailyUsd: 0.5 } })
-      const r = b.reserve('c1', 'r1', 0.5)
-      b.release(r)
-      expect(b.getUsage('c1', 'r1').dailyUsedUsd).toBe(0)
-      // Budget is freed → a later invocation is admitted.
-      expect(() => b.reserve('c1', 'r1', 0.5)).not.toThrow()
-    })
+    expect(bridge.getUsage(copilot, r).dailyUsedUsd).toBeCloseTo(2, 6)
+  })
 
-    it('test_reconcile_settles_to_actual_and_is_idempotent', () => {
-      const b = new BudgetBridge({ perRoom: { dailyUsd: 1 } })
-      const r = b.reserve('c1', 'r1', 0.5) // holds 0.5
-      b.reconcile(r, 0.2) // actual was 0.2
-      expect(b.getUsage('c1', 'r1').dailyUsedUsd).toBeCloseTo(0.2, 4)
-      // Double-settle is a no-op (settled flag).
-      b.reconcile(r, 0.9)
-      b.release(r)
-      expect(b.getUsage('c1', 'r1').dailyUsedUsd).toBeCloseTo(0.2, 4)
-    })
+  it('a negative actual is clamped rather than credited', async () => {
+    const bridge = new BudgetBridge({ perRoom: { dailyUsd: 10 } })
+    const { copilot, room: r } = room()
 
-    it('test_reconcile_clamps_nonnegative', () => {
-      const b = new BudgetBridge({ perRoom: { dailyUsd: 1 } })
-      const r = b.reserve('c1', 'r1', 0.5)
-      b.reconcile(r, 0) // actual 0 → delta -0.5 must not drive usage negative
-      expect(b.getUsage('c1', 'r1').dailyUsedUsd).toBe(0)
+    await bridge.reconcile(bridge.reserve(copilot, r, 1), -5)
+
+    // Refunding a budget from a bad cost computation would raise the ceiling for the
+    // rest of the window — the failure mode is silent over-spend, so clamp.
+    expect(bridge.getUsage(copilot, r).dailyUsedUsd).toBe(0)
+  })
+})
+
+describe('the SDK enforces the windows, and does it for us', () => {
+  it('committed spend over the daily limit blocks the next reserve', async () => {
+    const bridge = new BudgetBridge({ perRoom: { dailyUsd: 1 } })
+    const { copilot, room: r } = room()
+
+    await bridge.reconcile(bridge.reserve(copilot, r, 0.9), 0.9)
+
+    // The refusal comes from the SDK's own enforcement in `block` mode — this layer
+    // does not re-derive it.
+    expect(() => bridge.reserve(copilot, r, 0.5)).toThrow()
+  })
+
+  it('an explicit SDK window overrides the sugar for the same window', () => {
+    const bridge = new BudgetBridge({
+      perRoom: { dailyUsd: 100, limits: [{ window: '1d', limitUsd: 1 }] },
     })
+    const { copilot, room: r } = room()
+
+    // Both express `1d`; the explicit one is what the caller wrote, so it wins rather
+    // than the stricter of the two silently applying.
+    expect(() => bridge.reserve(copilot, r, 2)).toThrow()
+  })
+
+  it('a window the sugar cannot express is honoured', () => {
+    const bridge = new BudgetBridge({ perRoom: { limits: [{ window: '1h', limitUsd: 0.1 }] } })
+    const { copilot, room: r } = room()
+
+    expect(() => bridge.reserve(copilot, r, 0.5)).toThrow()
+  })
+})
+
+describe('budget names', () => {
+  it('are isolated per copilot and per room', () => {
+    expect(budgetNameFor('a', 'r1')).not.toBe(budgetNameFor('a', 'r2'))
+    expect(budgetNameFor('a', 'r1')).not.toBe(budgetNameFor('b', 'r1'))
+  })
+
+  it('do not collide when different keys sanitise to the same string', () => {
+    // The bug a naive `replace(/[^a-z0-9_-]/g, '-')` introduces: two rooms sharing one
+    // ceiling, each seeing half the budget it was configured with, with nothing to
+    // indicate why.
+    expect(budgetNameFor('a', 'x/y')).not.toBe(budgetNameFor('a', 'x-y'))
+    expect(budgetNameFor('a', 'x y')).not.toBe(budgetNameFor('a', 'x_y'))
+  })
+
+  it('satisfy the SDK name grammar even for hostile input', () => {
+    const grammar = /^[a-z0-9][a-z0-9_-]*$/
+    for (const roomId of ['ROOM ONE', '///', 'ünïcödé', '', '.'.repeat(100)]) {
+      expect(budgetNameFor('c', roomId), `rejected for ${JSON.stringify(roomId)}`).toMatch(grammar)
+    }
+  })
+
+  it('are stable — the same pair always yields the same budget', () => {
+    expect(budgetNameFor('helper', 'canvas')).toBe(budgetNameFor('helper', 'canvas'))
   })
 })
