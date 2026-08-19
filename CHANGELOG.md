@@ -19,9 +19,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Removed
 
+- `@theokit/plugin-forms` no longer declares `theokit` and `@theokit/ui` as peer dependencies — neither was imported, and the first made the package impossible to install even with `zod@4` pinned (#64)
+
 - `@theokit/plugin-copilot` `BudgetBridge.charge()` — fire-and-forget charging that bypassed the reservation accounting (#62)
 
 ### Fixed
+
+- `@theokit/plugin-forms` can now be installed with npm by naming `zod@^4`. The default `npm install` still fails on a zod major split outside this package's control; the README states the exact cause and the one-flag fix (#64)
 
 - `@theokit/plugin-copilot` charged every invocation at its estimate instead of its real cost, so a spend ceiling never moved no matter how much an agent spent. Cost is now priced from the tokens the SDK reports (#61)
 - `@theokit/plugin-copilot` typed a streaming `partial` chunk as the complete object, promising consumers fields the stream had not produced yet (#62)

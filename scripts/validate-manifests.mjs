@@ -94,8 +94,6 @@ const PEER_WITHOUT_USE_EXEMPT = {
     'Same shape as auth-github: token issue/verify helpers called from the consumer route.',
   'plugin-email':
     'Holds an EmailProvider — the closest analogue to what plugin-payments now publishes on ctx.payments.',
-  'plugin-forms':
-    'zod + react-hook-form, client-side only. Has NO server surface, so the honest outcome is likely removing the peer rather than adapting.',
   'plugin-realtime':
     'Providers are in-memory and Yjs; never imports @theokit/sdk either, so it opens no socket. Adapter value unclear — measure before deciding.',
 }

@@ -7,7 +7,7 @@ Declarative form binding for TheoKit. Glues `zod` + `react-hook-form` + `useActi
 ## Install
 
 ```bash
-pnpm add @theokit/plugin-forms react-hook-form @hookform/resolvers zod
+pnpm add @theokit/plugin-forms react-hook-form @hookform/resolvers zod@^4
 # Optional (recommended) for the styled <TheoField> tier:
 pnpm add @usetheo/ui
 ```
@@ -23,6 +23,26 @@ Peer-dep matrix:
 | `theokit`             | `>=0.2.3`             | yes (G3 `__zodSchema` extension)                      |
 | `@theokit/react`      | `>=1.1.0`             | yes (`useAction` hook)                                |
 | `@usetheo/ui`         | `>=0.14.0`            | **optional** (only for the styled `<TheoField>` tier) |
+
+### `zod@^4` is required, and npm refuses without it
+
+Pin zod 4 explicitly. `npm install @theokit/plugin-forms` on its own **fails** with
+`ERESOLVE`, and the reason is a zod major split between two optional-peer chains neither
+this package nor npm can reconcile:
+
+| Chain                                                                   | Requires      |
+| ----------------------------------------------------------------------- | ------------- |
+| `@hookform/resolvers@5` → `@typeschema/main` → `@typeschema/zod@0.14.0` | `zod@^3.23.8` |
+| `@theokit/react@1.1.0` → `@theokit/sdk@1.9.0`                           | `zod@^4.0.0`  |
+
+npm resolves `zod` to the 3.x ceiling of the first chain and then refuses the second. Both
+sides are _optional_ peers and it refuses anyway — which is why `--legacy-peer-deps` works
+and pnpm only warns. Naming `zod@^4` at the root resolves it.
+
+The underlying cause is outside this package: `@theokit/react` has a single published
+version pinned to the `@theokit/sdk@1.x` line, three majors behind current. Tracked in
+[#64](https://github.com/usetheokit/theokit-plugins/issues/64); this note goes away when a
+`@theokit/react` on the current SDK line ships.
 
 ## Convention — shared schemas
 
