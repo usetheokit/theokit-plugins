@@ -1,3 +1,4 @@
+import type { DeepPartial } from '@theokit/sdk'
 import { describe, expect, it, vi } from 'vitest'
 import { defineCopilot } from '../src/define-copilot.js'
 import { CopilotRuntime } from '../src/internal/runtime.js'
@@ -78,7 +79,11 @@ function makeAgent(responseText = 'ack'): CopilotAgentLike {
   return {
     async *streamObject<T>() {
       await Promise.resolve()
-      yield { type: 'partial', partial: { text: responseText } as unknown as T, attempt: 0 }
+      yield {
+        type: 'partial',
+        partial: { text: responseText } as unknown as DeepPartial<T>,
+        attempt: 0,
+      }
       yield { type: 'complete', object: { text: responseText } as unknown as T }
     },
   }
@@ -369,7 +374,10 @@ describe('CopilotRuntime', () => {
     const provider = makeMemoryProvider()
     const cop = defineCopilot({ ...baseCopilot, budget: { perRoom: { dailyUsd: 10 } } })
     const rt = new CopilotRuntime({ provider, agent: makeAgent(), copilots: [cop] })
-    expect(rt.getUsage('c1')).toEqual({ dailyUsedUsd: 0, monthlyUsedUsd: 0 })
+    // #62 added `inFlightUsd`: committed spend and reserved-but-unsettled spend are
+    // different facts, and a usage meter that adds them together tells an operator a
+    // number that is true of neither.
+    expect(rt.getUsage('c1')).toEqual({ dailyUsedUsd: 0, monthlyUsedUsd: 0, inFlightUsd: 0 })
   })
 
   it('throws on unknown copilot activate', async () => {
@@ -418,7 +426,11 @@ describe('CopilotRuntime', () => {
         order.push(n)
         // Small delay to prove serialization (concurrent calls would interleave)
         await new Promise((r) => setTimeout(r, 10))
-        yield { type: 'partial' as const, partial: { text: `r${n}` } as unknown as T, attempt: 0 }
+        yield {
+          type: 'partial' as const,
+          partial: { text: `r${n}` } as unknown as DeepPartial<T>,
+          attempt: 0,
+        }
         yield { type: 'complete' as const, object: { text: `r${n}` } as unknown as T }
       },
     }
@@ -505,7 +517,11 @@ describe('CopilotRuntime', () => {
       async *streamObject<T>(opts: Record<string, unknown>) {
         await Promise.resolve()
         capturedOpts = opts
-        yield { type: 'partial' as const, partial: { text: 'ok' } as unknown as T, attempt: 0 }
+        yield {
+          type: 'partial' as const,
+          partial: { text: 'ok' } as unknown as DeepPartial<T>,
+          attempt: 0,
+        }
         yield { type: 'complete' as const, object: { text: 'ok' } as unknown as T }
       },
     }

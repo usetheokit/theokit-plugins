@@ -11,6 +11,17 @@
  */
 
 /**
+ * The SDK's own deep-partial, imported rather than restated.
+ *
+ * This file's header notes that structural types avoid hard imports of peers, and that
+ * still holds where it matters: `import type` is erased at build, so nothing here reaches
+ * the bundle. What it buys is exactness — a locally rewritten `DeepPartial` would be a
+ * second definition of a shape the SDK already owns, and `partial` is precisely where
+ * this package last got someone else's shape wrong (#62).
+ */
+import type { DeepPartial } from '@theokit/sdk'
+
+/**
  * Identity of a copilot as a P#9 RoomMember. Visible to other room participants
  * via the presence Map (per ADR D2).
  *
@@ -140,9 +151,36 @@ export interface CopilotRealtimeProvider {
  */
 export interface CopilotBudgetConfig {
   perRoom?: {
+    /** Sugar for the SDK's `1d` window. */
     dailyUsd?: number
+    /**
+     * Sugar for the SDK's `30d` window — **rolling 30 days, not a calendar month**.
+     *
+     * Named honestly here because the two differ in both directions and the difference
+     * is money: a $100 cap spent on 1 January frees up on 31 January under a rolling
+     * window and on 1 February under a calendar month, while in a 28-day February the
+     * rolling window still remembers spend from January. Before #62 this field was a
+     * calendar month, tracked by this package; the SDK's window vocabulary has no
+     * calendar-month member, and re-implementing one here is the duplication #62
+     * removed.
+     *
+     * Use {@link CopilotBudgetConfig.perRoom.limits} when the exact window matters.
+     */
     monthlyUsd?: number
+    /**
+     * Cap on a single invocation. Has no SDK equivalent — the SDK's limits are windows,
+     * and "per call" is not a window — so this one is enforced by the plugin.
+     */
     perRequestUsd?: number
+    /**
+     * The SDK's own window vocabulary, for when the sugar above is not precise enough.
+     * Merged with whatever `dailyUsd` / `monthlyUsd` express; any exceeded limit blocks
+     * (SDK D384).
+     */
+    limits?: readonly {
+      readonly window: '1h' | '1d' | '1w' | '30d' | '365d'
+      readonly limitUsd: number
+    }[]
   }
 }
 
@@ -251,6 +289,43 @@ export class CopilotTriggerError extends CopilotError {
  *
  * @public
  */
+/**
+ * Usage on a `complete` event, as the two kinds of agent report it (#61, #62).
+ *
+ * `inputTokens`/`outputTokens` is what `@theokit/sdk`'s `StreamObjectEvent` carries and
+ * is the canonical path — `settleCost` prices it through the SDK's `computeCost`.
+ *
+ * `costUsd` is for an agent that already knows what it spent, because it saw the
+ * provider's own accounting. It is NOT the SDK's shape, and treating it as such is the
+ * defect this type replaces: the runtime read `usage.costUsd`, no SDK event ever set it,
+ * and the spend ceiling silently checked the configured estimate forever.
+ *
+ * Every field is optional so a minimal agent stays valid, and an event with none of them
+ * settles at the estimate — stated rather than assumed.
+ *
+ * @public
+ */
+export interface CopilotUsage {
+  readonly inputTokens?: number
+  readonly outputTokens?: number
+  readonly costUsd?: number
+}
+
+/**
+ * The stream a copilot's agent produces.
+ *
+ * Structural on purpose, and that is a decision rather than an omission: any object with
+ * a compatible `streamObject` works, which is what lets a test drive a deterministic
+ * agent and a consumer bring one this package has never heard of.
+ *
+ * The shape mirrors `@theokit/sdk`'s `StreamObjectEvent`, and `tests/sdk-shape.test.ts`
+ * is what holds the mirror to the original: it asserts a real `StreamObjectEvent` is
+ * assignable here. Before that assertion existed the two drifted — the SDK reported
+ * `usage: { inputTokens, outputTokens }` while this type declared
+ * `usage?: { costUsd?: number }`, and nothing noticed for a release (#61).
+ *
+ * @public
+ */
 export interface CopilotAgentLike {
   streamObject<T>(opts: {
     schema: unknown
@@ -261,11 +336,10 @@ export interface CopilotAgentLike {
     systemPrompt?: string
     maxRetries?: number
   }): AsyncIterable<
-    | { type: 'partial'; partial: T; attempt: number }
-    // #174: the complete event MAY carry the provider's actual usage/cost so
-    // budget accounting reflects real spend; absent → the runtime falls back to
-    // its configured per-invocation estimate.
-    | { type: 'complete'; object: T; usage?: { costUsd?: number } }
+    | { type: 'partial'; partial: DeepPartial<T>; attempt: number }
+    // Extra fields the SDK sets (`raw`, `finishReason`) are accepted and ignored: this
+    // is a supertype of the SDK event, not a copy of it.
+    | { type: 'complete'; object: T; usage?: CopilotUsage }
   >
 
   send?(message: string, opts?: Record<string, unknown>): Promise<{ text: string }>

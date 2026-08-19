@@ -8,13 +8,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `@theokit/plugin-copilot` is now a real TheoKit plugin: `copilot()` returns something `theo.config.ts` accepts, publishing read-only spend and copilot data on `ctx.copilot` (#62)
+
 ### Changed
+
+- **BREAKING** `@theokit/plugin-copilot` spend limits are enforced by the SDK's budget engine instead of a local tracker. `monthlyUsd` is now a rolling 30-day window rather than a calendar month; `perRoom.limits` accepts the SDK's own windows (`1h`/`1d`/`1w`/`30d`/`365d`) where the exact boundary matters (#62)
+- `@theokit/plugin-copilot` reports in-flight spend separately from committed spend in `getUsage`, so a meter can tell money promised from money charged (#62)
 
 ### Deprecated
 
 ### Removed
 
+- `@theokit/plugin-copilot` `BudgetBridge.charge()` — fire-and-forget charging that bypassed the reservation accounting (#62)
+
 ### Fixed
+
+- `@theokit/plugin-copilot` charged every invocation at its estimate instead of its real cost, so a spend ceiling never moved no matter how much an agent spent. Cost is now priced from the tokens the SDK reports (#61)
+- `@theokit/plugin-copilot` typed a streaming `partial` chunk as the complete object, promising consumers fields the stream had not produced yet (#62)
 
 ### Security
 

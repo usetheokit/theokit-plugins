@@ -94,8 +94,6 @@ const PEER_WITHOUT_USE_EXEMPT = {
     'Same shape as auth-github: token issue/verify helpers called from the consumer route.',
   'plugin-email':
     'Holds an EmailProvider — the closest analogue to what plugin-payments now publishes on ctx.payments.',
-  'plugin-copilot':
-    'Holds a CopilotRuntime, which is the obvious ctx decoration. Deferred with payments/db-drizzle done first as the reference shape.',
   'plugin-forms':
     'zod + react-hook-form, client-side only. Has NO server surface, so the honest outcome is likely removing the peer rather than adapting.',
   'plugin-realtime':
@@ -185,8 +183,16 @@ function checkFrameworkContract(dir, pkg, where) {
     // framework while only mentioning it in a JSDoc example.
     if (/\bfrom\s+['"]theokit(\/[^'"]*)?['"]/.test(text)) referencesTheokit = true
 
+    // Same lesson as the import check above, applied where it was missing: prose is not
+    // code. `type TheoApp` inside a comment explaining this very rule tripped it, and a
+    // gate that fires on its own documentation teaches people to stop writing the
+    // documentation. Comments are stripped before the test; a re-export
+    // (`export type { TheoApp } from …`) is not a declaration either and never was.
+    const code = text.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ')
     for (const owned of FRAMEWORK_OWNED_TYPES) {
-      const declared = new RegExp(`\\b(interface|type)\\s+${owned}\\b`).test(text)
+      const declared = new RegExp(`\\b(interface|type)\\s+${owned}\\b`).test(
+        code.replace(new RegExp(`export\\s+type\\s*\\{[^}]*\\}`, 'g'), ' '),
+      )
       if (declared) {
         // `TheoPluginApp` gets a different message on purpose: it is not a
         // theokit export at all, it is the invented name (#42). Telling someone
