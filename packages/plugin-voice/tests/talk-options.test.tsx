@@ -17,8 +17,8 @@ describe('T3.4 — TalkOptions', () => {
   it('renders voice + speed selects with current value selected', () => {
     const value: TalkOptionsValue = { voice: 'nova', speed: 1.25 }
     render(<TalkOptions value={value} onChange={() => undefined} />)
-    const voice = screen.getByTestId('talk-options-voice')
-    const speed = screen.getByTestId('talk-options-speed')
+    const voice = screen.getByTestId<HTMLInputElement>('talk-options-voice')
+    const speed = screen.getByTestId<HTMLInputElement>('talk-options-speed')
     expect(voice.value).toBe('nova')
     expect(speed.value).toBe('1.25')
   })

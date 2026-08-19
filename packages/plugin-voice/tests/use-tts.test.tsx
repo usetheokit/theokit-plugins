@@ -86,8 +86,8 @@ describe('useTts', () => {
   })
 
   it('POSTs JSON {text, voice?, speed?} with CSRF default header', async () => {
-    let capturedInit: RequestInit | null = null
-    const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
+    let capturedInit: RequestInit | undefined
+    const fetchImpl = vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {
       capturedInit = init
       return Promise.resolve(mp3Response())
     })
@@ -115,8 +115,9 @@ describe('useTts', () => {
 
   it('per-call voice/speed override the hook defaults', async () => {
     let capturedBody: Record<string, unknown> = {}
-    const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
-      capturedBody = JSON.parse(init.body as string) as Record<string, unknown>
+    const fetchImpl = vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {
+      const body = init?.body
+      capturedBody = JSON.parse(typeof body === 'string' ? body : '{}') as Record<string, unknown>
       return Promise.resolve(mp3Response())
     })
     const audio = makeAudio()
@@ -213,8 +214,8 @@ describe('useTts', () => {
   })
 
   it('omits CSRF header when csrfHeader is explicitly null', async () => {
-    let capturedInit: RequestInit | null = null
-    const fetchImpl = vi.fn((_url: string | URL, init: RequestInit) => {
+    let capturedInit: RequestInit | undefined
+    const fetchImpl = vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {
       capturedInit = init
       return Promise.resolve(mp3Response())
     })

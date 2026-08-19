@@ -18,6 +18,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Security
 
+## [0.6.0] - 2026-08-18
+
+Derivado por `cycle-release.md`: `Removed` vazio, nenhuma entrada de `Changed` começando com
+**BREAKING**, `Added` não-vazio — **minor**, sem a tensão que 0.4.0 e 0.5.0 tiveram.
+
+### Added
+
+- **`plugin-forms`: o erro do servidor passou a ser seguido até o campo que o produziu.** O teste de integração existente já fazia a metade do transporte bem — `http.createServer` real, fetch real — mas chamava o adapter com `vi.fn()` como `setError`, então provava que ele _invoca um callback_, não que um formulário real exibe algo. O novo teste fecha o laço: 422 real → fetch → `applyActionErrorsToForm` → **react-hook-form real** → `useTheoField(nome).isInvalid`. Cobre a chave aninhada `address.city`, que é onde o adapter aposta numa afirmação sobre biblioteca de terceiros (_"RHF accepts flat dot-notation keys directly"_) que ninguém tinha verificado, a convenção `''` → `root`, e a recuperação: editar o campo limpa o erro do servidor sem limpar os outros.
+
+- **`plugin-canvas`: o store SQLite passou a ser exercitado contra um banco de verdade.** A cobertura existente eram 5 casos, todos de validação de nome de tabela, todos contra `{} as db` — um objeto vazio com cast para o tipo do driver. Nenhum SQL era executado, `autoMigrate` nunca rodava, e insert/get/getVersions/list/nextVersion/delete contra SQL real eram inteiramente não verificados: o pacote publicava um store SQLite sem nunca ter rodado um. O novo teste é de **conformidade** — a mesma sequência passa pelos dois stores e eles têm que observar a mesma coisa, o que torna o store em memória a especificação executável que ele já era na prática. Inclui o caminho de linha corrompida fora de banda, que o próprio store documenta e ninguém testava, e prova que um nome de tabela customizado é honrado (os 5 casos antigos provavam só que um nome inválido é recusado).
+
+### Changed
+
+- **`pnpm typecheck` passou a olhar arquivos `.tsx`.** O `include` da raiz cobria `**/*.ts` e não `.tsx`, então **13 arquivos de teste React nunca foram verificados** — e um deles já tinha erro, de um commit anterior. Alargar expôs 22 erros: assinatura do mock de `fetch` mais estreita que a função real (o que fazia a análise de fluxo estreitar leituras posteriores para `never`), `HTMLElement` onde faltava estreitar para `HTMLInputElement`, e variância de genérico em `UseFormReturn`. Todos corrigidos, nenhum silenciado com `any`. Reverter o alargamento deixaria os 13 arquivos cegos para sempre, que é a mesma cegueira dos gates consertados acima.
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- **`plugin-realtime`: uma edição Yjs nunca chegava aos outros clientes (#53).** `applyYjsUpdate` aplicava os bytes no `Y.Doc` do servidor e não notificava subscriber nenhum — nenhum observer no doc, nenhum `fanout` de `yjs-update`. Numa sala `storage: 'yjs'` a edição colaborativa parecia funcionar para quem digitava e não sincronizava com ninguém. `applyYjsAwareness` tinha a mesma omissão, então cursores remotos nunca apareciam. Efeito colateral: o ramo base64 do `frameToOutput` era código morto, porque nada produzia o frame que ele convertia.
+
+  Achado escrevendo o teste de integração do B-003 — os 57 testes existentes paravam antes do fio, e dois deles declaram `(in-process)` no próprio nome.
+
+### Security
+
 ## [0.5.0] - 2026-08-18
 
 **Por que 0.5.0 e não 1.0.0.** A regra mecânica de `cycle-release.md` derivaria `major`: há
