@@ -16,6 +16,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+### Security
+
+## [0.6.1] - 2026-08-19
+
+Derivado por `cycle-release.md`: só entradas em `Fixed` — **patch**.
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
 - **`plugin-forms`: `applyActionErrorsToForm(form.setError, …)` voltou a compilar (#54).** O uso que a própria documentação do adapter descreve não passava no TypeScript: `SetErrorCallback` declarava `name: string`, o `setError` do react-hook-form aceita uma união estreita dos caminhos do formulário, e por **contravariância de parâmetro** a função mais estreita não é atribuível onde se espera a mais larga. Funcionava em runtime — o teste de integração prova o round-trip inteiro —, só os tipos se recusavam a compor, que é o pior lugar para uma biblioteca de formulário ser rigorosa à toa.
 
   `SetErrorCallback` virou genérico sobre o nome, com default `string`, então **todo uso existente continua válido** (verificado compilando o formato antigo). O cast que a ponte não tem como evitar — as chaves chegam do servidor como string em runtime, e o `TName` é o conjunto que o formulário conhece em tempo de compilação — passou a viver **dentro do plugin, uma vez**, em vez de em cada chamada. Medido para o caso que o cast admite: `setError` com caminho que o formulário não tem **não lança e não é descartado**; o RHF o guarda aninhado, então uma chave estranha vira erro que nenhum campo renderiza e nada mais quebra.
