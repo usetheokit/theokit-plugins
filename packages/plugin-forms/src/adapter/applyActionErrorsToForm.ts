@@ -20,8 +20,21 @@
  * the type from `react-hook-form` to keep this adapter peer-dep-free at the type
  * level — consumers can pass any function matching this shape (real RHF setError
  * works; mocks for testing work; alternative form libs work).
+ *
+ * Generic over the field name since #54. It used to be `(name: string, …)`, and
+ * RHF's `setError` takes a NARROW union of the form's own paths — so by parameter
+ * contravariance the real callback was not assignable to the declared type, and
+ * `applyActionErrorsToForm(form.setError, fields)`, the documented call, did not
+ * compile. It worked at runtime; only the types refused to compose, which is the
+ * worst place for a form library to be strict about nothing.
+ *
+ * The default keeps every existing usage valid: `SetErrorCallback` with no
+ * argument is exactly the old `(name: string, …)` signature.
  */
-export type SetErrorCallback = (name: string, error: { type: string; message: string }) => void
+export type SetErrorCallback<TName extends string = string> = (
+  name: TName,
+  error: { type: string; message: string },
+) => void
 
 /**
  * Shape of TheoKit's `ActionInputError.fields` after `buildFieldsMap` runs.
@@ -43,13 +56,25 @@ export type ActionInputErrorLike = Record<string, string[]>
  * @param setError — RHF-compatible callback OR any function matching SetErrorCallback
  * @param fields — TheoKit ActionInputError.fields map (dot-notation full path, root '')
  */
-export function applyActionErrorsToForm(
-  setError: SetErrorCallback,
+export function applyActionErrorsToForm<TName extends string = string>(
+  setError: SetErrorCallback<TName>,
   fields: ActionInputErrorLike,
 ): void {
   for (const [key, messages] of Object.entries(fields)) {
     if (messages.length === 0) continue
     const rhfKey = key === '' ? 'root' : key
-    setError(rhfKey, { type: 'server', message: messages[0]! })
+    // The one cast this bridge cannot avoid, kept HERE so no consumer writes it (#54).
+    //
+    // The keys arrive from the server as runtime strings; `TName` is the set of paths
+    // the form knows at compile time. Nothing can reconcile those two — the server has
+    // never heard of the TypeScript type — so an assertion is required somewhere, and
+    // one inside the plugin is one instead of one per call site.
+    //
+    // Measured 2026-08-18 for the case the cast admits: `setError` with a path the form
+    // does not have neither throws nor is discarded. RHF stores it nested —
+    // `setError('does.not.exist', …)` yields
+    // `{ does: { not: { exist: { type, message } } } }` in `formState.errors` — so a
+    // stray server key becomes an error no field renders, and nothing else breaks.
+    setError(rhfKey as TName, { type: 'server', message: messages[0]! })
   }
 }

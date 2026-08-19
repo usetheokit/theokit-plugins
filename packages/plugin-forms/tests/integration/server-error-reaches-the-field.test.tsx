@@ -27,6 +27,11 @@
  * No browser is involved and none is needed: the boundary being crossed is the adapter
  * against the real RHF store, not layout.
  *
+ * Until #54 this file carried a named cast helper, because `applyActionErrorsToForm(
+ * form.setError, …)` did not typecheck. The adapter is generic over the field name now,
+ * so the documented call is written here exactly as a consumer writes it — which is the
+ * point: if it stops composing again, this suite is what says so.
+ *
  * The same-origin policy is switched off for this file only. happy-dom enforces CORS on
  * `fetch`, and the loopback server here is a different origin from the document — a
  * restriction that belongs to the browser, not to the code under test. The sibling
@@ -42,10 +47,7 @@ import { renderHook, act } from '@testing-library/react'
 import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import {
-  applyActionErrorsToForm,
-  type SetErrorCallback,
-} from '../../src/adapter/applyActionErrorsToForm.js'
+import { applyActionErrorsToForm } from '../../src/adapter/applyActionErrorsToForm.js'
 import { useTheoField } from '../../src/hooks/useTheoField.js'
 
 interface Values {
@@ -76,23 +78,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()))
 })
-
-/**
- * The cast every consumer is currently forced to write (#54).
- *
- * `SetErrorCallback` takes `name: string`; RHF's `setError` takes a narrow union of the
- * form's own paths. By parameter contravariance the narrower function is not assignable
- * to the wider type, so the documented call — `applyActionErrorsToForm(form.setError, …)`
- * — does not compile, even though it works at runtime and is proven to below.
- *
- * The cast lives here, named and explained, rather than being hidden inline: it is the
- * defect's shape, and when #54 is decided this helper should disappear rather than be
- * quietly kept. It never appeared before because the earlier tests passed `vi.fn()`, which
- * is assignable to anything — a fake agreeing with whoever wrote it.
- */
-function asAdapterCallback(setError: UseFormReturn<Values>['setError']): SetErrorCallback {
-  return setError as unknown as SetErrorCallback
-}
 
 /** Render a real form and expose both the RHF handle and the fields under test. */
 function renderForm() {
@@ -129,7 +114,7 @@ describe('a 422 from a real action lands on the real fields', () => {
     const body = (await response.json()) as { error: { fields: Record<string, string[]> } }
 
     await act(async () => {
-      applyActionErrorsToForm(asAdapterCallback(form().setError), body.error.fields)
+      applyActionErrorsToForm(form().setError, body.error.fields)
       await Promise.resolve()
     })
 
@@ -151,7 +136,7 @@ describe('a 422 from a real action lands on the real fields', () => {
     }
 
     await act(async () => {
-      applyActionErrorsToForm(asAdapterCallback(form().setError), body.error.fields)
+      applyActionErrorsToForm(form().setError, body.error.fields)
       await Promise.resolve()
     })
 
@@ -166,7 +151,7 @@ describe('a 422 from a real action lands on the real fields', () => {
     }
 
     await act(async () => {
-      applyActionErrorsToForm(asAdapterCallback(form().setError), body.error.fields)
+      applyActionErrorsToForm(form().setError, body.error.fields)
       await Promise.resolve()
     })
 
@@ -187,7 +172,7 @@ describe('a 422 from a real action lands on the real fields', () => {
     }
 
     await act(async () => {
-      applyActionErrorsToForm(asAdapterCallback(form().setError), body.error.fields)
+      applyActionErrorsToForm(form().setError, body.error.fields)
       await Promise.resolve()
     })
     expect(result.current.email.isInvalid).toBe(true)
@@ -208,7 +193,7 @@ describe('a 422 from a real action lands on the real fields', () => {
     const { result, form } = renderForm()
 
     await act(async () => {
-      applyActionErrorsToForm(asAdapterCallback(form().setError), {})
+      applyActionErrorsToForm(form().setError, {})
       await Promise.resolve()
     })
 
