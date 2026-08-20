@@ -40,6 +40,13 @@ import {
 
 export type RecorderState = 'idle' | 'requesting' | 'recording' | 'processing' | 'stopped'
 
+/**
+ * A microphone recording session.
+ *
+ * `release()` is separate from `stop()` and matters: stopping yields the audio, but the browser
+ * keeps showing the recording indicator until the media tracks are released. It is idempotent, so
+ * calling it from both a cleanup effect and an error path is safe.
+ */
 export interface Recorder {
   start(): Promise<void>
   stop(): Promise<Blob>
@@ -48,6 +55,12 @@ export interface Recorder {
   release(): void
 }
 
+/**
+ * Options for {@link createRecorder}. Every field is a hint the browser may ignore.
+ *
+ * `mimeType` in particular is a request, not a guarantee — the recorded blob's own `.type` is what
+ * actually got produced, and that is the value to send upstream.
+ */
 export interface CreateRecorderOptions {
   /**
    * Desired audio MIME. Browsers may downgrade — the final blob's
@@ -82,6 +95,12 @@ const DEFAULT_CONSTRAINTS: MediaTrackConstraints = {
   autoGainControl: true,
 }
 
+/**
+ * Create a microphone recorder over the browser's MediaRecorder.
+ *
+ * Options are resolved at construction, so an unusable configuration fails here rather than at the
+ * moment the user presses record — the same fail-fast stance the server handlers take.
+ */
 export function createRecorder(opts: CreateRecorderOptions = {}): Recorder {
   // Capture options once so config errors surface at factory call time
   // (lined up with the server-side EC-6 fail-fast policy).

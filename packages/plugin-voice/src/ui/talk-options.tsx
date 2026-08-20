@@ -22,16 +22,40 @@
 import { useId } from 'react'
 
 export type TtsVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'
+/**
+ * The playback speeds this control offers.
+ *
+ * A closed union rather than a number: these are the values with a UI affordance, and widening it
+ * here would let a caller set a speed the control cannot display back.
+ */
 export type TtsSpeed = 0.75 | 1 | 1.25 | 1.5
 
+/**
+ * The voices `<TalkOptions>` offers, published as `TALK_OPTION_VOICES`.
+ *
+ * Exported so an app building its own picker renders exactly these values instead of hardcoding a
+ * list that silently drifts from the one the control validates against.
+ */
 const VOICES: readonly TtsVoice[] = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']
+/**
+ * The playback speeds `<TalkOptions>` offers, published as `TALK_OPTION_SPEEDS`.
+ *
+ * Same reason as the voice list: one source for what the UI shows and what the control accepts.
+ */
 const SPEEDS: readonly TtsSpeed[] = [0.75, 1, 1.25, 1.5]
 
+/** The current voice and speed selection — controlled state owned by the consumer. */
 export interface TalkOptionsValue {
   voice: TtsVoice
   speed: TtsSpeed
 }
 
+/**
+ * Props for `<TalkOptions>`.
+ *
+ * Fully controlled: it renders `value` and reports changes, holding nothing of its own, so the
+ * selection can be persisted or shared without a second copy drifting from this one.
+ */
 export interface TalkOptionsProps {
   value: TalkOptionsValue
   onChange: (next: TalkOptionsValue) => void
@@ -40,6 +64,12 @@ export interface TalkOptionsProps {
   hideSpeed?: boolean
 }
 
+/**
+ * Voice and speed pickers for text-to-speech.
+ *
+ * Labels are bound to their controls with generated ids, so each select is announced by name rather
+ * than as an anonymous combobox.
+ */
 export function TalkOptions({ value, onChange, className, hideSpeed = false }: TalkOptionsProps) {
   const voiceId = useId()
   const speedId = useId()

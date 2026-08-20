@@ -35,6 +35,14 @@ export interface ArtifactListFilter {
   limit?: number
 }
 
+/**
+ * Persistence for artifacts, as this plugin needs it.
+ *
+ * Versioned by design: `insert` adds a version rather than replacing, and `get` without a version
+ * answers with the latest. `nextVersion` is part of the contract because allocating it is the
+ * store's job — deriving it from a previous `list` would race two concurrent publishes into the
+ * same version number.
+ */
 export interface ArtifactStore {
   insert(artifact: Artifact): Promise<Artifact>
   get(id: string, version?: number): Promise<Artifact | null>
@@ -46,6 +54,13 @@ export interface ArtifactStore {
 
 // ───── In-memory ─────
 
+/**
+ * In-process artifact store, for development and tests.
+ *
+ * State dies with the process and is not shared between instances: an artifact published on one
+ * node is invisible to another. Use {@link createSqliteArtifactStore} for anything a user will come
+ * back to.
+ */
 export function createInMemoryArtifactStore(): ArtifactStore {
   // #182: thin delegating factory; each operation lives in a named helper to
   // keep cyclomatic complexity low (behavior unchanged). `byId` is id → versions
@@ -171,6 +186,13 @@ export interface SqliteDb {
   exec?(sql: string): void
 }
 
+/**
+ * Options for {@link createSqliteArtifactStore}.
+ *
+ * `db` is supplied rather than opened here, so the artifact table lives in the application's own
+ * database and inside its transactions. `autoMigrate` is on by default and is what a deployment
+ * that manages its own schema turns off.
+ */
 export interface CreateSqliteArtifactStoreOptions {
   db: SqliteDb
   /** Table name. Default `canvas_artifacts`. */
@@ -212,6 +234,13 @@ function rowToArtifact(row: ArtifactRow): Artifact {
 
 const VALID_TABLE_NAME = /^[a-zA-Z_][a-zA-Z0-9_]{0,62}$/
 
+/**
+ * SQLite-backed artifact store over a database the caller opens.
+ *
+ * The table name is configurable and validated against a strict identifier pattern, because it is
+ * interpolated into SQL where a bound parameter cannot go — the check is what keeps that from being
+ * an injection point.
+ */
 export function createSqliteArtifactStore(
   options: CreateSqliteArtifactStoreOptions,
 ): ArtifactStore {

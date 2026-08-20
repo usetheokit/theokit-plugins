@@ -192,7 +192,8 @@ Nothing was removed or renamed. Every Stripe export moved one import deeper:
 
 ```diff
 -import { payments, defineStripeWebhook, processWebhook } from '@theokit/plugin-payments'
-+import { payments, defineStripeWebhook, processWebhook } from '@theokit/plugin-payments/stripe'
++import { payments } from '@theokit/plugin-payments'
++import { defineStripeWebhook, processWebhook } from '@theokit/plugin-payments/stripe'
 ```
 
 `createMemoryStore`, `createOrmStore`, `IdempotencyStore`, `formatAmountForStripe` and `formatAmountForDisplay` stay on the top-level import — idempotency and minor-unit arithmetic are not Stripe's.

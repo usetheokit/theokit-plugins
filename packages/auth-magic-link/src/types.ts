@@ -1,16 +1,27 @@
-/**
- * @theokit/auth-magic-link — public types.
- *
- * Per plan G11 ADR D7 (pluggable store) + D8 (consumer-supplied email callback).
- */
+// @theokit/auth-magic-link — public types.
+//
+// Per plan G11 ADR D7 (pluggable store) + D8 (consumer-supplied email callback).
 
 import type { IncomingMessage } from 'node:http'
 
+/**
+ * The identity a consumed magic link proves: an address, and the moment it was proven.
+ *
+ * There is no name, picture or id, because a magic link asserts control of a mailbox and nothing
+ * else. `verifiedAt` is the consumption time, not the send time — a link that was issued and never
+ * clicked produces no profile at all.
+ */
 export interface MagicLinkProfile {
   email: string
   verifiedAt: Date
 }
 
+/**
+ * What a store returns when a token is successfully consumed.
+ *
+ * It carries no token field on purpose: by the time this exists the token is spent, and handing it
+ * back would invite a caller to reuse a credential the store has already invalidated.
+ */
 export interface MagicLinkTokenRecord {
   email: string
   expiresAt: Date
@@ -41,6 +52,14 @@ export type SendMagicLinkFn = (args: {
   token: string
 }) => Promise<void>
 
+/**
+ * Options for {@link magicLink}.
+ *
+ * `store` and `sendEmail` have no defaults and cannot: persistence and delivery are the two things
+ * this package deliberately does not choose for you (ADR D7, D8). Anything a default could get
+ * wrong here — losing tokens on restart, mailing through the wrong transport — is worse than an
+ * explicit argument.
+ */
 export interface MagicLinkProviderOptions {
   store: MagicLinkStore
   sendEmail: SendMagicLinkFn

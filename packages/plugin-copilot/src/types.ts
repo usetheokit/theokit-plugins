@@ -284,12 +284,6 @@ export class CopilotTriggerError extends CopilotError {
 }
 
 /**
- * SDK Agent structural mirror (D39 + D4) — avoid hard import to keep
- * @theokit/sdk a runtime-resolved peer.
- *
- * @public
- */
-/**
  * Usage on a `complete` event, as the two kinds of agent report it (#61, #62).
  *
  * `inputTokens`/`outputTokens` is what `@theokit/sdk`'s `StreamObjectEvent` carries and

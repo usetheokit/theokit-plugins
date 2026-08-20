@@ -54,6 +54,14 @@ export interface TheoFormAction<TInput extends FieldValues = FieldValues, TData 
   }
 }
 
+/**
+ * Props for `<TheoForm>`.
+ *
+ * Only `action` and `children` are required: the schema normally travels on the action itself
+ * (`action.__zodSchema`), which is what keeps client and server validating the same shape. Passing
+ * `schema` is the escape hatch for an action that does not carry one; with neither, the form still
+ * submits and still shows server-side field errors — it just does no client-side validation first.
+ */
 export interface TheoFormProps<TInput extends FieldValues = FieldValues, TData = unknown> {
   action: TheoFormAction<TInput, TData>
   /**
@@ -168,12 +176,10 @@ export const TheoForm = Object.assign(TheoFormRoot, {
   Field: TheoField,
 })
 
-/**
- * Duck-type detection of ActionInputError-shape error. We do NOT import the
- * `ActionInputError` class from theokit/server to keep this peer-dep-free.
- * Per `theokit/packages/theo/src/core/contracts/action-protocol.ts:149-175`:
- *   ActionInputError { code, status, type:'TheoActionInputError', fields, issues }
- */
+// Duck-type detection of ActionInputError-shape error. We do NOT import the
+// `ActionInputError` class from theokit/server to keep this peer-dep-free.
+// Per `theokit/packages/theo/src/core/contracts/action-protocol.ts:149-175`:
+// ActionInputError { code, status, type:'TheoActionInputError', fields, issues }
 /**
  * Duck-type an ActionInputError by its `fields` map (#227 single source — both
  * `handleValid` and the unit test import THIS, never a copy).

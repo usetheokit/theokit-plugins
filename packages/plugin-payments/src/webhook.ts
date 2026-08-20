@@ -61,18 +61,6 @@ export function defineStripeWebhook<T extends Stripe.Event['type']>(
 }
 
 /**
- * Registry for Stripe webhook handlers. Routes incoming `Stripe.Event`
- * objects to matching `defineStripeWebhook` descriptors.
- *
- * Multiple handlers may be registered for the same event type — they run
- * in LIFO order (last registered runs first). Errors in any handler
- * propagate to the caller (consumer chooses 500 vs 200).
- *
- * Unhandled event types are NO-OP (no error). This matches Stripe's
- * recommended behavior — respond 200 to acknowledge receipt even when
- * the event type isn't relevant to the consumer's domain.
- */
-/**
  * Internal type-erased handler shape stored in the registry. The variance
  * of `StripeWebhookHandler<T>` over `T` (handle accepts narrowed events)
  * makes the public typed shape incompatible with a `[]` storage layout —
@@ -84,6 +72,18 @@ interface ErasedHandler {
   readonly handle: (event: Stripe.Event) => Promise<void>
 }
 
+/**
+ * Registry for Stripe webhook handlers. Routes incoming `Stripe.Event`
+ * objects to matching `defineStripeWebhook` descriptors.
+ *
+ * Multiple handlers may be registered for the same event type — they run
+ * in LIFO order (last registered runs first). Errors in any handler
+ * propagate to the caller (consumer chooses 500 vs 200).
+ *
+ * Unhandled event types are NO-OP (no error). This matches Stripe's
+ * recommended behavior — respond 200 to acknowledge receipt even when
+ * the event type isn't relevant to the consumer's domain.
+ */
 export class WebhookRegistry {
   private readonly handlers = new Map<string, ErasedHandler[]>()
 
@@ -160,6 +160,13 @@ export function verifyAndParseWebhook(
 // neutral multi-provider path. Re-exported so the Stripe surface is unchanged.
 export type { SanitizedWebhookError }
 
+/**
+ * The outcome of the Stripe-typed webhook path.
+ *
+ * `signature_invalid` is a value, not an exception: an unverifiable signature is an ordinary thing
+ * to receive on a public endpoint, and returning it lets the HTTP layer answer 401 without a
+ * try/catch around the happy path.
+ */
 export type WebhookResult = DispatchOutcome | { status: 'signature_invalid'; message: string }
 
 /**

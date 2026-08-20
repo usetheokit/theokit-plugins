@@ -22,6 +22,12 @@ export class CanvasPluginError extends Error {
   }
 }
 
+/**
+ * The artifact did not match {@link artifactSchema}.
+ *
+ * `issues` carries the per-path failures so a caller can report which field was wrong without
+ * parsing the message.
+ */
 export class CanvasArtifactValidationError extends CanvasPluginError {
   override readonly name = 'CanvasArtifactValidationError'
   readonly issues: readonly { path: string; message: string }[]
@@ -35,6 +41,12 @@ export class CanvasArtifactValidationError extends CanvasPluginError {
   }
 }
 
+/**
+ * No artifact is stored under this id.
+ *
+ * `artifactId` is kept as a field so a handler can answer 404 with the id it looked up, rather than
+ * re-deriving it from the message.
+ */
 export class CanvasArtifactNotFoundError extends CanvasPluginError {
   override readonly name = 'CanvasArtifactNotFoundError'
   readonly artifactId: string
@@ -44,6 +56,14 @@ export class CanvasArtifactNotFoundError extends CanvasPluginError {
   }
 }
 
+/**
+ * A boundary check refused the payload — an oversized data URL, a plaintext `http://` image, an SVG
+ * carrying script, an HTML srcdoc asking for a sandbox combination that would let it escape.
+ *
+ * Distinct from a validation error on purpose: the shape was well-formed and was rejected anyway.
+ * `reason` names which check blocked it, so this can be logged as a security event rather than
+ * counted as ordinary bad input.
+ */
 export class CanvasArtifactSecurityError extends CanvasPluginError {
   override readonly name = 'CanvasArtifactSecurityError'
   readonly reason: string

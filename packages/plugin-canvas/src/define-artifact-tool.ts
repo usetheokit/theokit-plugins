@@ -52,6 +52,13 @@ export interface ArtifactToolHandlerContext {
   ctx?: unknown
 }
 
+/**
+ * What the publish tool returns to the agent.
+ *
+ * The persisted artifact is inlined rather than referenced by id alone, because the agent usually
+ * needs its id and version in the very next step; returning them here saves a second tool call and
+ * the chance to get it wrong.
+ */
 export interface ArtifactToolResult {
   ok: true
   artifactId: string
@@ -64,6 +71,15 @@ export interface ArtifactToolResult {
   artifact: Artifact
 }
 
+/**
+ * Options for {@link defineArtifactTool}.
+ *
+ * `onPublish` is required and must throw on storage failure: a persistence error swallowed here
+ * would report success to the agent, which then reasons about an artifact nobody can load.
+ *
+ * `allowedKinds` narrows the closed set. Narrowing it is only half the job — the agent's prompt has
+ * to agree, or the model will keep proposing kinds the tool now rejects.
+ */
 export interface DefineArtifactToolOptions {
   /**
    * Closed allow-list of kinds. When omitted, all 9 kinds are
@@ -82,6 +98,10 @@ export interface DefineArtifactToolOptions {
   description?: string
 }
 
+/**
+ * The tool descriptor {@link defineArtifactTool} produces — name, description, input schema and
+ * handler — in the shape an agent runtime registers.
+ */
 export interface ArtifactToolConfig {
   name: string
   description: string
@@ -123,6 +143,14 @@ function buildDescription(allowed: readonly ArtifactKind[]): string {
   ].join(' ')
 }
 
+/**
+ * Build the agent tool that publishes an artifact.
+ *
+ * The handler validates against {@link artifactSchema} before calling `onPublish`, so an agent that
+ * hallucinates a shape gets a tool error it can recover from rather than writing a malformed row.
+ * It accepts both the wrapped `{ artifact: … }` envelope and a bare artifact, because models
+ * produce both and rejecting one of them buys nothing.
+ */
 export function defineArtifactTool(options: DefineArtifactToolOptions): ArtifactToolConfig {
   const allowed = options.allowedKinds ?? ARTIFACT_KINDS
   if (allowed.length === 0) {

@@ -30,8 +30,22 @@ import { createRecorder, type CreateRecorderOptions, type Recorder } from '../re
 import { VoiceAlert, type AlertKind } from './alert.js'
 import { MicIcon, RetryIcon, SpinnerIcon, StopIcon } from './icons.js'
 
+/**
+ * Where the recorder bar is in the capture cycle.
+ *
+ * `'requesting'` (waiting on the permission prompt) is distinct from `'recording'`, because a user
+ * shown a recording indicator while the browser is still asking for permission believes audio is
+ * being captured when none is.
+ */
 export type RecorderBarPhase = 'idle' | 'requesting' | 'recording' | 'processing' | 'error'
 
+/**
+ * Props for `<VoiceRecorderBar>`.
+ *
+ * `onTranscript` receives the text plus the language and duration the provider reported. `onError`
+ * gets the typed error from whichever stage failed — recorder, upload, or provider — so an app can
+ * distinguish a denied microphone from an upstream outage.
+ */
 export interface VoiceRecorderBarProps {
   /** Called with the upstream transcript on success. */
   onTranscript: (transcript: string, meta: { language?: string; durationMs: number }) => void
@@ -75,6 +89,12 @@ interface ErrorState {
 
 const DEFAULT_CSRF_HEADER = { name: 'X-Theo-Action', value: '1' }
 
+/**
+ * A record button that captures audio, posts it for transcription, and reports the text.
+ *
+ * It owns the whole cycle including failure: a denied permission or a provider error surfaces as a
+ * {@link VoiceAlert} with a retry, rather than leaving the button stuck mid-phase.
+ */
 export function VoiceRecorderBar({
   onTranscript,
   onError,

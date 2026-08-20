@@ -93,6 +93,13 @@ export class PaymentEventRegistry {
   }
 }
 
+/**
+ * The outcome of handling one inbound webhook.
+ *
+ * `signature_invalid` is a value here, not an exception, so the HTTP layer can map it to a 401
+ * without a try/catch — an unverifiable signature is an expected thing to receive on a public
+ * endpoint, not an exceptional one.
+ */
 export type PaymentWebhookResult =
   | DispatchOutcome
   | { status: 'signature_invalid'; provider: string; message: string }

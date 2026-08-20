@@ -42,6 +42,12 @@ export interface TtsInput {
   speed?: number
 }
 
+/**
+ * Per-request options for {@link handleTtsRequest}.
+ *
+ * Same contract as the speech-to-text side: a bounded upstream timeout that surfaces as 504, and a
+ * caller abort signal that cancels the in-flight request rather than orphaning it.
+ */
 export interface TtsHandlerOptions {
   /**
    * Injected fetch seam. The handler always calls it with a concrete URL and an
@@ -70,6 +76,12 @@ function isAbortLike(err: unknown): boolean {
   return err instanceof DOMException && (err.name === 'AbortError' || err.name === 'TimeoutError')
 }
 
+/**
+ * Synthesise speech through the configured provider and answer with a web `Response`.
+ *
+ * The audio streams back rather than being buffered, so playback can start before synthesis
+ * finishes. Like its counterpart it returns a response and mounts nothing.
+ */
 export async function handleTtsRequest(
   input: TtsInput,
   config: VoiceConfig['tts'],

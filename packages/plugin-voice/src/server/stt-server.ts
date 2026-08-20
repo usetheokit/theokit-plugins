@@ -49,12 +49,26 @@ export type SttAudio =
   | Blob
   | { buffer: Buffer | Uint8Array | ArrayBuffer; mimeType?: string; filename?: string }
 
+/**
+ * One speech-to-text request: the audio, plus optional hints.
+ *
+ * `language` skips upstream detection when the caller already knows it, and `prompt` biases the
+ * transcription toward expected vocabulary — names and jargon a general model would otherwise
+ * mangle.
+ */
 export interface SttInput {
   audio: SttAudio
   language?: string
   prompt?: string
 }
 
+/**
+ * Per-request options for {@link handleSttRequest}.
+ *
+ * `timeoutMs` bounds the upstream call and turns a hung provider into a 504 rather than a request
+ * that never answers; `signal` propagates the client's own abort so a user who navigates away does
+ * not leave an upstream fetch running.
+ */
 export interface SttHandlerOptions {
   /**
    * Injected fetch seam. The handler always calls it with a concrete URL and an
@@ -82,12 +96,21 @@ function isAbortLike(err: unknown): boolean {
   return err instanceof DOMException && (err.name === 'AbortError' || err.name === 'TimeoutError')
 }
 
+/** A successful transcription: the text, the language actually used, and the audio's duration. */
 export interface SttResponseBody {
   transcript: string
   language?: string
   durationMs: number
 }
 
+/**
+ * Transcribe audio through the configured provider and answer with a web `Response`.
+ *
+ * Upstream failures are mapped to status codes rather than thrown — a provider timeout becomes 504
+ * `UPSTREAM_TIMEOUT`, an auth failure its own code — so the caller routes on a status instead of
+ * matching error strings. It returns a response and registers no route: mounting stays the
+ * application's job.
+ */
 export async function handleSttRequest(
   input: SttInput,
   config: VoiceConfig['stt'],

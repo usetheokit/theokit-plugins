@@ -7,6 +7,12 @@ import { CanvasArtifactList } from './canvas-artifact-list.js'
 import type { ArtifactRendererRegistry } from './renderers/types.js'
 import type { CanvasPanelToolbarAction } from './canvas-panel-actions.js'
 
+/**
+ * Props for `<CanvasPanel>`.
+ *
+ * `open` is controlled rather than internal, so the panel can be opened by an incoming artifact, by
+ * the user, or by the application's own routing without three sources of truth disagreeing.
+ */
 export interface CanvasPanelProps {
   open: boolean
   onOpenChange: (open: boolean) => void

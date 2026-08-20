@@ -23,12 +23,6 @@
 import type { EmailMessage, EmailProvider, SendResult } from './types.js'
 import { EmailSendError } from './types.js'
 
-/**
- * Resend SDK shape (structurally typed). Plugin's source does NOT import the
- * runtime `Resend` class directly — consumer's installed `resend` peer
- * provides the instance via `ResendProvider({client})` OR plugin creates one
- * via `new Resend(apiKey)` when `client` absent.
- */
 /** Payload shape passed to Resend's `emails.send()` after EmailMessage mapping. */
 export interface ResendSendPayload {
   from: string
@@ -50,6 +44,12 @@ export interface ResendSendRequestOptions {
   idempotencyKey?: string
 }
 
+/**
+ * Resend SDK shape (structurally typed). Plugin's source does NOT import the
+ * runtime `Resend` class directly — consumer's installed `resend` peer
+ * provides the instance via `ResendProvider({client})` OR plugin creates one
+ * via `new Resend(apiKey)` when `client` absent.
+ */
 export interface ResendClientLike {
   emails: {
     send(
@@ -69,6 +69,13 @@ function requestOptions(message: EmailMessage): ResendSendRequestOptions | undef
     : { idempotencyKey: message.idempotencyKey }
 }
 
+/**
+ * Options for the Resend-backed provider. Exactly one of `apiKey` or `client` is required.
+ *
+ * `client` exists so a test can drive a stub and so an app that already configured Resend can share
+ * that instance instead of opening a second one. When both are absent the provider throws at
+ * construction rather than on the first send, so a misconfigured deployment fails at boot.
+ */
 export interface ResendProviderOptions {
   /** Resend API key. Required when `client` not provided. */
   apiKey?: string

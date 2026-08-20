@@ -1,17 +1,15 @@
-/**
- * @theokit/auth-google v0.1.0 — Google OAuth (OIDC) provider for defineAuth.
- *
- * Implements OIDC discovery + PKCE + authorization-code flow + userinfo fetch
- * per RFC 6749 (OAuth 2.0), RFC 7636 (PKCE), and OpenID Connect Core 1.0.
- *
- * Composes theokit/server/auth primitives — does NOT reinvent crypto.
- *
- * Per plan g11-auth-architecture-implementation T2.2 + ADR D9:
- *   - GoogleProfile.sub is OIDC subject — case-sensitive, never lowercased.
- *   - Per v1.1 EC-3: opts.oidcBaseUrl overrides default; in NODE_ENV=test
- *     MOCK_GOOGLE_OIDC_BASE_URL env var takes precedence over opts (sidecar
- *     OIDC mock unblock for Playwright tests). Production builds ignore env.
- */
+// @theokit/auth-google v0.1.0 — Google OAuth (OIDC) provider for defineAuth.
+//
+// Implements OIDC discovery + PKCE + authorization-code flow + userinfo fetch
+// per RFC 6749 (OAuth 2.0), RFC 7636 (PKCE), and OpenID Connect Core 1.0.
+//
+// Composes theokit/server/auth primitives — does NOT reinvent crypto.
+//
+// Per plan g11-auth-architecture-implementation T2.2 + ADR D9:
+// - GoogleProfile.sub is OIDC subject — case-sensitive, never lowercased.
+// - Per v1.1 EC-3: opts.oidcBaseUrl overrides default; in NODE_ENV=test
+// MOCK_GOOGLE_OIDC_BASE_URL env var takes precedence over opts (sidecar
+// OIDC mock unblock for Playwright tests). Production builds ignore env.
 
 import type { IncomingMessage } from 'node:http'
 import type { AuthProvider, AuthResult, OAuthTransaction } from '@theokit/sdk/server/auth'
@@ -23,6 +21,12 @@ export type { GoogleProfile, GoogleProviderOptions } from './types.js'
 const DEFAULT_GOOGLE_OIDC_BASE = 'https://accounts.google.com'
 const GOOGLE_SCOPES = 'openid profile email'
 
+/**
+ * Raised when the OIDC exchange completes but does not yield a usable identity.
+ *
+ * `code` names the failing step (`missing_pkce_verifier`, …) so callers branch on a value rather
+ * than on message text.
+ */
 export class GoogleAuthError extends Error {
   readonly code: string
   constructor(code: string, message: string) {
@@ -129,6 +133,17 @@ function parseCallbackUrl(req: IncomingMessage): URL {
   return new URL(`http://${host}${req.url ?? '/'}`)
 }
 
+/**
+ * Google OAuth 2.0 / OIDC provider for `defineAuth`.
+ *
+ * Endpoints are discovered rather than hardcoded, and PKCE is mandatory: a transaction without a
+ * `pkceVerifier` is rejected instead of silently downgrading to the weaker `state`-only flow. The
+ * crypto primitives come from `theokit/server/auth`; nothing here reimplements them.
+ *
+ * `oidcBaseUrl` exists so a test can point discovery at a mock. The `MOCK_GOOGLE_OIDC_BASE_URL`
+ * environment variable overrides it, but only when `NODE_ENV === 'test'` — a production build
+ * ignores that variable entirely, so the escape hatch cannot be opened from the outside.
+ */
 export function google(opts: GoogleProviderOptions): AuthProvider<GoogleProfile, 'google'> {
   return {
     name: 'google',

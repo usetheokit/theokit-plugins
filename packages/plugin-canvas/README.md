@@ -36,8 +36,8 @@ import {
   streamAgentRun,
   createConversationHistory,
 } from 'theokit/server'
-import { defineArtifactTool, createArtifactBus } from '@theokit/plugin-canvas'
-import { createSqliteArtifactStore } from '@theokit/plugin-canvas'
+import { defineArtifactTool, createSqliteArtifactStore } from '@theokit/plugin-canvas'
+import { createArtifactBus } from '@theokit/plugin-canvas/server'
 
 // Module-scope singletons — see "Server-side artifact bus" below
 const store = createSqliteArtifactStore({ db: yourSqliteDb })

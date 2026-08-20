@@ -1,0 +1,41 @@
+# Documented names that do not exist, deferred with a mandatory sunset.
+#
+# Authoritative contract: `.claude/rules/code-quality-golden-rule.md` § 4, adapted. This file lives
+# under `tools/` rather than under `.claude/` because `.claude/` is not versioned (`.gitignore:50`):
+# an allowlist CI cannot read would make the gate behave one way locally and another way on a pull
+# request, which is worse than either verdict on its own.
+#
+# Format (one entry per line):
+#   SPECIFIER | NAME | SUNSET (YYYY-MM-DD) | RATIONALE
+#
+# Keyed by specifier+name, NOT by file:line. The defect is "this module does not export this name",
+# and it is one defect however many documents repeat it. A line number would also drift every time
+# someone edits a README above the example, silently re-arming or mis-aiming the entry.
+#
+# An entry whose SUNSET has passed is IGNORED and the finding re-fires at full severity — the run
+# says so explicitly. A malformed entry aborts the run (exit 2) rather than being skipped: an
+# exemption nobody can parse must not read as an exemption nobody needed.
+#
+# An allowlisted finding is NOT hidden. It is printed under "deferred" with its sunset date on every
+# run, so it stays a dated debt rather than becoming invisible.
+#
+# Adding an entry REQUIRES a CHANGELOG entry under `[Unreleased]`.
+
+# --- theokit@0.48.x API generation gap (issue #67) -----------------------------------------------
+# The framework usage examples in eight READMEs and CONTRIBUTING.md were written against an earlier
+# generation of `theokit`'s API. None of these ten names exists in ANY of the 24 export subpaths of
+# the installed `theokit@0.48.8` (enumerated with the compiler, not by grep), and the API changed
+# SHAPE — `definePlugin({ ... })` became `plugin(name).onRequest(fn).build()` — so no name-for-name
+# substitution fixes them. Rewriting the examples requires running them against the current API,
+# which is the work the issue tracks. Deferred rather than left permanently red: a gate that is red
+# by design stops being read, and would then miss the next drift.
+theokit/server | definePlugin              | 2026-11-18 | #67 — absent from every theokit@0.48.8 subpath; `plugin(name)` is a fluent builder, not a drop-in.
+theokit/server | defineRoute               | 2026-11-18 | #67 — absent; `route()` returns a RouteBuilder.
+theokit/server | defineAction              | 2026-11-18 | #67 — absent; `action()` returns an ActionBuilder.
+theokit/server | defineTheoConfig          | 2026-11-18 | #67 — absent, and no counterpart on any subpath.
+theokit/server | defineAgentEndpoint       | 2026-11-18 | #67 — absent, and no counterpart on any subpath.
+theokit/server | defineAgentTool           | 2026-11-18 | #67 — absent; only the `DefineAgentToolSpec` type survives, which is not a factory.
+theokit/server | streamAgentRun            | 2026-11-18 | #67 — absent; `streamAgentTurnInProcess` is adjacent but not equivalent and is untested here.
+theokit/server | createConversationHistory | 2026-11-18 | #67 — absent, and no counterpart on any subpath.
+theokit         | defineConfig             | 2026-11-18 | #67 — absent; `config()` returns a ConfigBuilder, so the object-literal example does not port.
+theokit/client  | useAgentStream           | 2026-11-18 | #67 — absent; `useAgent` exists but its return shape was not verified against the example.

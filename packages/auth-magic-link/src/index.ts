@@ -1,16 +1,14 @@
-/**
- * @theokit/auth-magic-link v0.1.0 — email magic-link provider.
- *
- * Per plan g11-auth-architecture-implementation T4.1:
- *   - 32-byte URL-safe random tokens (crypto.randomBytes).
- *   - Pluggable MagicLinkStore (ADR D7) — createMemoryStore / createOrmStore.
- *   - Consumer-supplied sendEmail callback (ADR D8) — apps wire any transport;
- *     errors propagate (not swallowed).
- *   - Token lifetime default 15 min (configurable via opts.tokenLifetimeMs).
- *   - Single-use atomic consumption (EC-11 SHOULD TEST).
- *   - Email validation at input boundary (EC-12 SHOULD TEST): missing /
- *     malformed email throws BEFORE token creation.
- */
+// @theokit/auth-magic-link v0.1.0 — email magic-link provider.
+//
+// Per plan g11-auth-architecture-implementation T4.1:
+// - 32-byte URL-safe random tokens (crypto.randomBytes).
+// - Pluggable MagicLinkStore (ADR D7) — createMemoryStore / createOrmStore.
+// - Consumer-supplied sendEmail callback (ADR D8) — apps wire any transport;
+// errors propagate (not swallowed).
+// - Token lifetime default 15 min (configurable via opts.tokenLifetimeMs).
+// - Single-use atomic consumption (EC-11 SHOULD TEST).
+// - Email validation at input boundary (EC-12 SHOULD TEST): missing /
+// malformed email throws BEFORE token creation.
 
 import { randomBytes } from 'node:crypto'
 import type { IncomingMessage } from 'node:http'
@@ -37,6 +35,13 @@ const MAX_BODY_BYTES = 16 * 1024
 // real validation happens at the auth provider (SMTP / IdP) layer.
 const EMAIL_GUARD = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+/**
+ * Raised when a sign-in attempt fails on its own terms — a token that is missing, expired, already
+ * spent, or an address that fails validation at the boundary.
+ *
+ * Distinct from {@link MagicLinkConfigError}: this one is reachable by an ordinary user doing an
+ * ordinary thing, and is not a defect in the wiring.
+ */
 export class MagicLinkAuthError extends Error {
   readonly code: string
   constructor(code: string, message: string) {
@@ -46,6 +51,12 @@ export class MagicLinkAuthError extends Error {
   }
 }
 
+/**
+ * Raised when the provider itself is wired wrong — a missing store, an unusable callback URL.
+ *
+ * Separate from {@link MagicLinkAuthError} because the audiences differ: this one is for whoever
+ * deployed the app, never for the person clicking the link, and no retry will clear it.
+ */
 export class MagicLinkConfigError extends Error {
   readonly code: string
   constructor(code: string, message: string) {
@@ -118,6 +129,18 @@ function validateEmail(email: string | null): string {
   return normalized
 }
 
+/**
+ * Email magic-link provider for `defineAuth`.
+ *
+ * Tokens are 32 bytes of `crypto.randomBytes`, URL-safe, and single-use: consumption is atomic, so
+ * two concurrent clicks on the same link resolve exactly one. The address is validated before a
+ * token is ever created, which keeps a malformed input from costing a store write and an email.
+ *
+ * A magic-link token is an unbound bearer credential — anyone holding the URL is the user — so the
+ * lifetime is short by default (15 minutes) and the raw token is never persisted; stores keep only
+ * its SHA-256. Delivery is the consumer's `sendEmail`, and its errors propagate rather than being
+ * swallowed: a link that was never delivered must not read as a link that was sent.
+ */
 export function magicLink(opts: MagicLinkProviderOptions): AuthProvider<
   MagicLinkProfile,
   'magic-link'

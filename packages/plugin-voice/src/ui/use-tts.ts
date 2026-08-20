@@ -25,8 +25,21 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { VoicePluginError, VoiceProviderError } from '../errors.js'
 
+/**
+ * Where a speech request is.
+ *
+ * `'requesting'` and `'playing'` are separate because they need different UI — a spinner while the
+ * provider synthesises, a stop control once audio is actually running.
+ */
 export type UseTtsPhase = 'idle' | 'requesting' | 'playing' | 'error'
 
+/**
+ * Options for {@link useTts}.
+ *
+ * `voice` and `speed` are defaults each `speak()` may override. `csrfHeader` defaults to TheoKit's
+ * strict-mode pair and takes `null` to opt out explicitly, so disabling CSRF is always a decision
+ * someone wrote down rather than a field they forgot.
+ */
 export interface UseTtsOptions {
   /** Endpoint to POST to. Defaults to `/api/voice/tts`. */
   endpoint?: string
@@ -51,11 +64,18 @@ export interface UseTtsOptions {
   onError?: (err: VoicePluginError | Error) => void
 }
 
+/** Per-call overrides for {@link UseTtsState.speak}, taking precedence over the hook's defaults. */
 export interface UseTtsSpeakOptions {
   voice?: string
   speed?: number
 }
 
+/**
+ * What {@link useTts} returns: `speak`, `stop`, the current phase, and the last error.
+ *
+ * `speak` resolves when playback ends rather than when the request returns, so a caller can await a
+ * line finishing before saying the next one.
+ */
 export interface UseTtsState {
   /** POST the text + start playback. Resolves when playback ends. */
   speak: (text: string, opts?: UseTtsSpeakOptions) => Promise<void>
@@ -67,6 +87,12 @@ export interface UseTtsState {
 
 const DEFAULT_CSRF_HEADER = { name: 'X-Theo-Action', value: '1' }
 
+/**
+ * Speak text through the configured endpoint and play the result.
+ *
+ * `stop()` revokes the clip's blob URL as well as halting playback: without that, every utterance in
+ * a long session would hold its audio in memory until the page was reloaded.
+ */
 export function useTts(options: UseTtsOptions = {}): UseTtsState {
   const {
     endpoint = '/api/voice/tts',

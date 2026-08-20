@@ -50,39 +50,6 @@ export interface DefineCopilotOptions {
 
 const COPILOT_ID_RE = /^[a-zA-Z][a-zA-Z0-9_-]*$/
 
-/**
- * Define a copilot — pairs a P#9 room with an Agent + reactive triggers.
- *
- * @example
- * ```ts
- * import { defineCopilot } from "@theokit/plugin-copilot";
- * import { defineRoom } from "@theokit/plugin-realtime";
- * import { z } from "zod";
- *
- * export default defineCopilot({
- *   id: "canvas-helper",
- *   room: defineRoom({
- *     id: "canvas",
- *     presence: z.object({ typing: z.boolean().optional() }),
- *     broadcast: z.object({ kind: z.string(), text: z.string() }),
- *   }),
- *   agent: {
- *     name: "GPT Copilot",
- *     model: "openrouter/openai/gpt-4o-mini",
- *     apiKey: process.env.OPENROUTER_API_KEY,
- *     systemPrompt: "You help users edit this canvas.",
- *   },
- *   identity: { name: "AI Assistant", avatar: "/ai.png", color: "#7c3aed" },
- *   triggers: [
- *     { on: "broadcast:question", action: "respond" },
- *     { on: "presence:idle", action: "suggest", idleMs: 5000 },
- *   ],
- *   rateLimit: { tokens: 100, windowMs: 60_000 },
- * });
- * ```
- *
- * @public
- */
 /** #184: validate object shape, id, and room (throws CopilotConfigError). */
 function assertCopilotBaseShape(opts: DefineCopilotOptions): void {
   if (opts === null || typeof opts !== 'object') {
@@ -153,6 +120,39 @@ function assertCopilotTriggers(triggers: DefineCopilotOptions['triggers']): void
   }
 }
 
+/**
+ * Define a copilot — pairs a P#9 room with an Agent + reactive triggers.
+ *
+ * @example
+ * ```ts
+ * import { defineCopilot } from "@theokit/plugin-copilot";
+ * import { defineRoom } from "@theokit/plugin-realtime";
+ * import { z } from "zod";
+ *
+ * export default defineCopilot({
+ *   id: "canvas-helper",
+ *   room: defineRoom({
+ *     id: "canvas",
+ *     presence: z.object({ typing: z.boolean().optional() }),
+ *     broadcast: z.object({ kind: z.string(), text: z.string() }),
+ *   }),
+ *   agent: {
+ *     name: "GPT Copilot",
+ *     model: "openrouter/openai/gpt-4o-mini",
+ *     apiKey: process.env.OPENROUTER_API_KEY,
+ *     systemPrompt: "You help users edit this canvas.",
+ *   },
+ *   identity: { name: "AI Assistant", avatar: "/ai.png", color: "#7c3aed" },
+ *   triggers: [
+ *     { on: "broadcast:question", action: "respond" },
+ *     { on: "presence:idle", action: "suggest", idleMs: 5000 },
+ *   ],
+ *   rateLimit: { tokens: 100, windowMs: 60_000 },
+ * });
+ * ```
+ *
+ * @public
+ */
 export function defineCopilot(opts: DefineCopilotOptions): CopilotDescriptor {
   // #184: validation split into focused asserts to keep this factory's
   // cyclomatic complexity low (behavior unchanged — same checks, same codes).
