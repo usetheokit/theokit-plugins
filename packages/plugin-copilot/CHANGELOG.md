@@ -1,5 +1,28 @@
 # @theokit/plugin-copilot
 
+## 0.2.0
+
+### Minor Changes
+
+- ae1510c: Delegate spend accounting to `@theokit/sdk` and become a real TheoKit plugin.
+
+  Cost is now priced from the tokens the SDK actually reports, fixing a ceiling that never
+  moved because it was reconciled against a field no agent produces (#61). The local budget
+  tracker is replaced by the SDK's budget engine, keeping only what the SDK has no equivalent
+  for: in-flight holds across the check-then-charge gap, and a per-request cap. `copilot()`
+  returns a plugin `theo.config.ts` accepts, publishing read-only usage on `ctx.copilot`.
+
+  Breaking: `monthlyUsd` is a rolling 30-day window rather than a calendar month. Use
+  `perRoom.limits` with the SDK's own windows where the exact boundary matters.
+
+### Patch Changes
+
+- 03b1b5d: Every published export now carries documentation an editor can show. Previously 63.4% of them did (230 of 363), and two packages showed nothing at all: `@theokit/auth-github` and `@theokit/auth-google` measured 0/4, because their module headers began with `@theokit/...`, which TypeScript parses as a tag name and swallows the whole block — text was written and no reader ever got it.
+
+  Seven docblocks were also stranded above another docblock, so they attached to nothing: the symbol they described shipped undocumented and the text shipped invisible. `defineCopilot`'s documentation, including its full usage example, was one of them.
+
+  Type shapes are unchanged. This is visible to consumers because documentation ships in the `.d.ts`.
+
 ## 0.1.2
 
 ### Patch Changes

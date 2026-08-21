@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.2.3
+
+### Patch Changes
+
+- 03b1b5d: Every published export now carries documentation an editor can show. Previously 63.4% of them did (230 of 363), and two packages showed nothing at all: `@theokit/auth-github` and `@theokit/auth-google` measured 0/4, because their module headers began with `@theokit/...`, which TypeScript parses as a tag name and swallows the whole block — text was written and no reader ever got it.
+
+  Seven docblocks were also stranded above another docblock, so they attached to nothing: the symbol they described shipped undocumented and the text shipped invisible. `defineCopilot`'s documentation, including its full usage example, was one of them.
+
+  Type shapes are unchanged. This is visible to consumers because documentation ships in the `.d.ts`.
+
+- 65555ad: Drop the `theokit` and `@theokit/ui` peer dependencies, and document that `zod@^4` must be
+  named at install time.
+
+  Neither peer was imported by `src/`. The `theokit` one was not merely decorative: it pulled
+  `theokit@0.48.13`, whose optional peer on `@theokit/sdk@^4.52.1` collides with the
+  `@theokit/sdk@^1.1.0` that `@theokit/react@1.1.0` requires — an unsatisfiable tree that
+  `npm install` refuses even when the consumer pins zod.
+
+  A default `npm install` still fails, for a cause outside this package: `@hookform/resolvers`
+  reaches `@typeschema/zod@0.14.0` (`zod@^3.23.8`) while `@theokit/react@1.1.0` reaches
+  `@theokit/sdk@1.9.0` (`zod@^4.0.0`). Naming `zod@^4` at the root resolves it, and the README
+  carries the chain plus the reason it is not fixable here.
+
+- bfa7409: The README examples now use the API `theokit@0.48` exports, and every one of them was verified by compiling it rather than by reading it. Ten names they told you to import — `defineConfig`, `defineRoute`, `definePlugin`, `defineAction`, `defineAgentTool`, `defineTheoConfig`, `defineAgentEndpoint`, `streamAgentRun`, `createConversationHistory`, `useAgentStream` — exist in none of that version's 24 export subpaths. Copying the first block of most of these READMEs produced code that did not compile.
+
+  The `auth-google` and `auth-magic-link` wiring examples changed shape rather than names: the auth orchestrator takes Node's `IncomingMessage`/`ServerResponse`, and no handler surface TheoKit exposes today hands you those, so the examples show a Node server and state the gap.
+
 ## 0.2.2
 
 ### Patch Changes
