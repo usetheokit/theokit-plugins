@@ -35,6 +35,56 @@ export const auth = defineAuth({
 })
 ```
 
+Wire into your routes:
+
+```ts
+// server/routes/api/auth/github/start.ts
+import { generateOAuthState } from 'theokit/server/auth'
+import { route } from 'theokit/server'
+import { provider, saveTransaction } from '../../../auth/index.js'
+
+export const GET = route()
+  .handler(async () => {
+    // No PKCE: GitHub's OAuth 2.0 endpoint ignores it (RFC 7636 is not implemented),
+    // so `state` is the whole CSRF defence and it must survive the round-trip.
+    const tx = {
+      state: generateOAuthState(),
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 600_000,
+    }
+    const headers = new Headers()
+    saveTransaction(headers, tx) // your cookie
+    headers.set('location', (await provider.createAuthorizationURL(tx)).href)
+    return new Response(null, { status: 302, headers })
+  })
+  .build()
+```
+
+```ts
+// server/routes/api/auth/github/callback.ts
+import { route } from 'theokit/server'
+import { provider, sessions, loadTransaction } from '../../../auth/index.js'
+
+export const GET = route()
+  .handler(async ({ request }) => {
+    const { profile } = await provider.handleCallback(request, loadTransaction(request))
+    const headers = new Headers()
+    await sessions.createSession(headers, {
+      userId: String(profile.id),
+      email: profile.email,
+    })
+    headers.set('location', '/')
+    return new Response(null, { status: 302, headers })
+  })
+  .build()
+```
+
+`handleCallback` accepts the Web `Request` a TheoKit route hands you as well as Node's
+`IncomingMessage`, and `sessions` is a `createSessionManagerWeb(...)` from
+`theokit/server/auth` — it writes the session cookie into a `Headers` you own, so the whole
+flow stays on Web shapes. `defineAuth`'s orchestrator is the other way in and is
+Node-shaped, so it needs a Node server rather than a route.
+
 ## GitHub OAuth App setup
 
 1. Open [GitHub Settings → Developer settings → OAuth Apps → New OAuth App](https://github.com/settings/developers).

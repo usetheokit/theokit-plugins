@@ -27,6 +27,13 @@ import { reducer, type CanvasState } from './canvas-reducer-handlers.js'
 
 // ───── Public hook surface ─────
 
+/**
+ * Options for {@link useCanvas}.
+ *
+ * `endpoint` is optional and its absence is a mode, not a defect: without it `publish()` updates
+ * local state only, which is what a preview-only or ephemeral canvas wants. `csrfHeader` defaults to
+ * TheoKit's strict-mode pair and takes `null` to opt out explicitly rather than by omission.
+ */
 export interface UseCanvasOptions {
   /**
    * Endpoint that accepts `POST` of `{ artifact }` and returns the
@@ -49,6 +56,13 @@ export interface UseCanvasOptions {
   initialArtifacts?: readonly Artifact[]
 }
 
+/**
+ * What {@link useCanvas} returns: the artifact on screen, its versions, the session history, panel
+ * open state, and the last error.
+ *
+ * `error` is a value rather than a thrown exception because a failed publish is an ordinary thing
+ * for a UI to display, and throwing it would take down the surrounding component tree.
+ */
 export interface UseCanvasState {
   /** The currently displayed artifact (latest version selected). */
   current: Artifact | null
@@ -73,6 +87,12 @@ export interface UseCanvasState {
 
 const DEFAULT_CSRF_HEADER = { name: 'X-Theo-Action', value: '1' }
 
+/**
+ * Drive a canvas from React: hold the artifact history, publish new ones, select versions.
+ *
+ * Versioning is the server's decision — `publish()` sends the artifact and adopts the persisted,
+ * server-versioned copy, so two clients publishing at once cannot both believe they wrote version 3.
+ */
 export function useCanvas(options: UseCanvasOptions = {}): UseCanvasState {
   const { endpoint, autoOpen = true, fetchImpl, initialArtifacts } = options
   // Headers: `undefined` → use default; `null` → disabled; object → pass-through.

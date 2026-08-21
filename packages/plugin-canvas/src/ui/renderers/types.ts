@@ -18,6 +18,12 @@ export type ArtifactRendererComponent<K extends ArtifactKind = ArtifactKind> = (
   props: ArtifactRendererProps<K>,
 ) => React.ReactElement | null
 
+/**
+ * Per-kind renderer overrides — a partial map, so an app replaces only the kinds it cares about.
+ *
+ * The component type is indexed by kind, so a renderer registered under `'code'` receives a code
+ * artifact and cannot be handed a whiteboard scene by mistake.
+ */
 export type ArtifactRendererRegistry = {
   [K in ArtifactKind]?: ArtifactRendererComponent<K>
 }

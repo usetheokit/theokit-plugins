@@ -2,6 +2,12 @@ import { Button } from '@usetheo/ui'
 
 import type { Artifact } from '../schema.js'
 
+/**
+ * Props for the version rail.
+ *
+ * `versions` must arrive already sorted ascending: the rail deliberately does not sort, because
+ * re-sorting on every render would make scroll position jump as new versions land.
+ */
 export interface ArtifactVersionRailProps {
   /**
    * All versions of the artifact ordered ascending by `version`. The

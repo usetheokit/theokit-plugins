@@ -4,6 +4,12 @@ import type { Artifact } from '../schema.js'
 import { DEFAULT_RENDERERS } from './renderers/index.js'
 import type { ArtifactRendererComponent, ArtifactRendererRegistry } from './renderers/types.js'
 
+/**
+ * Props for `<ArtifactRenderer>`: the artifact, plus an optional per-kind override map.
+ *
+ * Unspecified kinds fall back to the default renderer, so an override map only has to name what it
+ * actually replaces.
+ */
 export interface ArtifactRendererProps {
   artifact: Artifact
   /**

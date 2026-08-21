@@ -91,6 +91,14 @@ export default function voicePlugin(options: VoiceOptions = {}): TheoPlugin {
 // Re-exported helper signatures for runtime parity with the prior API.
 // The route shim per endpoint is the canonical wire-up; these stay so
 // existing imports don't break during the 0.4.0 → 0.5.0 migration.
+/**
+ * Kept for import compatibility across the 0.4.0 → 0.5.0 migration, and deliberately empty.
+ *
+ * There are no plugin-level runtime knobs: timeouts, fetch seams and abort signals belong to each
+ * `handleXxxRequest` call, where the request they govern actually is.
+ *
+ * @deprecated Nothing consumes this. Pass options at the handler call site instead.
+ */
 export interface VoicePluginRuntimeOptions {
   // No runtime knobs at the plugin level — handler-level options live
   // next to each `handleXxxRequest` call site.

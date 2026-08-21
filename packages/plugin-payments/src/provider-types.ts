@@ -54,6 +54,13 @@ export interface CheckoutItem {
  */
 export type CheckoutMode = 'payment' | 'subscription'
 
+/**
+ * What every provider needs to open a checkout, in provider-neutral terms.
+ *
+ * `mode` is not a hint: providers reject a mismatch between it and the referenced price rather than
+ * reinterpreting it, so a recurring price in `'payment'` mode fails loudly at the gateway instead of
+ * quietly charging once.
+ */
 export interface CheckoutInput {
   readonly items: readonly CheckoutItem[]
   /**
@@ -80,6 +87,13 @@ export interface CheckoutInput {
   readonly metadata?: Readonly<Record<string, string>>
 }
 
+/**
+ * A successfully opened checkout.
+ *
+ * `id` is what correlates the later webhook back to this session, and `provider` is what lets a
+ * multi-provider app route that webhook to the right verifier. `raw` carries the untouched provider
+ * response so nothing this contract omits is lost.
+ */
 export interface CheckoutResult {
   /** Provider-assigned id, for correlating the later webhook. */
   readonly id: string
@@ -107,6 +121,12 @@ export type PaymentEventType =
   | 'payment.failed'
   | 'unknown'
 
+/**
+ * One inbound provider event, normalised.
+ *
+ * `id` is the provider's event id and is what a consumer deduplicates on — gateways retry delivery,
+ * so the same event arriving twice is expected operation, not a fault.
+ */
 export interface PaymentEvent {
   readonly type: PaymentEventType
   /** Provider event id, for consumer-side deduplication. */
@@ -134,6 +154,12 @@ export type PaymentStatus =
   | 'failed'
   | 'unknown'
 
+/**
+ * A checkout read back from the provider, for polling or reconciliation.
+ *
+ * Amounts are optional because not every provider reports them on every status, and absent is not
+ * zero: `amountRefundedInCents` undefined means "not reported", while `0` means "nothing refunded".
+ */
 export interface CheckoutStatus {
   readonly id: string
   readonly status: PaymentStatus
@@ -168,11 +194,24 @@ export interface RefundInput {
   readonly idempotencyKey?: string
 }
 
+/**
+ * A refund for less than the full amount.
+ *
+ * Separate from `RefundInput` because not every provider supports it; reach it through the
+ * `supportsPartialRefund` guard rather than assuming, so an unsupported provider fails at the type
+ * level instead of at the gateway.
+ */
 export interface PartialRefundInput extends RefundInput {
   /** Smallest currency unit. Must be at most what remains refundable. */
   readonly amountInCents: number
 }
 
+/**
+ * A refund the provider accepted.
+ *
+ * `amountInCents` is optional because some providers acknowledge without echoing the amount;
+ * treating its absence as zero would misreport a refund that did happen.
+ */
 export interface RefundResult {
   readonly id: string
   readonly provider: string
@@ -240,6 +279,13 @@ export interface PixChargeInput {
   readonly metadata?: Readonly<Record<string, string>>
 }
 
+/**
+ * A PIX charge, as the Brazilian instant-payment scheme expects it to be presented.
+ *
+ * Both encodings of the same code are returned: `brCode` for a copy-and-paste field, and
+ * `brCodeBase64` so a UI can show the QR without pulling in a QR library. PIX is reachable only
+ * through the `supportsPix` capability guard — most providers do not serve it.
+ */
 export interface PixChargeResult {
   readonly id: string
   /** Copy-and-paste PIX payload (BR Code / EMV). */

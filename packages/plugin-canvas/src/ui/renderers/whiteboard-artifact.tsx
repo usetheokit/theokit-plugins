@@ -28,6 +28,12 @@ const Whiteboard = lazy(async () => {
   return { default: mod.Whiteboard }
 })
 
+/**
+ * Default renderer for whiteboard-scene artifacts, wrapping the `<Whiteboard>` primitive.
+ *
+ * The scene is agent-produced data, so it is rendered read-only: this shows a scene, it is not an
+ * editing surface.
+ */
 export function WhiteboardArtifact({ artifact }: ArtifactRendererProps<'whiteboard-scene'>) {
   return (
     <div data-testid="whiteboard-artifact" className="grid h-full min-h-[300px] p-3">

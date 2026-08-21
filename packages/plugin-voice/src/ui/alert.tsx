@@ -17,8 +17,16 @@
 import type { ReactNode } from 'react'
 import { AlertIcon } from './icons.js'
 
+/**
+ * Why voice failed, in the terms a user can act on.
+ *
+ * The split is by remedy, not by error class: `'auth'` means grant permission, `'device'` means no
+ * usable microphone, `'upstream'` means retry later. `'generic'` is the honest fallback rather than
+ * guessing wrong and telling someone to fix the wrong thing.
+ */
 export type AlertKind = 'auth' | 'device' | 'upstream' | 'generic'
 
+/** Props for `<VoiceAlert>`. `kind` selects the standing explanation; `title` is the specific one. */
 export interface VoiceAlertProps {
   kind: AlertKind
   title: string
@@ -33,6 +41,12 @@ const KIND_LABEL: Record<AlertKind, string> = {
   generic: 'Voice error',
 }
 
+/**
+ * Render a voice failure the user can act on.
+ *
+ * Carries `role="alert"` and `aria-live="polite"`, so a failure in a flow the user is driving by
+ * voice is announced rather than only shown — the one case where the person may not be looking.
+ */
 export function VoiceAlert({ kind, title, children, className }: VoiceAlertProps) {
   return (
     <div

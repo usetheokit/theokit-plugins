@@ -22,6 +22,12 @@ const SlideDeck = lazy(async () => {
   return { default: mod.SlideDeck }
 })
 
+/**
+ * Default renderer for slide-deck artifacts.
+ *
+ * Presents the deck inline with per-slide navigation rather than opening a viewer, so a deck stays
+ * readable next to the conversation that produced it.
+ */
 export function SlideDeckArtifact({ artifact }: ArtifactRendererProps<'slide-deck'>) {
   return (
     <div data-testid="slide-deck-artifact" className="grid h-full min-h-[400px] p-3">

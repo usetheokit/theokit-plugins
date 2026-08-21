@@ -8,6 +8,12 @@ import {
   extractArtifactCandidates,
 } from './extract-artifacts.js'
 
+/**
+ * Props for `<OpenInCanvasButton>`, the control that turns part of a chat message into an artifact.
+ *
+ * It takes the raw message text and extracts candidates itself; `onPublish` receives the artifact
+ * the user picked, and persisting it stays the application's decision.
+ */
 export interface OpenInCanvasButtonProps {
   /** Raw text of the chat message to extract from. */
   messageContent: string

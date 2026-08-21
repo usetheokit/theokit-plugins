@@ -38,28 +38,55 @@ export const auth = defineAuth({
 
 Wire into your routes:
 
+> **Two ways in, and they differ by request shape.** `defineAuth`'s orchestrator
+> (`startSignIn` / `finishSignIn`) takes Node's `IncomingMessage` / `ServerResponse`, so it
+> needs a Node server. The provider itself also accepts a Web `Request`, which is what
+> TheoKit's `route()` handler hands you — so inside TheoKit you drive the provider directly
+> and own the session, as below.
+
 ```ts
 // server/routes/api/auth/google/start.ts
-import { defineRoute } from 'theokit/server'
-import { auth } from '../../../auth/index.js'
+import { generateOAuthState, generatePkceChallenge } from 'theokit/server/auth'
+import { route } from 'theokit/server'
+import { provider, saveTransaction } from '../../../auth/index.js'
 
-export const GET = defineRoute({
-  handler: async ({ req }) => {
-    return auth.startSignIn('google', req)
-  },
-})
-
-// server/routes/api/auth/google/callback.ts
-import { defineRoute } from 'theokit/server'
-import { auth } from '../../../auth/index.js'
-
-export const GET = defineRoute({
-  handler: async ({ req, res }) => {
-    const { session, returnTo } = await auth.finishSignIn('google', req, res)
-    return Response.redirect(returnTo ?? '/', 302)
-  },
-})
+export const GET = route()
+  .handler(async () => {
+    const pkce = await generatePkceChallenge()
+    const tx = {
+      state: generateOAuthState(),
+      pkceVerifier: pkce.codeVerifier,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 600_000,
+    }
+    const headers = new Headers()
+    saveTransaction(headers, tx) // your cookie; it must survive the round-trip
+    headers.set('location', (await provider.createAuthorizationURL(tx)).href)
+    return new Response(null, { status: 302, headers })
+  })
+  .build()
 ```
+
+```ts
+// server/routes/api/auth/google/callback.ts
+import { route } from 'theokit/server'
+import { provider, sessions, loadTransaction } from '../../../auth/index.js'
+
+export const GET = route()
+  .handler(async ({ request }) => {
+    const { profile } = await provider.handleCallback(request, loadTransaction(request))
+    const headers = new Headers()
+    await sessions.createSession(headers, { userId: profile.sub, email: profile.email })
+    headers.set('location', '/')
+    return new Response(null, { status: 302, headers })
+  })
+  .build()
+```
+
+`sessions` is a `createSessionManagerWeb(...)` from `theokit/server/auth` — it writes the
+session cookie into a `Headers` you own, which is what lets the whole flow stay on the Web
+shapes TheoKit gives you. The transaction (state + PKCE verifier) is yours to carry across
+the redirect; `handleCallback` rejects a callback whose `state` does not match it.
 
 ## Google Cloud Console setup
 

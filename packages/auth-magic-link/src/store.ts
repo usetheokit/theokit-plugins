@@ -30,6 +30,13 @@ function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex')
 }
 
+/**
+ * In-process token store, for development and tests.
+ *
+ * State lives in a `Map`, so it is lost on restart and is not shared between processes: a
+ * multi-instance deployment would issue a link on one node that another cannot consume. Use
+ * {@link createOrmStore} for anything that outlives a single process.
+ */
 export function createMemoryStore(): MagicLinkStore {
   // Keyed by sha256(token) — the raw token is never stored (#191).
   const tokens = new Map<string, MemoryEntry>()
@@ -92,6 +99,14 @@ export interface MagicLinkRepository {
   deleteExpired(now: Date): Promise<number>
 }
 
+/**
+ * Persistent token store backed by a repository the consumer supplies.
+ *
+ * Single-use is enforced by the repository's atomic consume, not by a read-then-write here, because
+ * the two concurrent clicks that must resolve to one winner are a race a check-then-act cannot win.
+ * Tokens are hashed before they reach the repository, so a database or log leak exposes digests
+ * rather than live credentials.
+ */
 export function createOrmStore(repo: MagicLinkRepository): MagicLinkStore {
   // Tokens are hashed before they reach the repository (#191) — the persisted
   // `token` column holds sha256(token), never the raw credential. Lookups hash

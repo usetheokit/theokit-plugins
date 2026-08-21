@@ -26,94 +26,67 @@ pnpm add @theokit/plugin-canvas @usetheo/ui @theokit/ui
 
 ## Quick start
 
-### 1. Register the agent tool
+### 1. Publish artifacts from an agent tool
 
 ```ts
-// server/routes/chat.ts
-import {
-  defineAgentEndpoint,
-  defineAgentTool,
-  streamAgentRun,
-  createConversationHistory,
-} from 'theokit/server'
-import { defineArtifactTool, createArtifactBus } from '@theokit/plugin-canvas'
-import { createSqliteArtifactStore } from '@theokit/plugin-canvas'
+// agents/chat.ts — the tool your agent calls to put something on the canvas
+import { defineArtifactTool, createSqliteArtifactStore } from '@theokit/plugin-canvas'
+import { createArtifactBus } from '@theokit/plugin-canvas/server'
+import { tool } from 'theokit/server'
 
 // Module-scope singletons — see "Server-side artifact bus" below
 const store = createSqliteArtifactStore({ db: yourSqliteDb })
 const bus = createArtifactBus()
 
-const publishArtifact = (convId: string) => {
+export const publishArtifact = (conversationId: string) => {
   const cfg = defineArtifactTool({
     onPublish: async (artifact) => {
       const stored = await store.insert(artifact)
-      bus.emit(convId, stored)
+      bus.emit(conversationId, stored)
       return stored
     },
   })
-  return defineAgentTool({
-    name: cfg.name,
-    description: cfg.description,
-    inputSchema: cfg.inputSchema,
-    handler: async (input) => JSON.stringify(await cfg.handler(input)),
-  })
+  return tool(cfg.name)
+    .describe(cfg.description)
+    .input(cfg.inputSchema)
+    .execute(async (input) => JSON.stringify(await cfg.handler(input)))
+    .build()
 }
-
-export const POST = defineAgentEndpoint({
-  async *handler({ body, request, cookieHeaders, signal }) {
-    const { message } = body as { message: string }
-    const { agent, conversationId } = await createConversationHistory({
-      request,
-      response: { headers: cookieHeaders },
-      options: { model: { id: 'openai/gpt-4o-mini' }, tools: [publishArtifact('')] },
-    })
-
-    // Subscribe BEFORE agent.send to avoid race
-    const queue: AgentEvent[] = []
-    const unsub = bus.subscribe(conversationId, (artifact) => {
-      queue.push({ type: 'tool_result', name: 'publish_artifact', data: { artifact } })
-    })
-
-    const run = await agent.send(message, { signal })
-    try {
-      for await (const event of streamAgentRun(run)) {
-        while (queue.length) yield queue.shift()!
-        yield event
-      }
-    } finally {
-      unsub()
-    }
-  },
-})
 ```
+
+`defineArtifactTool` gives you the validated name, description, schema and handler;
+`tool()` is TheoKit's builder that turns them into something an agent can call. The
+validation runs before `onPublish`, so a model that invents an artifact shape gets a
+tool error it can recover from instead of writing a malformed row.
+
+TheoKit serves the agent itself — an agent under `agentsDir` (default `agents/`) is
+discovered and exposed at `/api/agents/<name>`, which is what the panel binds to below.
+This package does not mount a route: a plugin cannot register one.
 
 ### 2. Mount the panel
 
 ```tsx
 // app/page.tsx
 import { CanvasPanel, useCanvas, type Artifact } from '@theokit/plugin-canvas/ui'
-import { useAgentStream } from 'theokit/client'
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
+import { useAgent } from 'theokit/client'
 
 export default function Page() {
-  const { events } = useAgentStream<{ message: string }>('/api/chat')
+  const agent = useAgent<{ message: string }>('/api/agents/chat')
   const canvas = useCanvas({ endpoint: '/api/canvas/artifacts' })
 
-  const seen = useRef(0)
+  // Artifacts arrive on the SSE stream your app feeds from `bus.subscribe` — see
+  // "Server-side artifact bus" below. The panel does not poll and does not read the
+  // agent stream; it shows whatever you hand `canvas.show`.
   useEffect(() => {
-    for (let i = seen.current; i < events.length; i++) {
-      const ev = events[i]
-      if (ev?.type === 'tool_result' && ev.name === 'publish_artifact') {
-        const artifact = (ev.data as { artifact?: Artifact })?.artifact
-        if (artifact) canvas.show(artifact)
-      }
-    }
-    seen.current = events.length
-  }, [events, canvas])
+    const source = new EventSource('/api/canvas/stream')
+    source.onmessage = (event) => canvas.show(JSON.parse(event.data) as Artifact)
+    return () => source.close()
+  }, [canvas])
 
   return (
     <>
-      {/* … your chat UI … */}
+      {/* … your chat UI, driven by agent.thread / agent.send … */}
       {canvas.open && (
         <div className="fixed inset-y-0 right-0 w-[40vw]">
           <CanvasPanel

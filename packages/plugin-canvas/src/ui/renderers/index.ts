@@ -28,6 +28,12 @@ import { WhiteboardArtifact } from './whiteboard-artifact.js'
 
 import type { ArtifactRendererRegistry } from './types.js'
 
+/**
+ * The renderer used for each kind when an app supplies no override.
+ *
+ * Typed `Required<…>`, so adding a kind to {@link ArtifactKind} without a renderer here fails to
+ * compile rather than falling through to a JSON dump at runtime.
+ */
 export const DEFAULT_RENDERERS: Required<ArtifactRendererRegistry> = {
   markdown: MarkdownArtifact,
   code: CodeArtifact,

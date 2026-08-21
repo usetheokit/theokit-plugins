@@ -8,10 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `@theokit/auth-github`, `@theokit/auth-google` and `@theokit/auth-magic-link` accept a Web `Request` wherever they accepted Node's `IncomingMessage`, so the three of them can be wired into a TheoKit route for the first time. The session is created with `createSessionManagerWeb` from `theokit/server/auth`, keeping the whole flow on Web shapes; the Node-shaped `defineAuth` orchestrator is unchanged (#68)
+
+- Three documentation gates run on every pull request (`pnpm quality:docs`): `check-doc-api-drift.mjs` compiles every `import { … }` in the versioned Markdown and asks the compiler whether the names exist; `check-orphan-docblocks.mjs` finds docblocks stranded above another docblock; `check-doc-coverage.mjs` measures how much of the published surface an editor can actually show, read from the emitted `.d.ts` rather than from source, with a ratchet floor (#67)
 - `@theokit/plugin-copilot` is now a real TheoKit plugin: `copilot()` returns something `theo.config.ts` accepts, publishing read-only spend and copilot data on `ctx.copilot` (#62)
 
 ### Changed
 
+- The framework usage examples in eight READMEs and `CONTRIBUTING.md` are written against the API `theokit@0.48` actually exports, and each one was verified by compiling it. `defineConfig`/`defineTheoConfig` → `config().set({…}).build()`, `definePlugin` → `plugin(name)…build()`, `defineAction` → `action().input(schema).handler(fn).build()`, `defineAgentTool` → `tool(name)…build()`, `useAgentStream` → `useAgent`. Ten documented names existed in none of that version's 24 export subpaths (#67)
+- `@theokit/auth-google` and `@theokit/auth-magic-link` document the HTTP wiring on a Node server, which is the only shape that compiles: the auth orchestrator takes `IncomingMessage`/`ServerResponse` and TheoKit's route handler hands a Web `Request` (#68)
+- Every published export of the plugin packages now carries documentation an editor can show; measured coverage went from 63.4% to 100% (356 of 356), and `@theokit/auth-github` and `@theokit/auth-google` went from showing nothing at all (#67)
+- `@theokit/plugin-canvas` README no longer tells the reader to import `createArtifactBus` from the package root — it is exported from `@theokit/plugin-canvas/server`, so the documented example did not compile (#67)
+- `@theokit/plugin-payments` "Migrating from 0.2.x" no longer moves `payments` to the `/stripe` subpath, which does not export it. The prose two lines above already said only Stripe exports moved; the example contradicted it (#67)
 - **BREAKING** `@theokit/plugin-copilot` spend limits are enforced by the SDK's budget engine instead of a local tracker. `monthlyUsd` is now a rolling 30-day window rather than a calendar month; `perRoom.limits` accepts the SDK's own windows (`1h`/`1d`/`1w`/`30d`/`365d`) where the exact boundary matters (#62)
 - `@theokit/plugin-copilot` reports in-flight spend separately from committed spend in `getUsage`, so a meter can tell money promised from money charged (#62)
 

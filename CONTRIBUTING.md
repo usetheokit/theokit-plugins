@@ -90,19 +90,16 @@ Minimum `package.json`:
 Minimum `src/index.ts`:
 
 ```ts
-import { definePlugin, type TheoPlugin } from 'theokit/server'
+import { plugin, type TheoPlugin } from 'theokit/server'
 
 export interface MyPluginOptions {
   // user-facing options
 }
 
 export default function myPlugin(options: MyPluginOptions = {}): TheoPlugin {
-  return definePlugin({
-    name: '@theokit/plugin-<name>',
-    register(app) {
-      // app.addHook(...) / app.decorateRequest(...)
-    },
-  })
+  // `plugin(name)` synthesises `register(app)` from the hooks and decorations you
+  // chain — you never write the imperative body.
+  return plugin('@theokit/plugin-<name>').decorateRequest('myPlugin', options).build()
 }
 ```
 

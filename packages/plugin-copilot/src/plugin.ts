@@ -53,6 +53,11 @@ export interface CopilotRequestSurface {
 export const COPILOT_DECORATION_KEY = 'copilot'
 
 /**
+ * The plugin {@link copilot} returns.
+ *
+ * `runtime` is exposed rather than kept private because copilot work outlives the request that
+ * started it: a caller needs the same runtime to observe or stop a run it did not begin.
+ *
  * @public
  */
 export interface CopilotPlugin extends TheoPlugin {

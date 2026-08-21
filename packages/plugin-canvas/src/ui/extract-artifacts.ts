@@ -31,6 +31,12 @@ export interface ExtractContext {
   sessionId?: string
 }
 
+/**
+ * Something in a chat message that could become an artifact, before the user says so.
+ *
+ * `build` is a closure rather than a materialised artifact so a message with many code fences can be
+ * enumerated for the picker without constructing an envelope for each one.
+ */
 export interface ArtifactCandidate {
   /** Stable per-message + per-snippet — usable as React key. */
   id: string
@@ -44,6 +50,12 @@ export interface ArtifactCandidate {
   build: () => Artifact
 }
 
+/**
+ * Find the publishable fragments in a chat message — fenced code, diagrams, diffs.
+ *
+ * Ids are derived from the message id and the snippet's position, so re-rendering the same message
+ * yields the same candidate ids and React keys stay stable.
+ */
 export function extractArtifactCandidates(body: string, ctx: ExtractContext): ArtifactCandidate[] {
   const out: ArtifactCandidate[] = []
   const seenSpans: [number, number][] = []

@@ -34,18 +34,20 @@ pnpm add -D drizzle-kit
 
 ```ts
 import { drizzleDb } from '@theokit/plugin-db-drizzle'
-import { defineConfig } from 'theokit'
+import { config } from 'theokit'
 
-export default defineConfig({
-  plugins: [
-    drizzleDb({
-      driver: 'postgres',
-      url: process.env.DATABASE_URL,
-      schemaPath: './db/schema.ts',
-      migrationsPath: './db/migrations',
-    }),
-  ],
-})
+export default config()
+  .set({
+    plugins: [
+      drizzleDb({
+        driver: 'postgres',
+        url: process.env.DATABASE_URL,
+        schemaPath: './db/schema.ts',
+        migrationsPath: './db/migrations',
+      }),
+    ],
+  })
+  .build()
 ```
 
 ## Options reference

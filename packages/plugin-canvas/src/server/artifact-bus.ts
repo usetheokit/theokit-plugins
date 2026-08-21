@@ -20,8 +20,18 @@
 
 import type { Artifact } from '../schema.js'
 
+/** A subscriber to {@link ArtifactBus}. Called synchronously; must not assume it may block. */
 export type ArtifactBusHandler = (artifact: Artifact) => void
 
+/**
+ * In-process fan-out of published artifacts to whoever is watching a conversation.
+ *
+ * Delivery is synchronous and handler failures are isolated: a subscriber that throws is logged and
+ * skipped, so one bad listener cannot starve the rest of a live canvas.
+ *
+ * It is process-local. In a multi-instance deployment a subscriber on one node never sees an emit
+ * from another, which makes this correct for a single server and wrong for a fleet.
+ */
 export interface ArtifactBus {
   /**
    * Deliver `artifact` synchronously to every subscriber registered
@@ -41,6 +51,12 @@ export interface ArtifactBus {
   dispose(): void
 }
 
+/**
+ * Allocate an {@link ArtifactBus}.
+ *
+ * Call it once at module scope. Calling it per request creates a fresh, empty bus each time, so the
+ * emit and the subscription end up on different objects and nothing is ever delivered.
+ */
 export function createArtifactBus(): ArtifactBus {
   const subscribers = new Map<string, Set<ArtifactBusHandler>>()
 
