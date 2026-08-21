@@ -8,6 +8,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `Workflow Lint`, a CI gate running actionlint and zizmor over `.github/workflows/` (#74)
+- Every published package declares `engines.node`; none of the eleven did (#74)
+
+### Changed
+
+- **Breaking:** the minimum supported Node is 22.12.0, was 20.12.0. Node 20 reached end of life,
+  and CI had been running 22 all along — so the version tested was never the version declared (#74)
+- pnpm pinned to 10.34.1 across the repository, resolved from `packageManager` (#74)
+- The npm used by the publish step is pinned to an exact version rather than a range that could
+  drift into npm 12, which breaks the release path (#74)
+
+### Security
+
+- A `workflow_dispatch` input reached the shell as text spliced into a command line, in the step
+  holding every service credential. It is now passed as an environment variable (#74)
+- Every GitHub Action is pinned to a commit SHA rather than a movable tag (#74)
+
+### Added
+
 ### Changed
 
 - **Test runs no longer claim every core on the host.** None of the 11 package configs capped `maxWorkers`, so vitest's default applied — `os.availableParallelism()`, one fork per core, each booting a full test environment. This repo's `test` script fans out across packages, so that default is paid once per package *concurrently*: measured on a 12-thread machine, pnpm runs 6 packages at a time, which is 72 CPU-bound forks on 12 cores. The cap now leaves 4 cores free (`Math.max(2, cpus().length - 4)`), which scales with the runner instead of hard-coding one machine's core count. It costs no wall-clock — measured in `theokit-ui`, the full suite ran 73.96s at 4 workers against 74.36s at 12, so the parallelism above the cap was already noise. (usetheokit/theokit-ui#51)
