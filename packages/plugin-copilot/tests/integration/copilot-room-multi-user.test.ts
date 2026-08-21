@@ -19,6 +19,7 @@
  *   4. EC-4/EC-8: alice's own broadcast doesn't trigger HER own copilot's response.
  *   5. EC-4/EC-8: a frame from `copilot:other` does NOT loop back into this copilot.
  */
+import type { DeepPartial } from '@theokit/sdk'
 import { describe, expect, it } from 'vitest'
 import { defineCopilot } from '../../src/define-copilot.js'
 import { CopilotRuntime } from '../../src/internal/runtime.js'
@@ -110,8 +111,12 @@ function makeDeterministicAgent(text: string): CopilotAgentLike {
     async *streamObject<T>() {
       await Promise.resolve()
       // Two partial chunks + final complete — mirrors typical SDK streamObject shape.
-      yield { type: 'partial', partial: { text: text.slice(0, 5) } as unknown as T, attempt: 0 }
-      yield { type: 'partial', partial: { text } as unknown as T, attempt: 0 }
+      yield {
+        type: 'partial',
+        partial: { text: text.slice(0, 5) } as unknown as DeepPartial<T>,
+        attempt: 0,
+      }
+      yield { type: 'partial', partial: { text } as unknown as DeepPartial<T>, attempt: 0 }
       yield { type: 'complete', object: { text } as unknown as T }
     },
   }

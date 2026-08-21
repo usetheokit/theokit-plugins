@@ -62,6 +62,15 @@ export interface CopilotContextValue {
   readonly lastError?: { code?: string; message: string }
 }
 
+/**
+ * The React context carrying {@link CopilotContextValue} down the tree.
+ *
+ * Exported for the rare consumer that needs its own provider — a test harness driving a
+ * deterministic copilot, or an app nesting two independent ones. Reading it directly returns `null`
+ * outside a provider; prefer the hooks, which turn that into an error naming what is missing.
+ *
+ * @public
+ */
 export const CopilotContext = React.createContext<CopilotContextValue | null>(null)
 
 /** Helper — copilot connectionIds use a reserved prefix per ADR D2 / EC-8. */

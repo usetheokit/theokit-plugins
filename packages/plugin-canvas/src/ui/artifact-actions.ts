@@ -180,6 +180,12 @@ export function artifactToBlob(artifact: Artifact): Promise<Blob> {
   return Promise.resolve(new Blob([text], { type: mime }))
 }
 
+/**
+ * The filename to offer when downloading an artifact.
+ *
+ * Derived from title and kind, with an extension matching the kind so the file opens in the right
+ * application instead of arriving as an extensionless blob.
+ */
 export function filenameFor(artifact: Artifact): string {
   const slug = slugifyFilename(artifact.title)
   const ext = pickExtension(artifact)

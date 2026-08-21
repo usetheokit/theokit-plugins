@@ -23,6 +23,7 @@ import {
   CopilotTriggerError,
 } from '../types.js'
 import { BudgetBridge, type BudgetReservation } from './budget-bridge.js'
+import { settleCost } from './cost.js'
 import { ensureCanvasPeer } from './canvas-bridge.js'
 import { TriggerEvaluator } from './trigger-evaluator.js'
 import { ensureVoicePeer } from './voice-bridge.js'
@@ -203,8 +204,16 @@ export class CopilotRuntime {
     await reg.member.leave()
   }
 
-  /** Get usage stats for a copilot (theo-ui usage-meter integration). */
-  getUsage(copilotId: string): { dailyUsedUsd: number; monthlyUsedUsd: number } | undefined {
+  /**
+   * Usage stats for a copilot (theo-ui usage-meter integration).
+   *
+   * `inFlightUsd` is reported alongside committed spend rather than folded into it (#62):
+   * money promised and money spent are different facts, and a meter that adds them shows
+   * a number that is true of neither.
+   */
+  getUsage(
+    copilotId: string,
+  ): { dailyUsedUsd: number; monthlyUsedUsd: number; inFlightUsd: number } | undefined {
     const reg = this.registry.get(copilotId)
     if (reg === undefined) return undefined
     return reg.budget.getUsage(copilotId, reg.descriptor.room.id)
@@ -313,8 +322,15 @@ export class CopilotRuntime {
           : {}),
       })
       let chunkCount = 0
-      // #174: default to the estimate; if the provider reports actual cost on
-      // the complete event, reconcile to that instead (accurate accounting).
+      // #61/#62: settle at what the call really cost. This used to read
+      // `evt.usage?.costUsd`, a field no SDK event has ever carried, so the branch was
+      // unreachable and every invocation settled at the configured estimate — a ceiling
+      // on a self-triggering agent, checked against a number that never moved.
+      //
+      // `settleCost` prices the tokens the SDK does report, through the SDK's own
+      // `computeCost`. When the model has no pricing it returns `undefined`, and the
+      // estimate stands: charging zero for an unpriced call would make the ceiling
+      // infinite, which is worse than the bug being fixed.
       let actualCostUsd = this.estimatedCostPerInvocationUsd
       for await (const evt of iter) {
         if (evt.type === 'partial') {
@@ -322,14 +338,12 @@ export class CopilotRuntime {
           await reg.member.setTyping(true, Math.min(0.99, chunkCount * 0.1))
         } else if (evt.type === 'complete') {
           finalText = String(evt.object?.text ?? evt.object ?? '')
-          if (evt.usage?.costUsd !== undefined && Number.isFinite(evt.usage.costUsd)) {
-            actualCostUsd = evt.usage.costUsd
-          }
+          const settled = settleCost(evt.usage, reg.descriptor.agent.model)
+          if (settled.amountUsd !== undefined) actualCostUsd = settled.amountUsd
         }
       }
-      // Success: reconcile the reservation to the actual cost (#174), falling
-      // back to the estimate when the provider reported none.
-      reg.budget.reconcile(reservation, actualCostUsd)
+      // Success: drop the hold and charge the settled amount.
+      await reg.budget.reconcile(reservation, actualCostUsd)
       if (finalText.length > 0) {
         await reg.member.broadcastMessage(finalText, { triggeredBy: action })
         this.onResponse?.(reg.descriptor.id, reg.descriptor.room.id, finalText)

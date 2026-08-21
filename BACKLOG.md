@@ -37,9 +37,9 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-8 items — **Open** 6 · **In flight** 0 · **Closed** 2
+9 items — **Open** 7 · **In flight** 0 · **Closed** 2
 
-### Open (6)
+### Open (7)
 
 | Item                                                                                                | Title                                                                          | Status | Severity |
 | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------ | -------- |
@@ -48,7 +48,8 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-003`](#b-003--plugin-realtimes-integration-tests-never-open-a-websocket--)                      | `plugin-realtime`'s integration tests never open a WebSocket                   | `raw`  | —        |
 | [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain--)                   | No test asserts that a package belongs to exactly one domain                   | `raw`  | —        |
 | [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams--)                      | The `plugin-` prefix names four different integration seams                    | `raw`  | —        |
-| [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it----)         | The root `v*` tag convention is dead and the CHANGELOG still implies it        | `raw`  | —        |
+| [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it--)           | The root `v*` tag convention is dead and the CHANGELOG still implies it        | `raw`  | —        |
+| [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish--)                         | Nothing compiles the code examples our READMEs publish                         | `raw`  | —        |
 
 ### In flight (0)
 
@@ -88,6 +89,15 @@ dod:
 - the test fails when the export's shape stops matching, not only when a type annotation changes
 - a package that integrates through neither seam is exempt by an explicit declaration, not by
   silence
+
+partial_progress: 2026-08-20, closing #68 — `integration/tests/seam/auth-route-composition.offline.test.ts`
+now drives `auth-github` and `auth-magic-link` through a real `route()` config, invoking its handler
+the way `executeRoute` does and asserting a session cookie comes back. It is the shape this item
+asks for, for one domain and two of its three packages. Recorded as progress, NOT as closure: the
+remaining nine packages have no such test, `auth-google` is covered only at compile time, and the
+suite's measured blind spot is written into its own header — deleting the Web branch of the OAuth
+providers' URL parsing leaves it green, because those providers read nothing but `searchParams`.
+For them the guard is `pnpm typecheck`, which is a different mechanism than this item asks for.
 
 ## B-002 — The request-decoration namespace is global and has no convention [ ]
 
@@ -279,3 +289,33 @@ dod:
   versions that exist only in prose
 - if the root tag is revived, something fails when a release lands without it — the
   convention died silently precisely because nothing checked
+
+## B-009 — Nothing compiles the code examples our READMEs publish [ ]
+
+> Registered 2026-08-20 by `/backlog-item` (slug: `readme-examples-compile-gate`).
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: evolve
+source: human
+evidence: none-yet
+why_now: measured 2026-08-20 while closing #67 — ten names the READMEs told a reader to import
+existed in none of `theokit@0.48.8`'s 24 export subpaths, and eight READMEs shipped that way. The
+gate added in the same pass (`tools/check-doc-api-drift.mjs`) asks the compiler whether the imported
+NAMES resolve, and that is all it asks: it cannot see a wrong signature, a dropped option, or a
+method that moved. Both defects fixed under #67 that a careful reading would still have missed were
+found by compiling the block instead — `provider.startSignIn(req)` resolves to a `URL` rather than a
+string, and `payments` never moved to the `/stripe` subpath the migration guide pointed at. That
+verification happened once, by hand, in a scratch directory that no longer exists.
+status: raw
+dod:
+
+- a gate that compiles the `ts / `tsx blocks of the versioned Markdown, not just their import
+  statements, and fails when one does not
+- blocks that are deliberately partial (`yourSqliteDb`, `./session.js`, `… your chat UI …`) are
+  handled by a declared mechanism — a per-block marker, or supplied ambient declarations — never by
+  skipping the file, which is how a gate quietly stops covering the documents that need it most
+- the harness resolves each block where its reader stands, and reports a module it could not resolve
+  as a gap in the gate rather than as a defect in the documentation
+- it runs in `ci.yml` alongside `quality:docs`, and the run says how many blocks it compiled — a
+  number nobody can read is how the previous gate's blind spot stayed invisible

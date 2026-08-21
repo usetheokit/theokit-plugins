@@ -115,6 +115,23 @@ jobs:
       - name: Offline integration suites (credential-free, every PR)
         run: pnpm integration:offline
 
+      # The documentation gates. They live in this job because two of the three read the
+      # EMITTED declarations — `dist/**/*.d.ts` — and are therefore meaningless before the
+      # build step above. A docblock in `src/` is not documentation until it survives the
+      # rollup: `stripInternal` deletes a declaration outright when `@internal` appears in
+      # its leading comments, and the rollup relocates comments on its own. Measured here:
+      # the module header of `auth-github/src/index.ts` was re-anchored onto the exported
+      # `GitHubAuthError` class, where its `@theokit/...` first line was parsed as a tag and
+      # swallowed the whole block. Source-side, that package looked documented; the file a
+      # consumer installs had nothing.
+      #
+      # Order is deliberate. `doc-orphans` reads source only and is the cheapest, so it
+      # fails first and points at a line someone can edit. `doc-api` compiles a probe per
+      # documented import and is the slowest. Credential-free and network-free — a README
+      # that does not compile is ours, not a provider's bad afternoon.
+      - name: Documentation gates (drift, orphans, coverage)
+        run: pnpm quality:docs
+
   test:
     name: Unit tests
     runs-on: ubuntu-latest

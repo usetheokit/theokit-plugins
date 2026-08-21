@@ -117,6 +117,16 @@ function refundResult(refund: Stripe.Refund): RefundResult {
   }
 }
 
+/**
+ * Stripe as a provider-neutral {@link PaymentProvider}.
+ *
+ * The `client` is required rather than constructed from a key here, so the caller owns the Stripe
+ * instance and its configuration — API version above all, since pinning it is what keeps a gateway
+ * upgrade from silently changing response shapes.
+ *
+ * The return type states the capabilities Stripe actually has (partial refunds, subscriptions), so
+ * reaching for one the provider lacks fails at compile time rather than at the gateway.
+ */
 export function StripeProvider(
   opts: StripeProviderOptions,
 ): PartialRefundCapableProvider & SubscriptionCapableProvider {

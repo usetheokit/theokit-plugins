@@ -40,6 +40,13 @@ export interface ArtifactRouteHandlerOptions {
   onAfterInsert?: (artifact: Artifact) => void | Promise<void>
 }
 
+/**
+ * The five request handlers backing the artifact endpoints, returning web `Response` objects.
+ *
+ * They are handed back rather than mounted, because a plugin cannot register a route — `TheoApp`
+ * offers hooks and request decoration and nothing else (#42), so the application owns the mounting
+ * and therefore the paths, auth and rate limiting around them.
+ */
 export interface ArtifactRouteHandlers {
   list: (request: Request) => Promise<Response>
   create: (request: Request) => Promise<Response>
@@ -95,6 +102,12 @@ function isCanvasError(err: unknown): err is CanvasPluginError {
   return err instanceof CanvasPluginError
 }
 
+/**
+ * Build the artifact endpoints over a given {@link ArtifactStore}.
+ *
+ * Returns handlers for the application to mount; it registers nothing itself, so auth, rate limiting
+ * and the URL shape stay where the application can see them.
+ */
 export function createArtifactRouteHandlers(
   options: ArtifactRouteHandlerOptions,
 ): ArtifactRouteHandlers {

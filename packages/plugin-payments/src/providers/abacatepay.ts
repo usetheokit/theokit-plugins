@@ -89,8 +89,21 @@ const DEFAULT_BASE_URL = 'https://api.abacatepay.com/v2'
 export const ABACATEPAY_DOCUMENTED_PUBLIC_KEY =
   't9dXRhHHo3yDEj5pVDYz0frf7q6bMKyMRmxxCPIPp3RCplBfXRxqlC6ZpiWmOqj4L63qEaeUOtrCI8P0VMUgo6iIga2ri9ogaHFs0WIIywSMg0q7RmBfybe1E5XJcfC4IW3alNqym0tXoAKkzvfEjZxV6bE0oG2zJrNNYmUCKZyV0KZ3JS8Votf9EAWWYdiDkMkpbMdPggfh1EqHlVkMiTady6jOR3hyzGEHrIz2Ret0xHKMbiqkr9HS1JhNHDX9'
 
+/**
+ * The subset of `fetch` this provider uses.
+ *
+ * Narrowed to what is actually called so a test can supply a few lines instead of a full `fetch`
+ * implementation, and so the provider stays runtime-agnostic rather than binding to Node's copy.
+ */
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
 
+/**
+ * Options for {@link AbacatePayProvider}.
+ *
+ * `webhookSecret` is separate from `apiKey` and is not optional in practice: AbacatePay verifies
+ * inbound webhooks by appending the per-merchant secret as a `?webhookSecret=` query parameter, so
+ * without it no delivery can be authenticated and every event has to be treated as untrusted.
+ */
 export interface AbacatePayProviderOptions {
   /** API key, sent as `Authorization: Bearer …`. */
   readonly apiKey: string
@@ -213,6 +226,13 @@ interface PixData {
   readonly brCodeBase64?: string
 }
 
+/**
+ * AbacatePay as a provider-neutral {@link PaymentProvider}.
+ *
+ * The capability types it returns are the honest surface: PIX and subscriptions, and no partial
+ * refund. Reaching PIX goes through the `supportsPix` guard rather than a cast, which is what keeps
+ * a Brazilian-only payment path from compiling against a gateway that cannot serve it.
+ */
 export function AbacatePayProvider(
   opts: AbacatePayProviderOptions,
 ): PixCapableProvider & SubscriptionCapableProvider {

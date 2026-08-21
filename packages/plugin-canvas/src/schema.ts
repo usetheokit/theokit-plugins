@@ -60,6 +60,12 @@ export const artifactEnvelopeSchema = z.object({
   createdAt: isoDateOrEpoch.default(() => new Date().toISOString()),
 })
 
+/**
+ * The fields every artifact carries regardless of kind: identity, title, version, creation time.
+ *
+ * `id` plus `version` is the real key — artifacts are versioned rather than overwritten, so an agent
+ * revising its own output does not destroy what the user was looking at.
+ */
 export type ArtifactEnvelope = z.infer<typeof artifactEnvelopeSchema>
 
 // ───── Per-kind payload schemas ─────
@@ -145,6 +151,13 @@ const mermaidArtifactSchema = artifactEnvelopeSchema.extend({
 })
 
 const HTML_SANDBOX_MODES = ['minimal', 'scripts', 'forms'] as const
+/**
+ * How much an HTML artifact's iframe is allowed to do.
+ *
+ * `'minimal'` is the safe default. `'scripts'` and `'forms'` each widen the sandbox, and widening it
+ * is a decision about untrusted content an agent produced — the renderer refuses combinations that
+ * would let the frame escape, so an unexpected mode is rejected rather than downgraded.
+ */
 export type HtmlSandboxMode = (typeof HTML_SANDBOX_MODES)[number]
 
 const htmlArtifactSchema = artifactEnvelopeSchema.extend({
@@ -187,6 +200,14 @@ const imageUrlSchema = artifactEnvelopeSchema.extend({
 // dispatch is a `safeParse` fan-out across 10 variants, which is
 // negligible — agent emits at most a handful per turn.
 
+/**
+ * The artifact contract: a discriminated union over every kind this plugin renders.
+ *
+ * A union rather than one open shape, because each kind carries different fields and different size
+ * limits — validating `content` as "some string" would let a 10 MB whiteboard scene through the same
+ * gate as a one-line diff. Parsing an unknown value against this is what makes agent output safe to
+ * store and render.
+ */
 export const artifactSchema = z.union([
   markdownArtifactSchema,
   codeArtifactSchema,
@@ -200,9 +221,17 @@ export const artifactSchema = z.union([
   imageUrlSchema,
 ])
 
+/** One validated artifact — the inferred type of {@link artifactSchema}, never widened by hand. */
 export type Artifact = z.infer<typeof artifactSchema>
+/** The discriminant of {@link Artifact}: which renderer a given artifact needs. */
 export type ArtifactKind = Artifact['kind']
 
+/**
+ * Every {@link ArtifactKind} as a runtime value, for building menus and validating input.
+ *
+ * Typed as `readonly ArtifactKind[]`, so a kind added to the schema and forgotten here fails to
+ * compile instead of silently disappearing from whatever iterates it.
+ */
 export const ARTIFACT_KINDS: readonly ArtifactKind[] = [
   'markdown',
   'code',
@@ -217,11 +246,19 @@ export const ARTIFACT_KINDS: readonly ArtifactKind[] = [
 
 // ───── Validation helpers ─────
 
+/** Options for {@link validateArtifact}: whether a rejection throws or is returned as a result. */
 export interface ValidateOptions {
   /** When `true`, throw a `CanvasArtifactValidationError`. */
   throwOnError?: boolean
 }
 
+/**
+ * Parse an unknown value as an {@link Artifact}.
+ *
+ * Returns a result by default rather than throwing, because the common caller is handling
+ * agent-produced content where invalid is an expected outcome, not an exceptional one. Pass
+ * `throwOnError` at a boundary that should fail loudly instead.
+ */
 export function validateArtifact(
   input: unknown,
   opts: ValidateOptions = {},
@@ -244,6 +281,12 @@ export function validateArtifact(
   return { ok: false, error }
 }
 
+/**
+ * Type guard over {@link artifactSchema}.
+ *
+ * Discards the reason a value failed. When a caller needs to report what was wrong, use
+ * {@link validateArtifact}, which keeps the issues.
+ */
 export function isArtifact(input: unknown): input is Artifact {
   return artifactSchema.safeParse(input).success
 }

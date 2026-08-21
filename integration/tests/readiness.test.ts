@@ -41,8 +41,11 @@ function describeRow(spec: ServiceSpec, missing: readonly string[]): string[] {
  * credential, no provider and no registry entry, by design. Named explicitly
  * rather than allowed by a pattern, so the drift guard below stays strict: a
  * typo'd service directory still fails, which is the whole point of it.
+ *
+ * `seam/` is the same shape for a different boundary: it asserts that a package composes with the
+ * framework surface it claims to integrate through. No provider, no credential, no registry entry.
  */
-const CROSS_CUTTING_DIRS = new Set(['consumer'])
+const CROSS_CUTTING_DIRS = new Set(['consumer', 'seam'])
 
 async function testDirectories(): Promise<string[]> {
   const entries = await readdir(new URL('.', import.meta.url), { withFileTypes: true })

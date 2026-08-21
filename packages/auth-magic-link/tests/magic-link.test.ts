@@ -409,6 +409,23 @@ describe('magicLink() input hardening (T3.2 #204/#209/#205)', () => {
     await expect(provider.startSignIn(req)).rejects.toMatchObject({ code: 'invalid_email' })
   })
 
+  it('#204: the DoS cap holds on a Web Request too', async () => {
+    const provider = magicLink({
+      store: createMemoryStore(),
+      sendEmail: sendEmail(),
+      callbackBaseUrl: 'https://myapp.test',
+    })
+    // The Web path reads the stream chunk by chunk for exactly this reason: `Request.text()` would
+    // buffer the whole hostile payload before anyone could object.
+    const body = JSON.stringify({ email: 'u@x.co', pad: 'a'.repeat(20_000) })
+    const request = new Request('https://myapp.test/api/auth/magic-link/start', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+    })
+    await expect(provider.startSignIn(request)).rejects.toMatchObject({ code: 'invalid_email' })
+  })
+
   it('#209: propagates a stream/transport error instead of swallowing it to null', async () => {
     const provider = magicLink({
       store: createMemoryStore(),
@@ -495,5 +512,65 @@ describe('magic-link tokens are unbound bearer credentials (T3.1 #190 — cross-
       expiresAt: 0,
     })
     expect(result.profile.email).toBe('cross@device')
+  })
+})
+
+describe('magicLink() — accepts a Web Request', () => {
+  // This provider reads more of the request than the OAuth ones: the method, the content type and
+  // the BODY. On a Web `Request` none of those are reachable the Node way, which is what kept these
+  // packages out of a TheoKit route (#68).
+  it('resolves the email from a JSON body on a Web Request', async () => {
+    const { provider, sendEmail } = makeProvider()
+
+    const request = new Request('https://myapp.test/api/auth/magic-link/start', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: 'Web@Example.test' }),
+    })
+    await provider.startSignIn(request)
+
+    expect(sendEmail).toHaveBeenCalledOnce()
+    // Normalisation still applies: the address is lower-cased before the token is minted.
+    expect(sendEmail.mock.calls[0]![0].to).toBe('web@example.test')
+  })
+
+  it('resolves the email from a form-encoded body on a Web Request', async () => {
+    const { provider, sendEmail } = makeProvider()
+
+    const request = new Request('https://myapp.test/api/auth/magic-link/start', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: 'email=form%40example.test',
+    })
+    await provider.startSignIn(request)
+
+    expect(sendEmail.mock.calls[0]![0].to).toBe('form@example.test')
+  })
+
+  it('resolves the email from the query string on a Web Request', async () => {
+    const { provider, sendEmail } = makeProvider()
+
+    const request = new Request(
+      'https://myapp.test/api/auth/magic-link/start?email=qs@example.test',
+    )
+    await provider.startSignIn(request)
+
+    expect(sendEmail.mock.calls[0]![0].to).toBe('qs@example.test')
+  })
+
+  it('consumes a token from a Web Request on the callback', async () => {
+    const { provider, sendEmail } = makeProvider()
+    await provider.startSignIn(
+      new Request('https://myapp.test/api/auth/magic-link/start?email=round@example.test'),
+    )
+    const link = new URL(sendEmail.mock.calls[0]![0].magicLinkUrl)
+    const token = link.searchParams.get('token')
+
+    const result = await provider.handleCallback(
+      new Request(`https://myapp.test/api/auth/magic-link/callback?token=${token}`),
+      { state: '', createdAt: Date.now(), expiresAt: Date.now() + 600_000 },
+    )
+
+    expect(result.profile.email).toBe('round@example.test')
   })
 })

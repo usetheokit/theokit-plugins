@@ -7,6 +7,12 @@
  */
 import DOMPurify from 'isomorphic-dompurify'
 
+/**
+ * What the sanitiser actually removed, per threat class.
+ *
+ * Read from DOMPurify's own `removed` list rather than diffed from the output, so the verdict a
+ * security boundary acts on is exact rather than inferred. All-false means nothing was stripped.
+ */
 export interface SanitizeReport {
   removedScript: boolean
   removedIframe: boolean
@@ -40,13 +46,6 @@ interface RemovedEntry {
   attribute?: { name?: string; value?: string } | null
 }
 
-/**
- * Classify what DOMPurify actually removed, read from `DOMPurify.removed`
- * (T1.4 / ADR D2). This replaces the old input-vs-output regex diff, which was
- * lossy (#180) — DOMPurify reports the real removed elements and attributes, so
- * the security verdict the boundary relies on is exact, not inferred. The parser
- * wrapper element (`BODY`) is filtered out; node names are case-normalised.
- */
 /** #186: element nodeName → the SanitizeReport flag it sets (lookup, not if-chain). */
 const REMOVED_ELEMENT_FLAG: Record<string, keyof SanitizeReport> = {
   script: 'removedScript',
@@ -58,6 +57,13 @@ const REMOVED_ELEMENT_FLAG: Record<string, keyof SanitizeReport> = {
   meta: 'removedScript',
 }
 
+/**
+ * Classify what DOMPurify actually removed, read from `DOMPurify.removed`
+ * (T1.4 / ADR D2). This replaces the old input-vs-output regex diff, which was
+ * lossy (#180) — DOMPurify reports the real removed elements and attributes, so
+ * the security verdict the boundary relies on is exact, not inferred. The parser
+ * wrapper element (`BODY`) is filtered out; node names are case-normalised.
+ */
 function classifyRemoved(removed: readonly RemovedEntry[]): SanitizeReport {
   const report = createEmptyReport()
   for (const entry of removed) {
@@ -111,6 +117,12 @@ function svgAttributePolicy(
   }
 }
 
+/**
+ * Strip an SVG down to what is safe to inline.
+ *
+ * SVG is a document format, not an image format: it can carry `<script>`, event handlers and
+ * external references, so agent-produced SVG is untrusted markup and is treated as such.
+ */
 export function sanitizeSvg(input: string): SanitizeResult {
   // MUST remain SYNCHRONOUS: the singleton hook and the `DOMPurify.removed`
   // snapshot below are not re-entrancy-safe across `await`. DOMPurify.sanitize
@@ -148,6 +160,12 @@ export function sanitizeSvg(input: string): SanitizeResult {
   }
 }
 
+/**
+ * Strip HTML down to what is safe to hand an iframe's `srcdoc`.
+ *
+ * The sandbox attribute is the outer defence and this is the inner one; neither is sufficient alone,
+ * which is why the content is cleaned even though the frame is already sandboxed.
+ */
 export function sanitizeHtmlSrcdoc(input: string): SanitizeResult {
   // #F-arch-1/F-sec-1: derive the verdict from DOMPurify's reported removals
   // (mirroring sanitizeSvg / ADR D2) instead of an input/output regex that

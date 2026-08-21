@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.2.0
+
+### Minor Changes
+
+- 7adfdf7: These providers now accept a Web `Request` wherever they accepted Node's `IncomingMessage`, which is what makes them usable inside a TheoKit app at all.
+
+  The SDK's `AuthProvider` interface types the callback parameter as `IncomingMessage`, and TheoKit's `route()` handler hands a Web `Request` — the runtime converts before dispatch, so the Node objects never reach a handler. Wiring any of these into a TheoKit route did not compile, and nothing in the test suites covered that composition. `handleCallback` (all three) and `startSignIn` / the `resolveEmail` option (magic-link) now take `IncomingMessage | Request`, so the whole flow can stay on the Web shapes TheoKit gives you: drive the provider directly and create the session with `createSessionManagerWeb` from `theokit/server/auth`.
+
+  `@theokit/auth-magic-link` reads the request body, and the Web path reads it in capped chunks rather than through `Request.text()` — the 16 KB DoS cap that has always guarded the Node path now guards this one too.
+
+  The `defineAuth` orchestrator is unchanged and still Node-shaped; it is the other way in, for apps running their own Node server.
+
+### Patch Changes
+
+- 03b1b5d: Every published export now carries documentation an editor can show. Previously 63.4% of them did (230 of 363), and two packages showed nothing at all: `@theokit/auth-github` and `@theokit/auth-google` measured 0/4, because their module headers began with `@theokit/...`, which TypeScript parses as a tag name and swallows the whole block — text was written and no reader ever got it.
+
+  Seven docblocks were also stranded above another docblock, so they attached to nothing: the symbol they described shipped undocumented and the text shipped invisible. `defineCopilot`'s documentation, including its full usage example, was one of them.
+
+  Type shapes are unchanged. This is visible to consumers because documentation ships in the `.d.ts`.
+
+- bfa7409: The README examples now use the API `theokit@0.48` exports, and every one of them was verified by compiling it rather than by reading it. Ten names they told you to import — `defineConfig`, `defineRoute`, `definePlugin`, `defineAction`, `defineAgentTool`, `defineTheoConfig`, `defineAgentEndpoint`, `streamAgentRun`, `createConversationHistory`, `useAgentStream` — exist in none of that version's 24 export subpaths. Copying the first block of most of these READMEs produced code that did not compile.
+
+  The `auth-google` and `auth-magic-link` wiring examples changed shape rather than names: the auth orchestrator takes Node's `IncomingMessage`/`ServerResponse`, and no handler surface TheoKit exposes today hands you those, so the examples show a Node server and state the gap.
+
 ## 0.1.2
 
 ### Patch Changes

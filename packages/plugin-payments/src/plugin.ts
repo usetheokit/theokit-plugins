@@ -61,6 +61,13 @@ export interface PaymentsRequestSurface {
 /** The key `ctx.payments` is published under. Fixed, so a handler can rely on it. */
 export const PAYMENTS_DECORATION_KEY = 'payments'
 
+/**
+ * The plugin {@link payments} returns.
+ *
+ * `providers` is a map rather than a single provider because the choice is per-charge, not per-app:
+ * the same shop can take cards through Stripe and PIX through AbacatePay. `store` and `registry` are
+ * exposed so a handler can deduplicate and dispatch a webhook that arrived outside the usual path.
+ */
 export interface MultiProviderPaymentsPlugin extends TheoPlugin {
   readonly name: '@theokit/plugin-payments'
   readonly kind: 'payments'

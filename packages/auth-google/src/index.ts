@@ -1,17 +1,15 @@
-/**
- * @theokit/auth-google v0.1.0 — Google OAuth (OIDC) provider for defineAuth.
- *
- * Implements OIDC discovery + PKCE + authorization-code flow + userinfo fetch
- * per RFC 6749 (OAuth 2.0), RFC 7636 (PKCE), and OpenID Connect Core 1.0.
- *
- * Composes theokit/server/auth primitives — does NOT reinvent crypto.
- *
- * Per plan g11-auth-architecture-implementation T2.2 + ADR D9:
- *   - GoogleProfile.sub is OIDC subject — case-sensitive, never lowercased.
- *   - Per v1.1 EC-3: opts.oidcBaseUrl overrides default; in NODE_ENV=test
- *     MOCK_GOOGLE_OIDC_BASE_URL env var takes precedence over opts (sidecar
- *     OIDC mock unblock for Playwright tests). Production builds ignore env.
- */
+// @theokit/auth-google v0.1.0 — Google OAuth (OIDC) provider for defineAuth.
+//
+// Implements OIDC discovery + PKCE + authorization-code flow + userinfo fetch
+// per RFC 6749 (OAuth 2.0), RFC 7636 (PKCE), and OpenID Connect Core 1.0.
+//
+// Composes theokit/server/auth primitives — does NOT reinvent crypto.
+//
+// Per plan g11-auth-architecture-implementation T2.2 + ADR D9:
+// - GoogleProfile.sub is OIDC subject — case-sensitive, never lowercased.
+// - Per v1.1 EC-3: opts.oidcBaseUrl overrides default; in NODE_ENV=test
+// MOCK_GOOGLE_OIDC_BASE_URL env var takes precedence over opts (sidecar
+// OIDC mock unblock for Playwright tests). Production builds ignore env.
 
 import type { IncomingMessage } from 'node:http'
 import type { AuthProvider, AuthResult, OAuthTransaction } from '@theokit/sdk/server/auth'
@@ -23,6 +21,12 @@ export type { GoogleProfile, GoogleProviderOptions } from './types.js'
 const DEFAULT_GOOGLE_OIDC_BASE = 'https://accounts.google.com'
 const GOOGLE_SCOPES = 'openid profile email'
 
+/**
+ * Raised when the OIDC exchange completes but does not yield a usable identity.
+ *
+ * `code` names the failing step (`missing_pkce_verifier`, …) so callers branch on a value rather
+ * than on message text.
+ */
 export class GoogleAuthError extends Error {
   readonly code: string
   constructor(code: string, message: string) {
@@ -124,12 +128,56 @@ function resolveOidcBaseUrl(opts: GoogleProviderOptions): string {
   return base
 }
 
-function parseCallbackUrl(req: IncomingMessage): URL {
+/**
+ * True when the request is a Web `Request` rather than Node's `IncomingMessage`.
+ *
+ * Duck-typed on `headers.get` instead of `instanceof Request`: the global is absent on some
+ * runtimes and `instanceof` fails across realms, both of which would silently send a Web request
+ * down the Node path and produce a nonsense URL rather than an error.
+ */
+function isWebRequest(req: IncomingMessage | Request): req is Request {
+  return typeof (req as Request).headers?.get === 'function'
+}
+
+/**
+ * The callback URL, from either request shape.
+ *
+ * A Web `Request` already carries an absolute URL. `IncomingMessage` carries a path plus a `host`
+ * header, so an origin is synthesised — only the query string is read from the result, and the
+ * scheme is never used.
+ */
+function parseCallbackUrl(req: IncomingMessage | Request): URL {
+  if (isWebRequest(req)) return new URL(req.url)
   const host = req.headers.host ?? 'localhost'
   return new URL(`http://${host}${req.url ?? '/'}`)
 }
 
-export function google(opts: GoogleProviderOptions): AuthProvider<GoogleProfile, 'google'> {
+/**
+ * Google OAuth 2.0 / OIDC provider for `defineAuth`.
+ *
+ * Endpoints are discovered rather than hardcoded, and PKCE is mandatory: a transaction without a
+ * `pkceVerifier` is rejected instead of silently downgrading to the weaker `state`-only flow. The
+ * crypto primitives come from `theokit/server/auth`; nothing here reimplements them.
+ *
+ * `oidcBaseUrl` exists so a test can point discovery at a mock. The `MOCK_GOOGLE_OIDC_BASE_URL`
+ * environment variable overrides it, but only when `NODE_ENV === 'test'` — a production build
+ * ignores that variable entirely, so the escape hatch cannot be opened from the outside.
+ */
+export function google(opts: GoogleProviderOptions): Omit<
+  AuthProvider<GoogleProfile, 'google'>,
+  'handleCallback'
+> & {
+  /**
+   * Exchange the callback for a profile.
+   *
+   * Accepts a Web `Request` as well as Node's `IncomingMessage`: the SDK's `AuthProvider` types this
+   * parameter as the Node shape, and TheoKit's route handler hands the Web one (#68).
+   */
+  handleCallback(
+    req: IncomingMessage | Request,
+    tx: OAuthTransaction,
+  ): Promise<AuthResult<GoogleProfile, 'google'>>
+} {
   return {
     name: 'google',
 
@@ -160,7 +208,7 @@ export function google(opts: GoogleProviderOptions): AuthProvider<GoogleProfile,
     },
 
     async handleCallback(
-      req: IncomingMessage,
+      req: IncomingMessage | Request,
       tx: OAuthTransaction,
     ): Promise<AuthResult<GoogleProfile, 'google'>> {
       const url = parseCallbackUrl(req)

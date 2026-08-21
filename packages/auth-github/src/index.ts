@@ -1,19 +1,17 @@
-/**
- * @theokit/auth-github v0.1.0 — GitHub OAuth 2.0 provider for defineAuth.
- *
- * Per plan g11-auth-architecture-implementation T3.1 + Wasp blueprint Q1:
- *   - NO OIDC discovery — GitHub does not expose `.well-known/openid-configuration`.
- *     Endpoints are hardcoded (override via opts.* for GitHub Enterprise).
- *   - NO PKCE — GitHub OAuth 2.0 ignores PKCE params (RFC 7636 not implemented).
- *     CSRF defense via `state` only per RFC 6749 §10.12.
- *   - Conditional second fetch to /user/emails when scope includes `user:email`
- *     because GitHub's /user response returns `email: null` for users without a
- *     public email address (Wasp blueprint Q1 finding).
- *   - GitHubProfile.id is preserved as `number` (ADR D9 — Wasp incident lesson
- *     also applies: do not coerce types).
- *   - Userinfo `Authorization: token X` header (NOT `Bearer X`) per GitHub REST
- *     API docs.
- */
+// @theokit/auth-github v0.1.0 — GitHub OAuth 2.0 provider for defineAuth.
+//
+// Per plan g11-auth-architecture-implementation T3.1 + Wasp blueprint Q1:
+// - NO OIDC discovery — GitHub does not expose `.well-known/openid-configuration`.
+// Endpoints are hardcoded (override via opts.* for GitHub Enterprise).
+// - NO PKCE — GitHub OAuth 2.0 ignores PKCE params (RFC 7636 not implemented).
+// CSRF defense via `state` only per RFC 6749 §10.12.
+// - Conditional second fetch to /user/emails when scope includes `user:email`
+// because GitHub's /user response returns `email: null` for users without a
+// public email address (Wasp blueprint Q1 finding).
+// - GitHubProfile.id is preserved as `number` (ADR D9 — Wasp incident lesson
+// also applies: do not coerce types).
+// - Userinfo `Authorization: token X` header (NOT `Bearer X`) per GitHub REST
+// API docs.
 
 import type { IncomingMessage } from 'node:http'
 import type { AuthProvider, AuthResult, OAuthTransaction } from '@theokit/sdk/server/auth'
@@ -27,6 +25,13 @@ const DEFAULT_USERINFO = 'https://api.github.com/user'
 const DEFAULT_EMAILS = 'https://api.github.com/user/emails'
 const DEFAULT_SCOPES: readonly string[] = ['read:user', 'user:email']
 
+/**
+ * Raised when GitHub answers, but not with an identity this provider can return.
+ *
+ * `code` names which step failed (`missing_login`, `emails_fetch_failed`, …) so a caller can branch
+ * without matching on message text. It is deliberately distinct from a network failure: reaching
+ * this error means the exchange completed and the response was unusable.
+ */
 export class GitHubAuthError extends Error {
   readonly code: string
   constructor(code: string, message: string) {
@@ -48,7 +53,26 @@ interface EmailEntry {
   verified: boolean
 }
 
-function parseCallbackUrl(req: IncomingMessage): URL {
+/**
+ * True when the request is a Web `Request` rather than Node's `IncomingMessage`.
+ *
+ * Duck-typed on `headers.get` instead of `instanceof Request`: the global is absent on some
+ * runtimes and `instanceof` fails across realms, both of which would silently send a Web request
+ * down the Node path and produce a nonsense URL rather than an error.
+ */
+function isWebRequest(req: IncomingMessage | Request): req is Request {
+  return typeof (req as Request).headers?.get === 'function'
+}
+
+/**
+ * The callback URL, from either request shape.
+ *
+ * A Web `Request` already carries an absolute URL. `IncomingMessage` carries a path plus a `host`
+ * header, so an origin is synthesised — only the query string is read from the result, and the
+ * scheme is never used.
+ */
+function parseCallbackUrl(req: IncomingMessage | Request): URL {
+  if (isWebRequest(req)) return new URL(req.url)
   return new URL(`http://${req.headers.host ?? 'localhost'}${req.url ?? '/'}`)
 }
 
@@ -56,7 +80,32 @@ function resolveScopes(opts: GitHubProviderOptions): readonly string[] {
   return opts.scopes ?? DEFAULT_SCOPES
 }
 
-export function github(opts: GitHubProviderOptions): AuthProvider<GitHubProfile, 'github'> {
+/**
+ * GitHub OAuth 2.0 provider for `defineAuth`.
+ *
+ * There is no OIDC discovery and no PKCE here, and neither is an omission: GitHub publishes no
+ * `.well-known/openid-configuration`, and its OAuth 2.0 endpoint ignores PKCE parameters entirely
+ * (RFC 7636 is not implemented). CSRF defence therefore rests on `state` alone, per RFC 6749 §10.12.
+ *
+ * When the granted scopes include `user:email`, resolving the profile costs a second request to
+ * `/user/emails`, because `/user` reports `email: null` for a user without a public address. A
+ * failure of that second request throws rather than yielding a null-email identity.
+ */
+export function github(opts: GitHubProviderOptions): Omit<
+  AuthProvider<GitHubProfile, 'github'>,
+  'handleCallback'
+> & {
+  /**
+   * Exchange the callback for a profile.
+   *
+   * Accepts a Web `Request` as well as Node's `IncomingMessage`: the SDK's `AuthProvider` types this
+   * parameter as the Node shape, and TheoKit's route handler hands the Web one (#68).
+   */
+  handleCallback(
+    req: IncomingMessage | Request,
+    tx: OAuthTransaction,
+  ): Promise<AuthResult<GitHubProfile, 'github'>>
+} {
   const scopes = resolveScopes(opts)
   const wantsEmail = scopes.includes('user:email')
   const authorizeEndpoint = opts.authorizationEndpoint ?? DEFAULT_AUTHORIZE
@@ -79,7 +128,7 @@ export function github(opts: GitHubProviderOptions): AuthProvider<GitHubProfile,
     },
 
     async handleCallback(
-      req: IncomingMessage,
+      req: IncomingMessage | Request,
       tx: OAuthTransaction,
     ): Promise<AuthResult<GitHubProfile, 'github'>> {
       const url = parseCallbackUrl(req)

@@ -74,6 +74,12 @@ export function useTheoFieldScope(): UseTheoFieldResult {
   return ctx
 }
 
+/**
+ * Props for `<TheoField>`.
+ *
+ * `name` is the dot-notation path into the form schema (`"user.address.zip"`), not a display label:
+ * it is what binds the field to its value and to the server's per-field errors.
+ */
 export interface TheoFieldProps {
   /** Dot-notation full path matching the form schema (e.g. "user.address.zip"). */
   name: string
@@ -85,6 +91,16 @@ export interface TheoFieldProps {
   children: ReactNode
 }
 
+/**
+ * Scope one named field of the surrounding `<TheoForm>`.
+ *
+ * It renders no input of its own. It establishes the scope that `<FormField.Label>`,
+ * `<FormField.Control>`, `<FormField.Hint>` and `<FormField.Error>` read, so the label points at
+ * the right control and the error appears next to the field that produced it — wiring that is easy
+ * to get subtly wrong by hand and invisible when it is wrong to anyone not using a screen reader.
+ *
+ * @public
+ */
 export function TheoField<_TInput extends FieldValues = FieldValues>(
   props: TheoFieldProps,
 ): React.JSX.Element {
