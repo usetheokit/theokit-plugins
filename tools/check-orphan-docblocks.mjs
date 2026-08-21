@@ -14,6 +14,13 @@
 // lookahead fails right after the first `*/`, the engine extends the body to a LATER `*/` that
 // satisfies it, so every docblock matches every later docblock across whole declarations.
 //
+// WHAT THIS CANNOT SEE: an orphan that exists only in the EMIT. The declaration rollup re-anchors a
+// module header onto whichever export lands next, which is how `auth-github`'s header ended up above
+// its exported error class with an `@theokit/...` first line that TypeScript parsed as a tag and
+// swallowed. Nothing is wrong in the source, so nothing here can fire — and pointing at a line in
+// `dist/` that nobody can edit would not help anyway. `check-doc-coverage.mjs` catches the
+// consequence, because it reads the emit and reports the symbol as undocumented.
+//
 // A block at file offset 0 is a module header legitimately preceding the first symbol's docblock and
 // is excluded. A header that is NOT at offset 0 still reports, correctly: it is competing for
 // attachment, and the fix is to write it as a non-JSDoc comment so it stops competing.

@@ -270,11 +270,16 @@ const checked = claims.filter((claim) => !outOfScope.includes(claim) && !notChec
 const checkedNames = checked.reduce((total, claim) => total + claim.names.length, 0)
 
 if (outOfScope.length > 0) {
-  const specifiers = [...new Set(outOfScope.map((claim) => claim.specifier))].sort()
+  // Named per FILE, not per specifier. Whether a package resolves depends on where the reader of
+  // that document stands: `@theokit/orm` is linked in `plugin-db-drizzle` and absent in
+  // `auth-magic-link`, so a report keyed by specifier alone says "not installed" about something
+  // that is, and gives nobody a place to go and look.
   console.log(
-    `[${LABEL}] i ${outOfScope.length} import(s) of ${specifiers.length} package(s) this workspace does not install — out of scope:`,
+    `[${LABEL}] i ${outOfScope.length} import(s) not checked — that package is not installed where the document's reader stands:`,
   )
-  for (const specifier of specifiers) console.log(`      ${specifier}`)
+  for (const claim of outOfScope) {
+    console.log(`      ${claim.file}:${claim.line} — ${claim.specifier}`)
+  }
 }
 
 if (notChecked.length > 0) {
