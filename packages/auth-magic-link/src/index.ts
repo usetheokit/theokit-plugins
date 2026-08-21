@@ -70,27 +70,81 @@ function generateToken(): string {
   return randomBytes(TOKEN_BYTES).toString('base64url')
 }
 
-async function defaultResolveEmail(req: IncomingMessage): Promise<string | null> {
+/**
+ * True when the request is a Web `Request` rather than Node's `IncomingMessage`.
+ *
+ * Duck-typed on `headers.get` instead of `instanceof Request`: the global is absent on some
+ * runtimes and `instanceof` fails across realms, both of which would silently send a Web request
+ * down the Node path and read a body that is not there.
+ */
+function isWebRequest(req: IncomingMessage | Request): req is Request {
+  return typeof (req as Request).headers?.get === 'function'
+}
+
+/** The request URL, from either shape. Only the query string is read from the result. */
+function requestUrl(req: IncomingMessage | Request): URL {
+  if (isWebRequest(req)) return new URL(req.url)
+  return new URL(`http://${req.headers.host ?? 'localhost'}${req.url ?? '/'}`)
+}
+
+/**
+ * The body, capped at {@link MAX_BODY_BYTES}, or `null` when the cap is exceeded.
+ *
+ * #204: the cap is the point. `Request.text()` would be one line and would buffer a hostile payload
+ * in full before anyone could object, so the stream is read chunk by chunk and abandoned the moment
+ * it grows too large — the same guarantee the `IncomingMessage` path has always given.
+ *
+ * The read is deliberately OUTSIDE any try/catch (#209): a transport error must propagate, not be
+ * flattened into "no email in this request".
+ */
+async function readCappedBody(req: IncomingMessage | Request): Promise<string | null> {
+  if (isWebRequest(req)) {
+    const stream = req.body
+    if (stream === null) return ''
+    const reader = stream.getReader()
+    const chunks: Uint8Array[] = []
+    let total = 0
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      total += value.byteLength
+      if (total > MAX_BODY_BYTES) {
+        await reader.cancel()
+        return null
+      }
+      chunks.push(value)
+    }
+    return Buffer.concat(chunks).toString('utf8')
+  }
+
+  const chunks: Buffer[] = []
+  let total = 0
+  for await (const chunk of req as unknown as AsyncIterable<Buffer>) {
+    total += chunk.length
+    if (total > MAX_BODY_BYTES) return null // oversized → treated as invalid email
+    chunks.push(chunk)
+  }
+  return Buffer.concat(chunks).toString('utf8')
+}
+
+/** The `content-type` header, lower-cased, from either shape. */
+function contentType(req: IncomingMessage | Request): string {
+  const raw = isWebRequest(req)
+    ? (req.headers.get('content-type') ?? '')
+    : (req.headers['content-type'] ?? '')
+  return raw.toLowerCase()
+}
+
+async function defaultResolveEmail(req: IncomingMessage | Request): Promise<string | null> {
   // Try query string first
-  const url = new URL(`http://${req.headers.host ?? 'localhost'}${req.url ?? '/'}`)
-  const qs = url.searchParams.get('email')
+  const qs = requestUrl(req).searchParams.get('email')
   if (qs) return qs.toLowerCase().trim()
   // Fall back to form-data body. Buffer raw bytes (consumer may use middleware
   // that already parsed; that's the consumer's job — we only handle the bare case).
   if (req.method === 'POST' || req.method === 'PUT') {
-    // #204: cap the body to avoid unbounded buffering (DoS). Count bytes as we
-    // read and bail the instant we exceed the cap — never accumulate a hostile
-    // payload. The stream read is OUTSIDE any try/catch so a transport/stream
-    // error propagates instead of being swallowed to null (#209).
-    const chunks: Buffer[] = []
-    let total = 0
-    for await (const chunk of req as unknown as AsyncIterable<Buffer>) {
-      total += chunk.length
-      if (total > MAX_BODY_BYTES) return null // oversized → treated as invalid email
-      chunks.push(chunk)
-    }
-    const body = Buffer.concat(chunks).toString('utf8')
-    const ct = (req.headers['content-type'] ?? '').toLowerCase()
+    const body = await readCappedBody(req)
+    if (body === null) return null
+    const ct = contentType(req)
     if (ct.includes('application/json')) {
       // #209: narrow the catch to JSON parse errors only — malformed JSON is a
       // client error (→ null), but a transport error must NOT be swallowed here.
@@ -141,12 +195,22 @@ function validateEmail(email: string | null): string {
  * its SHA-256. Delivery is the consumer's `sendEmail`, and its errors propagate rather than being
  * swallowed: a link that was never delivered must not read as a link that was sent.
  */
-export function magicLink(opts: MagicLinkProviderOptions): AuthProvider<
-  MagicLinkProfile,
-  'magic-link'
+export function magicLink(opts: MagicLinkProviderOptions): Omit<
+  AuthProvider<MagicLinkProfile, 'magic-link'>,
+  'handleCallback'
 > & {
   /** Begin sign-in: validate email, persist token, send email. Returns the redirect URL. */
-  startSignIn(req: IncomingMessage): Promise<URL>
+  startSignIn(req: IncomingMessage | Request): Promise<URL>
+  /**
+   * Consume the token and resolve the identity.
+   *
+   * Accepts a Web `Request` as well as Node's `IncomingMessage`: the SDK's `AuthProvider` types this
+   * parameter as the Node shape, and TheoKit's route handler hands the Web one (#68).
+   */
+  handleCallback(
+    req: IncomingMessage | Request,
+    tx: OAuthTransaction,
+  ): Promise<AuthResult<MagicLinkProfile, 'magic-link'>>
 } {
   const lifetimeMs = opts.tokenLifetimeMs ?? DEFAULT_LIFETIME_MS
   const callbackPath = opts.callbackPath ?? DEFAULT_CALLBACK_PATH
@@ -174,7 +238,7 @@ export function magicLink(opts: MagicLinkProviderOptions): AuthProvider<
   return {
     name: 'magic-link',
 
-    async startSignIn(req: IncomingMessage): Promise<URL> {
+    async startSignIn(req: IncomingMessage | Request): Promise<URL> {
       const rawEmail = await resolveEmail(req)
       const email = validateEmail(rawEmail)
       const token = generateToken()
@@ -219,10 +283,10 @@ export function magicLink(opts: MagicLinkProviderOptions): AuthProvider<
      * tx-producing issuance path). See CHANGELOG / changeset for the correction.
      */
     async handleCallback(
-      req: IncomingMessage,
+      req: IncomingMessage | Request,
       _tx: OAuthTransaction,
     ): Promise<AuthResult<MagicLinkProfile, 'magic-link'>> {
-      const url = new URL(`http://${req.headers.host ?? 'localhost'}${req.url ?? '/'}`)
+      const url = requestUrl(req)
       const token = url.searchParams.get('token')
       if (!token) {
         throw new MagicLinkAuthError(

@@ -128,7 +128,26 @@ function resolveOidcBaseUrl(opts: GoogleProviderOptions): string {
   return base
 }
 
-function parseCallbackUrl(req: IncomingMessage): URL {
+/**
+ * True when the request is a Web `Request` rather than Node's `IncomingMessage`.
+ *
+ * Duck-typed on `headers.get` instead of `instanceof Request`: the global is absent on some
+ * runtimes and `instanceof` fails across realms, both of which would silently send a Web request
+ * down the Node path and produce a nonsense URL rather than an error.
+ */
+function isWebRequest(req: IncomingMessage | Request): req is Request {
+  return typeof (req as Request).headers?.get === 'function'
+}
+
+/**
+ * The callback URL, from either request shape.
+ *
+ * A Web `Request` already carries an absolute URL. `IncomingMessage` carries a path plus a `host`
+ * header, so an origin is synthesised — only the query string is read from the result, and the
+ * scheme is never used.
+ */
+function parseCallbackUrl(req: IncomingMessage | Request): URL {
+  if (isWebRequest(req)) return new URL(req.url)
   const host = req.headers.host ?? 'localhost'
   return new URL(`http://${host}${req.url ?? '/'}`)
 }
@@ -144,7 +163,21 @@ function parseCallbackUrl(req: IncomingMessage): URL {
  * environment variable overrides it, but only when `NODE_ENV === 'test'` — a production build
  * ignores that variable entirely, so the escape hatch cannot be opened from the outside.
  */
-export function google(opts: GoogleProviderOptions): AuthProvider<GoogleProfile, 'google'> {
+export function google(opts: GoogleProviderOptions): Omit<
+  AuthProvider<GoogleProfile, 'google'>,
+  'handleCallback'
+> & {
+  /**
+   * Exchange the callback for a profile.
+   *
+   * Accepts a Web `Request` as well as Node's `IncomingMessage`: the SDK's `AuthProvider` types this
+   * parameter as the Node shape, and TheoKit's route handler hands the Web one (#68).
+   */
+  handleCallback(
+    req: IncomingMessage | Request,
+    tx: OAuthTransaction,
+  ): Promise<AuthResult<GoogleProfile, 'google'>>
+} {
   return {
     name: 'google',
 
@@ -175,7 +208,7 @@ export function google(opts: GoogleProviderOptions): AuthProvider<GoogleProfile,
     },
 
     async handleCallback(
-      req: IncomingMessage,
+      req: IncomingMessage | Request,
       tx: OAuthTransaction,
     ): Promise<AuthResult<GoogleProfile, 'google'>> {
       const url = parseCallbackUrl(req)

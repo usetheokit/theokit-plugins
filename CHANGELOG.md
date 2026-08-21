@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `@theokit/auth-github`, `@theokit/auth-google` and `@theokit/auth-magic-link` accept a Web `Request` wherever they accepted Node's `IncomingMessage`, so the three of them can be wired into a TheoKit route for the first time. The session is created with `createSessionManagerWeb` from `theokit/server/auth`, keeping the whole flow on Web shapes; the Node-shaped `defineAuth` orchestrator is unchanged (#68)
+
 - Three documentation gates run on every pull request (`pnpm quality:docs`): `check-doc-api-drift.mjs` compiles every `import { … }` in the versioned Markdown and asks the compiler whether the names exist; `check-orphan-docblocks.mjs` finds docblocks stranded above another docblock; `check-doc-coverage.mjs` measures how much of the published surface an editor can actually show, read from the emitted `.d.ts` rather than from source, with a ratchet floor (#67)
 - `@theokit/plugin-copilot` is now a real TheoKit plugin: `copilot()` returns something `theo.config.ts` accepts, publishing read-only spend and copilot data on `ctx.copilot` (#62)
 

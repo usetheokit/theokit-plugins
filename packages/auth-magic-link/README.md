@@ -39,35 +39,50 @@ export const auth = defineAuth({
 
 Magic-link does NOT use the OAuth `startSignIn` flow — call `provider.startSignIn(req)` directly:
 
-> **The HTTP wiring is yours, and it needs Node's `req`/`res`.** `startSignIn` and
-> `finishSignIn` take `IncomingMessage` / `ServerResponse` — the OAuth state cookie is
-> written straight onto the response. TheoKit's `route()` handler hands you a Web
-> `Request` and no response object, so the two do not compose today and the compiler
-> says so (`Request is not assignable to IncomingMessage`). Mount these on a Node
-> server you control until that gap closes — tracked in
-> [#68](https://github.com/usetheokit/theokit-plugins/issues/68).
+Both methods accept a Web `Request` as well as Node's `IncomingMessage`, so they drop
+straight into a TheoKit route:
 
 ```ts
-// server/http.ts
-import { createServer } from 'node:http'
-import { auth } from './auth/index.js'
-import { magicLinkProvider } from './auth/providers.js' // your magicLink() instance
+// server/routes/api/auth/magic-link/start.ts
+import { route } from 'theokit/server'
+import { magicLinkProvider } from '../../../auth/providers.js' // your magicLink() instance
 
-export const server = createServer(async (req, res) => {
-  if (req.url?.startsWith('/api/auth/magic-link/start')) {
-    const redirect = await magicLinkProvider.startSignIn(req)
+export const POST = route()
+  .handler(async ({ request }) => {
+    // Reads the address from `?email=` or from the JSON / form-encoded body.
+    const redirect = await magicLinkProvider.startSignIn(request)
     // `startSignIn` resolves to a URL object, not a string.
-    res.writeHead(303, { location: redirect.href }).end()
-    return
-  }
-  if (req.url?.startsWith('/api/auth/magic-link/callback')) {
-    const { returnTo } = await auth.finishSignIn('magic-link', req, res)
-    res.writeHead(302, { location: returnTo ?? '/' }).end()
-    return
-  }
-  res.writeHead(404).end()
-})
+    return new Response(null, { status: 303, headers: { location: redirect.href } })
+  })
+  .build()
 ```
+
+```ts
+// server/routes/api/auth/magic-link/callback.ts
+import { route } from 'theokit/server'
+import { magicLinkProvider, sessions } from '../../../auth/providers.js'
+
+const IGNORED_TX = { state: '', createdAt: 0, expiresAt: 0 }
+
+export const GET = route()
+  .handler(async ({ request }) => {
+    // The transaction argument exists to satisfy the AuthProvider interface and is
+    // ignored: a magic link is cross-device by design, so there is no initiating-browser
+    // state to bind to. Security rests on token entropy, the TTL, and single-use
+    // consumption — a second click on the same link resolves to nothing.
+    const { profile } = await magicLinkProvider.handleCallback(request, IGNORED_TX)
+    const headers = new Headers()
+    await sessions.createSession(headers, { userId: profile.email, email: profile.email })
+    headers.set('location', '/')
+    return new Response(null, { status: 302, headers })
+  })
+  .build()
+```
+
+`sessions` is a `createSessionManagerWeb(...)` from `theokit/server/auth`: it writes the
+session cookie into a `Headers` you own, which keeps the whole flow on the Web shapes
+TheoKit hands you. The `defineAuth` orchestrator is the other way in, and it is Node-shaped
+(`IncomingMessage` / `ServerResponse`), so it needs a Node server rather than a route.
 
 The default `resolveEmail` reads `?email=` from the URL OR the `email` field from a JSON / form-encoded body. Override via `opts.resolveEmail` for custom shapes.
 

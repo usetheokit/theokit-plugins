@@ -240,3 +240,27 @@ describe('github() — handleCallback', () => {
     expect(headers.accept).toBe('application/json')
   })
 })
+
+describe('github() — accepts a Web Request', () => {
+  // TheoKit's route handler hands a Web `Request`; the SDK's AuthProvider interface types this
+  // parameter as Node's `IncomingMessage`. A provider that only understands the Node shape cannot
+  // be wired into a TheoKit route at all (#68), so both are accepted at runtime.
+  it('reads code and state from a Web Request exactly as from an IncomingMessage', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(jsonResponse({ access_token: 'gho_tok', token_type: 'bearer' }))
+      .mockResolvedValueOnce(jsonResponse({ id: 42, login: 'octocat', email: 'octo@github.test' }))
+
+    const request = new Request(
+      `https://myapp.test/api/auth/github/callback?code=c&state=${TX.state}`,
+    )
+    const result = await github(OPTS).handleCallback(request, TX)
+
+    expect(result.profile.id).toBe(42)
+    expect(result.profile.login).toBe('octocat')
+  })
+
+  it('rejects a Web Request whose state does not match the transaction', async () => {
+    const request = new Request('https://myapp.test/api/auth/github/callback?code=c&state=forged')
+    await expect(github(OPTS).handleCallback(request, TX)).rejects.toThrow(/state/i)
+  })
+})

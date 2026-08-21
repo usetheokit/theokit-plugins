@@ -53,7 +53,26 @@ interface EmailEntry {
   verified: boolean
 }
 
-function parseCallbackUrl(req: IncomingMessage): URL {
+/**
+ * True when the request is a Web `Request` rather than Node's `IncomingMessage`.
+ *
+ * Duck-typed on `headers.get` instead of `instanceof Request`: the global is absent on some
+ * runtimes and `instanceof` fails across realms, both of which would silently send a Web request
+ * down the Node path and produce a nonsense URL rather than an error.
+ */
+function isWebRequest(req: IncomingMessage | Request): req is Request {
+  return typeof (req as Request).headers?.get === 'function'
+}
+
+/**
+ * The callback URL, from either request shape.
+ *
+ * A Web `Request` already carries an absolute URL. `IncomingMessage` carries a path plus a `host`
+ * header, so an origin is synthesised — only the query string is read from the result, and the
+ * scheme is never used.
+ */
+function parseCallbackUrl(req: IncomingMessage | Request): URL {
+  if (isWebRequest(req)) return new URL(req.url)
   return new URL(`http://${req.headers.host ?? 'localhost'}${req.url ?? '/'}`)
 }
 
@@ -72,7 +91,21 @@ function resolveScopes(opts: GitHubProviderOptions): readonly string[] {
  * `/user/emails`, because `/user` reports `email: null` for a user without a public address. A
  * failure of that second request throws rather than yielding a null-email identity.
  */
-export function github(opts: GitHubProviderOptions): AuthProvider<GitHubProfile, 'github'> {
+export function github(opts: GitHubProviderOptions): Omit<
+  AuthProvider<GitHubProfile, 'github'>,
+  'handleCallback'
+> & {
+  /**
+   * Exchange the callback for a profile.
+   *
+   * Accepts a Web `Request` as well as Node's `IncomingMessage`: the SDK's `AuthProvider` types this
+   * parameter as the Node shape, and TheoKit's route handler hands the Web one (#68).
+   */
+  handleCallback(
+    req: IncomingMessage | Request,
+    tx: OAuthTransaction,
+  ): Promise<AuthResult<GitHubProfile, 'github'>>
+} {
   const scopes = resolveScopes(opts)
   const wantsEmail = scopes.includes('user:email')
   const authorizeEndpoint = opts.authorizationEndpoint ?? DEFAULT_AUTHORIZE
@@ -95,7 +128,7 @@ export function github(opts: GitHubProviderOptions): AuthProvider<GitHubProfile,
     },
 
     async handleCallback(
-      req: IncomingMessage,
+      req: IncomingMessage | Request,
       tx: OAuthTransaction,
     ): Promise<AuthResult<GitHubProfile, 'github'>> {
       const url = parseCallbackUrl(req)

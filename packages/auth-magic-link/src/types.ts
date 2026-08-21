@@ -72,5 +72,5 @@ export interface MagicLinkProviderOptions {
   /** Page to redirect after start (e.g., "check your email"). Defaults to '/auth/check-email'. */
   checkEmailPage?: string
   /** Source of email when starting sign-in. Defaults to reading req.body.email or req.url ?email=. */
-  resolveEmail?: (req: IncomingMessage) => Promise<string | null>
+  resolveEmail?: (req: IncomingMessage | Request) => Promise<string | null>
 }
