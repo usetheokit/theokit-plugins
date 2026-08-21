@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   returns 404 — so any push to it changed the code running with those credentials, with no release
   and no version bump to notice. Each pin carries the version it resolved to, read from the
   action's own tags. Majors are unchanged: this freezes what already runs rather than upgrading it.
+
 ### Deprecated
 
 ### Removed
