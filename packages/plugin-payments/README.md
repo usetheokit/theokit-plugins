@@ -204,25 +204,27 @@ Nothing was removed or renamed. Every Stripe export moved one import deeper:
 import { payments } from '@theokit/plugin-payments'
 import { StripeProvider } from '@theokit/plugin-payments/stripe'
 import { AbacatePayProvider } from '@theokit/plugin-payments/abacatepay'
-import { defineConfig } from 'theokit'
+import { config } from 'theokit'
 import Stripe from 'stripe'
 
-export default defineConfig({
-  plugins: [
-    payments({
-      providers: {
-        stripe: StripeProvider({
-          client: new Stripe(process.env.STRIPE_SECRET_KEY!),
-          webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
-        }),
-        abacatepay: AbacatePayProvider({
-          apiKey: process.env.ABACATEPAY_API_KEY!,
-          webhookSecret: process.env.ABACATEPAY_WEBHOOK_SECRET,
-        }),
-      },
-    }),
-  ],
-})
+export default config()
+  .set({
+    plugins: [
+      payments({
+        providers: {
+          stripe: StripeProvider({
+            client: new Stripe(process.env.STRIPE_SECRET_KEY!),
+            webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+          }),
+          abacatepay: AbacatePayProvider({
+            apiKey: process.env.ABACATEPAY_API_KEY!,
+            webhookSecret: process.env.ABACATEPAY_WEBHOOK_SECRET,
+          }),
+        },
+      }),
+    ],
+  })
+  .build()
 ```
 
 The plugin holds the providers, one idempotency store and one handler registry —

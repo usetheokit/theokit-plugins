@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- The framework usage examples in eight READMEs and `CONTRIBUTING.md` are written against the API `theokit@0.48` actually exports, and each one was verified by compiling it. `defineConfig`/`defineTheoConfig` → `config().set({…}).build()`, `definePlugin` → `plugin(name)…build()`, `defineAction` → `action().input(schema).handler(fn).build()`, `defineAgentTool` → `tool(name)…build()`, `useAgentStream` → `useAgent`. Ten documented names existed in none of that version's 24 export subpaths (#67)
+- `@theokit/auth-google` and `@theokit/auth-magic-link` document the HTTP wiring on a Node server, which is the only shape that compiles: the auth orchestrator takes `IncomingMessage`/`ServerResponse` and TheoKit's route handler hands a Web `Request` (#68)
 - Every published export of the plugin packages now carries documentation an editor can show; measured coverage went from 63.4% to 100% (356 of 356), and `@theokit/auth-github` and `@theokit/auth-google` went from showing nothing at all (#67)
 - `@theokit/plugin-canvas` README no longer tells the reader to import `createArtifactBus` from the package root — it is exported from `@theokit/plugin-canvas/server`, so the documented example did not compile (#67)
 - `@theokit/plugin-payments` "Migrating from 0.2.x" no longer moves `payments` to the `/stripe` subpath, which does not export it. The prose two lines above already said only Stripe exports moved; the example contradicted it (#67)

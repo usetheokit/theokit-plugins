@@ -38,26 +38,31 @@ export const auth = defineAuth({
 
 Wire into your routes:
 
+> **The HTTP wiring is yours, and it needs Node's `req`/`res`.** `startSignIn` and
+> `finishSignIn` take `IncomingMessage` / `ServerResponse` — the OAuth state cookie is
+> written straight onto the response. TheoKit's `route()` handler hands you a Web
+> `Request` and no response object, so the two do not compose today and the compiler
+> says so (`Request is not assignable to IncomingMessage`). Mount these on a Node
+> server you control until that gap closes — tracked in
+> [#68](https://github.com/usetheokit/theokit-plugins/issues/68).
+
 ```ts
-// server/routes/api/auth/google/start.ts
-import { defineRoute } from 'theokit/server'
-import { auth } from '../../../auth/index.js'
+// server/http.ts
+import { createServer } from 'node:http'
+import { auth } from './auth/index.js'
 
-export const GET = defineRoute({
-  handler: async ({ req }) => {
-    return auth.startSignIn('google', req)
-  },
-})
-
-// server/routes/api/auth/google/callback.ts
-import { defineRoute } from 'theokit/server'
-import { auth } from '../../../auth/index.js'
-
-export const GET = defineRoute({
-  handler: async ({ req, res }) => {
-    const { session, returnTo } = await auth.finishSignIn('google', req, res)
-    return Response.redirect(returnTo ?? '/', 302)
-  },
+export const server = createServer(async (req, res) => {
+  if (req.url?.startsWith('/api/auth/google/start')) {
+    const redirect = await auth.startSignIn('google', req)
+    res.writeHead(302, { location: redirect.headers.get('location') ?? '/' }).end()
+    return
+  }
+  if (req.url?.startsWith('/api/auth/google/callback')) {
+    const { returnTo } = await auth.finishSignIn('google', req, res)
+    res.writeHead(302, { location: returnTo ?? '/' }).end()
+    return
+  }
+  res.writeHead(404).end()
 })
 ```
 

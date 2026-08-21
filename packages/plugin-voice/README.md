@@ -28,17 +28,19 @@ Peer dependencies:
 
 ```ts
 // theo.config.ts
-import { defineTheoConfig } from 'theokit/server'
 import voicePlugin from '@theokit/plugin-voice'
+import { config } from 'theokit'
 
-export default defineTheoConfig({
-  plugins: [
-    voicePlugin({
-      stt: { provider: 'openai' }, // reads OPENAI_API_KEY from env
-      tts: { provider: 'openai', voice: 'alloy' },
-    }),
-  ],
-})
+export default config()
+  .set({
+    plugins: [
+      voicePlugin({
+        stt: { provider: 'openai' }, // reads OPENAI_API_KEY from env
+        tts: { provider: 'openai', voice: 'alloy' },
+      }),
+    ],
+  })
+  .build()
 ```
 
 ### Environment variables

@@ -20,22 +20,3 @@
 # run, so it stays a dated debt rather than becoming invisible.
 #
 # Adding an entry REQUIRES a CHANGELOG entry under `[Unreleased]`.
-
-# --- theokit@0.48.x API generation gap (issue #67) -----------------------------------------------
-# The framework usage examples in eight READMEs and CONTRIBUTING.md were written against an earlier
-# generation of `theokit`'s API. None of these ten names exists in ANY of the 24 export subpaths of
-# the installed `theokit@0.48.8` (enumerated with the compiler, not by grep), and the API changed
-# SHAPE — `definePlugin({ ... })` became `plugin(name).onRequest(fn).build()` — so no name-for-name
-# substitution fixes them. Rewriting the examples requires running them against the current API,
-# which is the work the issue tracks. Deferred rather than left permanently red: a gate that is red
-# by design stops being read, and would then miss the next drift.
-theokit/server | definePlugin              | 2026-11-18 | #67 — absent from every theokit@0.48.8 subpath; `plugin(name)` is a fluent builder, not a drop-in.
-theokit/server | defineRoute               | 2026-11-18 | #67 — absent; `route()` returns a RouteBuilder.
-theokit/server | defineAction              | 2026-11-18 | #67 — absent; `action()` returns an ActionBuilder.
-theokit/server | defineTheoConfig          | 2026-11-18 | #67 — absent, and no counterpart on any subpath.
-theokit/server | defineAgentEndpoint       | 2026-11-18 | #67 — absent, and no counterpart on any subpath.
-theokit/server | defineAgentTool           | 2026-11-18 | #67 — absent; only the `DefineAgentToolSpec` type survives, which is not a factory.
-theokit/server | streamAgentRun            | 2026-11-18 | #67 — absent; `streamAgentTurnInProcess` is adjacent but not equivalent and is untested here.
-theokit/server | createConversationHistory | 2026-11-18 | #67 — absent, and no counterpart on any subpath.
-theokit         | defineConfig             | 2026-11-18 | #67 — absent; `config()` returns a ConfigBuilder, so the object-literal example does not port.
-theokit/client  | useAgentStream           | 2026-11-18 | #67 — absent; `useAgent` exists but its return shape was not verified against the example.

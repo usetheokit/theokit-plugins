@@ -61,15 +61,16 @@ Then import it from the action handler:
 
 ```ts
 // server/actions/save-memory.ts
-import { defineAction } from 'theokit/server'
+import { action } from 'theokit/server'
 import { schema } from './schemas/save-memory.js'
-export const saveMemory = defineAction({
-  input: schema,
-  handler: async ({ input }) => {
+
+export const saveMemory = action()
+  .input(schema)
+  .handler(async ({ input }) => {
     // persist input.content under input.conversationId
     return { id: 'mem_...' }
-  },
-})
+  })
+  .build()
 ```
 
 The TheoKit Vite plugin detects the convention and exposes the schema at runtime as `actions.saveMemory.__zodSchema`. `<TheoForm>` reads it to drive RHF's `zodResolver` — no client re-declaration.
