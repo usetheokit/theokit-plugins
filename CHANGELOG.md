@@ -8,6 +8,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.7.0] - 2026-08-21
+
+Derivado por `cycle-release.md`: `Added` não-vazio — **minor**. `Removed` também não é vazio,
+o que a regra lê como major; aqui isso significaria `1.0.0`, e três coisas dizem que não é.
+Em `0.x` o slot de breaking é o minor, é o que os releases `0.2.0` e `0.4.0` fizeram com
+`Removed` não-vazio, e uma alegação de `1.0.0` é barrada por `dogfood-golden-rule.md` — não
+existe manifest de dogfood neste repositório, então não há evidência de uso sustentado que a
+sustente.
+
+### Added
+
 - `@theokit/auth-github`, `@theokit/auth-google` and `@theokit/auth-magic-link` accept a Web `Request` wherever they accepted Node's `IncomingMessage`, so the three of them can be wired into a TheoKit route for the first time. The session is created with `createSessionManagerWeb` from `theokit/server/auth`, keeping the whole flow on Web shapes; the Node-shaped `defineAuth` orchestrator is unchanged (#68)
 
 - Three documentation gates run on every pull request (`pnpm quality:docs`): `check-doc-api-drift.mjs` compiles every `import { … }` in the versioned Markdown and asks the compiler whether the names exist; `check-orphan-docblocks.mjs` finds docblocks stranded above another docblock; `check-doc-coverage.mjs` measures how much of the published surface an editor can actually show, read from the emitted `.d.ts` rather than from source, with a ratchet floor (#67)
