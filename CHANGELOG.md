@@ -20,6 +20,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Framework peer ranges now describe the version each package is built against. `@theokit/sdk`
+  was `>=2.18.0` — unbounded — on the four packages that import it, while the published SDK is
+  4.53.1 and their devDependency pins `^2.18.0`: a consumer on the current SDK satisfied the peer
+  and received code compiled two majors earlier. `plugin-canvas` declared `@theokit/ui: ^1.1.0`
+  while building against `^1.3.2`. Both narrowed, and `check:manifests` now compares the floor of
+  EVERY framework peer against its devDependency rather than only `theokit`'s (#107, #108)
 - The `theokit` peer floor on nine packages is `>=0.48.7`, the version they are built against.
   The declared floors ran from `>=0.1.0-alpha.5` to `>=0.4.0-beta.0` — ranges spanning the
   framework's move to a builder API — while every one of those packages carries `theokit: ^0.48.7`

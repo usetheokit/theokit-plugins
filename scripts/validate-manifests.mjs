@@ -267,20 +267,39 @@ function checkFrameworkContract(dir, pkg, where) {
     )
   }
 
-  // A peer floor below what the package is BUILT against is a promise nobody checked. Six
-  // packages imported `theokit` and declared floors from >=0.1.0-alpha.5 to >=0.4.0-beta.0,
-  // ranges spanning the framework's builder-API change: the code does not compile against the
-  // versions they admit, and the failure lands in the consumer's build pointing at us (#69).
-  const devFloorRange = pkg.devDependencies?.theokit
-  const peerFloorRange = pkg.peerDependencies?.theokit
-  if (typeof devFloorRange === 'string' && typeof peerFloorRange === 'string') {
-    const devFloor = rangeFloor(devFloorRange)
-    const peerFloor = rangeFloor(peerFloorRange)
-    if (devFloor !== null && peerFloor !== null && isBelow(peerFloor, devFloor)) {
+  // A peer range that admits versions the package is not BUILT against is a promise nobody
+  // checked, and it fails in the CONSUMER's build while naming our package. Both ends drift:
+  //
+  //   floor too low  — six packages imported `theokit` with floors from >=0.1.0-alpha.5 to
+  //                    >=0.4.0-beta.0, spanning the framework's builder-API change (#69)
+  //   no ceiling     — four declared `@theokit/sdk: >=2.18.0` while the SDK shipped 4.53.1,
+  //                    two majors past what their devDependency pins (#107)
+  //
+  // Checked for every framework peer that has a devDependency to compare against; a peer with
+  // no devDependency is not compiled here at all, so there is nothing to measure it by.
+  for (const peer of frameworkPeers) {
+    const devRange = pkg.devDependencies?.[peer]
+    const peerRange = pkg.peerDependencies?.[peer]
+    if (typeof devRange !== 'string' || typeof peerRange !== 'string') continue
+
+    const devFloor = rangeFloor(devRange)
+    const peerFloor = rangeFloor(peerRange)
+    if (devFloor === null || peerFloor === null) continue
+
+    if (isBelow(peerFloor, devFloor)) {
       violations.push(
-        `${where}: peerDependencies.theokit is ${JSON.stringify(peerFloorRange)} but the package is built against ${JSON.stringify(devFloorRange)} — the range admits versions nothing here compiles against. Raise the floor, or add a CI job that builds this package against it. See #69.`,
+        `${where}: peerDependencies["${peer}"] is ${JSON.stringify(peerRange)} but the package is built against ${JSON.stringify(devRange)} — the range admits versions BELOW what compiles here. Raise the floor, or add a CI job that builds this package against it. See #69.`,
       )
     }
+
+    // NOT checked here: whether an unbounded `>=X` admits a version the devDependency's `^X`
+    // would exclude. It is the same defect as the floor — a promise nothing measures — but
+    // whether it is currently FALSE depends on what the registry has published, and this gate
+    // runs offline. Measured 2026-08-22: `>=2.18.0` on @theokit/sdk admitted 4.53.1, two majors
+    // past the compiled ^2.18.0, and was narrowed (#107); `theokit >=0.48.7` and
+    // `@theokit/react >=1.1.0` admitted nothing their caret ranges did not, so flagging them
+    // would be a gate firing on something that is not yet wrong — which is how a gate teaches
+    // people to skip it.
   }
 
   for (const peer of Object.keys(exempt)) {
