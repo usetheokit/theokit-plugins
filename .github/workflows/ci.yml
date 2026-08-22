@@ -139,7 +139,7 @@ jobs:
       # arrived, catching a quoted-printable break inside the token that no JSON-transport
       # test can see. Zero credentials, zero network beyond localhost.
       #
-      # `readiness.test.ts` fails when a credential-free suite is written outside the
+      # `readiness.offline.test.ts` fails when a credential-free suite is written outside the
       # convention, and when this step stops naming `integration:offline`.
       - name: Offline integration suites (credential-free, every PR)
         run: pnpm integration:offline

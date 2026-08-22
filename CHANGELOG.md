@@ -36,6 +36,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Every CI-wiring gate in this repository ran only in the 04:00 nightly.** `readiness.test.ts`
+  holds the assertions that the registry reaches CI — that each variable is mapped into the
+  workflow, that each mapping is a secret reference and not a literal, that no test directory
+  lacks a registry entry, and that every credential-free suite runs on every PR. It was selected
+  by neither command `ci.yml` invokes (`vitest run tests/consumer .offline.test.ts` matches
+  neither filter), so a variable added to the registry with no workflow mapping went green on the
+  pull request and surfaced to whoever read the nightly. Renamed to `readiness.offline.test.ts`,
+  which is the convention the file itself defines and had exempted itself from (#77)
 - The `[Unreleased]` block declared `Added`, `Changed` and `Security` twice each, leaving two
   `Changed` entries fourteen lines away from the other three. The release bump is derived from
   those sections, and the rule that derives it assumes each names one place in the file — so the

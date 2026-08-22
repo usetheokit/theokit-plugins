@@ -1,9 +1,14 @@
 /**
  * Readiness report — which services can actually be exercised right now.
  *
- * This is the one suite that always runs, with or without credentials. It does
- * not talk to any API; it answers the question you ask before a live run: "what
- * is wired up, and what is each missing?"
+ * This suite needs no credential and talks to no API, so it runs on every PR through
+ * `pnpm integration:offline` as well as in the nightly. It answers the question you ask
+ * before a live run: "what is wired up, and what is each missing?"
+ *
+ * The `.offline.test.ts` name is load-bearing, not decoration. The file used to be
+ * `readiness.test.ts` and claimed in this very docstring to be "the one suite that always
+ * runs" — it was selected by neither PR command, so every gate below it, including the ones
+ * asserting that the registry reaches CI, executed only in the 04:00 nightly (#77).
  *
  * It exists because the honest state of a live suite is otherwise invisible. Six
  * services with five skipped and one green reads, at a glance, exactly like six

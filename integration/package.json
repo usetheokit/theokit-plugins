@@ -13,7 +13,7 @@
     "env:example": "tsx scripts/env-example.ts",
     "flow:github": "node scripts/full-flow-github.mjs",
     "flow:stripe-webhook": "node scripts/full-flow-stripe-webhook.mjs",
-    "readiness": "vitest run tests/readiness.test.ts",
+    "readiness": "vitest run tests/readiness.offline.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

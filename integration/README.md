@@ -168,13 +168,13 @@ integration/
 │   ├── credentials.ts   .env locally, repository secrets in CI; identical names
 │   └── harness.ts       describeLive() — skips with a NAMED reason, never silently
 ├── tests/
-│   ├── readiness.test.ts   always runs; reports the gap across every service
+│   ├── readiness.offline.test.ts  runs on every PR; reports the gap across every service
 │   └── <service>/          one directory per registry id
 └── scripts/
     └── env-example.ts      regenerates .env.example from the registry
 ```
 
-`readiness.test.ts` fails on a test directory with no registry entry. The
+`readiness.offline.test.ts` fails on a test directory with no registry entry. The
 reverse — a registered service with no suite yet — is **reported, not failed**,
 because a registry entry is also how someone learns which credential to create
 first.

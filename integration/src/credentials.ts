@@ -15,7 +15,7 @@
  * it.
  *
  * Values are never logged. Only variable NAMES ever reach test output, and
- * `readiness.test.ts` asserts that.
+ * `readiness.offline.test.ts` asserts that.
  */
 
 import { readFileSync } from 'node:fs'
