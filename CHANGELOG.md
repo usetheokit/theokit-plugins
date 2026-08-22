@@ -36,6 +36,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- `pnpm flow:stripe-webhook` failed runs in which nothing had gone wrong. Async event types with
+  no instance on the account yet — which the script itself describes as arriving
+  minutes-to-hours later — were pushed into the same array as triggered events that never
+  arrived, and the exit check counted that array against the number of events triggered. On a
+  fresh test account where all three triggered events arrived, verified and mapped correctly, the
+  run still exited 1 reporting "2 of 3 event types never arrived", counting two that were never
+  among the three. They are now reported as a note (#88)
 - `pnpm flow:stripe-webhook` reported `NEVER ARRIVED` for two event types it had just verified.
   The handler registrations were a second, hand-written copy of the normalised types `EXPECTED`
   declares, and it held four of the five: `checkout.expired` and `payment.disputed` had no

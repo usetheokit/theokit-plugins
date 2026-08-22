@@ -269,7 +269,18 @@ console.log('signature rejected  : %d', rejected.length)
 console.log('')
 console.log('EVENT_MAP against events Stripe really emitted:')
 const wrong = []
+/** Triggered events that never arrived. These fail the run. */
 const absent = []
+/**
+ * ASYNC_EVENTS with no instance on the account yet. Reported, never failed.
+ *
+ * They used to share `absent`, and the exit check counts that array against
+ * EVENTS_TO_TRIGGER.length — two different populations and one denominator. On a fresh test
+ * account where all 3 triggered events arrived and mapped correctly, the run still exited 1
+ * printing "2 of 3 event types never arrived", counting events that were never among the 3 and
+ * that the script itself describes as arriving minutes-to-hours later (#88).
+ */
+const asyncNotSeenYet = []
 for (const type of EVENTS_TO_TRIGGER) {
   const event = received.find((e) => e.providerEventType === type)
   if (event === undefined) {
@@ -310,7 +321,7 @@ for (const type of ASYNC_EVENTS) {
   const found = body?.data?.[0]
   if (found === undefined) {
     console.log('  %s no such event on this account yet', type.padEnd(44))
-    absent.push(`${type} (async, none on account)`)
+    asyncNotSeenYet.push(type)
     continue
   }
   const mapped = EXPECTED[type]
@@ -331,12 +342,20 @@ if (wrong.length > 0) {
 if (absent.length > 0) {
   console.error('')
   console.error(
-    '✗ %d of %d event types never arrived, so their mapping is still unverified: %j',
+    '✗ %d of %d TRIGGERED event types never arrived, so their mapping is still unverified: %j',
     absent.length,
     EVENTS_TO_TRIGGER.length,
     absent,
   )
   process.exit(1)
+}
+if (asyncNotSeenYet.length > 0) {
+  console.log('')
+  console.log(
+    'note: %d async event type(s) have no instance on this account yet, so their mapping stays unverified here: %j',
+    asyncNotSeenYet.length,
+    asyncNotSeenYet,
+  )
 }
 console.log('')
 console.log('✓ every webhook was verified by the shipped plugin — signatures produced by Stripe')
