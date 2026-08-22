@@ -2,8 +2,16 @@
  * The service registry — the single place that knows which credentials each
  * plugin needs, and what a live test can actually do with them.
  *
- * `exercise` is the load-bearing field. It is not decoration: it decides whether
- * an unattended run can cover the whole path or only part of it.
+ * `exercise` RECORDS how far an unattended run can cover the path. It does not decide it:
+ * nothing branches on this field. Its two readers are the readiness report, which prints it
+ * beside the service, and the `.env.example` generator, which puts it in a comment. What
+ * actually decides is the suite author, by reaching for `describeLive` or
+ * `describeManualOAuth` — so this field and that choice can disagree, and only a human
+ * reading both would notice.
+ *
+ * It said "load-bearing … not decoration" until #96 measured the two call sites. Saying so
+ * mattered: a reader who believed it would assume changing `api-key` to `oauth-redirect`
+ * changed what runs, when it changes one printed word.
  *
  * - `api-key` — a static credential the plugin sends on every call (Resend,
  *   Stripe, OpenAI, Groq, OpenRouter). The full path runs anywhere, including
@@ -38,7 +46,7 @@
  * could add. They are `GH_OAUTH_*` for that reason, not for brevity.
  */
 
-/** How far an unattended run can exercise the credential. */
+/** How far an unattended run can exercise the credential. Reported, never branched on — see the module docblock. */
 export type Exercise = 'api-key' | 'oauth-redirect'
 
 /** One credential the service needs, and how a human obtains it. */

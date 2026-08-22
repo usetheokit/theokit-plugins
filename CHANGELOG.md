@@ -36,6 +36,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The service registry described `exercise` as "the load-bearing field. It is not decoration",
+  and nothing branches on it: its only readers are a printed label in the readiness report and a
+  comment in the generated `.env.example`. A reader who believed the docblock would assume that
+  changing `api-key` to `oauth-redirect` changed what runs, when it changes one printed word. It
+  now says what the field does, and names the choice that actually decides — the suite author
+  reaching for `describeLive` or `describeManualOAuth` (#96)
 - The `auth-github` live suite read `.code` off a variable only assigned inside a `catch`. If
   GitHub ever stopped refusing a deliberately invalid code — the upstream drift that suite's one
   live assertion exists to detect — the catch would not run and the read would throw a
