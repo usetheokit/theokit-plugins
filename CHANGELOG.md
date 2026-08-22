@@ -65,6 +65,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **A `plugin-realtime` client that reconnected disappeared from the room for everyone.** Presence
+  is keyed by `connectionId` and `leaveRoom` deletes by that key alone, so when a reloaded tab
+  reconnected under the same id, the previous session's late `release()` removed the live
+  registration — and the other participants got a `left` frame for somebody who had just joined.
+  Measured over a real WebSocket: first session `getPresence` returns `["alice"]`, after a
+  reconnect `[]`, unchanged at +400ms. The runtime now records which handle owns each
+  `(room, connectionId)` and a superseded release is a no-op (#110)
 - **The README's Status section linked a file that was deliberately deleted and counted tests that
   had not been counted in a long time.** `ROADMAP.md` was removed in `6159e6d` ("no longer
   relevant") and the link to it survived, so the published README pointed at a 404. The same
