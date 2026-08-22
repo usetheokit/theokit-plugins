@@ -36,6 +36,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The Stripe reconciliation test asserted `amountInCents: 500` and `currency: 'USD'` against a
+  fixture whose provisioning instructions say only "create a product with a one-time price". An
+  operator following them to the letter got a failure naming the provider, for a requirement
+  nobody had written down. It now reads the amount and currency off the price the session was
+  built from — which is also the stronger claim: comparing the reported amount to the price tests
+  the provider, comparing it to a literal tests the dashboard (#94)
 - `LONG_BASE`, a constant the delivered-mail suite explained two of its tests by, produced a
   byte-identical message. The magic-link callback path is absolute, so
   `new URL('/auth/magic-link/callback', base)` discards whatever path the base carried. A
