@@ -41,14 +41,14 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ### Open (6)
 
-| Item                                                                                                | Title                                                                          | Status | Severity |
-| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------ | -------- |
-| [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `raw`  | —        |
-| [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention--)               | The request-decoration namespace is global and has no convention               | `raw`  | —        |
-| [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain--)                   | No test asserts that a package belongs to exactly one domain                   | `raw`  | —        |
-| [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams--)                      | The `plugin-` prefix names four different integration seams                    | `raw`  | —        |
-| [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it--)           | The root `v*` tag convention is dead and the CHANGELOG still implies it        | `raw`  | —        |
-| [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish--)                         | Nothing compiles the code examples our READMEs publish                         | `raw`  | —        |
+| Item | Title | Status | Severity |
+|---|---|---|---|
+| [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `raw` | — |
+| [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention--) | The request-decoration namespace is global and has no convention | `raw` | — |
+| [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain--) | No test asserts that a package belongs to exactly one domain | `raw` | — |
+| [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams--) | The `plugin-` prefix names four different integration seams | `raw` | — |
+| [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it--) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `raw` | — |
+| [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish--) | Nothing compiles the code examples our READMEs publish | `raw` | — |
 
 ### In flight (0)
 
@@ -56,11 +56,11 @@ _None._
 
 ### Closed (3)
 
-| Item                                                                                         | Title                                                                     | Status    | Severity |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | --------- | -------- |
-| [`B-003`](#b-003--plugin-realtimes-integration-tests-never-open-a-websocket-x)               | `plugin-realtime`'s integration tests never open a WebSocket              | `shipped` | —        |
-| [`B-004`](#b-004--auth-magic-link-has-no-live-suite-while-the-other-two-auth-providers-do-x) | `auth-magic-link` has no live suite while the other two auth providers do | `shipped` | —        |
-| [`B-006`](#b-006--backlog-init-assumed-an-umbrella-and-would-have-refused-to-run-here-x)     | `/backlog-init` assumed an umbrella and would have refused to run here    | `shipped` | —        |
+| Item | Title | Status | Severity |
+|---|---|---|---|
+| [`B-003`](#b-003--plugin-realtimes-integration-tests-never-open-a-websocket-x) | `plugin-realtime`'s integration tests never open a WebSocket | `shipped` | — |
+| [`B-004`](#b-004--auth-magic-link-has-no-live-suite-while-the-other-two-auth-providers-do-x) | `auth-magic-link` has no live suite while the other two auth providers do | `shipped` | — |
+| [`B-006`](#b-006--backlog-init-assumed-an-umbrella-and-would-have-refused-to-run-here-x) | `/backlog-init` assumed an umbrella and would have refused to run here | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
