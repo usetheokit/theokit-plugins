@@ -193,18 +193,29 @@ describe('consumer smoke — the packaging contract', () => {
         ).toEqual([])
       })
 
-      it('imports its main entry and exposes a non-empty barrel', async () => {
-        // Imports dist/, not src/, so it exercises what a consumer resolves:
-        // bundled output, externals, and every peer the entry pulls at load time.
-        const main = pkg.exports?.['.']
-        const runtime = typeof main === 'string' ? main : main?.import
-        if (runtime === undefined) return
-        const mod = (await import(join(REPO_ROOT, 'packages', dir, normalize(runtime)))) as Record<
-          string,
-          unknown
-        >
-        expect(Object.keys(mod).length, `${pkg.name} main entry exports nothing`).toBeGreaterThan(0)
-      }, 30_000)
+      // Every subpath, not just the barrel. Presence in the tarball and a shipped .d.ts are
+      // both static facts: they hold while `dist/stripe.js` imports a shared chunk that
+      // stopped being packed, or pulls a peer nobody declared. Only resolving the subpath
+      // answers the question this file exists to ask — if somebody installs this, does it
+      // load — and it was asked of one subpath out of four (#83).
+      const loadable = entries.filter(([subpath]) => subpath !== './package.json')
+
+      for (const [subpath, target] of loadable) {
+        const runtime = typeof target === 'string' ? target : target.import
+        if (runtime === undefined) continue
+
+        it(`resolves and loads ${subpath}`, async () => {
+          // Imports dist/, not src/, so it exercises what a consumer resolves: bundled
+          // output, externals, and every peer the entry pulls at load time.
+          const mod = (await import(
+            join(REPO_ROOT, 'packages', dir, normalize(runtime))
+          )) as Record<string, unknown>
+          expect(
+            Object.keys(mod).length,
+            `${pkg.name}${subpath === '.' ? '' : subpath.slice(1)} exports nothing at runtime`,
+          ).toBeGreaterThan(0)
+        }, 30_000)
+      }
     })
   }
 })

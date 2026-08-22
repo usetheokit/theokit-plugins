@@ -36,6 +36,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The packaging contract resolved one subpath out of four.** Presence in the tarball and a
+  shipped `.d.ts` are static facts that keep holding while `dist/stripe.js` imports a chunk that
+  stopped being packed, or pulls a peer nobody declared — so `@theokit/plugin-payments/stripe`
+  could throw `ERR_MODULE_NOT_FOUND` for a consumer with all three assertions green. That is the
+  exact shape of the incident this file was written for. Every subpath with a runtime entry is
+  now imported: seven secondary subpaths across five packages that had never been loaded (#83)
 - **The `node:`-prefix packaging check would have reddened every pull request over legal code.**
   It found module specifiers with a regex, and `from` matched inside `Buffer.from('crypto')` —
   the optional-paren group ate the parenthesis and the argument was read as an import. Both
