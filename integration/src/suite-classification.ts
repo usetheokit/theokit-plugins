@@ -74,6 +74,22 @@ function isCredentialBoundCall(call: ts.CallExpression, bindings: Bindings): boo
   return false
 }
 
+/** Every call to a credential-bound helper in `source`, in source order. */
+function credentialBoundCalls(source: string, fileName: string): ts.CallExpression[] {
+  const parsed = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true)
+  const bindings = collectBindings(parsed)
+  if (bindings.direct.size === 0 && bindings.namespaces.size === 0) return []
+
+  const calls: ts.CallExpression[] = []
+  const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node) && isCredentialBoundCall(node, bindings)) calls.push(node)
+    ts.forEachChild(node, visit)
+  }
+  ts.forEachChild(parsed, visit)
+
+  return calls
+}
+
 /**
  * Whether `source` calls a credential-bound helper, and therefore belongs to the nightly run.
  *
@@ -81,20 +97,26 @@ function isCredentialBoundCall(call: ts.CallExpression, bindings: Bindings): boo
  * @param fileName - Name reported to the parser; affects diagnostics only.
  */
 export function callsCredentialBoundApi(source: string, fileName = 'suite.ts'): boolean {
-  const parsed = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true)
-  const bindings = collectBindings(parsed)
-  if (bindings.direct.size === 0 && bindings.namespaces.size === 0) return false
+  return credentialBoundCalls(source, fileName).length > 0
+}
 
-  let found = false
-  const visit = (node: ts.Node): void => {
-    if (found) return
-    if (ts.isCallExpression(node) && isCredentialBoundCall(node, bindings)) {
-      found = true
-      return
-    }
-    ts.forEachChild(node, visit)
+/**
+ * The environment-variable names `source` reads through `required('NAME')`, deduplicated.
+ *
+ * Used to check that every variable a suite actually reads is declared in the service registry.
+ * `GROQ_API_KEY` was read by the voice suite and declared nowhere: it lived in prose inside that
+ * service's `caveat` and was hand-appended to the .env.example generator, so both CI gates —
+ * which iterate the registry — were blind to it (#80).
+ *
+ * A non-literal argument is skipped rather than guessed at. `required(name)` cannot be resolved
+ * without evaluating the file, and a gate that named a variable which does not exist would be
+ * worse than one that stayed quiet about a case it cannot see.
+ */
+export function credentialNamesRead(source: string, fileName = 'suite.ts'): string[] {
+  const names = new Set<string>()
+  for (const call of credentialBoundCalls(source, fileName)) {
+    const [first] = call.arguments
+    if (first !== undefined && ts.isStringLiteralLike(first)) names.add(first.text)
   }
-  ts.forEachChild(parsed, visit)
-
-  return found
+  return [...names]
 }

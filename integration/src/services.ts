@@ -64,6 +64,16 @@ export interface ServiceSpec {
   /** Credentials without which nothing runs. */
   readonly credentials: readonly CredentialVar[]
   /**
+   * Credentials a suite reads but the service does not need to be considered ready.
+   *
+   * Their absence skips ONE suite and leaves the rest running, so they must not gate the
+   * service — but they are real variables the code reads, so they must be mapped in CI and must
+   * appear in `.env.example`. Without this slot the only place to put one was prose: GROQ_API_KEY
+   * lived inside the voice `caveat` and was hand-appended to the .env.example generator, which
+   * left both CI gates blind to it because they iterate the registry (#80).
+   */
+  readonly optionalCredentials?: readonly CredentialVar[]
+  /**
    * Where a live test is allowed to write, or what it is allowed to spend on.
    * Separate from `credentials` because a key proves who you are, not where it
    * is safe to act — every one of these must point at a throwaway target.
@@ -217,8 +227,15 @@ export const SERVICES: readonly ServiceSpec[] = [
         where: 'Any of the six the plugin accepts (see VALID_VOICES in options.ts)',
       },
     ],
+    optionalCredentials: [
+      {
+        name: 'GROQ_API_KEY',
+        what: 'Groq API key — lights up the Groq STT backend; without it that one suite skips and the OpenAI path still runs',
+        where: 'console.groq.com/keys',
+      },
+    ],
     caveat:
-      'Costs a fraction of a cent per run: one short tts-1 sentence plus one whisper transcription of the ~1s clip it produces. GROQ_API_KEY is optional and only lights up the Groq STT backend; without it that one test skips and the OpenAI path still runs. Note the variable is OPENAI_API_KEY, not OPEN_AI_API_KEY — the plugin itself falls back to the former (DEFAULT_STT_ENV_VAR/DEFAULT_TTS_ENV_VAR), so the other spelling looks configured and silently is not.',
+      'Costs a fraction of a cent per run: one short tts-1 sentence plus one whisper transcription of the ~1s clip it produces. Note the variable is OPENAI_API_KEY, not OPEN_AI_API_KEY — the plugin itself falls back to the former (DEFAULT_STT_ENV_VAR/DEFAULT_TTS_ENV_VAR), so the other spelling looks configured and silently is not.',
   },
   {
     id: 'auth-github',
@@ -286,6 +303,21 @@ export function serviceById(id: string): ServiceSpec {
 }
 
 /** Every variable name the registry knows about, credentials and targets alike. */
+/**
+ * The master switch every live suite is gated on.
+ *
+ * Deliberately NOT a member of any `ServiceSpec`: it proves nothing, points at nothing, and its
+ * absence does not skip one suite — it skips ALL of them, and the job still exits 0. A green
+ * tick over zero provider calls is the single most convincing way to believe in coverage that
+ * does not exist, so the workflow mapping is gated on its own rather than through the registry
+ * loop (#80).
+ */
+export const RUN_SWITCH_VAR = 'E2E_LIVE'
+
 export function allVariableNames(): string[] {
-  return SERVICES.flatMap((s) => [...s.credentials, ...s.target]).map((c) => c.name)
+  return SERVICES.flatMap((s) => [
+    ...s.credentials,
+    ...s.target,
+    ...(s.optionalCredentials ?? []),
+  ]).map((c) => c.name)
 }

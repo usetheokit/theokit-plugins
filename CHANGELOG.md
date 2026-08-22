@@ -36,6 +36,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Two variables the suites read were declared nowhere, so both CI gates were blind to them.**
+  `GROQ_API_KEY` is read by the voice suite and lived only in prose inside that service's
+  `caveat`, plus a hand-appended block in the `.env.example` generator — the drift that
+  generator's own docblock forbids. The registry had no slot for it: the model had required
+  credentials and targets, and this is neither, so `ServiceSpec` gained `optionalCredentials`.
+  `E2E_LIVE` is the master switch and belongs to no service; deleting its three mappings from
+  `integration.yml` made the entire nightly live run skip and still exit 0, a green tick over
+  zero provider calls. It is now a named constant with its own gate. A third gate closes the
+  class rather than the two instances: every variable any suite reads through `required('NAME')`
+  must be declared in the registry (#80)
 - **A suite that narrowed its credentials with `requires` lost the rail that says where it is
   safe to act.** The two options answer different questions — `requires` narrows which
   credentials a contract needs, `sends` declares that the suite writes or spends and so makes the

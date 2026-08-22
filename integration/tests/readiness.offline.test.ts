@@ -22,8 +22,8 @@ import { readdir } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
 import { has, liveRunEnabled, missingFor, unsafeReason } from '../src/credentials.js'
-import { SERVICES, allVariableNames, type ServiceSpec } from '../src/services.js'
-import { callsCredentialBoundApi } from '../src/suite-classification.js'
+import { RUN_SWITCH_VAR, SERVICES, allVariableNames, type ServiceSpec } from '../src/services.js'
+import { callsCredentialBoundApi, credentialNamesRead } from '../src/suite-classification.js'
 
 /** The lines describing one service: its status, then each gap and how to close it. */
 function describeRow(spec: ServiceSpec, missing: readonly string[]): string[] {
@@ -36,6 +36,13 @@ function describeRow(spec: ServiceSpec, missing: readonly string[]): string[] {
     const doc = docs.find((c) => c.name === name)
     lines.push(`             ${name} — ${doc?.what ?? ''}`)
     if (doc !== undefined) lines.push(`             ↳ ${doc.where}`)
+  }
+  // Optional credentials never appear in `missing` — by definition they do not gate the service —
+  // so without this the report would stop mentioning them entirely when they moved out of the
+  // caveat prose and into the registry.
+  for (const cred of spec.optionalCredentials ?? []) {
+    const state = has(cred.name) ? 'set' : 'not set'
+    lines.push(`             optional: ${cred.name} (${state}) — ${cred.what}`)
   }
   if (spec.caveat !== undefined) lines.push(`             ⚠ ${spec.caveat}`)
   return lines
@@ -251,6 +258,55 @@ describe('the registry reaches CI', () => {
       stranded,
       'credential-free suites that only the nightly run reaches — rename to *.offline.test.ts',
     ).toEqual([])
+  })
+
+  it('declares in the registry every variable a suite actually reads', async () => {
+    // A variable read by a suite and absent from the registry is invisible to BOTH gates in this
+    // describe, because they iterate `allVariableNames()`. GROQ_API_KEY was exactly that: read by
+    // the voice suite, documented only in prose inside that service's `caveat`, and hand-appended
+    // to the .env.example generator — the drift that generator's own docblock forbids (#80).
+    const { readdir, readFile } = await import('node:fs/promises')
+    const { join, relative } = await import('node:path')
+    const rootPath = fileURLToPath(new URL('.', import.meta.url))
+
+    const registered = new Set(allVariableNames())
+    const undeclared = new Map<string, string[]>()
+
+    for (const entry of await readdir(rootPath, { recursive: true, withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith('.test.ts')) continue
+      const file = relative(rootPath, join(entry.parentPath, entry.name))
+      const source = await readFile(join(entry.parentPath, entry.name), 'utf8')
+      for (const name of credentialNamesRead(source, file)) {
+        if (registered.has(name)) continue
+        undeclared.set(name, [...(undeclared.get(name) ?? []), file])
+      }
+    }
+
+    expect(
+      Object.fromEntries(undeclared),
+      'variables read by a suite but absent from SERVICES — both CI gates are blind to these',
+    ).toEqual({})
+  })
+
+  it('maps the live-run switch, so the nightly cannot all-skip and still report success', () => {
+    // Every other variable in this describe skips ONE service when it goes missing, and the
+    // readiness report names it. E2E_LIVE skips EVERY suite, and the job exits 0 — a green tick
+    // over zero provider calls. It is not in any ServiceSpec, so the registry loop above cannot
+    // see it, and until this assertion existed nothing did (#80).
+    const workflow = readFileSync(
+      new URL('../../.github/workflows/integration.yml', import.meta.url),
+      'utf8',
+    )
+    const mappings = envMappings(workflow, RUN_SWITCH_VAR)
+    expect(
+      mappings.length,
+      `${RUN_SWITCH_VAR} has no env: mapping in integration.yml — every live suite would skip`,
+    ).toBeGreaterThan(0)
+
+    const notEnabled = mappings
+      .filter((mapping) => !/:\s*'?1'?\s*$/.test(mapping.text))
+      .map((mapping) => `integration.yml:${mapping.line}`)
+    expect(notEnabled, `${RUN_SWITCH_VAR} mapped to something other than 1`).toEqual([])
   })
 
   it('gives ci.yml the offline command, so the convention has somewhere to land', () => {

@@ -13,7 +13,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { callsCredentialBoundApi } from '../src/suite-classification.js'
+import { callsCredentialBoundApi, credentialNamesRead } from '../src/suite-classification.js'
 
 describe('callsCredentialBoundApi', () => {
   it('detects a direct call to required()', () => {
@@ -101,5 +101,51 @@ describe('callsCredentialBoundApi', () => {
       export type Unused = typeof required
     `
     expect(callsCredentialBoundApi(source)).toBe(false)
+  })
+})
+
+describe('credentialNamesRead', () => {
+  it('collects the literal names a suite passes to required()', () => {
+    const source = `
+      import { required } from '../../src/credentials.js'
+      const a = required('OPENAI_API_KEY')
+      const b = required('GROQ_API_KEY')
+    `
+    expect(credentialNamesRead(source).sort()).toEqual(['GROQ_API_KEY', 'OPENAI_API_KEY'])
+  })
+
+  it('ignores a name that only appears in a comment', () => {
+    const source = `
+      // required('NOT_A_REAL_VAR') is how a suite reads a credential
+      export const nothing = 1
+    `
+    expect(credentialNamesRead(source)).toEqual([])
+  })
+
+  it('follows a renamed import', () => {
+    const source = `
+      import { required as need } from '../../src/credentials.js'
+      const key = need('RESEND_API_KEY')
+    `
+    expect(credentialNamesRead(source)).toEqual(['RESEND_API_KEY'])
+  })
+
+  it('reports each name once even when read repeatedly', () => {
+    const source = `
+      import { required } from '../../src/credentials.js'
+      const a = required('STRIPE_SECRET_KEY')
+      const b = required('STRIPE_SECRET_KEY')
+    `
+    expect(credentialNamesRead(source)).toEqual(['STRIPE_SECRET_KEY'])
+  })
+
+  it('skips a non-literal argument rather than guessing', () => {
+    // `required(name)` cannot be resolved statically. Reporting a guess would be worse than
+    // reporting nothing: the gate would name a variable that does not exist.
+    const source = `
+      import { required } from '../../src/credentials.js'
+      const key = required(someVariable)
+    `
+    expect(credentialNamesRead(source)).toEqual([])
   })
 })
