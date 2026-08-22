@@ -28,11 +28,6 @@
     "react-hook-form": "^7.50.0",
     "zod": "^4.0.0"
   },
-  "peerDependenciesMeta": {
-    "@usetheo/ui": {
-      "optional": true
-    }
-  },
   "devDependencies": {
     "@hookform/resolvers": "^5.0.0",
     "@testing-library/react": "^16.1.0",

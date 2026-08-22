@@ -48,6 +48,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- `@theokit/plugin-forms` declared `@usetheo/ui` an OPTIONAL peer while its public barrel imports
+  it at module scope, so a clean install succeeded and the first `import` threw
+  `ERR_MODULE_NOT_FOUND`. The declaration now matches the code. The "headless works peer-free"
+  path the flag promised has never existed in any published version — the barrel has re-exported
+  `TheoField` since the v0.1.0 scaffold — so the promise is retracted rather than left broken, and
+  making it real is tracked as its own API decision (#103)
 - **`npm install @theokit/plugin-forms` succeeds.** `@hookform/resolvers` was declared a peer,
   putting it in the consumer's top-level resolution, where npm eagerly satisfies its own optional
   peer `@typeschema/main` — and `@typeschema/zod` pins `zod@^3.23.8` while `@theokit/sdk`
