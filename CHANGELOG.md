@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `plugin-realtime`'s React surface has frame-reduction tests: which `joined` frame means "you"
+  rather than "somebody else", where a `presence-changed` is routed, and what a `left` with no
+  connectionId must not do. It moved from 69.73% to 98.52% statements and 53.12% to 87.5%
+  branches (#113)
 - `<CopilotProvider />` has tests. `handleFrame` — the whole translation from room frames into
   messages, presence and the error banner — was almost entirely unexecuted at 41.93% statements
   and 9.61% branches. `plugin-copilot`'s React surface is now at 100% and the package went from
@@ -70,6 +74,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Deprecated
 
 ### Removed
+
+- `RoomContextValue.subscribe` in `@theokit/plugin-realtime`, along with the listener set it was
+  the only writer to. Nothing called it, and neither the context nor its type is exported, so the
+  notify loop ran over an empty set on every frame (#115)
 
 ### Fixed
 
