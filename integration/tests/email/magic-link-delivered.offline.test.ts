@@ -281,15 +281,26 @@ describe('the link in the message that arrived', () => {
     })
   })
 
-  it('the text part carries a usable link too', async () => {
-    // Mail clients that render text-only are the fallback the template promises, and the
-    // text part is where a long URL is most likely to be mangled: no markup protects it.
+  it('the text part carries a usable link too, across a soft line break', async () => {
+    // Mail clients that render text-only are the fallback the template promises, and the text
+    // part is where a long URL is most likely to be mangled: no markup protects it.
+    //
+    // The sibling html test proves the hard case was REACHED before asserting recovery; this one
+    // asserted recovery alone, so a change that stopped folding the link would leave it green
+    // while claiming to cover the fold (#97). The link is 102 characters and quoted-printable
+    // folds at 76, so a link that arrives whole necessarily crossed a fold — assert the length
+    // rather than scan the raw message, which would also be satisfied by the html part's fold.
     const { auth, delivery } = await deliver('textonly@example.test')
 
     const text = delivery.mail.text ?? ''
     const url = /(https?:\/\/\S+)/.exec(text)?.[1]
     expect(url, 'no URL in the delivered text part').toBeDefined()
+    expect(
+      (url as string).length,
+      'the link is shorter than a quoted-printable line — no fold was exercised',
+    ).toBeGreaterThan(76)
     expect(url, 'the text link arrived broken').not.toMatch(/=$/)
+    expect(url, 'the text link lost its whitespace integrity').not.toMatch(/\s/)
 
     const result = await auth.handleCallback(callbackRequest(url as string), {} as never)
     expect(result.profile.email).toBe('textonly@example.test')

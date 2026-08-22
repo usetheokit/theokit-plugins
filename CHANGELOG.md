@@ -36,6 +36,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The text-part magic-link test asserted that the delivered link survives recovery without ever
+  asserting that it had been folded — the guard its sibling html test carries. A change that
+  stopped folding the link would have left it green while its name claimed to cover the fold. It
+  now asserts the link is longer than a quoted-printable line, so the fold is necessary rather
+  than assumed (#97)
 - **The delivered-mail suite was correct only in declaration order.** Six tests shared one
   module-level `delivered` array, and two of them sent nothing — they asserted against whatever
   a describe-level `beforeAll` had left behind. Under `--sequence.shuffle` one failed on a
