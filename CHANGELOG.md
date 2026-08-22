@@ -48,6 +48,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **A mis-permissioned `.env` made CI green without calling a single provider.** The `.env` load
+  had a comment-only `catch {}`, so EACCES, EISDIR and any parse error were all reported as the
+  comment's "No local .env is the normal case in CI". A correctly populated but unreadable file
+  therefore yielded an empty credential set, every live suite skipped naming a credential that
+  was right there, and the run passed — the exact outcome this package exists to prevent. Only
+  ENOENT is recoverable now; anything else propagates (#81)
 - **`E2E_LIVE=false` turned the paid suites ON.** The switch was `!== '0'`, so every non-empty
   value except the literal `0` opted in: a developer editing `E2E_LIVE=0` to `E2E_LIVE=false` to
   stop live runs started them — real email through Resend, real Stripe and AbacatePay checkouts,

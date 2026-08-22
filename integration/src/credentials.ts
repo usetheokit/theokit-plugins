@@ -55,8 +55,14 @@ function env(): Record<string, string> {
   let fromFile: Record<string, string> = {}
   try {
     fromFile = parseEnvFile(readFileSync(join(import.meta.dirname, '..', '.env'), 'utf8'))
-  } catch {
-    // No local .env is the normal case in CI.
+  } catch (err) {
+    // ENOENT is the normal case in CI, and the ONLY recoverable one. The catch used to be
+    // bare, so EACCES, EISDIR and any parse error were all reported as "no local .env": a
+    // correctly populated but mis-permissioned file yielded an empty set, every live suite
+    // skipped naming a credential that was right there, and CI went green having called no
+    // provider — the exact outcome this package exists to prevent (#81). Also `rules/
+    // error-handling.md` § 2: never swallow exceptions.
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err
   }
   const merged: Record<string, string> = { ...fromFile }
   // process.env wins, so a CI secret is never shadowed by a stray local file.
