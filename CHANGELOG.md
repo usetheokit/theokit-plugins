@@ -48,6 +48,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- `@theokit/plugin-forms` built with `tsup src/index.ts --format esm --dts --clean`, and a CLI
+  entry argument overrides `tsup.config.ts`, so that config's `entry` was dead. Every sibling
+  package runs bare `tsup` and lets the config decide; adding an entry to the config here would
+  have been silently ignored. The script now matches its siblings
 - `@theokit/plugin-forms` declared `@usetheo/ui` an OPTIONAL peer while its public barrel imports
   it at module scope, so a clean install succeeded and the first `import` threw
   `ERR_MODULE_NOT_FOUND`. The declaration now matches the code. The "headless works peer-free"
