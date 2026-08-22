@@ -36,6 +36,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **A hardcoded credential in the workflow block that runs the paid suites passed the gate meant
+  to stop exactly that.** `integration.yml` maps every registry variable twice — once for the
+  readiness report, once for the live suites — and the check read `.find()`, the first match. A
+  literal in the second block left it green while the value would land in the public git history.
+  The sibling check, which asserts every registry variable is mapped at all, settled for a
+  substring, so a mapping that had been commented out still counted. Both now match a YAML key
+  anchored to the start of a non-comment line, and the literal check reports every occurrence with
+  its line number (#85)
 - The assertion that `ci.yml` invokes the credential-free suites was `toContain('integration:offline')`
   — satisfied by the comment three lines above the step, the one explaining that the assertion
   exists. Deleting the step left the gate green and every credential-free suite would have stopped

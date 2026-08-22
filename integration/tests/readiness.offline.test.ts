@@ -172,6 +172,25 @@ describe('live-test readiness', () => {
   })
 })
 
+/**
+ * Every line of `workflow` that maps `name` as a YAML key, with its 1-based line number.
+ *
+ * Anchored to the start of the line and blind to comments, because both gates below used to
+ * settle for a substring: a name appearing only inside a `#` comment counted as mapped, and the
+ * literal check read `.find()` — the FIRST match — while integration.yml maps every registry
+ * variable twice, in the readiness block and again in the block that runs the paid suites. A
+ * credential hardcoded in the second block left both gates green (#85).
+ */
+function envMappings(workflow: string, name: string): { line: number; text: string }[] {
+  const found: { line: number; text: string }[] = []
+  workflow.split('\n').forEach((text, index) => {
+    const trimmed = text.trim()
+    if (trimmed.startsWith('#')) return
+    if (new RegExp(`^${name}:(\\s|$)`).test(trimmed)) found.push({ line: index + 1, text })
+  })
+  return found
+}
+
 describe('the registry reaches CI', () => {
   it('maps every registry variable into the e2e workflow', () => {
     // The failure this prevents, committed by the author of this very test:
@@ -187,7 +206,7 @@ describe('the registry reaches CI', () => {
       new URL('../../.github/workflows/integration.yml', import.meta.url),
       'utf8',
     )
-    const unmapped = allVariableNames().filter((name) => !workflow.includes(`${name}:`))
+    const unmapped = allVariableNames().filter((name) => envMappings(workflow, name).length === 0)
     expect(unmapped, 'registry variables with no env: mapping in integration.yml').toEqual([])
   })
 
@@ -253,10 +272,12 @@ describe('the registry reaches CI', () => {
       new URL('../../.github/workflows/integration.yml', import.meta.url),
       'utf8',
     )
-    const literals = allVariableNames().filter((name) => {
-      const line = workflow.split('\n').find((l) => l.trim().startsWith(`${name}:`))
-      return line !== undefined && !line.includes('${{ secrets.')
-    })
+    // EVERY mapping, not the first one found: the second block is the one that spends money.
+    const literals = allVariableNames().flatMap((name) =>
+      envMappings(workflow, name)
+        .filter((mapping) => !mapping.text.includes('${{ secrets.'))
+        .map((mapping) => `${name} (integration.yml:${mapping.line})`),
+    )
     expect(literals, 'variables set to a literal instead of a secret').toEqual([])
   })
 })
