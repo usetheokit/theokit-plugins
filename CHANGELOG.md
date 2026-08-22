@@ -36,6 +36,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The assertion guarding the packaging contract's coverage was the inverse of the comment
+  beside it.** `toBeGreaterThanOrEqual(11)` passes when a package is added — 12 >= 11 — and fails
+  only when one is removed, while the comment promised the opposite: "if a package is added, this
+  fails until it is acknowledged". Alongside it, `private: true` dropped a package from all four
+  assertions with a bare `continue`, leaving no trace: marking one private removes six tests and
+  nothing objected. The count is now exact, and packages outside the contract must be declared in
+  a named list rather than disappear (#93)
 - **The packaging contract resolved one subpath out of four.** Presence in the tarball and a
   shipped `.d.ts` are static facts that keep holding while `dist/stripe.js` imports a chunk that
   stopped being packed, or pulls a peer nobody declared — so `@theokit/plugin-payments/stripe`

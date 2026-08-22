@@ -121,17 +121,40 @@ const NODE_BUILTINS = new Set([
 
 const DIRS = packageDirs()
 
+/**
+ * Packages deliberately outside the packaging contract.
+ *
+ * Empty, and that is the point: marking a manifest `private: true` used to drop it from all
+ * four assertions with a bare `continue`, leaving no trace in the output. A package can leave
+ * this file's scope — but as a decision recorded here, not as a side effect of a manifest edit
+ * nobody reads (#93).
+ */
+const PRIVATE_BY_DESIGN: readonly string[] = []
+
+/** How many publishable packages this contract is expected to cover. */
+const EXPECTED_PUBLISHABLE = 11
+
+const PRIVATE = DIRS.filter((dir) => manifestOf(dir).private === true)
+const PUBLISHABLE = DIRS.filter((dir) => manifestOf(dir).private !== true)
+
 describe('consumer smoke — the packaging contract', () => {
-  it('covers every package under packages/, with no exclusions', () => {
-    // A list that silently shrank would make this whole file look thorough while
-    // testing less. Eleven is the current count; if a package is added, this
-    // fails until it is acknowledged.
-    expect(DIRS.length).toBeGreaterThanOrEqual(11)
+  it('covers every publishable package under packages/, with no silent exclusions', () => {
+    // `toBeGreaterThanOrEqual(11)` was the inverse of what the comment beside it promised:
+    // it passed when a package was ADDED — 12 >= 11 — and failed only when one was removed.
+    // The count is exact, so a new package fails this until the number is raised deliberately.
+    expect(
+      PUBLISHABLE.length,
+      `packages/ holds ${PUBLISHABLE.length} publishable manifests: ${PUBLISHABLE.join(', ')}`,
+    ).toBe(EXPECTED_PUBLISHABLE)
+
+    expect(
+      PRIVATE,
+      'packages dropped from the packaging contract by `private: true` and not declared above',
+    ).toEqual(PRIVATE_BY_DESIGN)
   })
 
-  for (const dir of DIRS) {
+  for (const dir of PUBLISHABLE) {
     const pkg = manifestOf(dir)
-    if (pkg.private === true) continue
 
     describe(pkg.name, () => {
       const files = packedFiles(dir)
