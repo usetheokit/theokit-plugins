@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `<CopilotProvider />` has tests. `handleFrame` — the whole translation from room frames into
+  messages, presence and the error banner — was almost entirely unexecuted at 41.93% statements
+  and 9.61% branches. `plugin-copilot`'s React surface is now at 100% and the package went from
+  81.55% to 93.59% statements, 66.49% to 89.7% branches. No defect this time: every assertion
+  passed on the first run (#113)
 - `<CopilotChat />` has tests. It was at 0% coverage in every metric — the whole component, never
   mounted — and is now at 100% lines, statements and functions. Mounting it is what found #114
   (#113)
