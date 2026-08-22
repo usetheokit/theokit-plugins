@@ -135,10 +135,24 @@ function contentType(req: IncomingMessage | Request): string {
   return raw.toLowerCase()
 }
 
-async function defaultResolveEmail(req: IncomingMessage | Request): Promise<string | null> {
+/** The address in a body a framework already parsed, or null when there is not one. */
+function emailFromParsedBody(parsedBody: unknown): string | null {
+  if (typeof parsedBody !== 'object' || parsedBody === null) return null
+  const { email } = parsedBody as { email?: unknown }
+  return typeof email === 'string' ? email.toLowerCase().trim() : null
+}
+
+async function defaultResolveEmail(
+  req: IncomingMessage | Request,
+  parsedBody?: unknown,
+): Promise<string | null> {
   // Try query string first
   const qs = requestUrl(req).searchParams.get('email')
   if (qs) return qs.toLowerCase().trim()
+  // A body the framework already parsed replaces reading the stream — it does not merely come
+  // first. Inside a TheoKit route the stream is already consumed and the Request carries no
+  // body, so there is nothing left to fall back to (#101).
+  if (parsedBody !== undefined) return emailFromParsedBody(parsedBody)
   // Fall back to form-data body. Buffer raw bytes (consumer may use middleware
   // that already parsed; that's the consumer's job — we only handle the bare case).
   if (req.method === 'POST' || req.method === 'PUT') {
@@ -199,8 +213,15 @@ export function magicLink(opts: MagicLinkProviderOptions): Omit<
   AuthProvider<MagicLinkProfile, 'magic-link'>,
   'handleCallback'
 > & {
-  /** Begin sign-in: validate email, persist token, send email. Returns the redirect URL. */
-  startSignIn(req: IncomingMessage | Request): Promise<URL>
+  /**
+   * Begin sign-in: validate email, persist token, send email. Returns the redirect URL.
+   *
+   * `parsedBody` is for callers whose framework already read the body. TheoKit is one: its route
+   * handler receives a `Request` with no body and the parsed value as `ctx.body`, so
+   * `startSignIn(request)` alone cannot reach the address (#101). Pass it through and the
+   * composition works: `startSignIn(request, body)`.
+   */
+  startSignIn(req: IncomingMessage | Request, parsedBody?: unknown): Promise<URL>
   /**
    * Consume the token and resolve the identity.
    *
@@ -238,8 +259,8 @@ export function magicLink(opts: MagicLinkProviderOptions): Omit<
   return {
     name: 'magic-link',
 
-    async startSignIn(req: IncomingMessage | Request): Promise<URL> {
-      const rawEmail = await resolveEmail(req)
+    async startSignIn(req: IncomingMessage | Request, parsedBody?: unknown): Promise<URL> {
+      const rawEmail = await resolveEmail(req, parsedBody)
       const email = validateEmail(rawEmail)
       const token = generateToken()
       const expiresAt = new Date(Date.now() + lifetimeMs)
