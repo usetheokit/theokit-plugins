@@ -36,6 +36,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The seam suite proved that the auth providers compose with a hand-written shim, not with a
+  TheoKit route.** It called `config.handler(ctx)` directly and built `ctx` itself, so it skipped
+  every stage the framework runs before a handler and, worse, built a `ctx` the framework never
+  builds. Three defects hid behind that: the shim put a body-carrying `Request` on `ctx.request`
+  where TheoKit puts a bodyless one, so the magic-link assertion the file called load-bearing
+  passed on an accident (#76); the CSRF stage never ran, so a POST route with no `csrf: false`
+  read as composable while a real consumer gets 403 before the handler (#78); and the suite saw
+  the handler's throw rather than the response, so it could not see that a rejected state answers
+  500 with the provider's internal message echoed to the caller (#95). The suite now runs a live
+  `node:http` server through TheoKit's own `executeRoute`
 - **The assertion guarding the packaging contract's coverage was the inverse of the comment
   beside it.** `toBeGreaterThanOrEqual(11)` passes when a package is added — 12 >= 11 — and fails
   only when one is removed, while the comment promised the opposite: "if a package is added, this
