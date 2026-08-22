@@ -1,7 +1,7 @@
 {
   "name": "@theokit/plugin-canvas",
   "version": "0.4.2",
-  "description": "Canvas plugin for TheoKit — artifact protocol (markdown/code/svg/diff/whiteboard/slide/mermaid/html/image) + side-panel UI + agent custom tool.",
+  "description": "Canvas plugin for TheoKit \u2014 artifact protocol (markdown/code/svg/diff/whiteboard/slide/mermaid/html/image) + side-panel UI + agent custom tool.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -34,7 +34,6 @@
     "zod": "^3.24.0"
   },
   "peerDependencies": {
-    "@theokit/sdk": ">=2.18.0",
     "@theokit/ui": "^1.1.0",
     "@usetheo/ui": ">=0.22.0 <1",
     "mermaid": "^11.0.0",

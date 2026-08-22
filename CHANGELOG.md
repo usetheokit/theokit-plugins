@@ -42,6 +42,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The peer-without-use gate checked exactly one name.** `checkFrameworkContract` asked whether
+  `theokit` was declared and unimported, so any `@theokit/*` peer in the same state was invisible
+  to it — seven of them were, across five packages. A peer nobody imports is not inert: it drags
+  its own dependency tree into the consumer's resolution, which is how `@theokit/plugin-forms`
+  became impossible to install. The gate now covers every framework peer, with per-peer
+  exemptions, and the seven decorative peers are gone (#66)
 - Clicking "Cancel" on the GitHub consent screen made `pnpm flow:github` sit for two minutes and
   then report "timed out waiting for the consent redirect" — about a redirect that had already
   arrived. The denial redirect carries `?error=access_denied` and no code, which fell into the
