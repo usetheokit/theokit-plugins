@@ -36,6 +36,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **A suite that narrowed its credentials with `requires` lost the rail that says where it is
+  safe to act.** The two options answer different questions — `requires` narrows which
+  credentials a contract needs, `sends` declares that the suite writes or spends and so makes the
+  spec's target variables mandatory — and they were one branch, so passing the first dropped the
+  second. All three voice suites narrow with `requires` and spend real money, so
+  `VOICE_TEST_TTS_VOICE` was never checked: the suite fell back to a default voice and billed
+  OpenAI while the readiness report in the same run printed that variable as missing. The
+  decision is now a pure function, `missingForSuite`, with the environment reader injected so it
+  can be tested without one (#82)
 - **A hardcoded credential in the workflow block that runs the paid suites passed the gate meant
   to stop exactly that.** `integration.yml` maps every registry variable twice — once for the
   readiness report, once for the live suites — and the check read `.find()`, the first match. A
