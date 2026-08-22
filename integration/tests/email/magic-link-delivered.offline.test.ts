@@ -144,18 +144,8 @@ function callbackRequest(url: string): IncomingMessage {
   } as unknown as IncomingMessage
 }
 
-/**
- * A base long enough that quoted-printable MUST break a line inside the token.
- *
- * Measured: with a short base the URL lands on a 51-character line and no break falls
- * inside it — the test would pass without ever exercising the encoding. With this base
- * the raw message carries `…token=3DFwjS…BvU1=` at column 76 and the rest on the next
- * line, which is the case a naive extraction gets wrong.
- */
-const LONG_BASE =
-  'https://app.usetheo.dev/tenant/acme-corporation-holdings/workspace/engineering-team'
-
-function wire(callbackBaseUrl = 'https://app.usetheo.dev') {
+function wire() {
+  const callbackBaseUrl = 'https://app.usetheo.dev'
   return magicLink({
     store: createMemoryStore(),
     callbackBaseUrl,
@@ -185,10 +175,9 @@ function onlyDelivery(): Delivery {
  */
 async function deliver(
   email: string,
-  base?: string,
 ): Promise<{ auth: ReturnType<typeof wire>; delivery: Delivery }> {
   delivered.length = 0
-  const auth = base === undefined ? wire() : wire(base)
+  const auth = wire()
   await auth.startSignIn(signInRequest(email))
   return { auth, delivery: onlyDelivery() }
 }
@@ -233,10 +222,14 @@ describe('the link in the message that arrived', () => {
   })
 
   it('survives a soft line break landing inside the token', async () => {
-    // The assertion this whole file exists for, and the one that needed a long base URL to
-    // become real: with a short one the link lands on a 51-character line, no break falls
-    // inside it, and the test would pass without exercising the codec at all.
-    const { auth, delivery } = await deliver('longurl@example.test', LONG_BASE)
+    // The assertion this whole file exists for.
+    //
+    // The fold comes from the LINK's length, not from the base URL's. The callback path is
+    // absolute, so `new URL('/auth/magic-link/callback', base)` discards whatever path the base
+    // carried: a 43-character token makes the link 102 characters against a 76-column
+    // quoted-printable fold, with any base. A `LONG_BASE` constant used to sit here, and two
+    // comments explained the test by it — measured, it produced a byte-identical message (#102).
+    const { auth, delivery } = await deliver('longurl@example.test')
     const { raw, mail } = delivery
 
     // First prove the hard case actually happened: a 76-column line ending in a soft

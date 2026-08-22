@@ -36,6 +36,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- `LONG_BASE`, a constant the delivered-mail suite explained two of its tests by, produced a
+  byte-identical message. The magic-link callback path is absolute, so
+  `new URL('/auth/magic-link/callback', base)` discards whatever path the base carried. A
+  maintainer shortening it would have believed they were weakening coverage, and one lengthening
+  it that they were strengthening it; neither is true. Removed, and the comments now name what
+  does produce the fold — a 102-character link against a 76-column quoted-printable line (#102)
 - The text-part magic-link test asserted that the delivered link survives recovery without ever
   asserting that it had been folded — the guard its sibling html test carries. A change that
   stopped folding the link would have left it green while its name claimed to cover the fold. It
