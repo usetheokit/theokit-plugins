@@ -161,6 +161,12 @@ jobs:
       - name: Documentation gates (drift, orphans, coverage)
         run: pnpm quality:docs
 
+      # The bump derivation in rules/cycle-release.md reads the [Unreleased] category sections.
+      # It assumes each names one place in the file; two edits once appended a second full set of
+      # headings and nothing objected (#100).
+      - name: CHANGELOG structure gate ([Unreleased] categories)
+        run: pnpm quality:changelog
+
   test:
     name: Unit tests
     runs-on: ubuntu-latest
