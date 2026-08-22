@@ -36,6 +36,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- `pnpm flow:stripe-webhook` reported `NEVER ARRIVED` for two event types it had just verified.
+  The handler registrations were a second, hand-written copy of the normalised types `EXPECTED`
+  declares, and it held four of the five: `checkout.expired` and `payment.disputed` had no
+  handler, so a real delivery with a Stripe-produced signature was normalised correctly, recorded
+  nowhere, and reported as unverified after burning the full 120-second window. The registrations
+  are now derived from `EXPECTED` (#87)
 - The Stripe reconciliation test asserted `amountInCents: 500` and `currency: 'USD'` against a
   fixture whose provisioning instructions say only "create a product with a one-time price". An
   operator following them to the letter got a failure naming the provider, for a requirement

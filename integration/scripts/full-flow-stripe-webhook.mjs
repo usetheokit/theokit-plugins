@@ -171,7 +171,12 @@ console.log(
 
 const received = []
 const registry = new PaymentEventRegistry()
-for (const type of ['checkout.completed', 'payment.refunded', 'payment.failed', 'unknown']) {
+// Derived from EXPECTED rather than listed again. The hand-written list held four of the five
+// normalised types EXPECTED declares, so `checkout.expired` and `payment.disputed` had no handler:
+// Stripe delivered them, the plugin verified the signature and normalised them correctly, nothing
+// pushed to `received`, and the run reported NEVER ARRIVED for a mapping that had just been
+// verified end to end (#87). `unknown` is the catch-all and is not in EXPECTED.
+for (const type of new Set([...Object.values(EXPECTED), 'unknown'])) {
   registry.register(
     definePaymentWebhook(type, async (event) => {
       received.push(event)
