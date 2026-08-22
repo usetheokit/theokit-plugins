@@ -204,3 +204,10 @@ jobs:
         run: pnpm build
 
       - run: pnpm test
+
+      # Nothing measured coverage in this repository until 2026-08-22: no provider was
+      # installed and the floor in rules/code-quality-thresholds.txt was commented out. The
+      # numbers found on the first run ranged from 58.82% to 97.74%, and plugin-forms — the
+      # lowest — had never mounted either of its components.
+      - name: Coverage floor (80% lines, per package)
+        run: pnpm coverage

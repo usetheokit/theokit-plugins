@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Coverage is measured, and has a floor.** Nothing measured it before: no provider was
+  installed and the project's own `coverage.min_percent = 80` sat commented out, so the number
+  had never been produced in this repository. Measured on the first run it ranged from 58.82% to
+  97.74% — and the lowest, `plugin-forms`, had never mounted either of its components.
+  `pnpm coverage` now runs every package through `@vitest/coverage-v8` with an 80% line floor,
+  and `ci.yml` runs it beside the unit suite (#109)
 - `@theokit/plugin-forms` gains component-level tests: `<TheoField>` was at 8.33% line coverage
   and `<TheoForm>` at 40%, neither had ever been mounted. Line and function coverage for the
   package went from 58.82% / 50% to 100% / 100%, and the new assertions are about accessible
