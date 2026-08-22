@@ -38,9 +38,7 @@ describe('.env.example', () => {
       ...(spec.optionalCredentials ?? []),
     ]).map((cred) => cred.name)
 
-    const absent = declared.filter(
-      (name) => !new RegExp(`^${name}=`, 'm').test(committed),
-    )
+    const absent = declared.filter((name) => !new RegExp(`^${name}=`, 'm').test(committed))
     expect(absent, 'registry variables with no line in .env.example').toEqual([])
   })
 })
