@@ -16,6 +16,7 @@
  */
 
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { readdir } from 'node:fs/promises'
 
 import { describe, expect, it } from 'vitest'
@@ -203,16 +204,17 @@ describe('the registry reaches CI', () => {
     // `*.offline.test.ts` — the two things `pnpm integration:offline` runs, and the only
     // command `ci.yml` invokes.
     const { readdir, readFile } = await import('node:fs/promises')
+    const { join, relative } = await import('node:path')
     const root = new URL('.', import.meta.url)
+    const rootPath = fileURLToPath(root)
 
-    const files: string[] = []
-    for (const entry of await readdir(root, { withFileTypes: true })) {
-      if (entry.isFile() && entry.name.endsWith('.test.ts')) files.push(entry.name)
-      if (!entry.isDirectory()) continue
-      for (const inner of await readdir(new URL(`${entry.name}/`, root))) {
-        if (inner.endsWith('.test.ts')) files.push(`${entry.name}/${inner}`)
-      }
-    }
+    // Recursive, because vitest's own include glob is `tests/**` at any depth. The walk used to
+    // descend exactly one level, so a credential-free suite three directories down ran only in
+    // the nightly and this gate stayed green — the gate's blind spot having the same shape as
+    // the defect it exists to report (#92).
+    const files = (await readdir(rootPath, { recursive: true, withFileTypes: true }))
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.test.ts'))
+      .map((entry) => relative(rootPath, join(entry.parentPath, entry.name)))
 
     const stranded: string[] = []
     for (const file of files) {

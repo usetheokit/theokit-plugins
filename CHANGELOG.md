@@ -36,6 +36,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The stranded-suite walk descended exactly one directory level while vitest's include glob is
+  `tests/**` at any depth, so a credential-free suite three directories down ran only in the
+  nightly and the gate reported nothing — the gate's blind spot having the same shape as the
+  defect it exists to report. The walk is now recursive (#92)
 - **The gate that finds stranded test suites was satisfied by prose.** It decided whether a suite
   needs a credential by regexing the raw source for `required(` and `describeLive(`, comments
   included — so a file that merely _described_ the convention was read as credential-bound and
