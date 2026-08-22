@@ -131,9 +131,32 @@ export function unsafeReason(spec: ServiceSpec): string | undefined {
   return undefined
 }
 
+/** The one value that opts a run into calling real providers. */
+const LIVE_RUN_OPT_IN = '1'
+
+/**
+ * Whether the switch value opts this run in.
+ *
+ * Equality against the single documented value, not inequality against one refusal. It was
+ * `!== '0'`, so `false`, `no`, `off` and every other non-empty string meant "spend money": a
+ * developer editing `E2E_LIVE=0` to `E2E_LIVE=false` to turn live runs OFF turned them on, and
+ * the generated `.env.example` promises the opposite — "Nothing runs without E2E_LIVE=1" (#79).
+ *
+ * An unrecognised value stays off rather than being guessed at. `true`/`yes`/`on` are not
+ * accepted on purpose: a switch that interprets is a switch that eventually interprets something
+ * nobody meant as consent, and the cost of that mistake here is real money.
+ *
+ * @param read - Injected so the decision can be tested without an environment.
+ */
+export function isLiveRunEnabled(
+  read: () => string | undefined = () => optional('E2E_LIVE'),
+): boolean {
+  return read() === LIVE_RUN_OPT_IN
+}
+
 /** Live suites are opt-in: they call real APIs and cost real money. */
 export function liveRunEnabled(): boolean {
-  return has('E2E_LIVE') && required('E2E_LIVE') !== '0'
+  return isLiveRunEnabled()
 }
 
 /**

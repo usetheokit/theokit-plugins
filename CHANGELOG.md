@@ -48,6 +48,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **`E2E_LIVE=false` turned the paid suites ON.** The switch was `!== '0'`, so every non-empty
+  value except the literal `0` opted in: a developer editing `E2E_LIVE=0` to `E2E_LIVE=false` to
+  stop live runs started them — real email through Resend, real Stripe and AbacatePay checkouts,
+  real OpenAI credit — while the generated `.env.example` header promises "Nothing runs without
+  E2E_LIVE=1". It is now equality against that documented value, and an unrecognised value stays
+  off rather than being guessed at (#79)
 - `@theokit/plugin-forms` built with `tsup src/index.ts --format esm --dts --clean`, and a CLI
   entry argument overrides `tsup.config.ts`, so that config's `entry` was dead. Every sibling
   package runs bare `tsup` and lets the config decide; adding an entry to the config here would
