@@ -48,6 +48,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **`npm install @theokit/plugin-forms` succeeds.** `@hookform/resolvers` was declared a peer,
+  putting it in the consumer's top-level resolution, where npm eagerly satisfies its own optional
+  peer `@typeschema/main` — and `@typeschema/zod` pins `zod@^3.23.8` while `@theokit/sdk`
+  requires `zod@^4.0.0`. Two transitive chains, mutually exclusive, neither of them this
+  repository's. It was never a consumer contract either: `TheoForm` imports `zodResolver` from it
+  internally and the consumer never names the package. As a dependency it resolves inside the
+  package's own subtree and the conflict does not arise (#64)
 - **The peer-without-use gate checked exactly one name.** `checkFrameworkContract` asked whether
   `theokit` was declared and unimported, so any `@theokit/*` peer in the same state was invisible
   to it — seven of them were, across five packages. A peer nobody imports is not inert: it drags
