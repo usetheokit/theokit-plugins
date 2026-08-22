@@ -37,15 +37,14 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-9 items — **Open** 7 · **In flight** 0 · **Closed** 2
+9 items — **Open** 6 · **In flight** 0 · **Closed** 3
 
-### Open (7)
+### Open (6)
 
 | Item                                                                                                | Title                                                                          | Status | Severity |
 | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------ | -------- |
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `raw`  | —        |
 | [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention--)               | The request-decoration namespace is global and has no convention               | `raw`  | —        |
-| [`B-003`](#b-003--plugin-realtimes-integration-tests-never-open-a-websocket--)                      | `plugin-realtime`'s integration tests never open a WebSocket                   | `raw`  | —        |
 | [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain--)                   | No test asserts that a package belongs to exactly one domain                   | `raw`  | —        |
 | [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams--)                      | The `plugin-` prefix names four different integration seams                    | `raw`  | —        |
 | [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it--)           | The root `v*` tag convention is dead and the CHANGELOG still implies it        | `raw`  | —        |
@@ -55,10 +54,11 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (2)
+### Closed (3)
 
 | Item                                                                                         | Title                                                                     | Status    | Severity |
 | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | --------- | -------- |
+| [`B-003`](#b-003--plugin-realtimes-integration-tests-never-open-a-websocket-x)               | `plugin-realtime`'s integration tests never open a WebSocket              | `shipped` | —        |
 | [`B-004`](#b-004--auth-magic-link-has-no-live-suite-while-the-other-two-auth-providers-do-x) | `auth-magic-link` has no live suite while the other two auth providers do | `shipped` | —        |
 | [`B-006`](#b-006--backlog-init-assumed-an-umbrella-and-would-have-refused-to-run-here-x)     | `/backlog-init` assumed an umbrella and would have refused to run here    | `shipped` | —        |
 
@@ -121,9 +121,10 @@ dod:
 - the check covers keys declared as string literals, since that is how the one existing key is
   written
 
-## B-003 — `plugin-realtime`'s integration tests never open a WebSocket [ ]
+## B-003 — `plugin-realtime`'s integration tests never open a WebSocket [x]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `realtime-in-process-only`).
+> Measured and closed 2026-08-22 — see `resolution:`.
 
 domain: plugin-server
 repo: plugin-realtime
@@ -136,12 +137,29 @@ why_now: measured 2026-08-18 — the package has 57 tests including
 description says it consumes `@theokit/sdk@>=1.7.0 subscribe` for WS transport, so the transport is
 the part a consumer depends on and the part nothing exercises. This is the same shape as #48: a
 suite that agrees with its author about a boundary it never crosses.
-status: raw
+status: shipped
+resolution: three of the four points were already met when this was measured, by
+`tests/integration/wire-round-trip.test.ts` — a real `ws` server and a real client socket, added
+in `617483a` on the same day this item was filed. The fourth, reconnect, was genuinely missing and
+is now covered.
+found_a_real_failure_mode: the item predicted "presence that never expires". The measurement
+showed the opposite, and a worse defect: a client that RECONNECTS is never registered at all.
+Over the real socket, `getPresence('doc')` returns `["alice"]` during the first session and `[]`
+after a drop and reconnect — unchanged at +400ms, so not a race. Cause: presence is keyed by
+`connectionId` and `leaveRoom` deletes by that key alone, so the dead session's late `release()`
+removed the live registration, and every other participant got a `left` frame for somebody who had
+just joined. Filed and fixed as #110.
+note_on_the_premise: the title is wrong as written and is kept verbatim, because renumbering or
+rewording an item is how a registry stops being an audit trail. The suite it says does not exist
+was added the same day the item was registered.
 dod:
 
-- presence and broadcast asserted across two clients over a real WebSocket connection
-- a disconnect/reconnect case, since presence that never expires is the characteristic defect here
-- the test fails if the transport is swapped for an in-process stub
+- presence and broadcast asserted across two clients over a real WebSocket connection [x]
+  (presence in the `joined` frame, and a Yjs update crossing as base64 into a second document)
+- a disconnect/reconnect case, since presence that never expires is the characteristic defect here [x]
+  (disconnect was covered; reconnect was added, and it failed — see `found_a_real_failure_mode`)
+- the test fails if the transport is swapped for an in-process stub [x]
+  ("the encoding is load-bearing: the raw Uint8Array would not survive JSON")
 
 ## B-004 — `auth-magic-link` has no live suite while the other two auth providers do [x]
 
