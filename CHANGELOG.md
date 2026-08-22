@@ -36,6 +36,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Clicking "Cancel" on the GitHub consent screen made `pnpm flow:github` sit for two minutes and
+  then report "timed out waiting for the consent redirect" — about a redirect that had already
+  arrived. The denial redirect carries `?error=access_denied` and no code, which fell into the
+  no-code branch: 204, server left listening, timer left running. It now answers the browser,
+  closes the server and rejects immediately with the error GitHub named (#98)
 - `pnpm flow:stripe-webhook` failed runs in which nothing had gone wrong. Async event types with
   no instance on the account yet — which the script itself describes as arriving
   minutes-to-hours later — were pushed into the same array as triggered events that never
