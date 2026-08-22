@@ -36,6 +36,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The delivered-mail suite was correct only in declaration order.** Six tests shared one
+  module-level `delivered` array, and two of them sent nothing — they asserted against whatever
+  a describe-level `beforeAll` had left behind. Under `--sequence.shuffle` one failed on a
+  mailbox address, pointing at the delivery path rather than the ordering, and the other — whose
+  comment calls it a guard for the next test — kept passing against an unrelated message, which
+  is a guard that cannot fail. Every test now produces its own delivery (#86)
 - The service registry described `exercise` as "the load-bearing field. It is not decoration",
   and nothing branches on it: its only readers are a printed label in the readiness report and a
   comment in the generated `.env.example`. A reader who believed the docblock would assume that

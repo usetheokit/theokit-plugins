@@ -173,6 +173,26 @@ function onlyDelivery(): Delivery {
   return one
 }
 
+/**
+ * Send one magic link and return the message that arrived, with the provider that sent it.
+ *
+ * Every test calls this, so no test reads a message another one produced. `delivered` is
+ * module-level because the SMTP server's `onData` pushes into it — that much is inherent to the
+ * harness — but the ORDER dependency is not: two of these tests used to assert against whatever
+ * a describe-level `beforeAll` had left behind, so a `.only`, a reorder or `--sequence.shuffle`
+ * made one fail on a mailbox address and the other pass vacuously against an unrelated message
+ * (#86, and `rules/testing.md` § 3).
+ */
+async function deliver(
+  email: string,
+  base?: string,
+): Promise<{ auth: ReturnType<typeof wire>; delivery: Delivery }> {
+  delivered.length = 0
+  const auth = base === undefined ? wire() : wire(base)
+  await auth.startSignIn(signInRequest(email))
+  return { auth, delivery: onlyDelivery() }
+}
+
 /** The href a mail client would follow, taken from the RECEIVED html. */
 function hrefFromReceived(mail: ParsedMail): string {
   const html = mail.html
@@ -189,13 +209,9 @@ function hrefFromReceived(mail: ParsedMail): string {
 }
 
 describe('the link in the message that arrived', () => {
-  beforeAll(async () => {
-    delivered.length = 0
-    await wire().startSignIn(signInRequest('recipient@example.test'))
-  })
-
-  it('arrived at all, addressed to the recipient, with both bodies', () => {
-    const { mail } = onlyDelivery()
+  it('arrived at all, addressed to the recipient, with both bodies', async () => {
+    const { delivery } = await deliver('recipient@example.test')
+    const { mail } = delivery
     expect(addressText(mail.to)).toBe('recipient@example.test')
     expect(addressText(mail.from)).toContain('no-reply@usetheo.dev')
     expect(mail.subject).toContain('TheoKit')
@@ -203,10 +219,12 @@ describe('the link in the message that arrived', () => {
     expect(mail.text, 'no text part survived delivery').toBeTruthy()
   })
 
-  it('was quoted-printable encoded on the wire, not sent as-is', () => {
+  it('was quoted-printable encoded on the wire, not sent as-is', async () => {
     // Guards the premise of the next test. A transport that skipped the encoding would
-    // make every assertion below pass for the wrong reason.
-    const { raw } = onlyDelivery()
+    // make every assertion below pass for the wrong reason. It sends its own message: it
+    // used to read whichever one happened to be there, which is a guard that cannot fail.
+    const { delivery } = await deliver('recipient@example.test')
+    const { raw } = delivery
     expect(raw, 'nothing declared a transfer encoding').toMatch(
       /Content-Transfer-Encoding:\s*quoted-printable/i,
     )
@@ -218,11 +236,8 @@ describe('the link in the message that arrived', () => {
     // The assertion this whole file exists for, and the one that needed a long base URL to
     // become real: with a short one the link lands on a 51-character line, no break falls
     // inside it, and the test would pass without exercising the codec at all.
-    const auth = wire(LONG_BASE)
-    delivered.length = 0
-    await auth.startSignIn(signInRequest('longurl@example.test'))
-
-    const { raw, mail } = onlyDelivery()
+    const { auth, delivery } = await deliver('longurl@example.test', LONG_BASE)
+    const { raw, mail } = delivery
 
     // First prove the hard case actually happened: a 76-column line ending in a soft
     // break, carrying part of the token. Without this the test claims a failure mode it
@@ -246,22 +261,18 @@ describe('the link in the message that arrived', () => {
   it('signs the user in — the delivered token is the one the store holds', async () => {
     // This is the claim the other two suites cannot make: the token came out of a message
     // that travelled over a socket and was parsed back from its wire format.
-    const auth = wire()
-    delivered.length = 0
-    await auth.startSignIn(signInRequest('roundtrip@example.test'))
+    const { auth, delivery } = await deliver('roundtrip@example.test')
 
-    const href = hrefFromReceived(onlyDelivery().mail)
+    const href = hrefFromReceived(delivery.mail)
     const result = await auth.handleCallback(callbackRequest(href), {} as never)
 
     expect(result.profile.email).toBe('roundtrip@example.test')
   })
 
   it('is single-use after arriving', async () => {
-    const auth = wire()
-    delivered.length = 0
-    await auth.startSignIn(signInRequest('once@example.test'))
+    const { auth, delivery } = await deliver('once@example.test')
 
-    const href = hrefFromReceived(onlyDelivery().mail)
+    const href = hrefFromReceived(delivery.mail)
     await auth.handleCallback(callbackRequest(href), {} as never)
 
     await expect(auth.handleCallback(callbackRequest(href), {} as never)).rejects.toMatchObject({
@@ -273,11 +284,9 @@ describe('the link in the message that arrived', () => {
   it('the text part carries a usable link too', async () => {
     // Mail clients that render text-only are the fallback the template promises, and the
     // text part is where a long URL is most likely to be mangled: no markup protects it.
-    const auth = wire()
-    delivered.length = 0
-    await auth.startSignIn(signInRequest('textonly@example.test'))
+    const { auth, delivery } = await deliver('textonly@example.test')
 
-    const text = onlyDelivery().mail.text ?? ''
+    const text = delivery.mail.text ?? ''
     const url = /(https?:\/\/\S+)/.exec(text)?.[1]
     expect(url, 'no URL in the delivered text part').toBeDefined()
     expect(url, 'the text link arrived broken').not.toMatch(/=$/)
