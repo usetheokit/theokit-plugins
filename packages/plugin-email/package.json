@@ -26,7 +26,7 @@
     "@react-email/render": ">=1.0.0",
     "react": ">=19.0.0",
     "resend": ">=3.0.0",
-    "theokit": ">=0.2.4"
+    "theokit": ">=0.48.7"
   },
   "peerDependenciesMeta": {
     "@react-email/components": {

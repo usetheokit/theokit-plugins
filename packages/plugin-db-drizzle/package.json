@@ -24,7 +24,7 @@
   "peerDependencies": {
     "drizzle-orm": ">=0.37.0",
     "reflect-metadata": "^0.2.0",
-    "theokit": ">=0.2.3"
+    "theokit": ">=0.48.7"
   },
   "peerDependenciesMeta": {
     "drizzle-kit": {

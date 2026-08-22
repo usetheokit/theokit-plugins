@@ -106,6 +106,32 @@ const PEER_WITHOUT_USE_EXEMPT = {
   },
 }
 
+/**
+ * The lowest version a simple range admits: `^0.48.7` and `>=0.48.7` both yield `0.48.7`.
+ *
+ * Deliberately not a semver-range parser. The manifests in this repository use exactly these two
+ * forms, and a partial parser that silently mishandled a third would be worse than one that
+ * refuses: `null` means "cannot read this", and the caller skips rather than guesses.
+ */
+function rangeFloor(range) {
+  const match = /^(?:\^|~|>=)?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/.exec(range.trim())
+  if (match === null) return null
+  return {
+    parts: [Number(match[1]), Number(match[2]), Number(match[3])],
+    prerelease: match[4] ?? null,
+  }
+}
+
+/** True when `a` is strictly below `b`. A prerelease sorts below the same release. */
+function isBelow(a, b) {
+  for (let i = 0; i < 3; i += 1) {
+    if (a.parts[i] !== b.parts[i]) return a.parts[i] < b.parts[i]
+  }
+  if (a.prerelease === b.prerelease) return false
+  if (a.prerelease !== null && b.prerelease === null) return true
+  return false
+}
+
 const violations = []
 
 function check(dir) {
@@ -239,6 +265,22 @@ function checkFrameworkContract(dir, pkg, where) {
     violations.push(
       `${where}: declares a \`${peer}\` peerDependency and imports nothing from it. A peer nobody imports still drags its dependency tree into the consumer's resolution (#64). Either use it or drop it — or add it to PEER_WITHOUT_USE_EXEMPT['${dir}'] with the reason. See #42 item 3, #66.`,
     )
+  }
+
+  // A peer floor below what the package is BUILT against is a promise nobody checked. Six
+  // packages imported `theokit` and declared floors from >=0.1.0-alpha.5 to >=0.4.0-beta.0,
+  // ranges spanning the framework's builder-API change: the code does not compile against the
+  // versions they admit, and the failure lands in the consumer's build pointing at us (#69).
+  const devFloorRange = pkg.devDependencies?.theokit
+  const peerFloorRange = pkg.peerDependencies?.theokit
+  if (typeof devFloorRange === 'string' && typeof peerFloorRange === 'string') {
+    const devFloor = rangeFloor(devFloorRange)
+    const peerFloor = rangeFloor(peerFloorRange)
+    if (devFloor !== null && peerFloor !== null && isBelow(peerFloor, devFloor)) {
+      violations.push(
+        `${where}: peerDependencies.theokit is ${JSON.stringify(peerFloorRange)} but the package is built against ${JSON.stringify(devFloorRange)} — the range admits versions nothing here compiles against. Raise the floor, or add a CI job that builds this package against it. See #69.`,
+      )
+    }
   }
 
   for (const peer of Object.keys(exempt)) {

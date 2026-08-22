@@ -15,6 +15,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- The `theokit` peer floor on nine packages is `>=0.48.7`, the version they are built against.
+  The declared floors ran from `>=0.1.0-alpha.5` to `>=0.4.0-beta.0` — ranges spanning the
+  framework's move to a builder API — while every one of those packages carries `theokit: ^0.48.7`
+  as its devDependency. They admitted versions the code does not compile against, and the failure
+  would land in a consumer's build pointing at our package. `check:manifests` now fails when a
+  peer floor drops below the devDependency the package is built with (#69)
 - `@theokit/plugin-forms` declares `zod: ^4.0.0` and is developed against zod 4. It advertised
   `^3.25.0 || ^4.0.0` while its own peer chain forbids zod 3 — `@theokit/react` requires
   `@theokit/sdk@^1.1.0`, which requires `zod@^4.0.0` — and the repository built and tested it
