@@ -36,6 +36,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The `auth-github` live suite read `.code` off a variable only assigned inside a `catch`. If
+  GitHub ever stopped refusing a deliberately invalid code — the upstream drift that suite's one
+  live assertion exists to detect — the catch would not run and the read would throw a
+  `TypeError`, reporting a harness crash instead of naming the contract that moved. It now
+  asserts the rejection happened before reading off it (#89)
 - **The seam suite proved that the auth providers compose with a hand-written shim, not with a
   TheoKit route.** It called `config.handler(ctx)` directly and built `ctx` itself, so it skipped
   every stage the framework runs before a handler and, worse, built a `ctx` the framework never
