@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `@theokit/plugin-forms` gains component-level tests: `<TheoField>` was at 8.33% line coverage
+  and `<TheoForm>` at 40%, neither had ever been mounted. Line and function coverage for the
+  package went from 58.82% / 50% to 100% / 100%, and the new assertions are about accessible
+  relationships and submit behaviour rather than markup — which is how the two defects above were
+  found
 - `Workflow Lint`, a CI gate running actionlint and zizmor over `.github/workflows/` (#74)
 - Every published package declares `engines.node`; none of the eleven did (#74)
 - `pnpm quality:changelog`, a CI gate that fails when the `[Unreleased]` block declares a category
@@ -48,6 +53,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The `@theokit/plugin-forms` README documented a form that no screen reader could use.**
+  `FormField.Control` clones its direct child to inject `id` / `aria-invalid` /
+  `aria-describedby`, and Cookbook 1 put a consumer component in that slot, which swallowed all
+  three — the label pointed at an id nothing had (#105). Its `<FormField.Error />` was
+  self-closing, and that component renders only its children, so the alert appeared empty and the
+  reason the server gave was discarded (#106). Both were invisible to anyone reviewing by sight.
+  The cookbook is corrected and both shapes are pinned by tests (#105, #106)
 - **A mis-permissioned `.env` made CI green without calling a single provider.** The `.env` load
   had a comment-only `catch {}`, so EACCES, EISDIR and any parse error were all reported as the
   comment's "No local .env is the normal case in CI". A correctly populated but unreadable file

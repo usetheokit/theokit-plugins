@@ -80,12 +80,29 @@ The TheoKit Vite plugin detects the convention and exposes the schema at runtime
 ```tsx
 'use client'
 import { actions } from '@theo/actions'
-import { TheoForm, TheoField, useTheoFieldRegister } from '@theokit/plugin-forms'
+import { TheoForm, TheoField, useTheoFieldRegister, useTheoFieldScope } from '@theokit/plugin-forms'
 import { FormField, Input, Button } from '@usetheo/ui'
 
-function InputForCurrentField() {
+// `FormField.Control` clones its DIRECT child to inject `id`, `aria-invalid` and
+// `aria-describedby`. So the direct child has to be the real `<Input>`: a component of
+// your own in that slot receives those props and drops them, leaving the label pointing
+// at an id nothing has and the error announced to nobody (#105). Keep `FormField.Control`
+// INSIDE the component that calls the hook.
+function ControlForCurrentField() {
   const register = useTheoFieldRegister()
-  return <Input {...register} placeholder="Type something..." />
+  return (
+    <FormField.Control>
+      <Input {...register} placeholder="Type something..." />
+    </FormField.Control>
+  )
+}
+
+// `FormField.Error` renders its CHILDREN — it does not read the message from anywhere. Left
+// self-closing it shows an empty alert: the field goes `aria-invalid`, the icon appears, and
+// the reason the server gave is dropped (#106). `useTheoFieldScope()` is exported for this.
+function ErrorForCurrentField() {
+  const { error } = useTheoFieldScope()
+  return <FormField.Error>{error?.message}</FormField.Error>
 }
 
 export default function MemoryPage() {
@@ -98,10 +115,8 @@ export default function MemoryPage() {
       <input type="hidden" name="conversationId" value="default" readOnly />
       <TheoField name="content">
         <FormField.Label required>Memory</FormField.Label>
-        <FormField.Control>
-          <InputForCurrentField />
-        </FormField.Control>
-        <FormField.Error />
+        <ControlForCurrentField />
+        <ErrorForCurrentField />
       </TheoField>
       <Button type="submit">Save</Button>
     </TheoForm>
