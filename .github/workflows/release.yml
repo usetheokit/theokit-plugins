@@ -75,6 +75,21 @@ jobs:
         run: npm install -g npm@11.9.0 # zizmor: ignore[adhoc-packages] — bootstrapping npm itself; no lockfile can cover it
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      # This job and ci.yml trigger on the SAME event (`push` to main) and run in parallel,
+      # with nothing linking them — so before this, `changeset publish` could reach npm while
+      # CI was still running on the very same SHA, or while it was failing on it. The merge of
+      # the "Version Packages" PR creates a new commit that neither branch's CI had seen.
+      #
+      # Not hypothetical here: plugin-canvas@0.3.3 and plugin-forms@0.1.4 sat broken in the
+      # registry for weeks (#9). Running the gates in this job costs a couple of minutes and
+      # makes the guarantee independent of what CI happens to be doing (#112).
+      #
+      # This is NOT a substitute for branch protection requiring a status check (#26): that
+      # protects the merge, this protects the publish.
+      - name: Typecheck the commit being released
+        run: pnpm typecheck
+      - name: Test the commit being released
+        run: pnpm test
       - name: Create Release PR or Publish
         id: changesets
         uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
