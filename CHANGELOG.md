@@ -36,6 +36,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The generated `.env.example` had drifted and nothing compared it to its generator.** The
+  committed copy still carried the pre-rename header, telling a contributor to copy it to
+  `e2e/.env` and to regenerate with `pnpm --filter @theokit/plugins-e2e env:example` — a filter
+  matching no project in this workspace, so following it looks like a broken generator and ends
+  in the hand-edit that generation exists to prevent. Regenerated, and a drift gate now compares
+  the committed file against a pure `renderEnvExample()` extracted from the script. The write
+  side is guarded to run only when the script is the entry point: importing it used to write the
+  file as a side effect, which would have made the comparison agree with itself (#90)
 - **Two variables the suites read were declared nowhere, so both CI gates were blind to them.**
   `GROQ_API_KEY` is read by the voice suite and lived only in prose inside that service's
   `caveat`, plus a hand-appended block in the `.env.example` generator — the drift that
