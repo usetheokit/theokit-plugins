@@ -335,7 +335,7 @@ importers:
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       '@theokit/react':
         specifier: ^1.1.0
-        version: 1.1.0(react@19.2.6)(zod@3.25.76)
+        version: 1.1.0(react@19.2.6)(zod@4.4.3)
       '@theokit/ui':
         specifier: ^1.3.2
         version: 1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12))
@@ -359,7 +359,7 @@ importers:
         version: 7.77.0(react@19.2.6)
       theokit:
         specifier: ^0.48.7
-        version: 0.48.8(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
+        version: 0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.26)(tsx@4.23.12)(typescript@5.9.3)
@@ -367,8 +367,8 @@ importers:
         specifier: ^4.1.8
         version: 4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12)
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.0.0
+        version: 4.4.3
 
   packages/plugin-payments:
     devDependencies:
@@ -6840,7 +6840,7 @@ snapshots:
   '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)':
     dependencies:
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@3.25.76))(zod@3.25.76)
+      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(zod@3.25.76)
       '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@3.25.76)
       '@theokit/sdk-pty': 0.3.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))
       '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(zod@3.25.76)
@@ -6877,30 +6877,10 @@ snapshots:
       - vitest
       - ws
 
-  '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)':
-    dependencies:
-      '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(zod@3.25.76)
-      '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@3.25.76)
-      '@theokit/sdk-pty': 0.3.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))
-      '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(zod@3.25.76)
-      zod: 3.25.76
-    optionalDependencies:
-      react: 19.2.6
-    transitivePeerDependencies:
-      - '@lancedb/lancedb'
-      - '@types/ws'
-      - better-sqlite3
-      - proper-lockfile
-      - simple-git
-      - sqlite-vec
-      - vitest
-      - ws
-
   '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)':
     dependencies:
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
+      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
       '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
       '@theokit/sdk-pty': 0.3.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))
       '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(zod@4.4.3)
@@ -6920,7 +6900,7 @@ snapshots:
   '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)':
     dependencies:
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
+      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
       '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
       '@theokit/sdk-pty': 0.3.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))
       '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(zod@4.4.3)
@@ -7020,15 +7000,15 @@ snapshots:
     optionalDependencies:
       drizzle-kit: 0.31.10
 
-  '@theokit/presenter@0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)':
+  '@theokit/presenter@0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)':
     dependencies:
       '@theokit/sdk': 2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
       zod: 4.4.3
 
-  '@theokit/presenter@0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@3.25.76))(zod@3.25.76)':
+  '@theokit/presenter@0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)':
     dependencies:
-      '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@3.25.76)
-      zod: 3.25.76
+      '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
+      zod: 4.4.3
 
   '@theokit/presenter@0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(zod@3.25.76)':
     dependencies:
@@ -7040,11 +7020,11 @@ snapshots:
       '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
       zod: 4.4.3
 
-  '@theokit/react@1.1.0(react@19.2.6)(zod@3.25.76)':
+  '@theokit/react@1.1.0(react@19.2.6)(zod@4.4.3)':
     dependencies:
       react: 19.2.6
     optionalDependencies:
-      zod: 3.25.76
+      zod: 4.4.3
 
   '@theokit/sdk-pty@0.3.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))':
     dependencies:
@@ -7064,13 +7044,6 @@ snapshots:
       zod: 3.25.76
     optionalDependencies:
       vitest: 4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12)
-
-  '@theokit/sdk-tools@0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(zod@3.25.76)':
-    dependencies:
-      '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@3.25.76)
-      zod: 3.25.76
-    optionalDependencies:
-      vitest: 4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12)
 
   '@theokit/sdk-tools@0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(zod@4.4.3)':
     dependencies:
@@ -9350,7 +9323,7 @@ snapshots:
     dependencies:
       '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
+      '@theokit/presenter': 0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
       '@vitejs/plugin-react': 4.7.0(vite@6.4.3(@types/node@25.9.1)(tsx@4.23.12))
       busboy: 1.6.0
       cac: 6.7.14
@@ -9398,7 +9371,7 @@ snapshots:
     dependencies:
       '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
+      '@theokit/presenter': 0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
       '@vitejs/plugin-react': 4.7.0(vite@6.4.3(@types/node@22.19.19)(tsx@4.23.12))
       busboy: 1.6.0
       cac: 6.7.14
@@ -9446,7 +9419,7 @@ snapshots:
     dependencies:
       '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
+      '@theokit/presenter': 0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
       '@vitejs/plugin-react': 4.7.0(vite@6.4.3(@types/node@25.9.1)(tsx@4.23.12))
       busboy: 1.6.0
       cac: 6.7.14
@@ -9494,7 +9467,7 @@ snapshots:
     dependencies:
       '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@3.25.76))(zod@3.25.76)
+      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(zod@3.25.76)
       '@vitejs/plugin-react': 4.7.0(vite@6.4.3(@types/node@25.9.1)(tsx@4.23.12))
       busboy: 1.6.0
       cac: 6.7.14
@@ -9542,7 +9515,7 @@ snapshots:
     dependencies:
       '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
+      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
       '@vitejs/plugin-react': 4.7.0(vite@6.4.3(@types/node@22.19.19)(tsx@4.23.12))
       busboy: 1.6.0
       cac: 6.7.14
@@ -9706,53 +9679,6 @@ snapshots:
       zod: 4.4.3
     optionalDependencies:
       '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
-      '@theokit/ui': 1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12))
-      ws: 8.21.0
-    transitivePeerDependencies:
-      - '@lancedb/lancedb'
-      - '@swc/core'
-      - '@types/node'
-      - '@types/ws'
-      - better-sqlite3
-      - csstype
-      - jiti
-      - less
-      - lightningcss
-      - proper-lockfile
-      - sass
-      - sass-embedded
-      - simple-git
-      - sqlite-vec
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-      - vitest
-      - yaml
-
-  theokit@0.48.8(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76):
-    dependencies:
-      '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
-      '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(zod@3.25.76)
-      '@vitejs/plugin-react': 4.7.0(vite@6.4.3(@types/node@25.9.1)(tsx@4.23.12))
-      busboy: 1.6.0
-      cac: 6.7.14
-      cron-parser: 5.10.0
-      devalue: 5.9.0
-      dotenv: 16.6.1
-      dotenv-expand: 11.0.7
-      goober: 2.1.19(csstype@3.2.3)
-      picomatch: 4.0.4
-      react: 19.2.6
-      react-dom: 19.2.6(react@19.2.6)
-      reflect-metadata: 0.2.2
-      superjson: 2.2.6
-      tsx: 4.23.12
-      typescript: 5.9.3
-      vite: 6.4.3(@types/node@25.9.1)(tsx@4.23.12)
-      zod: 3.25.76
-    optionalDependencies:
       '@theokit/ui': 1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12))
       ws: 8.21.0
     transitivePeerDependencies:

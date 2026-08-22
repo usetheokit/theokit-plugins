@@ -15,6 +15,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- `@theokit/plugin-forms` declares `zod: ^4.0.0` and is developed against zod 4. It advertised
+  `^3.25.0 || ^4.0.0` while its own peer chain forbids zod 3 — `@theokit/react` requires
+  `@theokit/sdk@^1.1.0`, which requires `zod@^4.0.0` — and the repository built and tested it
+  against `zod@3.25.76`, so the version tested was not a version a consumer could install. This
+  does not by itself make `npm install` succeed; the remaining conflict is upstream and is
+  measured on #64
 - **Breaking:** the minimum supported Node is 22.12.0, was 20.12.0. Node 20 reached end of life,
   and CI had been running 22 all along — so the version tested was never the version declared (#74)
 - pnpm pinned to 10.34.1 across the repository, resolved from `packageManager` (#74)
