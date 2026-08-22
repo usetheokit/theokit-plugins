@@ -4,13 +4,14 @@
 
 ## Status
 
-**11 first-party plugins shipped, aligned to `@theokit/sdk` 2.18.0** (ecosystem
-milestone M6). Three auth providers (`auth-github`, `auth-google`, `auth-magic-link`)
-plus eight capability plugins (`plugin-canvas`, `plugin-copilot`, `plugin-realtime`,
-`plugin-db-drizzle`, `plugin-email`, `plugin-forms`, `plugin-payments`, `plugin-voice`).
-All build + test green against the hardened M0–M3 Harness (661 tests). See
-[`ROADMAP.md`](./ROADMAP.md) for the full table and the demand-gate criteria that
-still govern **future** plugins beyond these 11.
+**11 first-party plugins shipped.** Three auth providers (`auth-github`, `auth-google`,
+`auth-magic-link`) plus eight capability plugins (`plugin-canvas`, `plugin-copilot`,
+`plugin-realtime`, `plugin-db-drizzle`, `plugin-email`, `plugin-forms`, `plugin-payments`,
+`plugin-voice`). The four that consume `@theokit/sdk` build against `^2.18.0`; the rest
+integrate through `theokit` or through React alone.
+
+The demand gates that govern **future** plugins beyond these 11 are below, under
+[How to propose a plugin](#how-to-propose-a-plugin).
 
 ## What's already in TheoKit core (don't propose these as plugins)
 

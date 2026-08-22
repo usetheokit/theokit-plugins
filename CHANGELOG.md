@@ -53,6 +53,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The README's Status section linked a file that was deliberately deleted and counted tests that
+  had not been counted in a long time.** `ROADMAP.md` was removed in `6159e6d` ("no longer
+  relevant") and the link to it survived, so the published README pointed at a 404. The same
+  paragraph claimed "661 tests" where the suites now run 897, and cited an "ecosystem milestone
+  M6" and an "M0–M3 Harness" that nothing in this repository defines any more. It now states only
+  what is checkable here, and the test count is gone rather than corrected — a hardcoded number
+  rots the same way twice
 - **The `@theokit/plugin-forms` README documented a form that no screen reader could use.**
   `FormField.Control` clones its direct child to inject `id` / `aria-invalid` /
   `aria-describedby`, and Cookbook 1 put a consumer component in that slot, which swallowed all
