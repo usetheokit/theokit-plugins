@@ -235,11 +235,15 @@ describe('the registry reaches CI', () => {
   })
 
   it('gives ci.yml the offline command, so the convention has somewhere to land', () => {
-    // The other half: the convention is worthless if nothing invokes it. This is the
-    // assertion that would have failed before `integration:offline` existed.
+    // The other half: the convention is worthless if nothing invokes it.
+    //
+    // Matched against a `run:` LINE, not against the file's text. `toContain` was satisfied by
+    // the comment three lines above the step — the one explaining that this assertion exists —
+    // so deleting the step left the gate green and every credential-free suite silently stopped
+    // running on pull requests (#91).
     const ci = readFileSync(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8')
-    expect(ci, 'ci.yml never runs the credential-free integration suites').toContain(
-      'integration:offline',
+    expect(ci, 'ci.yml has no step running `pnpm integration:offline`').toMatch(
+      /^\s*run:\s*pnpm integration:offline\s*$/m,
     )
   })
 

@@ -36,6 +36,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The assertion that `ci.yml` invokes the credential-free suites was `toContain('integration:offline')`
+  — satisfied by the comment three lines above the step, the one explaining that the assertion
+  exists. Deleting the step left the gate green and every credential-free suite would have stopped
+  running on pull requests. It now matches a `run:` line (#91)
 - The stranded-suite walk descended exactly one directory level while vitest's include glob is
   `tests/**` at any depth, so a credential-free suite three directories down ran only in the
   nightly and the gate reported nothing — the gate's blind spot having the same shape as the
