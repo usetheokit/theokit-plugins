@@ -22,6 +22,7 @@ import { describe, expect, it } from 'vitest'
 
 import { has, liveRunEnabled, missingFor, unsafeReason } from '../src/credentials.js'
 import { SERVICES, allVariableNames, type ServiceSpec } from '../src/services.js'
+import { callsCredentialBoundApi } from '../src/suite-classification.js'
 
 /** The lines describing one service: its status, then each gap and how to close it. */
 function describeRow(spec: ServiceSpec, missing: readonly string[]): string[] {
@@ -215,11 +216,12 @@ describe('the registry reaches CI', () => {
 
     const stranded: string[] = []
     for (const file of files) {
-      // `readiness.test.ts` itself is the report; it always runs and needs nothing.
-      if (file === 'readiness.test.ts') continue
       const source = await readFile(new URL(file, root), 'utf8')
-      const needsCredential = /\brequired\(/.test(source) || /\bdescribeLive\(/.test(source)
-      if (needsCredential) continue
+      // Structural, not textual. Regexing the raw source read this very file as
+      // credential-bound — the paragraph above names `required(...)` and `describeLive(...)`
+      // in prose — so it dropped out of the walk and the gate reported an empty list, which
+      // reads exactly like coverage (#99).
+      if (callsCredentialBoundApi(source, file)) continue
       const reachable = file.startsWith('consumer/') || file.includes('.offline.test.ts')
       if (!reachable) stranded.push(file)
     }

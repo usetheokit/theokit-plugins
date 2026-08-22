@@ -36,6 +36,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The gate that finds stranded test suites was satisfied by prose.** It decided whether a suite
+  needs a credential by regexing the raw source for `required(` and `describeLive(`, comments
+  included — so a file that merely _described_ the convention was read as credential-bound and
+  dropped out of the walk, leaving the gate to report an empty list, which reads exactly like
+  coverage. The classification is now structural, from the TypeScript AST: it asks whether the
+  file _calls_ one of those helpers, resolving renamed and namespace imports, so comments, JSDoc
+  and string literals are excluded by construction rather than by another pattern. Verified in
+  both directions against a probe suite: the old detector classified it credential-bound and went
+  green; the new one names it as stranded (#99)
 - **Every CI-wiring gate in this repository ran only in the 04:00 nightly.** `readiness.test.ts`
   holds the assertions that the registry reaches CI — that each variable is mapped into the
   workflow, that each mapping is a secret reference and not a literal, that no test directory
