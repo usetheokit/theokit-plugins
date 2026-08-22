@@ -36,6 +36,8 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { moduleSpecifiers } from '../../src/module-specifiers.js'
+
 const REPO_ROOT = new URL('../../../', import.meta.url).pathname
 
 interface PackedFile {
@@ -177,9 +179,12 @@ describe('consumer smoke — the packaging contract', () => {
         const offenders: string[] = []
         for (const file of files.filter((f) => f.endsWith('.js'))) {
           const text = readFileSync(join(REPO_ROOT, 'packages', dir, file), 'utf8')
-          for (const m of text.matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g)) {
-            const spec = m[1]
-            if (spec !== undefined && NODE_BUILTINS.has(spec)) offenders.push(`${file}: ${spec}`)
+          // Specifiers come from the AST, not a regex. The regex this replaced matched
+          // `Buffer.from('crypto')` — `from` matched, `\(?` ate the paren, and the argument
+          // was read as a module specifier — so ordinary code reported a packaging BLOCKER
+          // that was not there, on every PR (#84).
+          for (const spec of moduleSpecifiers(text, file)) {
+            if (NODE_BUILTINS.has(spec)) offenders.push(`${file}: ${spec}`)
           }
         }
         expect(

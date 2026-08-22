@@ -36,6 +36,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The `node:`-prefix packaging check would have reddened every pull request over legal code.**
+  It found module specifiers with a regex, and `from` matched inside `Buffer.from('crypto')` —
+  the optional-paren group ate the parenthesis and the argument was read as an import. Both
+  `crypto` and `os` are builtin names, so `Buffer.from('crypto')` or `Array.from('os')` anywhere
+  in a published bundle reported a packaging BLOCKER that was not there. Specifiers now come from
+  the TypeScript AST, covering static imports, re-exports and dynamic `import()`, with comments
+  and string literals excluded by construction (#84)
 - **The generated `.env.example` had drifted and nothing compared it to its generator.** The
   committed copy still carried the pre-rename header, telling a contributor to copy it to
   `e2e/.env` and to regenerate with `pnpm --filter @theokit/plugins-e2e env:example` — a filter
