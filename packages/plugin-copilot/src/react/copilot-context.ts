@@ -60,6 +60,19 @@ export interface CopilotContextValue {
   sendBroadcast(event: string, payload: Record<string, unknown>): void
   /** Last error (for displaying agent-error / budget-exceeded frames). */
   readonly lastError?: { code?: string; message: string }
+  /**
+   * The local user's connectionId, so a component can tell itself apart from the room.
+   *
+   * `presence` is everyone — copilots and humans, the local user included — and without this
+   * there was no way to filter. `<CopilotChat />` listed the local user among the "other
+   * participants", and a consumer's `renderParticipants` received the same unfiltered map with
+   * nothing to identify itself by (#114).
+   *
+   * Optional because this context's own docblock blesses a hand-built provider ("a test harness
+   * driving a deterministic copilot"); making it required would break that documented path.
+   * Absent, presence is unfiltered, which is the behaviour that shipped.
+   */
+  readonly userConnectionId?: string
 }
 
 /**

@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `<CopilotChat />` has tests. It was at 0% coverage in every metric — the whole component, never
+  mounted — and is now at 100% lines, statements and functions. Mounting it is what found #114
+  (#113)
 - **Coverage is measured, and has a floor.** Nothing measured it before: no provider was
   installed and the project's own `coverage.min_percent = 80` sat commented out, so the number
   had never been produced in this repository. Measured on the first run it ranged from 58.82% to
@@ -65,6 +68,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **`<CopilotChat />` showed the user to themselves as another participant.**
+  `useCopilotPresence()` filters the local user out only when given its connectionId, and the
+  component passed none — while naming the result `otherPresence`. It had no id to pass:
+  `CopilotContextValue` never exposed one, though `CopilotProvider` receives `userConnectionId`
+  and broadcasts with it, and a consumer's `renderParticipants` inherited the same blind spot.
+  The id is now on the context, optional so a hand-built provider keeps working (#114)
 - **A release could reach npm without a single test having run on the commit it published.**
   `release.yml` and `ci.yml` trigger on the same event — a push to `main` — and run in parallel
   with nothing linking them, and the release job did `install` + `build` + `changeset publish`
