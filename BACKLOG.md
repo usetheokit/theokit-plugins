@@ -37,9 +37,9 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-9 items — **Open** 6 · **In flight** 0 · **Closed** 3
+16 items — **Open** 13 · **In flight** 0 · **Closed** 3
 
-### Open (6)
+### Open (13)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -49,6 +49,13 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams--) | The `plugin-` prefix names four different integration seams | `raw` | — |
 | [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it--) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `raw` | — |
 | [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish--) | Nothing compiles the code examples our READMEs publish | `raw` | — |
+| [`B-010`](#b-010--plugin-realtimes-presence-and-broadcast-never-leave-the-client--) | `plugin-realtime`'s presence and broadcast never leave the client | `raw` | — |
+| [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `raw` | — |
+| [`B-012`](#b-012--plugin-forms-cannot-upload-a-file--) | `plugin-forms` cannot upload a file | `raw` | — |
+| [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout--) | `plugin-payments` ships only hosted checkout | `raw` | — |
+| [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited--) | three AbacatePay legs are declared uncoverable and never revisited | `raw` | — |
+| [`B-015`](#b-015--the-oauth-consent-round-trip-is-automated-for-nobody--) | the OAuth consent round trip is automated for nobody | `raw` | — |
+| [`B-016`](#b-016--theokitplugin-forms-headless-tier-cannot-be-consumed-without-usetheoui--) | `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` | `raw` | — |
 
 ### In flight (0)
 
@@ -337,3 +344,167 @@ dod:
   as a gap in the gate rather than as a defect in the documentation
 - it runs in `ci.yml` alongside `quality:docs`, and the run says how many blocks it compiled — a
   number nobody can read is how the previous gate's blind spot stayed invisible
+
+## B-010 — `plugin-realtime`'s presence and broadcast never leave the client [ ]
+
+> Registered 2026-08-22 by `/backlog-item` (slug: `realtime-outbound-channel`).
+
+domain: plugin-server
+repo: plugin-realtime
+suggested_mode: evolve
+source: human
+evidence: none-yet
+why_now: measured 2026-08-22 — `emitBroadcast` in `src/react/index.ts` is an EMPTY function body,
+and `emit` only merges into local state. The README says so in bold for both hooks ("**Local-only
+in v0.1** — events are scoped to the current client and do not fan out to other participants
+yet"), so this is a declared limitation rather than a defect. It is the largest one in the
+repository: a realtime plugin whose outbound channel does not exist. Two people in the same room
+see nothing of each other through these hooks. The inbound half works — the live suite drives
+frames over a real WebSocket and they arrive.
+status: raw
+dod:
+
+- a presence update from one client is observable by a second client over a real transport
+- a broadcast from one client reaches the other, asserted across two connections
+- the README table stops saying "Local-only in v0.1" for whichever hooks now sync
+- the blocking dependency is named: the code cites "G8 `subscribe` upstream `.send()` API" as
+  the thing that must stabilise first, and whether that has landed is the first thing to measure
+
+## B-011 — `useYDoc()` throws instead of wiring the Y.Doc [ ]
+
+> Registered 2026-08-22 by `/backlog-item` (slug: `realtime-ydoc-autowiring`).
+
+domain: plugin-server
+repo: plugin-realtime
+suggested_mode: evolve
+source: human
+evidence: none-yet
+why_now: measured 2026-08-22 — `useYDoc()` in `src/react/index.ts` throws unconditionally, and
+the message names the workaround (use YjsRealtimeProvider server-side, consume updates via
+`useBroadcast`). That workaround depends on B-010, which is itself local-only, so the documented
+escape route does not currently work either. The provider ships and the CRDT round trip is
+covered over a real socket by `wire-round-trip.test.ts`; what is missing is the React wiring.
+status: raw
+dod:
+
+- `useYDoc()` returns a `Y.Doc` when the room descriptor declares `storage: 'yjs'`
+- it still refuses, with a message naming the cause, when the room does not
+- a two-client convergence test over a real transport, not in-process
+- ordering against B-010 is decided rather than assumed: if the escape route it documents needs
+  B-010, say so in the plan
+
+## B-012 — `plugin-forms` cannot upload a file [ ]
+
+> Registered 2026-08-22 by `/backlog-item` (slug: `forms-multipart-upload`).
+
+domain: client-surface
+repo: plugin-forms
+suggested_mode: evolve
+source: human
+evidence: none-yet
+why_now: measured 2026-08-22 — `README.md:216` states "**No file uploads in v0.1.**
+`multipart/form-data` deferred to v0.2." A form library without file upload is a form library a
+consumer outgrows on their second form. The declaration is honest; the gap is real.
+status: raw
+dod:
+
+- a `<TheoField>` bound to a file input submits through the action as multipart
+- the server error path for an oversized or rejected file reaches the field, like every other
+  server error already does
+- the accessible wiring holds for the file control, asserted the way #105 taught: the label
+  resolves to the control and the error is announced
+
+## B-013 — `plugin-payments` ships only hosted checkout [ ]
+
+> Registered 2026-08-22 by `/backlog-item` (slug: `payments-embedded-checkout`).
+
+domain: plugin-server
+repo: plugin-payments
+suggested_mode: evolve
+source: human
+evidence: none-yet
+why_now: measured 2026-08-22 — `src/checkout.ts:7` records that the contract returns a redirect
+URL and that "Elements/embedded deferred to v0.x". A consumer who wants the payment form inside
+their own page cannot have it. The hosted path is well covered: the live suite creates real
+Stripe sessions and reconciles them, and the idempotency round trip is asserted against the real
+API.
+status: raw
+dod:
+
+- the contract expresses an embedded/Elements session without breaking the hosted one
+- a live test proves the embedded session is accepted by the provider, not only typed
+- AbacatePay's position is stated rather than assumed — it may have no analogue, and saying so
+  is a result
+
+## B-014 — three AbacatePay legs are declared uncoverable and never revisited [ ]
+
+> Registered 2026-08-22 by `/backlog-item` (slug: `abacatepay-uncovered-legs`).
+
+domain: plugin-server
+repo: plugin-payments
+suggested_mode: live-test
+source: human
+evidence: none-yet
+why_now: measured 2026-08-22 — the service registry records three legs as NOT covered, each with
+a measured reason: subscriptions (`/subscriptions/create` answers "PIX Automático is not
+available for this store"), the refund happy path (a devMode payment adds no balance, so only the
+refusal is verifiable), and `verifyWebhook` (delivery needs a public HTTPS endpoint). The full
+live run on 2026-08-22 passed 179 tests with none of these among them. Each reason may have
+changed on the provider's side since it was written, and nothing re-checks.
+status: raw
+dod:
+
+- each of the three is re-measured against the current provider, and the result recorded — a
+  still-blocked leg is a successful outcome if the block is re-verified rather than assumed
+- any leg that became reachable gets a live test
+- the caveat text in `integration/src/services.ts` is updated to match what was measured, with
+  the date
+
+## B-015 — the OAuth consent round trip is automated for nobody [ ]
+
+> Registered 2026-08-22 by `/backlog-item` (slug: `oauth-roundtrip-unattended`).
+
+domain: auth-provider
+repo: auth-github
+suggested_mode: live-test
+source: human
+evidence: none-yet
+why_now: measured 2026-08-22 — the full live run skipped exactly two behaviours, both the same:
+"full consent round trip [skipped: needs a browser session, so it cannot run in CI]", for
+`auth-github` and `auth-google`. The server half is covered live; the leg where a human clicks
+"allow" is exercised only by hand, through `pnpm flow:github`. So the single most important thing
+these packages do — turn a real consent into a session — is verified by somebody remembering to
+run a script.
+status: raw
+dod:
+
+- the round trip runs unattended against the real provider, or the reason it cannot is
+  re-measured and written down with a date
+- if a headless browser is the answer, the cost is stated: a browser in CI is a dependency with
+  its own failure modes, and this decision is made deliberately
+- `auth-google` is covered by the same mechanism or explicitly excluded with a reason
+
+## B-016 — `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` [ ]
+
+> Registered 2026-08-22 by `/backlog-item` (slug: `forms-headless-entrypoint`).
+
+domain: client-surface
+repo: plugin-forms
+suggested_mode: evolve
+source: human
+evidence: none-yet
+why_now: measured 2026-08-22 while closing #103 — the barrel re-exports `TheoField`, which
+imports `@usetheo/ui` at module scope, so `import { useTheoField } from '@theokit/plugin-forms'`
+drags the UI package in. Splitting the entry point was attempted and reverted, because
+`TheoForm.tsx:39` imports `TheoField` to build `TheoForm.Field` — an ADR-D1 compound documented
+in Cookbook 1 — so the barrel reaches it either way, and `splitting: false` would duplicate
+`TheoFormContext` and give a consumer two React contexts. Filed as #104 and closed not-planned:
+the fix requires removing a published API, which is a product decision.
+status: raw
+dod:
+
+- a decision recorded as an ADR: `TheoForm.Field` is removed and the styled tier moves to
+  `@theokit/plugin-forms/field`, or the headless-peer-free promise is dropped from the docs
+- whichever is chosen, `@usetheo/ui` is declared honestly — optional only if the barrel really
+  does not need it
+- the packaging gate already loads every subpath (#83), so a new entry is covered on arrival
