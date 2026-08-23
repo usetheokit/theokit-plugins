@@ -37,13 +37,13 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-16 items — **Open** 13 · **In flight** 0 · **Closed** 3
+18 items — **Open** 15 · **In flight** 0 · **Closed** 3
 
-### Open (13)
+### Open (15)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
-| [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `raw` | — |
+| [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
 | [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention--) | The request-decoration namespace is global and has no convention | `raw` | — |
 | [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain--) | No test asserts that a package belongs to exactly one domain | `raw` | — |
 | [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams--) | The `plugin-` prefix names four different integration seams | `raw` | — |
@@ -56,6 +56,8 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited--) | three AbacatePay legs are declared uncoverable and never revisited | `raw` | — |
 | [`B-015`](#b-015--the-oauth-consent-round-trip-is-automated-for-nobody--) | the OAuth consent round trip is automated for nobody | `raw` | — |
 | [`B-016`](#b-016--theokitplugin-forms-headless-tier-cannot-be-consumed-without-usetheoui--) | `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` | `raw` | — |
+| [`B-017`](#b-017--the-measurement-target-gate-reads-an-npm-subpath-specifier-as-a-missing-file--) | the measurement-target gate reads an npm subpath specifier as a missing file | `raw` | — |
+| [`B-018`](#b-018--nineteen-transitive-high-advisories-sit-in-the-workspace-with-nothing-watching-them--) | nineteen transitive HIGH advisories sit in the workspace with nothing watching them | `raw` | — |
 
 ### In flight (0)
 
@@ -81,13 +83,13 @@ domain: plugin-server
 repo: plugin-email
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/seam-conformance-tests-opportunity.md` — 8 of 11 packages have no conformance test; a mutation in `packages/plugin-payments/src/plugin.ts` passed typecheck, test, lint, build and integration:offline while `createPluginRunnerFromConfig` threw on it
 why_now: measured 2026-08-18 — exactly 1 of 11 packages decorates the request (`plugin-payments`,
 via `PAYMENTS_DECORATION_KEY`); `plugin-db-drizzle` has a `register(_app)` that deliberately does
 nothing; a grep hit in `plugin-canvas` was `DOMPurify.addHook`, unrelated. #42 shipped because a
 package typed against a framework API that did not exist, and nothing in CI would catch the same
 class of defect today.
-status: raw
+status: triaged
 dod:
 
 - a test per integrating package that hands its export to the real framework surface it claims —
@@ -508,3 +510,70 @@ dod:
 - whichever is chosen, `@usetheo/ui` is declared honestly — optional only if the barrel really
   does not need it
 - the packaging gate already loads every subpath (#83), so a new entry is covered on arrival
+
+## B-017 — the measurement-target gate reads an npm subpath specifier as a missing file [ ]
+
+> Registered 2026-08-23 while running `/discover-plan-confidence` on B-001.
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: bug
+source: human
+evidence: none-yet
+why_now: measured 2026-08-23 — `skills/discover-plan-confidence/scripts/check_measurement_targets.py`
+matches any backticked token containing a slash (`PATH_TARGET_RE`) and resolves it against the
+repo root. A plan naming `theokit/server/plugins` — a real npm module specifier with a subpath,
+not a path — is scored `fabricated_target`, which is a HARD CAP: the plan drops to 49 and
+`INVALID`. Scoped packages escape only by accident, because `@` is outside the regex's first
+character class, so `@theokit/sdk/server/auth` passes while the unscoped sibling fails. The same
+file defines `TARGETS_HEADER_RE` and never uses it, so the scan covers the whole document rather
+than the Measurement Questions section it documents.
+Measured the same day in the sibling script `skills/discover-confidence/scripts/check_evidence_pointers.py`:
+`CODE_POINTER_RE` opens with `\b` and a class excluding `@`, so
+`packages/auth-github/node_modules/@theokit/sdk/dist/server/auth/index.d.ts:14` is matched from
+after the scope as `theokit/sdk/dist/server/auth/index.d.ts:14`, resolves nowhere, and fires
+`fabricated_evidence` — a HARD CAP. Any opportunity citing a file inside a scoped npm package is
+INVALID by construction. Same root cause, two scripts.
+status: raw
+dod:
+
+- a plan citing an unscoped npm subpath specifier scores it as a module, not as a missing file
+- an opportunity citing `path/to/@scope/pkg/file.ts:12` resolves it, instead of truncating at
+  the `@` into a path that exists nowhere
+- the fix distinguishes specifier from path by resolution, not by a denylist of known package names
+- a genuinely fabricated path still trips `fabricated_target` — a regression test covers both
+
+related: the workaround used on B-001's plan was to write the specifier as it appears in source
+(`from 'theokit/server/plugins'`), which the regex does not match. That is a phrasing accident,
+not a fix, and it will not occur to the next author.
+
+note: `.claude/` is not versioned here. Per the personal-environment rule, this item's fix belongs
+in the kit's own repository; registering it here records the finding so it is not lost.
+
+## B-018 — nineteen transitive HIGH advisories sit in the workspace with nothing watching them [ ]
+
+> Registered 2026-08-23 by `/deps-audit` while auditing B-001's plan.
+
+domain: dev-tooling
+repo: plugin-canvas
+suggested_mode: review
+source: human
+evidence: none-yet
+why_now: measured 2026-08-23 — `pnpm audit --json` reports
+`{"low":4,"moderate":12,"high":19,"critical":0}`. Every HIGH is transitive (none declared in any
+manifest here): `brace-expansion` (6), `undici` (4), `js-yaml` (4), `nanoid` (2), `form-data` (1),
+`postcss` (1), `deepmerge-ts` (1). One reaches a published package —
+`packages/plugin-canvas > jsdom > form-data` — but through a devDependency, so it does not ship to
+consumers. Nothing in CI runs `pnpm audit`, so this count is invisible between manual audits, and
+a future advisory on a runtime path would be equally invisible.
+status: raw
+dod:
+
+- a gate that fails when a HIGH advisory reaches a package's **runtime** dependency chain, and
+  reports without failing when it reaches only a dev chain
+- the distinction is measured from the manifests, not asserted in a comment
+- `osv-scanner` cross-checks `pnpm audit` rather than either being the single source
+  (`rules/deps-audit-golden-rule.md § 5` names both for npm; only one is installed today)
+
+note: `repo:` is `plugin-canvas` because that is the only package whose chain reaches a published
+artefact; the fix is repository-wide.
