@@ -104,6 +104,22 @@ function serve(
   return controller
 }
 
+/**
+ * Parse the bytes the socket delivered — not an object we still hold a reference to. This is
+ * the whole reason the suite exists.
+ *
+ * `ws` hands back `RawData`, which may be a Buffer, an ArrayBuffer or an array of Buffers.
+ * `String()` on the last one yields "[object Object]" — decode the bytes.
+ */
+function decodeFrame(raw: unknown): RealtimeSubscriptionOutput {
+  const text = Buffer.isBuffer(raw)
+    ? raw.toString('utf8')
+    : Array.isArray(raw)
+      ? Buffer.concat(raw as Buffer[]).toString('utf8')
+      : Buffer.from(raw as ArrayBuffer).toString('utf8')
+  return JSON.parse(text) as RealtimeSubscriptionOutput
+}
+
 /** Collect frames off a real client socket until `want` predicate is satisfied. */
 async function collect(
   want: (f: RealtimeSubscriptionOutput) => boolean,
@@ -118,16 +134,7 @@ async function collect(
         timeoutMs,
       )
       client.on('message', (raw) => {
-        // Parse the bytes the socket delivered — not an object we still hold a reference
-        // to. This is the whole reason the suite exists.
-        // `ws` hands back `RawData`, which may be a Buffer, an ArrayBuffer or an array of
-        // Buffers. `String()` on the last one yields "[object Object]" — decode the bytes.
-        const text = Buffer.isBuffer(raw)
-          ? raw.toString('utf8')
-          : Array.isArray(raw)
-            ? Buffer.concat(raw).toString('utf8')
-            : Buffer.from(raw).toString('utf8')
-        const frame = JSON.parse(text) as RealtimeSubscriptionOutput
+        const frame = decodeFrame(raw)
         got.push(frame)
         if (want(frame)) {
           clearTimeout(timer)
@@ -227,5 +234,44 @@ describe('frames survive a real WebSocket', () => {
     expect(Object.keys(presence), 'alice is still present after her socket closed').not.toContain(
       'alice',
     )
+  })
+
+  it('a client that reconnects appears once, not twice', async () => {
+    // The other half of the drop, and the one B-003 calls the characteristic defect: presence
+    // that never expires. A tab that reloads produces a NEW socket under the same
+    // connectionId, and a release that only half happened leaves the first session behind —
+    // so the room shows a ghost that never speaks and never leaves. The disconnect test above
+    // proves the entry goes; this proves it does not come back doubled.
+    const provider = createYjsRealtimeProvider()
+    const rt = new RealtimeRuntime({ provider, rooms: [room] })
+    const mounted = mountRealtime({ runtime: rt, rooms: [room] })
+    serve(mounted.subscriptions.get('doc')!.handler, 'alice')
+
+    // First session. `collect` closes the client when it returns, which is the tab going away.
+    await collect((f) => f.type === 'joined')
+    await new Promise((r) => setTimeout(r, 100))
+
+    // Second session, held OPEN across the assertion: presence is only meaningful while
+    // somebody is connected, and closing first would measure the disconnect again.
+    const client = new WebSocket(url)
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('no joined frame on reconnect')), 5_000)
+        client.on('message', (raw) => {
+          if (decodeFrame(raw).type !== 'joined') return
+          clearTimeout(timer)
+          resolve()
+        })
+        client.on('error', reject)
+      })
+
+      const present = Object.keys(await provider.getPresence('doc'))
+      expect(
+        present.filter((id) => id === 'alice'),
+        'alice is in the room twice',
+      ).toHaveLength(1)
+    } finally {
+      client.close()
+    }
   })
 })

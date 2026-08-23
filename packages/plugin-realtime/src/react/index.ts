@@ -127,7 +127,6 @@ interface RoomContextValue {
   state: InternalRoomState
   emit(out: { kind: 'presence-update'; patch: Partial<Presence> }): void
   emitBroadcast(event: string, payload: BroadcastPayload): void
-  subscribe(listener: () => void): () => void
   roomId: string
 }
 
@@ -165,22 +164,19 @@ export function RoomProvider(props: RoomProviderProps): React.ReactElement {
     connectionId: null,
   }))
 
-  const listenersRef = React.useRef<Set<() => void>>(new Set())
   const stateRef = React.useRef(state)
   stateRef.current = state
 
-  const notify = React.useCallback((): void => {
-    for (const cb of listenersRef.current) cb()
+  // Keeps `stateRef` in step with the state the effect's frame loop reads, which is why this
+  // exists at all: the loop closes over the ref, not over a render's `state`.
+  //
+  // It used to also fan out to a listener set, but nothing ever subscribed — `RoomContextValue`
+  // is not exported and `ctx.subscribe` was called nowhere, so the notify loop ran over an empty
+  // set on every frame (#115).
+  const setStateAndNotify = React.useCallback((next: InternalRoomState): void => {
+    stateRef.current = next
+    setState(next)
   }, [])
-
-  const setStateAndNotify = React.useCallback(
-    (next: InternalRoomState): void => {
-      stateRef.current = next
-      setState(next)
-      notify()
-    },
-    [notify],
-  )
 
   // Subscription lifecycle.
   React.useEffect(() => {
@@ -237,10 +233,6 @@ export function RoomProvider(props: RoomProviderProps): React.ReactElement {
       emitBroadcast(_event, _payload) {
         // Same upstream constraint as `emit`; broadcasts are tracked locally
         // until upstream support lands.
-      },
-      subscribe(cb) {
-        listenersRef.current.add(cb)
-        return () => listenersRef.current.delete(cb)
       },
     }),
     [state, roomId, setStateAndNotify],

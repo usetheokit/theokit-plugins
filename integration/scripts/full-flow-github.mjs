@@ -86,8 +86,27 @@ function waitForCode() {
   return new Promise((resolve, reject) => {
     const server = createServer((req, res) => {
       const url = new URL(req.url, `http://localhost:${PORT}`)
+
+      // GitHub's denial redirect carries ?error=access_denied and no code. Answering 204 and
+      // returning left the server listening until the 120s timer fired, so clicking "Cancel"
+      // ended in "timed out waiting for the consent redirect" — a message describing something
+      // that did not happen, about a redirect that had already arrived (#98).
+      const error = url.searchParams.get('error')
+      if (error !== null) {
+        res.writeHead(200, { 'content-type': 'text/plain' })
+        res.end(`authorization denied: ${error} — you can close this tab`)
+        server.close()
+        clearTimeout(timer)
+        const description = url.searchParams.get('error_description')
+        reject(
+          new Error(`GitHub returned ${error}${description === null ? '' : ` — ${description}`}`),
+        )
+        return
+      }
+
       const code = url.searchParams.get('code')
       if (code === null) {
+        // Favicon and any other stray request the browser makes to this port.
         res.writeHead(204).end()
         return
       }

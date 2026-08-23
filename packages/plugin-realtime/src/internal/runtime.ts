@@ -68,6 +68,24 @@ export interface RealtimeRuntimeOptions {
 export class RealtimeRuntime {
   private readonly provider: RealtimeProvider
   private readonly rooms = new Map<string, RoomDescriptor>()
+  /**
+   * The handle that currently owns each `(roomId, connectionId)` pair.
+   *
+   * Presence is keyed by `connectionId`, and `leaveRoom` deletes by that key alone. A tab that
+   * reloads drops its socket without telling the server, so the dead subscription's generator
+   * only notices at its next frame — by which time the same user has reconnected under the same
+   * id. Its `release()` then removed the LIVE registration, and the room saw the reconnecting
+   * client vanish and a `left` frame for somebody who had just joined (#110).
+   *
+   * Recording which handle is current makes a superseded release a no-op, which is what it
+   * should always have been.
+   */
+  private readonly liveConnections = new Map<string, RealtimeConnectionHandle>()
+
+  /** `\u0000` cannot appear in either part, so the pair cannot collide with another pair. */
+  private static connectionKey(roomId: string, connectionId: string): string {
+    return `${roomId}\u0000${connectionId}`
+  }
 
   constructor(opts: RealtimeRuntimeOptions) {
     if (opts === null || typeof opts !== 'object') {
@@ -137,7 +155,23 @@ export class RealtimeRuntime {
     const unsubscribe = this.provider.subscribeRoom(roomId, onFrame)
     // Join the room.
     await this.provider.joinRoom(roomId, connection, validatedInitial)
-    return new RealtimeConnectionHandle(this, roomId, connection.connectionId, unsubscribe)
+    const handle = new RealtimeConnectionHandle(this, roomId, connection.connectionId, unsubscribe)
+    this.liveConnections.set(RealtimeRuntime.connectionKey(roomId, connection.connectionId), handle)
+    return handle
+  }
+
+  /**
+   * Release `handle`, unless a newer connection has taken over its `(room, connectionId)`.
+   *
+   * @internal
+   */
+  async releaseConnection(handle: RealtimeConnectionHandle): Promise<void> {
+    const key = RealtimeRuntime.connectionKey(handle.roomId, handle.connectionId)
+    // Superseded: the entry belongs to a live connection now, and leaving on its behalf would
+    // remove somebody who is still here.
+    if (this.liveConnections.get(key) !== handle) return
+    this.liveConnections.delete(key)
+    await this.leaveRoom(handle.roomId, handle.connectionId)
   }
 
   /**
@@ -244,7 +278,9 @@ export class RealtimeConnectionHandle {
   async release(): Promise<void> {
     if (this.released) return
     this.released = true
+    // Always drop this connection's frame subscription — a superseded handle still has one,
+    // and leaving it attached is the leak #195 was about.
     this.unsubscribe()
-    await this.runtime.leaveRoom(this.roomId, this.connectionId)
+    await this.runtime.releaseConnection(this)
   }
 }

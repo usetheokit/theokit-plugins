@@ -144,18 +144,8 @@ function callbackRequest(url: string): IncomingMessage {
   } as unknown as IncomingMessage
 }
 
-/**
- * A base long enough that quoted-printable MUST break a line inside the token.
- *
- * Measured: with a short base the URL lands on a 51-character line and no break falls
- * inside it — the test would pass without ever exercising the encoding. With this base
- * the raw message carries `…token=3DFwjS…BvU1=` at column 76 and the rest on the next
- * line, which is the case a naive extraction gets wrong.
- */
-const LONG_BASE =
-  'https://app.usetheo.dev/tenant/acme-corporation-holdings/workspace/engineering-team'
-
-function wire(callbackBaseUrl = 'https://app.usetheo.dev') {
+function wire() {
+  const callbackBaseUrl = 'https://app.usetheo.dev'
   return magicLink({
     store: createMemoryStore(),
     callbackBaseUrl,
@@ -171,6 +161,25 @@ function onlyDelivery(): Delivery {
   const one = delivered[0]
   if (one === undefined) throw new Error('unreachable: length asserted above')
   return one
+}
+
+/**
+ * Send one magic link and return the message that arrived, with the provider that sent it.
+ *
+ * Every test calls this, so no test reads a message another one produced. `delivered` is
+ * module-level because the SMTP server's `onData` pushes into it — that much is inherent to the
+ * harness — but the ORDER dependency is not: two of these tests used to assert against whatever
+ * a describe-level `beforeAll` had left behind, so a `.only`, a reorder or `--sequence.shuffle`
+ * made one fail on a mailbox address and the other pass vacuously against an unrelated message
+ * (#86, and `rules/testing.md` § 3).
+ */
+async function deliver(
+  email: string,
+): Promise<{ auth: ReturnType<typeof wire>; delivery: Delivery }> {
+  delivered.length = 0
+  const auth = wire()
+  await auth.startSignIn(signInRequest(email))
+  return { auth, delivery: onlyDelivery() }
 }
 
 /** The href a mail client would follow, taken from the RECEIVED html. */
@@ -189,13 +198,9 @@ function hrefFromReceived(mail: ParsedMail): string {
 }
 
 describe('the link in the message that arrived', () => {
-  beforeAll(async () => {
-    delivered.length = 0
-    await wire().startSignIn(signInRequest('recipient@example.test'))
-  })
-
-  it('arrived at all, addressed to the recipient, with both bodies', () => {
-    const { mail } = onlyDelivery()
+  it('arrived at all, addressed to the recipient, with both bodies', async () => {
+    const { delivery } = await deliver('recipient@example.test')
+    const { mail } = delivery
     expect(addressText(mail.to)).toBe('recipient@example.test')
     expect(addressText(mail.from)).toContain('no-reply@usetheo.dev')
     expect(mail.subject).toContain('TheoKit')
@@ -203,10 +208,12 @@ describe('the link in the message that arrived', () => {
     expect(mail.text, 'no text part survived delivery').toBeTruthy()
   })
 
-  it('was quoted-printable encoded on the wire, not sent as-is', () => {
+  it('was quoted-printable encoded on the wire, not sent as-is', async () => {
     // Guards the premise of the next test. A transport that skipped the encoding would
-    // make every assertion below pass for the wrong reason.
-    const { raw } = onlyDelivery()
+    // make every assertion below pass for the wrong reason. It sends its own message: it
+    // used to read whichever one happened to be there, which is a guard that cannot fail.
+    const { delivery } = await deliver('recipient@example.test')
+    const { raw } = delivery
     expect(raw, 'nothing declared a transfer encoding').toMatch(
       /Content-Transfer-Encoding:\s*quoted-printable/i,
     )
@@ -215,14 +222,15 @@ describe('the link in the message that arrived', () => {
   })
 
   it('survives a soft line break landing inside the token', async () => {
-    // The assertion this whole file exists for, and the one that needed a long base URL to
-    // become real: with a short one the link lands on a 51-character line, no break falls
-    // inside it, and the test would pass without exercising the codec at all.
-    const auth = wire(LONG_BASE)
-    delivered.length = 0
-    await auth.startSignIn(signInRequest('longurl@example.test'))
-
-    const { raw, mail } = onlyDelivery()
+    // The assertion this whole file exists for.
+    //
+    // The fold comes from the LINK's length, not from the base URL's. The callback path is
+    // absolute, so `new URL('/auth/magic-link/callback', base)` discards whatever path the base
+    // carried: a 43-character token makes the link 102 characters against a 76-column
+    // quoted-printable fold, with any base. A `LONG_BASE` constant used to sit here, and two
+    // comments explained the test by it — measured, it produced a byte-identical message (#102).
+    const { auth, delivery } = await deliver('longurl@example.test')
+    const { raw, mail } = delivery
 
     // First prove the hard case actually happened: a 76-column line ending in a soft
     // break, carrying part of the token. Without this the test claims a failure mode it
@@ -246,22 +254,18 @@ describe('the link in the message that arrived', () => {
   it('signs the user in — the delivered token is the one the store holds', async () => {
     // This is the claim the other two suites cannot make: the token came out of a message
     // that travelled over a socket and was parsed back from its wire format.
-    const auth = wire()
-    delivered.length = 0
-    await auth.startSignIn(signInRequest('roundtrip@example.test'))
+    const { auth, delivery } = await deliver('roundtrip@example.test')
 
-    const href = hrefFromReceived(onlyDelivery().mail)
+    const href = hrefFromReceived(delivery.mail)
     const result = await auth.handleCallback(callbackRequest(href), {} as never)
 
     expect(result.profile.email).toBe('roundtrip@example.test')
   })
 
   it('is single-use after arriving', async () => {
-    const auth = wire()
-    delivered.length = 0
-    await auth.startSignIn(signInRequest('once@example.test'))
+    const { auth, delivery } = await deliver('once@example.test')
 
-    const href = hrefFromReceived(onlyDelivery().mail)
+    const href = hrefFromReceived(delivery.mail)
     await auth.handleCallback(callbackRequest(href), {} as never)
 
     await expect(auth.handleCallback(callbackRequest(href), {} as never)).rejects.toMatchObject({
@@ -270,17 +274,26 @@ describe('the link in the message that arrived', () => {
     })
   })
 
-  it('the text part carries a usable link too', async () => {
-    // Mail clients that render text-only are the fallback the template promises, and the
-    // text part is where a long URL is most likely to be mangled: no markup protects it.
-    const auth = wire()
-    delivered.length = 0
-    await auth.startSignIn(signInRequest('textonly@example.test'))
+  it('the text part carries a usable link too, across a soft line break', async () => {
+    // Mail clients that render text-only are the fallback the template promises, and the text
+    // part is where a long URL is most likely to be mangled: no markup protects it.
+    //
+    // The sibling html test proves the hard case was REACHED before asserting recovery; this one
+    // asserted recovery alone, so a change that stopped folding the link would leave it green
+    // while claiming to cover the fold (#97). The link is 102 characters and quoted-printable
+    // folds at 76, so a link that arrives whole necessarily crossed a fold — assert the length
+    // rather than scan the raw message, which would also be satisfied by the html part's fold.
+    const { auth, delivery } = await deliver('textonly@example.test')
 
-    const text = onlyDelivery().mail.text ?? ''
+    const text = delivery.mail.text ?? ''
     const url = /(https?:\/\/\S+)/.exec(text)?.[1]
     expect(url, 'no URL in the delivered text part').toBeDefined()
+    expect(
+      (url as string).length,
+      'the link is shorter than a quoted-printable line — no fold was exercised',
+    ).toBeGreaterThan(76)
     expect(url, 'the text link arrived broken').not.toMatch(/=$/)
+    expect(url, 'the text link lost its whitespace integrity').not.toMatch(/\s/)
 
     const result = await auth.handleCallback(callbackRequest(url as string), {} as never)
     expect(result.profile.email).toBe('textonly@example.test')

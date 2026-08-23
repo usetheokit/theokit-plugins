@@ -15,7 +15,7 @@
  * it.
  *
  * Values are never logged. Only variable NAMES ever reach test output, and
- * `readiness.test.ts` asserts that.
+ * `readiness.offline.test.ts` asserts that.
  */
 
 import { readFileSync } from 'node:fs'
@@ -55,8 +55,14 @@ function env(): Record<string, string> {
   let fromFile: Record<string, string> = {}
   try {
     fromFile = parseEnvFile(readFileSync(join(import.meta.dirname, '..', '.env'), 'utf8'))
-  } catch {
-    // No local .env is the normal case in CI.
+  } catch (err) {
+    // ENOENT is the normal case in CI, and the ONLY recoverable one. The catch used to be
+    // bare, so EACCES, EISDIR and any parse error were all reported as "no local .env": a
+    // correctly populated but mis-permissioned file yielded an empty set, every live suite
+    // skipped naming a credential that was right there, and CI went green having called no
+    // provider — the exact outcome this package exists to prevent (#81). Also `rules/
+    // error-handling.md` § 2: never swallow exceptions.
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err
   }
   const merged: Record<string, string> = { ...fromFile }
   // process.env wins, so a CI secret is never shadowed by a stray local file.
@@ -131,9 +137,32 @@ export function unsafeReason(spec: ServiceSpec): string | undefined {
   return undefined
 }
 
+/** The one value that opts a run into calling real providers. */
+const LIVE_RUN_OPT_IN = '1'
+
+/**
+ * Whether the switch value opts this run in.
+ *
+ * Equality against the single documented value, not inequality against one refusal. It was
+ * `!== '0'`, so `false`, `no`, `off` and every other non-empty string meant "spend money": a
+ * developer editing `E2E_LIVE=0` to `E2E_LIVE=false` to turn live runs OFF turned them on, and
+ * the generated `.env.example` promises the opposite — "Nothing runs without E2E_LIVE=1" (#79).
+ *
+ * An unrecognised value stays off rather than being guessed at. `true`/`yes`/`on` are not
+ * accepted on purpose: a switch that interprets is a switch that eventually interprets something
+ * nobody meant as consent, and the cost of that mistake here is real money.
+ *
+ * @param read - Injected so the decision can be tested without an environment.
+ */
+export function isLiveRunEnabled(
+  read: () => string | undefined = () => optional('E2E_LIVE'),
+): boolean {
+  return read() === LIVE_RUN_OPT_IN
+}
+
 /** Live suites are opt-in: they call real APIs and cost real money. */
 export function liveRunEnabled(): boolean {
-  return has('E2E_LIVE') && required('E2E_LIVE') !== '0'
+  return isLiveRunEnabled()
 }
 
 /**

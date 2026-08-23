@@ -8,25 +8,53 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   release:
     name: Release via Changesets
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
       pull-requests: write
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      # Actions pinned by commit SHA rather than by ref, because this job publishes as this
+      # organization and a moving ref decides what runs here. `changesets/action@v1` was the
+      # sharpest edge: `v1` is not a tag in that repository, it is a BRANCH — the tag lookup
+      # returns 404 and the branch head is what resolves — so any push to it changed the code
+      # running in this job, with no release and no version bump to notice.
+      #
+      # Each pin carries the version it resolved to on 2026-08-21, read from the action's own
+      # tags rather than assumed from the ref name. Majors are deliberately unchanged: pinning
+      # freezes what already runs, upgrading is a separate decision with its own risk.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 # zizmor: ignore[artipacked]
         with:
+          # The one checkout in this repository that keeps its credential, and not
+          # by oversight: changesets/action pushes the version commit and the
+          # release tags with the git CLI, which authenticates from exactly this
+          # persisted token. `persist-credentials: false` breaks the release.
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        # No `version:` here on purpose. The action reads `packageManager` from
+        # package.json, which is already the single authority on the pnpm version.
+        # Pinning it a second time in this file creates two places to update, and
+        # once they disagree action-setup aborts with ERR_PNPM_BAD_PM_VERSION.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          version: 9.15.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
+          node-version-file: '.nvmrc'
           cache: 'pnpm'
+          # The cache key must change when the package manager does. setup-node keys the
+          # pnpm store on the lockfile alone, so a pnpm 9 -> 10 bump leaves the key
+          # identical and the job restores a store the new pnpm reads as inconsistent —
+          # `ERR_PNPM_MISSING_PACKAGE_INDEX_FILE`, on a package the lockfile does list.
+          # package.json carries `packageManager`, so including it ties the cache to the
+          # pnpm that wrote it.
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            package.json
           registry-url: 'https://registry.npmjs.org'
       # `changeset publish` shells out to `npm publish`, and OIDC trusted publishing
       # landed in npm 11.5.1. Node 22 ships npm 10.9.7, which has no OIDC code at all:
@@ -44,12 +72,27 @@ jobs:
       # required — the binding authorizes this workflow, this line is what lets the CLI
       # present the token the binding checks.
       - name: Upgrade npm to a version that supports OIDC trusted publishing
-        run: npm install -g npm@^11.5.1
+        run: npm install -g npm@11.9.0 # zizmor: ignore[adhoc-packages] — bootstrapping npm itself; no lockfile can cover it
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      # This job and ci.yml trigger on the SAME event (`push` to main) and run in parallel,
+      # with nothing linking them — so before this, `changeset publish` could reach npm while
+      # CI was still running on the very same SHA, or while it was failing on it. The merge of
+      # the "Version Packages" PR creates a new commit that neither branch's CI had seen.
+      #
+      # Not hypothetical here: plugin-canvas@0.3.3 and plugin-forms@0.1.4 sat broken in the
+      # registry for weeks (#9). Running the gates in this job costs a couple of minutes and
+      # makes the guarantee independent of what CI happens to be doing (#112).
+      #
+      # This is NOT a substitute for branch protection requiring a status check (#26): that
+      # protects the merge, this protects the publish.
+      - name: Typecheck the commit being released
+        run: pnpm typecheck
+      - name: Test the commit being released
+        run: pnpm test
       - name: Create Release PR or Publish
         id: changesets
-        uses: changesets/action@v1
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
           publish: pnpm release
           # `pnpm run version:packages`, never `pnpm version`. `version` is a native
@@ -86,7 +129,11 @@ jobs:
           # permission, so --provenance silently no-ops. Without NPM_TOKEN, npm CLI
           # uses the GitHub Actions OIDC token automatically (requires npm dashboard
           # trusted-publisher binding configured at npmjs.com/package/<pkg>/settings).
-          NPM_CONFIG_PROVENANCE: true
+          #
+          # NPM_CONFIG_PROVENANCE is gone for a related reason: it is redundant now
+          # that `publishConfig.provenance: true` sits in all eleven manifests,
+          # beside the package each one describes, and trusted publishing attaches
+          # the attestation on its own.
       # The failure this closes is silence, not the missing permission (#16).
       #
       # When the token cannot open a pull request, `changesets/action` still

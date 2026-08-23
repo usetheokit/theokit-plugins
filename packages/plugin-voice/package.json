@@ -32,7 +32,7 @@
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
-    "theokit": ">=0.1.0-alpha.5"
+    "theokit": ">=0.48.7"
   },
   "peerDependenciesMeta": {
     "react": {
@@ -75,5 +75,8 @@
   "bugs": {
     "url": "https://github.com/usetheokit/theokit-plugins/issues"
   },
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.12.0"
+  }
 }

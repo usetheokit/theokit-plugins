@@ -244,10 +244,34 @@ describeLive(PAYMENTS, 'status reconciliation', () => {
       id: created.id,
       status: 'pending',
       provider: 'stripe',
-      amountInCents: 500,
-      currency: 'USD',
       amountRefundedInCents: 0,
     })
+
+    // Read the amount off the fixture rather than hardcoding it. `amountInCents: 500` and
+    // `currency: 'USD'` were asserted against a price whose provisioning instructions say only
+    // "create a product with a one-time price" — so an operator following them to the letter got
+    // a failure pointing at the provider, for a fixture that was never specified (#94).
+    //
+    // This is also the stronger claim. Reconciliation is worth having because it reports what the
+    // session actually holds; comparing that to the price it was built from tests the provider,
+    // while comparing it to a literal tests the dashboard.
+    const price = await new Stripe(required('STRIPE_SECRET_KEY')).prices.retrieve(
+      required('STRIPE_TEST_PRICE_ID'),
+    )
+    // `unit_amount` is null for tiered and metered prices. Asserting it first turns "the fixture
+    // is the wrong KIND of price" into a sentence, instead of a comparison against null that
+    // reads like the provider dropped the amount.
+    expect(
+      typeof price.unit_amount,
+      `STRIPE_TEST_PRICE_ID (${price.id}) has no unit_amount — it must be a simple one-time price`,
+    ).toBe('number')
+    expect(
+      status.amountInCents,
+      'the reported amount is not the price the session was built from',
+    ).toBe(price.unit_amount)
+    expect(status.currency?.toLowerCase(), 'the reported currency is not the price currency').toBe(
+      price.currency,
+    )
   }, 60_000)
 
   it('raises PaymentProviderError for a session that does not exist', async () => {

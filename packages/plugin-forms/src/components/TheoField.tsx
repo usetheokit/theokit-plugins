@@ -8,8 +8,16 @@
  *   loader that ALWAYS fails in browser ESM context (globalThis.require is
  *   undefined). Switched to a static ESM import — clearer failure mode:
  *   importing <TheoField> without `@usetheo/ui` installed produces a module-
- *   resolution error at load time, not a render-time throw. Consumers without
- *   @usetheo/ui MUST use `useTheoField()` headless hook (still works peer-free).
+ *   resolution error at load time, not a render-time throw — and because the public barrel
+ *   re-exports this component, that error reaches ANY import from the package root, including
+ *   `useTheoField()`. The peer is therefore required, and `peerDependenciesMeta` no longer
+ *   claims otherwise (#103).
+ *
+ *   This paragraph used to promise that headless consumers "MUST use useTheoField() (still
+ *   works peer-free)". That escape has never existed: the barrel has re-exported TheoField
+ *   since the v0.1.0 scaffold, and both published versions carry `@usetheo/ui` in dist/index.js.
+ *   Making it real means moving this component to its own entry point, which is an API change
+ *   with its own decision to make — see #104.
  *
  * Composition (v0.1.x):
  *   <TheoField name="email">

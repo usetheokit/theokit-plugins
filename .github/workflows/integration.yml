@@ -46,14 +46,27 @@ jobs:
     # job by pointing at an environment that does not exist.
     environment: e2e
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          version: 9.15.0
-      - uses: actions/setup-node@v4
+          persist-credentials: false
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        # No `version:` here on purpose. The action reads `packageManager` from
+        # package.json, which is already the single authority on the pnpm version.
+        # Pinning it a second time in this file creates two places to update, and
+        # once they disagree action-setup aborts with ERR_PNPM_BAD_PM_VERSION.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
+          node-version-file: '.nvmrc'
           cache: 'pnpm'
+          # The cache key must change when the package manager does. setup-node keys the
+          # pnpm store on the lockfile alone, so a pnpm 9 -> 10 bump leaves the key
+          # identical and the job restores a store the new pnpm reads as inconsistent —
+          # `ERR_PNPM_MISSING_PACKAGE_INDEX_FILE`, on a package the lockfile does list.
+          # package.json carries `packageManager`, so including it ties the cache to the
+          # pnpm that wrote it.
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            package.json
       - run: pnpm install --frozen-lockfile
       # The suites import the plugins by their public entry points, which come
       # from dist/.
@@ -101,13 +114,18 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 
       - name: Live suites
+        # The dispatch input reaches the shell as an environment variable, never as
+        # text spliced into the script. `${{ inputs.x }}` inside a run block is
+        # substituted before bash sees the line, so a value containing a shell
+        # metacharacter executes as code with whatever secrets this step holds.
         run: |
-          if [ -n "${{ inputs.service }}" ]; then
-            pnpm --filter @theokit/plugins-integration exec vitest run "tests/${{ inputs.service }}"
+          if [ -n "$SERVICE" ]; then
+            pnpm --filter @theokit/plugins-integration exec vitest run "tests/$SERVICE"
           else
             pnpm integration
           fi
         env:
+          SERVICE: ${{ inputs.service }}
           E2E_LIVE: '1'
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           RESEND_FROM_ADDRESS: ${{ secrets.RESEND_FROM_ADDRESS }}
