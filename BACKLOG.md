@@ -37,9 +37,9 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-22 items — **Open** 19 · **In flight** 0 · **Closed** 3
+23 items — **Open** 20 · **In flight** 0 · **Closed** 3
 
-### Open (19)
+### Open (20)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -62,6 +62,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-020`](#b-020--code-quality-was-returning-pass-over-zero-languages--) | /code-quality was returning PASS over zero languages | `raw` | — |
 | [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package--) | the OAuth transaction cookie is encrypted with a constant published in the package | `raw` | — |
 | [`B-022`](#b-022--assertproductionsecret-warns-about-a-boot-refusal-nothing-implements--) | `assertProductionSecret` warns about a boot refusal nothing implements | `raw` | — |
+| [`B-023`](#b-023--the-release-pipeline-cannot-open-its-own-version-packages-pr--) | the release pipeline cannot open its own Version Packages PR | `raw` | — |
 
 ### In flight (0)
 
@@ -703,3 +704,34 @@ dod:
   surface that makes it
 - a test asserts the chosen behaviour under `NODE_ENV=production`, since that is the only branch
   where it would bite
+
+## B-023 — the release pipeline cannot open its own Version Packages PR [ ]
+
+> Registered 2026-08-23 during B-001's RELEASE phase, which hit it.
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: bug
+source: human
+evidence: none-yet
+why_now: measured 2026-08-23 — merging `develop → main` (#117) started `release.yml`, which ran
+`changeset version`, consumed all 11 changesets, pushed the bumps to `changeset-release/main`, and
+then failed: `HttpError: GitHub Actions is not permitted to create or approve pull requests`
+(run 32638787879). The versioning half had already run, so the changesets were gone and **nothing
+was published** — the repository was left mid-release, with the bumps on a branch nobody had asked
+for. Recovering meant opening the PR by hand (#118) and merging it, which then published all 11
+packages successfully (run 32639033942). The workflow has a step literally named "Fail loudly if
+the release PR could not be opened", so the failure mode was anticipated; the permission was not
+granted.
+status: raw
+dod:
+
+- a release either completes or leaves the changesets intact — the half-applied state above must
+  not be reachable
+- the fix is a permission or a token, not a documented manual step: "open the PR by hand" makes
+  every release depend on someone knowing that
+- a dry-run path exists so the next change to `release.yml` is verifiable without publishing
+
+note: the pipeline is otherwise correct — versions, tags and GitHub releases were all right once
+the PR existed. This is one missing setting ("Allow GitHub Actions to create and approve pull
+requests"), not a broken design.
