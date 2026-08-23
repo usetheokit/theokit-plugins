@@ -44,7 +44,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish--) | Nothing compiles the code examples our READMEs publish | `raw` | — |
+| [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish--) | Nothing compiles the code examples our READMEs publish | `triaged` | — |
 | [`B-010`](#b-010--plugin-realtimes-presence-and-broadcast-never-leave-the-client--) | `plugin-realtime`'s presence and broadcast never leave the client | `raw` | — |
 | [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `raw` | — |
 | [`B-012`](#b-012--plugin-forms-cannot-upload-a-file--) | `plugin-forms` cannot upload a file | `raw` | — |
@@ -391,7 +391,17 @@ domain: dev-tooling
 repo: plugin-db-drizzle
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/readme-examples-compile-gate-opportunity.md`
+— three real defects across eleven published READMEs, none visible to the name-resolution gate:
+`withAgentContext({ userId })` against an `AgentContext` that has no `userId`, two untyped
+parameters in `auth-google`'s wrapper example, and `useState` called without being imported. Three
+attempts to count failures produced 2, 49 and 23, all wrong for one reason — nothing declared which
+references were deliberate.
+correction: the item was first evidenced by the `export default { plugins: [...] }` example from
+[[B-007]], called "not the real config API" in a commit, a PR and this block. **Measured, it
+works**: `loadConfig` refuses only `null` or a non-object, and `.build()` returns
+`Partial<TheoConfig>`, which a bare `{ plugins }` satisfies. It diverged from the convention three
+sibling packages use — not a defect. The claim is corrected rather than removed.
 why_now: measured 2026-08-20 while closing #67 — ten names the READMEs told a reader to import
 existed in none of `theokit@0.48.8`'s 24 export subpaths, and eight READMEs shipped that way. The
 gate added in the same pass (`tools/check-doc-api-drift.mjs`) asks the compiler whether the imported
@@ -400,7 +410,7 @@ method that moved. Both defects fixed under #67 that a careful reading would sti
 found by compiling the block instead — `provider.startSignIn(req)` resolves to a `URL` rather than a
 string, and `payments` never moved to the `/stripe` subpath the migration guide pointed at. That
 verification happened once, by hand, in a scratch directory that no longer exists.
-status: raw
+status: triaged
 dod:
 
 - a gate that compiles the `ts / `tsx blocks of the versioned Markdown, not just their import
