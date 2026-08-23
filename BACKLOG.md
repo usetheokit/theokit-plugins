@@ -37,14 +37,13 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-25 items — **Open** 20 · **In flight** 0 · **Closed** 5
+25 items — **Open** 19 · **In flight** 0 · **Closed** 6
 
-### Open (20)
+### Open (19)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams--) | The `plugin-` prefix names four different integration seams | `raw` | — |
 | [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it--) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `raw` | — |
 | [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish--) | Nothing compiles the code examples our READMEs publish | `raw` | — |
 | [`B-010`](#b-010--plugin-realtimes-presence-and-broadcast-never-leave-the-client--) | `plugin-realtime`'s presence and broadcast never leave the client | `raw` | — |
@@ -68,7 +67,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (5)
+### Closed (6)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -77,6 +76,7 @@ _None._
 | [`B-004`](#b-004--auth-magic-link-has-no-live-suite-while-the-other-two-auth-providers-do-x) | `auth-magic-link` has no live suite while the other two auth providers do | `shipped` | — |
 | [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain-x) | No test asserts that a package belongs to exactly one domain | `killed` | — |
 | [`B-006`](#b-006--backlog-init-assumed-an-umbrella-and-would-have-refused-to-run-here-x) | `/backlog-init` assumed an umbrella and would have refused to run here | `shipped` | — |
+| [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams-x) | The `plugin-` prefix names four different integration seams | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
@@ -310,7 +310,7 @@ dod:
 - the routing table it writes goes only into `rules/cycle-backlog.md`, never a second copy in
   `BACKLOG.md` [x]
 
-## B-007 — The `plugin-` prefix names four different integration seams [ ]
+## B-007 — The `plugin-` prefix names four different integration seams [x]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `plugin-prefix-overloaded`).
 
@@ -318,13 +318,13 @@ domain: plugin-server
 repo: plugin-forms
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/plugin-prefix-overloaded-opportunity.md` — `plugin-copilot` is a TheoPlugin whose README never contains `copilot(`, `plugins:` or `theo.config`, and whose npm description names `defineCopilot` instead; a consumer following it never registers the plugin
 why_now: measured 2026-08-18 — `plugin-payments` is a `TheoPlugin`, `plugin-forms` is React and Zod
 with no server seam, `plugin-db-drizzle` is a set of CLI descriptors, and `plugin-email` is a
 function library. Four consumption models behind one prefix: what a developer learns from one
 package transfers to none of the others. This is a naming and API-surface decision on already
 published packages, so it is registered rather than acted on.
-status: raw
+status: shipped
 dod:
 
 - each package's README opens with the export going into the exact config field that consumes it
@@ -332,6 +332,19 @@ dod:
   kept with the seam documented per package
 - no package is renamed before B-001 exists, so the conformance test proves the move did not break
   integration
+
+resolution: shipped 2026-08-23 in PR #120. The decision recorded (ADR D1) is **keep the prefix,
+document the seam** — eleven published packages make a rename breaking for all of them, and the
+measured cost does not reach that price. `pnpm check:manifests` now fails when a package declares a
+seam and no code block in its README calls that seam's factory (7 checked). `plugin-copilot`'s
+README and npm description were the one measured defect and are fixed.
+
+Two things the cycle produced that are worth more than the gate: the check was tightened from
+"factory appears anywhere" to "factory appears in a code block" because integration validation
+showed a prose mention kept it green; and the review then showed the fence regex implementing that
+could classify prose AS code, which would have carried the stricter message while behaving like the
+looser one. Both are covered by tests. A `.gitattributes` was added as the root-cause half of the
+CRLF finding.
 
 ## B-008 — The root `v*` tag convention is dead and the CHANGELOG still implies it [ ]
 
