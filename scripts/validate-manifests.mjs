@@ -340,6 +340,12 @@ function sourceFiles(dir) {
     for (const entry of readdirSync(d, { withFileTypes: true })) {
       const full = join(d, entry.name)
       if (entry.isDirectory()) walk(full)
+      // Test and fixture files are excluded: a colocated fake app calling its own
+      // `decorateRequest` is not a claim on the shared namespace, and counting it would fail a
+      // repository with no real collision. `rules/testing.md § 5.1` puts unit tests in
+      // `packages/*/tests`, so today this excludes nothing — it is the guard for the first
+      // package that colocates one.
+      else if (/\.(test|spec|fixture|mock)\.(ts|tsx|mts|cts)$/.test(entry.name)) continue
       else if (/\.(ts|tsx|mts|cts)$/.test(entry.name)) out.push(full)
     }
   }
@@ -348,53 +354,85 @@ function sourceFiles(dir) {
 }
 
 /**
+ * Resolve a node to the string it will be at runtime, or `null`.
+ *
+ * Handles the forms that actually occur: a literal, a template with no substitutions, a
+ * concatenation of resolvable parts, an `as const` assertion, and an identifier declared anywhere
+ * in the same package. Everything else — a property access, a call, a template with holes — is
+ * `null`, which is REPORTED rather than dropped, and which makes the summary line say so.
+ */
+function resolveString(node, source, literals) {
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text
+  // `'payments' as const` is idiomatic TypeScript and wraps the literal in an AsExpression.
+  if (ts.isAsExpression(node) || ts.isTypeAssertionExpression?.(node))
+    return resolveString(node.expression, source, literals)
+  if (ts.isParenthesizedExpression(node)) return resolveString(node.expression, source, literals)
+  if (ts.isIdentifier(node)) return literals.has(node.text) ? literals.get(node.text) : null
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
+    const left = resolveString(node.left, source, literals)
+    const right = resolveString(node.right, source, literals)
+    return left !== null && right !== null ? left + right : null
+  }
+  return null
+}
+
+/**
  * Keys claimed by one package.
  *
  * Resolution follows the CALL SITE, not the exported const name: what matters is the value handed
  * to the framework, so a package declaring one name and passing another is measured by what it
- * passes. An identifier is resolved through a `const … = '<literal>'` in the same file; anything
- * else — a template string, a call — is returned as unresolved rather than dropped.
+ * passes.
+ *
+ * Identifiers resolve against a map built from the WHOLE package, not from the calling file. That
+ * distinction is the difference between a gate and a decoration: with same-file-only resolution,
+ * moving `PAYMENTS_DECORATION_KEY` into its own module — an ordinary refactor — silently turned a
+ * real collision into an unresolved line and the run still printed a green summary.
  */
 function decorationKeys(dir) {
-  const resolved = []
-  const unresolved = []
+  const files = sourceFiles(dir)
+  const parsed = files.map((file) => ({
+    file,
+    source: ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true),
+  }))
 
-  for (const file of sourceFiles(dir)) {
-    const source = ts.createSourceFile(
-      file,
-      readFileSync(file, 'utf8'),
-      ts.ScriptTarget.Latest,
-      true,
-    )
-
-    /** `const NAME = 'literal'` in this file. Comments are not nodes, so none appear here. */
-    const literals = new Map()
+  // Pass 1: every `const NAME = <resolvable>` in the package. Comments are not nodes, so a name
+  // that appears only in prose never lands here.
+  const literals = new Map()
+  for (const { source } of parsed) {
     const collect = (node) => {
-      if (
-        ts.isVariableDeclaration(node) &&
-        ts.isIdentifier(node.name) &&
-        node.initializer &&
-        ts.isStringLiteral(node.initializer)
-      ) {
-        literals.set(node.name.text, node.initializer.text)
+      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
+        const value = resolveString(node.initializer, source, literals)
+        if (value !== null) literals.set(node.name.text, value)
       }
       ts.forEachChild(node, collect)
     }
     collect(source)
+  }
 
+  // Pass 2: the call sites.
+  const resolved = []
+  const unresolved = []
+  for (const { file, source } of parsed) {
     const visit = (node) => {
-      if (
-        ts.isCallExpression(node) &&
-        ts.isPropertyAccessExpression(node.expression) &&
-        node.expression.name.text === DECORATION_METHOD &&
-        node.arguments.length > 0
-      ) {
-        const arg = node.arguments[0]
-        const line = source.getLineAndCharacterOfPosition(arg.getStart(source)).line + 1
-        if (ts.isStringLiteral(arg)) resolved.push({ key: arg.text, at: `${file}:${line}` })
-        else if (ts.isIdentifier(arg) && literals.has(arg.text))
-          resolved.push({ key: literals.get(arg.text), at: `${file}:${line}` })
-        else unresolved.push({ at: `${file}:${line}`, text: arg.getText(source) })
+      if (ts.isCallExpression(node) && node.arguments.length > 0) {
+        const callee = node.expression
+        const isDecorate =
+          (ts.isPropertyAccessExpression(callee) && callee.name.text === DECORATION_METHOD) ||
+          // `app['decorateRequest'](…)` is the one bypass that would otherwise leave no trace:
+          // element access is not a PropertyAccessExpression, so it was neither counted nor
+          // reported.
+          (ts.isElementAccessExpression(callee) &&
+            callee.argumentExpression &&
+            ts.isStringLiteral(callee.argumentExpression) &&
+            callee.argumentExpression.text === DECORATION_METHOD)
+
+        if (isDecorate) {
+          const arg = node.arguments[0]
+          const line = source.getLineAndCharacterOfPosition(arg.getStart(source)).line + 1
+          const value = resolveString(arg, source, literals)
+          if (value !== null) resolved.push({ key: value, at: `${file}:${line}` })
+          else unresolved.push({ at: `${file}:${line}`, text: arg.getText(source) })
+        }
       }
       ts.forEachChild(node, visit)
     }
@@ -406,38 +444,43 @@ function decorationKeys(dir) {
 
 function checkDecorationKeys(dirs) {
   const claims = new Map()
+  const unresolvedKeys = new Set()
 
   for (const dir of dirs) {
     const { resolved, unresolved } = decorationKeys(dir)
     for (const { key, at } of resolved) {
-      if (!claims.has(key)) claims.set(key, [])
-      claims.get(key).push(at)
+      if (!claims.has(key)) claims.set(key, new Map())
+      // Keyed by package, so the same key claimed twice INSIDE one package is not a collision.
+      // Deriving the package from `dir` rather than re-parsing the path also keeps this correct
+      // on Windows, where `join()` emits `\\` and splitting on `/` collapsed every site to
+      // `undefined` — making the check silently unable to fire.
+      if (!claims.get(key).has(dir)) claims.get(key).set(dir, at)
     }
-    // Reported, never skipped: silence here would be the exemption-by-silence this repository
-    // spent a cycle removing one directory over. It does not fail the build — no such key exists
-    // today, and inventing a rule for a case nobody has is the other failure mode.
-    for (const { at, text } of unresolved) {
-      console.log(
-        `  ℹ unresolved decoration key at ${at}: \`${text}\` — not checked for duplicates`,
-      )
-    }
+    // Reported, never dropped — and de-duplicated, because one unresolved identifier used three
+    // times produced three byte-identical lines.
+    for (const { at, text } of unresolved) unresolvedKeys.add(`${at}: \`${text}\``)
   }
 
-  for (const [key, sites] of claims) {
-    const packages = new Set(sites.map((s) => s.split('/')[1]))
-    if (packages.size > 1) {
+  for (const line of [...unresolvedKeys].sort()) {
+    console.error(`  \u2139 unresolved decoration key at ${line} — not compared for duplicates`)
+  }
+
+  for (const [key, byPackage] of claims) {
+    if (byPackage.size > 1) {
       violations.push(
-        `decoration key \`${key}\` is claimed by ${packages.size} packages: ${sites.join(', ')} — ` +
+        `decoration key \`${key}\` is claimed by ${byPackage.size} packages: ${[...byPackage.values()].join(', ')} — ` +
           `the framework does not refuse this, it silently keeps the last one registered. ` +
           `See rules/decoration-keys.md.`,
       )
     }
   }
+
+  return { compared: claims.size, unresolved: unresolvedKeys.size }
 }
 
 const packageDirs = readdirSync(PACKAGES_DIR).sort()
 for (const dir of packageDirs) check(dir)
-checkDecorationKeys(packageDirs)
+const keyReport = checkDecorationKeys(packageDirs)
 
 if (violations.length > 0) {
   console.error(`✗ ${violations.length} manifest violation(s):\n`)
@@ -449,5 +492,10 @@ if (violations.length > 0) {
 console.log(
   '✓ every package manifest is publishable (repository + directory, provenance, no escaping local paths)\n' +
     '✓ no package re-invents a theokit type, and every `theokit`/`@theokit/*` peer is used or triaged\n' +
-    '✓ no two packages claim the same request-decoration key',
+    // Never unconditional. A summary that claims "no two packages claim the same key" after
+    // resolving none of them is a green line the run did not earn — and that is exactly what the
+    // first version printed while an ordinary refactor hid a real collision.
+    (keyReport.unresolved > 0
+      ? `⚠ ${keyReport.compared} request-decoration key(s) compared; ${keyReport.unresolved} could NOT be resolved statically and were not compared (listed above)`
+      : `✓ no two packages claim the same request-decoration key (${keyReport.compared} compared)`),
 )

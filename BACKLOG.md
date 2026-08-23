@@ -37,9 +37,9 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-23 items — **Open** 20 · **In flight** 0 · **Closed** 3
+24 items — **Open** 21 · **In flight** 0 · **Closed** 3
 
-### Open (20)
+### Open (21)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -63,6 +63,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package--) | the OAuth transaction cookie is encrypted with a constant published in the package | `raw` | — |
 | [`B-022`](#b-022--assertproductionsecret-warns-about-a-boot-refusal-nothing-implements--) | `assertProductionSecret` warns about a boot refusal nothing implements | `raw` | — |
 | [`B-023`](#b-023--the-release-pipeline-cannot-open-its-own-version-packages-pr--) | the release pipeline cannot open its own Version Packages PR | `raw` | — |
+| [`B-024`](#b-024--plugin-payments-claims-ctxstripe-a-vendor-noun-a-consumer-is-likely-to-want--) | `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want | `raw` | — |
 
 ### In flight (0)
 
@@ -748,3 +749,31 @@ dod:
 note: the pipeline is otherwise correct — versions, tags and GitHub releases were all right once
 the PR existed. This is one missing setting ("Allow GitHub Actions to create and approve pull
 requests"), not a broken design.
+
+## B-024 — `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want [ ]
+
+> Registered 2026-08-23 by the plugin-server reviewer during B-002's REVIEW phase.
+
+domain: plugin-server
+repo: plugin-payments
+suggested_mode: review
+source: human
+evidence: none-yet
+why_now: found 2026-08-23 while writing the decoration-key rule, which claimed "both existing keys"
+follow the exported-const form. There are **three** keys, and `stripe`
+(`packages/plugin-payments/src/stripe.ts:123`) follows neither half of the convention: it is an
+inline literal with no exported const, so a consumer retypes it instead of importing it; and it is
+a vendor noun rather than a plugin noun. A consumer using the Stripe SDK is a plausible claimant of
+`ctx.stripe`, and per the measurement in [[B-002]] the framework resolves that collision silently,
+last-writer-wins — in their app, moving when they reorder their own config. `pnpm check:manifests`
+cannot see it: the check compares keys across OUR packages, and a consumer's key is outside this
+repository by construction.
+status: raw
+dod:
+
+- the key is namespaced by the plugin rather than by the vendor, and exported as a const so it can
+  be imported
+- the rename is shipped as a breaking change with a migration note, since `ctx.stripe` is public
+  surface as much as an exported function — `@theokit/plugin-payments` is published at 0.4.0
+- `rules/decoration-keys.md`'s table is updated in the same change, so the rule stops recording a
+  known exception

@@ -20,7 +20,7 @@
  * Credential-free by construction — `*.offline.test.ts`, so it runs on every pull request.
  */
 
-import { execFileSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -37,31 +37,41 @@ afterEach(() => {
   while (created.length) rmSync(created.pop()!, { recursive: true, force: true })
 })
 
-/** A fixture repo whose packages are `private`, so only the new check can fail them. */
-function fixture(packages: Record<string, string>): string {
+/**
+ * A fixture repo whose packages are `private`, so only the new check can fail them.
+ *
+ * A package is either a single `src/plugin.ts` source, or a map of `src/`-relative filenames to
+ * sources — the second form is what lets a test put a key's const in one file and its call site
+ * in another, which is the refactor that defeated the first version of this check.
+ */
+function fixture(packages: Record<string, string | Record<string, string>>): string {
   const root = mkdtempSync(join(tmpdir(), 'deco-keys-'))
   created.push(root)
-  for (const [name, source] of Object.entries(packages)) {
+  for (const [name, spec] of Object.entries(packages)) {
     const dir = join(root, 'packages', name)
     mkdirSync(join(dir, 'src'), { recursive: true })
     writeFileSync(
       join(dir, 'package.json'),
       JSON.stringify({ name: `@fixture/${name}`, version: '0.0.0', private: true }),
     )
-    writeFileSync(join(dir, 'src', 'plugin.ts'), source)
+    const files = typeof spec === 'string' ? { 'plugin.ts': spec } : spec
+    for (const [rel, source] of Object.entries(files)) {
+      writeFileSync(join(dir, 'src', rel), source)
+    }
   }
   return root
 }
 
-/** Run the validator in `cwd`; return its exit code and combined output. */
+/**
+ * Run the validator in `cwd`; return its exit code and BOTH streams.
+ *
+ * Both, deliberately: the unresolved-key notices go to stderr so they are visible beside the
+ * violations, and a helper that returned only stdout on success could not see them — which is how
+ * an assertion about them passed for the wrong reason once already.
+ */
 function validate(cwd: string): { code: number; output: string } {
-  try {
-    const output = execFileSync('node', [SCRIPT], { cwd, encoding: 'utf8', stdio: 'pipe' })
-    return { code: 0, output }
-  } catch (err) {
-    const e = err as { status?: number; stdout?: string; stderr?: string }
-    return { code: e.status ?? 1, output: `${e.stdout ?? ''}${e.stderr ?? ''}` }
-  }
+  const result = spawnSync('node', [SCRIPT], { cwd, encoding: 'utf8' })
+  return { code: result.status ?? 1, output: `${result.stdout ?? ''}${result.stderr ?? ''}` }
 }
 
 const claiming = (pkg: string, key: string) => `
@@ -80,10 +90,14 @@ describe('two packages may not claim the same decoration key', () => {
 
     const { code, output } = validate(root)
 
-    expect(code, 'the duplicate was accepted').not.toBe(0)
-    expect(output).toMatch(/payments/)
-    expect(output, 'the failure names only one side of the collision').toMatch(/alpha/)
-    expect(output).toMatch(/beta/)
+    expect(code, 'the duplicate was accepted').toBe(1)
+    // Anchored on the message, not on the fixture paths: `/alpha/` alone matched any output that
+    // merely mentioned the temp directory.
+    expect(output).toMatch(/decoration key `payments` is claimed by 2 packages/)
+    expect(output, 'the failure names only one side of the collision').toMatch(
+      /alpha\/src\/plugin\.ts:\d+/,
+    )
+    expect(output).toMatch(/beta\/src\/plugin\.ts:\d+/)
   })
 
   it('points at the rule rather than sending the reader to grep', () => {
@@ -145,5 +159,75 @@ export function plugin(suffix) {
 
   it('passes against this repository, so it cannot be satisfied by failing on everything', () => {
     expect(validate(REPO_ROOT).code).toBe(0)
+  })
+
+  it('sees a key whose const lives in another file of the same package', () => {
+    // The refactor that defeated the first version of this check: resolution was same-file only,
+    // so moving a key's const into its own module turned a real collision into an unresolved
+    // line — and the run still printed a green summary claiming no two packages collided.
+    const root = fixture({
+      alpha: {
+        'keys.ts': `export const K = 'payments'`,
+        'plugin.ts': `import { K } from './keys.js'
+export const p = { name: 'a', register(app) { app.decorateRequest(K, {}) } }`,
+      },
+      beta: claiming('beta', 'payments'),
+    })
+
+    expect(validate(root).code).not.toBe(0)
+  })
+
+  it("sees a key written as `'…' as const`", () => {
+    // Idiomatic TypeScript, and it wraps the literal in an AsExpression rather than leaving a
+    // StringLiteral — so a resolver that only matched literals dropped it.
+    const root = fixture({
+      alpha: `const K = 'payments' as const
+export const p = { name: 'a', register(app) { app.decorateRequest(K, {}) } }`,
+      beta: claiming('beta', 'payments'),
+    })
+
+    expect(validate(root).code).not.toBe(0)
+  })
+
+  it('does not treat one package claiming a key twice as a collision', () => {
+    // The property is "two PACKAGES", not "two call sites". Without this, deriving the package
+    // could be broken outright and the whole suite would still pass — measured: it did.
+    const root = fixture({
+      alpha: `export const p = { name: 'a', register(app) {
+  app.decorateRequest('shared', {})
+  app.decorateRequest('shared', {})
+} }`,
+    })
+
+    expect(validate(root).code).toBe(0)
+  })
+
+  it('reads a key claimed from a .tsx file', () => {
+    // The extension pattern could be narrowed to `.ts` and every other test here would still
+    // pass — measured. A React-surface package claiming a key is exactly the case that widening
+    // was for.
+    const root = fixture({
+      alpha: {
+        'ui.tsx': `export const p = { register(app) { app.decorateRequest('payments', {}) } }`,
+      },
+      beta: claiming('beta', 'payments'),
+    })
+
+    expect(validate(root).code).not.toBe(0)
+  })
+
+  it('refuses to claim it compared keys it could not resolve', () => {
+    // The summary line used to be unconditional: a run that resolved nothing still printed
+    // "no two packages claim the same key". That is a green line the run did not earn.
+    const root = fixture({
+      alpha: `const KEYS = { payments: 'payments' }
+export const p = { name: 'a', register(app) { app.decorateRequest(KEYS.payments, {}) } }`,
+    })
+
+    const { code, output } = validate(root)
+
+    expect(code).toBe(0)
+    expect(output, 'claimed a clean comparison it did not make').not.toMatch(/no two packages/)
+    expect(output).toMatch(/could NOT be resolved/)
   })
 })
