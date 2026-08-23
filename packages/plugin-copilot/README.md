@@ -29,6 +29,36 @@ pnpm add @theokit/plugin-canvas # canvas artifact emission
 
 ## Quick start
 
+Two steps, and the second is the one people miss.
+
+**1. Register the plugin.** `copilot()` returns a `TheoPlugin`; it goes into `theo.config.ts` like
+any other. Without this the package's request surface is never installed — `ctx.copilot` is
+undefined and nothing says why, because an unregistered plugin looks exactly like a plugin nobody
+wrote.
+
+```ts
+// theo.config.ts
+import { copilot } from '@theokit/plugin-copilot'
+import { config } from 'theokit'
+
+import support from './app/copilots/support.js'
+
+export default config()
+  .set({
+    plugins: [
+      copilot({
+        provider: myRealtimeProvider, // a CopilotRealtimeProvider
+        agent: myAgent, // anything with Agent.streamObject
+        copilots: [support],
+      }),
+    ],
+  })
+  .build()
+```
+
+**2. Define a copilot.** `defineCopilot` describes one bot; the file's default export is what step
+1 hands to the plugin.
+
 ```ts
 // app/copilots/support.ts
 import { defineCopilot } from '@theokit/plugin-copilot'

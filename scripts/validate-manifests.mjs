@@ -478,9 +478,203 @@ function checkDecorationKeys(dirs) {
   return { compared: claims.size, unresolved: unresolvedKeys.size }
 }
 
+/**
+ * A package that declares a seam must name that seam's factory in its README.
+ *
+ * Measured on `plugin-copilot`: it is declared `seam: 'plugin'`, its `register()` decorates the
+ * request, and the conformance suite proves the real runner accepts it — while `copilot(`,
+ * `plugins:` and `theo.config` appeared ZERO times in its README, and its npm description named
+ * `defineCopilot` instead. A developer following that documentation exports a `defineCopilot` and
+ * stops: the plugin is never registered, and nothing fails, because an unregistered plugin is
+ * indistinguishable from one nobody wrote.
+ *
+ * This asserts PRESENCE, not correctness. A README naming the factory once in passing satisfies
+ * it. That false negative is deliberate: encoding one documentation shape would fail packages that
+ * legitimately document differently, and a gate people work around is worse than a floor.
+ */
+const SEAM_REGISTRY = join('integration', 'src', 'integrating-packages.ts')
+
+/** `{ pkg, seam, factory }` rows read from the registry's AST. */
+function parseSeamRegistry() {
+  if (!existsSync(SEAM_REGISTRY)) return null
+  const source = ts.createSourceFile(
+    SEAM_REGISTRY,
+    readFileSync(SEAM_REGISTRY, 'utf8'),
+    ts.ScriptTarget.Latest,
+    true,
+  )
+  // Anchored to the INTEGRATING_PACKAGES declaration, not to "any object literal with pkg and
+  // seam". The unanchored walk harvested example objects from helpers and JSDoc, which either
+  // invented a violation naming a package that does not exist, or — with `seam: 'none'` —
+  // silently inflated the row count that the vacuous-pass guard trusts.
+  let elements = null
+  const findDeclaration = (node) => {
+    if (
+      elements === null &&
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === 'INTEGRATING_PACKAGES' &&
+      node.initializer
+    ) {
+      // `Object.freeze([...])` or a bare array literal.
+      const init = node.initializer
+      const array = ts.isArrayLiteralExpression(init)
+        ? init
+        : ts.isCallExpression(init) &&
+            init.arguments.length &&
+            ts.isArrayLiteralExpression(init.arguments[0])
+          ? init.arguments[0]
+          : null
+      if (array) elements = array.elements
+    }
+    ts.forEachChild(node, findDeclaration)
+  }
+  findDeclaration(source)
+  if (elements === null) return null
+
+  const rows = []
+  for (const element of elements) {
+    if (!ts.isObjectLiteralExpression(element)) continue
+    const row = {}
+    for (const prop of element.properties) {
+      if (!ts.isPropertyAssignment(prop) || !ts.isIdentifier(prop.name)) continue
+      if (ts.isStringLiteral(prop.initializer)) row[prop.name.text] = prop.initializer.text
+      else row[prop.name.text] = { unresolved: prop.initializer.getText(source) }
+    }
+    rows.push(row)
+  }
+  return rows
+}
+
+function checkSeamDocumentation(dirs) {
+  const rows = parseSeamRegistry()
+  if (rows === null) {
+    // Absence is not corruption. A repository with no seam registry has not declared any seams —
+    // a fresh checkout, or a fixture testing a different invariant — and failing it would couple
+    // this check to every other check's fixtures. It is REPORTED rather than passed over: the
+    // summary says `0 checked`, so a registry that disappeared from THIS repository shows up as
+    // the count dropping from 7, not as silence.
+    console.error(
+      `  \u2139 no seam registry at ${SEAM_REGISTRY} — no package documents a declared seam`,
+    )
+    return { checked: 0, registry: false }
+  }
+
+  // An empty or partial parse must FAIL, not pass quietly. The sibling decoration-key check
+  // shipped printing a green summary having resolved nothing, and that is the defect being
+  // deliberately not repeated: a parse that finds fewer rows than there are packages means the
+  // registry's shape moved, and every assertion below would then be vacuous.
+  const onDisk = new Set(dirs.filter((d) => existsSync(join(PACKAGES_DIR, d, 'package.json'))))
+  const registered = new Set(rows.map((r) => r.pkg).filter((p) => typeof p === 'string'))
+  const unregistered = [...onDisk].filter((d) => !registered.has(d))
+  if (unregistered.length > 0) {
+    // Compared as SETS, not counts. A stale row for a deleted package used to pay for a live
+    // package with no row at all — the counts matched, the guard stayed quiet, and the live
+    // package was never checked. The number reported is the one actually compared.
+    violations.push(
+      `${SEAM_REGISTRY} has no row for ${unregistered.length} package(s) with a manifest: ` +
+        `${unregistered.join(', ')} — every seam-documentation assertion for them would be vacuous.`,
+    )
+    return { checked: 0, registry: true }
+  }
+
+  let checked = 0
+  for (const row of rows) {
+    // A field the AST could not resolve to a literal (`seam: PLUGIN`) is a row this check cannot
+    // reason about. Reported, never skipped: a dropped row is an unchecked package.
+    for (const [field, value] of Object.entries(row)) {
+      if (value && typeof value === 'object' && 'unresolved' in value) {
+        violations.push(
+          `${SEAM_REGISTRY}: a row's \`${field}\` is \`${value.unresolved}\`, not a string literal — ` +
+            `this check reads literals, so that row would go unexamined.`,
+        )
+      }
+    }
+    if (row.seam === 'none') continue
+    if (!row.factory) {
+      violations.push(
+        `${row.pkg}: declares seam \`${row.seam}\` but the registry names no factory for it — ` +
+          `there is nothing to look for in its README.`,
+      )
+      continue
+    }
+    const readme = join(PACKAGES_DIR, row.pkg, 'README.md')
+    if (!existsSync(readme)) {
+      violations.push(`${row.pkg}: declares seam \`${row.seam}\` and has no README.`)
+      continue
+    }
+    checked += 1
+    if (!readmeCode(readme).includes(`${row.factory}(`)) {
+      violations.push(
+        `${row.pkg}: no code block in the README calls \`${row.factory}()\`, the factory whose ` +
+          `result goes into the \`${row.seam}\` seam — a consumer following it gets an integration ` +
+          `that looks wired and is not. A prose mention does not count: it satisfies a search and ` +
+          `shows the reader nothing to copy. (Presence in code is the floor, not proof the docs ` +
+          `are good.)`,
+      )
+    }
+  }
+  return { checked, registry: true }
+}
+
+/**
+ * The fenced code blocks of a README, concatenated.
+ *
+ * Prose is excluded deliberately. A sentence saying "`copilot()` returns a TheoPlugin" satisfies a
+ * substring search while showing a reader nothing they can copy — measured: deleting the wiring
+ * example from `plugin-copilot`'s README left exactly that sentence behind, and a
+ * presence-anywhere check stayed green. Requiring the call to appear as CODE is not the same as
+ * requiring a particular documentation shape: all seven packages with a seam already do it,
+ * verified before tightening.
+ *
+ * Scanned line by line rather than matched with a paired regex. The regex this replaced
+ * (`^```[a-z]*\n(.*?)^```` with the `m` flag) had two failure modes, both demonstrated:
+ *
+ *   - an opener it did not recognise — an info string (```` ```ts title="x" ````), an uppercase
+ *     tag, a trailing space — was not skipped, it DESYNCHRONISED the pairing, so the next fence
+ *     became an opener and the prose between two blocks was captured as code. That turns the
+ *     check back into the prose-tolerant version this file exists to replace.
+ *   - correct documentation was rejected: CRLF line endings (no `.gitattributes` here, so a
+ *     Windows clone gets them), a fence indented inside a list item, `~~~` fences, and 4-space
+ *     indented blocks.
+ *
+ * A scanner tracks the open fence and its marker, which makes every one of those cases fall out
+ * rather than needing a case each.
+ */
+function readmeCode(path) {
+  const lines = readFileSync(path, 'utf8').split(/\r?\n/)
+  const out = []
+  let fence = null // the marker + indent that opened the current block
+
+  for (const line of lines) {
+    const m = /^(\s{0,3})(`{3,}|~{3,})(.*)$/.exec(line)
+    if (fence === null) {
+      // An opener may carry an info string; per CommonMark a backtick fence's info string may
+      // not itself contain a backtick.
+      if (m && !(m[2][0] === '`' && m[3].includes('`')))
+        fence = { marker: m[2][0], len: m[2].length }
+      continue
+    }
+    // A closer is the same marker, at least as long, with nothing after it.
+    if (m && m[2][0] === fence.marker && m[2].length >= fence.len && m[3].trim() === '') {
+      fence = null
+      continue
+    }
+    out.push(line)
+  }
+
+  // Indented code blocks (4 spaces) are code too, and CommonMark allows them anywhere a
+  // paragraph does not precede. Being liberal here is the safe direction: this function decides
+  // what counts as documentation, and missing a real example produces a false FAILURE.
+  for (const line of lines) if (/^ {4,}\S/.test(line)) out.push(line)
+
+  return out.join('\n')
+}
+
 const packageDirs = readdirSync(PACKAGES_DIR).sort()
 for (const dir of packageDirs) check(dir)
 const keyReport = checkDecorationKeys(packageDirs)
+const docsReport = checkSeamDocumentation(packageDirs)
 
 if (violations.length > 0) {
   console.error(`✗ ${violations.length} manifest violation(s):\n`)
@@ -497,5 +691,8 @@ console.log(
     // first version printed while an ordinary refactor hid a real collision.
     (keyReport.unresolved > 0
       ? `⚠ ${keyReport.compared} request-decoration key(s) compared; ${keyReport.unresolved} could NOT be resolved statically and were not compared (listed above)`
-      : `✓ no two packages claim the same request-decoration key (${keyReport.compared} compared)`),
+      : `✓ no two packages claim the same request-decoration key (${keyReport.compared} compared)`) +
+    (docsReport.registry === false
+      ? `\n⚠ no seam registry found — 0 packages checked for documenting their factory`
+      : `\n✓ every package with a seam names its factory in its README (${docsReport.checked} checked)`),
 )
