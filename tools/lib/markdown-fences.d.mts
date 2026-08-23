@@ -24,9 +24,13 @@ export interface FenceBlock {
   readonly precedingLine: string
   /** The block's contents, newline-joined. */
   readonly body: string
+  /** Set when a `doc-example` marker in the file reaches no block at all. */
+  readonly orphanedMarker?: { readonly line: number; readonly text: string }
 }
 
 export interface SplitFences {
+  /** True when a fence was opened and never closed — every later block is invisible. */
+  readonly unclosed: boolean
   /** Lines inside fenced or four-space-indented blocks. */
   readonly code: string[]
   /** Every other line. */
@@ -44,8 +48,6 @@ export interface ExampleMarkers {
   readonly continues: boolean
   /** Modules the block uses that the harness must stand in for. */
   readonly needs: string[]
-  /** A type the block's default export must satisfy, or `null`. */
-  readonly satisfies: string | null
 }
 
 export function parseExampleMarkers(line: string): {

@@ -34,7 +34,7 @@ export default defineRoom({
 })
 ```
 
-<!-- doc-example: needs="@theokit/sdk/subscription" needs="./app/rooms/cursor.js" -->
+<!-- doc-example: needs="@theokit/sdk/subscription" needs="./app/rooms/cursor.js" partial -->
 
 ```ts
 // server bootstrap

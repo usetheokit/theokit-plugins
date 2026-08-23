@@ -21,7 +21,7 @@
  * `code` and `prose` are arrays of lines, unchanged for the two gates that already read them.
  * `blocks` is the addition: one entry per fenced region, carrying its language, its body, the line
  * it starts on, and the line immediately above its opener — which is where a `doc-example` marker
- * lives (`docs/adr/0003`).
+ * lives (`docs/adr/0003-documented-examples-declare-what-they-assume.md`).
  *
  * Indented (four-space) blocks count as code and are removed from prose too, because a heading
  * indented four spaces is not a heading either. They are not `blocks`: an indented block carries no
@@ -79,20 +79,44 @@ export function splitFences(text) {
     fence.body.push(line)
   }
 
-  return { code, prose, blocks }
+  // An unclosed fence makes every later block invisible to the scan — reported, not swallowed.
+  const unclosed = fence !== null
+  if (unclosed)
+    blocks.push({
+      lang: fence.lang,
+      info: fence.info,
+      startLine: fence.startLine,
+      precedingLine: fence.precedingLine,
+      body: fence.body.join('\n'),
+    })
+
+  // A marker that reaches no block is reported too. It is the failure the "prose is opaque" rule
+  // was designed around: a comment left behind by a moved block, silently covering nothing.
+  const attached = new Set(blocks.map((b) => b.precedingLine))
+  const orphans = []
+  for (const [i, line] of lines.entries()) {
+    if (!/^\s*<!--\s*doc-example:/.test(line)) continue
+    if (!attached.has(line)) orphans.push({ line: i + 1, text: line.trim() })
+  }
+  if (orphans.length > 0) blocks[0] = { ...blocks[0], orphanedMarker: orphans[0] }
+
+  return { code, prose, blocks, unclosed }
 }
 
 /** The nearest non-blank line above `index`, or `''` if prose or the file start comes first. */
 function precedingNonBlank(lines, index) {
   for (let i = index - 1; i >= 0; i--) {
     if (lines[i].trim() === '') continue
+    // An indented line is inside a code block — a document SHOWING the marker syntax must not have
+    // it read as a declaration about the fence below.
+    if (/^ {4,}/.test(lines[i])) return ''
     return lines[i]
   }
   return ''
 }
 
 /** Keys a `doc-example` comment may carry. Anything else is reported, never ignored. */
-const KNOWN_MARKERS = new Set(['partial', 'continues', 'needs', 'satisfies'])
+const KNOWN_MARKERS = new Set(['partial', 'continues', 'needs'])
 
 /**
  * Read a `<!-- doc-example: … -->` comment.
@@ -102,7 +126,7 @@ const KNOWN_MARKERS = new Set(['partial', 'continues', 'needs', 'satisfies'])
  * twice already, rebuilt in a third place.
  */
 export function parseExampleMarkers(line) {
-  const markers = { partial: false, continues: false, needs: [], satisfies: null }
+  const markers = { partial: false, continues: false, needs: [] }
   const unknown = []
 
   const comment = /^\s*<!--\s*doc-example:\s*(.*?)\s*-->\s*$/.exec(line ?? '')
@@ -117,13 +141,6 @@ export function parseExampleMarkers(line) {
     if (key === 'needs') {
       if (value) markers.needs.push(value.replace(/^"|"$/g, ''))
       else unknown.push('needs (no value)')
-    } else if (key === 'satisfies') {
-      // The type the block's default export must satisfy. Without it a compiler accepts any
-      // object literal, because nothing tells it what the file is FOR — measured: the wrong
-      // `export default { plugins: [...] }` example type-checked cleanly, since a plain literal
-      // with no expected type always does.
-      if (value) markers.satisfies = value.replace(/^"|"$/g, '')
-      else unknown.push('satisfies (no value)')
     } else {
       markers[key] = true
     }

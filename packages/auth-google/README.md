@@ -19,7 +19,7 @@ Peer dependencies: `@theokit/sdk >= 1.5.0`, `theokit >= 0.2.4`.
 ```ts
 // server/auth/index.ts
 import { defineAuth } from '@theokit/sdk/server/auth'
-import { google } from '@theokit/auth-google'
+import { google, type GoogleProfile } from '@theokit/auth-google'
 import { sessionManager } from './session.js'
 
 export const auth = defineAuth({
@@ -32,8 +32,10 @@ export const auth = defineAuth({
     }),
   ],
   onSignIn: async ({ profile }) => {
-    // profile is GoogleProfile { sub, email, email_verified, name?, picture?, locale? }
-    return { userId: profile.sub, email: profile.email }
+    // `onSignIn` is typed `<TProfile>(args: { profile: TProfile; … })` — TProfile is unbound, so
+    // the callback cannot annotate it and the cast is what a consumer actually writes.
+    const p = profile as GoogleProfile // { sub, email, email_verified, name?, picture?, locale? }
+    return { userId: p.sub, email: p.email }
   },
 })
 ```

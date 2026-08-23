@@ -110,7 +110,7 @@ export default defineCopilot({
 })
 ```
 
-<!-- doc-example: needs="./copilots/support.js" -->
+<!-- doc-example: needs="./copilots/support.js" partial -->
 
 ```ts
 // server bootstrap

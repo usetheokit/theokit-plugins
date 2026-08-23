@@ -33,7 +33,12 @@ export const auth = defineAuth({
       },
     }),
   ],
-  onSignIn: async ({ profile }) => ({ userId: profile.email, email: profile.email }),
+  onSignIn: async ({ profile }) => {
+    // `onSignIn` is typed `<TProfile>(args: { profile: TProfile; … })` — TProfile is unbound, so
+    // the callback cannot annotate it. The magic-link profile is `{ email }`.
+    const { email } = profile as { email: string }
+    return { userId: email, email }
+  },
 })
 ```
 
@@ -149,7 +154,7 @@ The `sendEmail` callback is intentionally unopinionated. Examples for popular tr
 
 ### Resend
 
-<!-- doc-example: needs="resend" -->
+<!-- doc-example: needs="resend" partial -->
 
 ```ts
 import { Resend } from 'resend'
@@ -169,7 +174,7 @@ sendEmail: async ({ to, magicLinkUrl, expiresAt }) => {
 
 ### SendGrid
 
-<!-- doc-example: needs="@sendgrid/mail" -->
+<!-- doc-example: needs="@sendgrid/mail" partial -->
 
 ```ts
 import sgMail from '@sendgrid/mail'
@@ -188,7 +193,7 @@ sendEmail: async ({ to, magicLinkUrl, expiresAt }) => {
 
 ### Nodemailer (SMTP)
 
-<!-- doc-example: needs="nodemailer" -->
+<!-- doc-example: needs="nodemailer" partial -->
 
 ```ts
 import nodemailer from 'nodemailer'

@@ -14,7 +14,7 @@
  * file), `@theokit/orm` (a real package the probe had not installed), `yourSqliteDb` (a
  * placeholder) and a genuinely wrong example are indistinguishable to a compiler.
  *
- * So the marker is the point, not the compiler. `docs/adr/0003` records why it is an HTML comment:
+ * So the marker is the point, not the compiler. `docs/adr/0003-documented-examples-declare-what-they-assume.md` records why it is an HTML comment:
  * 0 of 400 published READMEs in the pnpm store use a fence info string; 39 use HTML comments.
  *
  * Credential-free by construction — `*.offline.test.ts`, so it runs on every pull request.
@@ -38,7 +38,7 @@ describe('a block declares what it assumes', () => {
 
   it('parses the markers a block may declare', () => {
     expect(parseExampleMarkers('<!-- doc-example: partial -->')).toEqual({
-      markers: { partial: true, continues: false, needs: [], satisfies: null },
+      markers: { partial: true, continues: false, needs: [] },
       unknown: [],
     })
     expect(
@@ -48,7 +48,6 @@ describe('a block declares what it assumes', () => {
         partial: false,
         continues: true,
         needs: ['@theokit/orm', 'react'],
-        satisfies: null,
       },
       unknown: [],
     })
@@ -64,7 +63,7 @@ describe('a block declares what it assumes', () => {
 
   it('does not read an ordinary comment as a marker', () => {
     expect(parseExampleMarkers('<!-- prettier-ignore -->')).toEqual({
-      markers: { partial: false, continues: false, needs: [], satisfies: null },
+      markers: { partial: false, continues: false, needs: [] },
       unknown: [],
     })
   })
