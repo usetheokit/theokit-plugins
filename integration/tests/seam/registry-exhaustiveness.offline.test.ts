@@ -43,8 +43,12 @@ function hasManifest(name: string): boolean {
   try {
     readFileSync(join(PACKAGES_DIR, name, 'package.json'), 'utf8')
     return true
-  } catch {
-    return false
+  } catch (err) {
+    // ENOENT only. Swallowing every fs error would reclassify a real package as manifest-less on
+    // EACCES or EISDIR, and the failure would then surface at the skip assertion below as
+    // `expected [plugin-mdx, plugin-x] to equal [plugin-mdx]` — pointing at the wrong problem.
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return false
+    throw err
   }
 }
 
@@ -66,15 +70,21 @@ describe('the seam registry covers every package on disk', () => {
   })
 
   it('gives every seamless package a written reason', () => {
+    // Deliberately NOT `expect(seamless).not.toHaveLength(0)`: that would encode "at least one
+    // package must always be seam-less" as a permanent requirement, and go red on the desirable
+    // end state where every package has a seam. The guard wanted is that each exempt row carries
+    // a reason, which an empty loop satisfies vacuously and correctly.
     const seamless = INTEGRATING_PACKAGES.filter((entry) => entry.seam === 'none')
 
-    expect(seamless).not.toHaveLength(0)
     for (const entry of seamless) {
       expect(entry.reason, `${entry.pkg} is exempt with no reason`).toBeTruthy()
+      // Trimmed, so 21 spaces no longer passes what looks like a quality gate, and word-counted
+      // rather than character-counted: the property wanted is "a sentence a reviewer can
+      // disagree with", and length alone was only ever a proxy for it.
       expect(
-        entry.reason!.length,
-        `${entry.pkg}'s reason is too short to disagree with`,
-      ).toBeGreaterThan(20)
+        entry.reason!.trim().split(/\s+/).length,
+        `${entry.pkg}'s reason is too short to disagree with: ${entry.reason}`,
+      ).toBeGreaterThanOrEqual(8)
     }
   })
 

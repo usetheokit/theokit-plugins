@@ -1,5 +1,5 @@
 /**
- * Every plugin package, handed to the runner TheoKit actually uses.
+ * Every package the registry declares `seam: 'plugin'`, handed to the runner TheoKit uses.
  *
  * The gap this closes was measured, not assumed. A capability check added to
  * `plugin-payments` — `Object.keys(app).includes('decorateRequest')`, ordinary code a plugin
@@ -13,11 +13,17 @@
  * scope and both method names for the fake. A fake agrees with whoever wrote it; this file does
  * not use one.
  *
- * Pinned to theokit 0.48.8. If a framework upgrade changes `isPlugin`, the failures below name
- * the seam rather than the package, so the reader is pointed at the framework first.
+ * Measured against theokit 0.48.8 — NOT pinned to it: `integration/package.json` declares the
+ * range `^0.48.7`, and the lockfile happens to resolve 0.48.8. An upgrade inside 0.48.x can move
+ * the seam under this comment. The failures below name the seam rather than the package, so when
+ * that happens the reader is pointed at the framework first.
  *
  * Credential-free by construction — `*.offline.test.ts`, so it runs on every pull request.
  */
+
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { drizzleDb } from '@theokit/plugin-db-drizzle'
 import { payments } from '@theokit/plugin-payments'
@@ -26,12 +32,18 @@ import voicePlugin from '@theokit/plugin-voice'
 import { InvalidPluginShapeError, createPluginRunnerFromConfig } from 'theokit/server/plugins'
 import { describe, expect, it } from 'vitest'
 
+import { INTEGRATING_PACKAGES } from '../../src/integrating-packages.js'
+
+/** Repo root, resolved from this file — vitest's cwd is `integration/`. */
+const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
+
 /**
  * Minimal payments gateway — the plugin needs one provider to build at all.
  *
  * Typed as the real `PaymentProvider`, so the compiler rejects a stub that has drifted from the
- * contract. It already did once here: the first draft invented `createCheckoutSession` and
- * `tsc` named the three methods that actually exist.
+ * contract. It already did once here: the first draft invented `createCheckoutSession`, and tsc
+ * named the four methods that actually exist (`createCheckout`, `verifyWebhook`,
+ * `retrieveCheckout`, `refund`).
  *
  * These methods are never called — this file tests the plugin seam, not the gateway — so they
  * reject rather than return a plausible-looking value. A stub that answers convincingly is a
@@ -50,6 +62,30 @@ function stubGateway(): PaymentProvider {
     retrieveCheckout: unused('retrieveCheckout'),
     refund: unused('refund'),
   }
+}
+
+/**
+ * How to build each locally-covered plugin. Keyed by the registry's `pkg`, so adding a row
+ * without adding a factory (or a `coveredBy`) fails rather than being skipped.
+ */
+// `unknown` is the honest element type: the seam itself takes `unknown` and validates at
+// runtime, which is the whole reason this suite exists.
+const PLUGIN_FACTORIES: Record<string, () => unknown> = {
+  'plugin-payments': () => payments({ providers: { stub: stubGateway() } }),
+  // Keys are explicit rather than left to the environment: voicePlugin() validates
+  // synchronously at construction (boot-time crash over mid-request 500), so with no key it
+  // throws VoicePluginConfigError before the runner is ever reached — and this tier must not
+  // depend on a credential being set.
+  'plugin-voice': () =>
+    voicePlugin({
+      stt: { apiKey: 'sk-not-a-real-key-conformance-only' },
+      tts: { apiKey: 'sk-not-a-real-key-conformance-only' },
+    }),
+  // The plan carried this as its one open question: this package drives an external binary and
+  // the offline tier must stay credential-free. Measured instead of assumed — the module
+  // imports in ~4ms and this call builds without touching the filesystem or shelling out. No
+  // URL is passed, and the plugin deliberately does not read env at construction.
+  'plugin-db-drizzle': () => drizzleDb({ driver: 'postgres' }),
 }
 
 describe('the real plugin runner is what accepts a plugin', () => {
@@ -92,38 +128,47 @@ describe('the real plugin runner is what accepts a plugin', () => {
     await expect(createPluginRunnerFromConfig([])).resolves.toBeUndefined()
   })
 
-  it('accepts @theokit/plugin-payments', async () => {
-    const plugin = payments({ providers: { stub: stubGateway() } })
+  // --- driven by the registry, so a row without a case cannot pass ---
+  //
+  // The previous version hand-wrote one `it` per package. That gated membership only: a new
+  // `{ pkg: 'plugin-search', seam: 'plugin' }` row passed every exhaustiveness assertion while no
+  // test anywhere exercised it — the cheaper half of the property ADR D2 claimed. Iterating the
+  // registry here is what makes the claim true.
+  const pluginRows = INTEGRATING_PACKAGES.filter((entry) => entry.seam === 'plugin')
 
-    await expect(createPluginRunnerFromConfig([plugin])).resolves.toBeDefined()
+  it('declares at least one plugin package, so the loop below is not empty', () => {
+    expect(pluginRows.length).toBeGreaterThan(0)
   })
 
-  it('accepts @theokit/plugin-voice', async () => {
-    // Default export, unlike the named factories — the shape a consumer's `theo.config.ts`
-    // imports. Its `register` is deliberately empty, which makes it the case most likely to be
-    // assumed fine, which is why it is asserted.
-    //
-    // The keys are passed explicitly rather than left to the environment: `voicePlugin()`
-    // validates synchronously at construction (boot-time crash over mid-request 500), so with no
-    // key it throws VoicePluginConfigError before the runner is ever reached — and this tier must
-    // not depend on a credential being set.
-    const plugin = voicePlugin({
-      stt: { apiKey: 'sk-not-a-real-key-conformance-only' },
-      tts: { apiKey: 'sk-not-a-real-key-conformance-only' },
+  for (const row of pluginRows) {
+    it(`accepts @theokit/${row.pkg}`, async () => {
+      const build = PLUGIN_FACTORIES[row.pkg]
+
+      if (!build) {
+        // No local fixture: the row must point at a conformance case that exists elsewhere.
+        expect(
+          row.coveredBy,
+          `${row.pkg} is declared seam:'plugin' but nothing builds it here and it names no coveredBy`,
+        ).toBeTruthy()
+        expect(
+          existsSync(join(REPO_ROOT, row.coveredBy!)),
+          `${row.pkg} names ${row.coveredBy} as its conformance case, and that file does not exist`,
+        ).toBe(true)
+        return
+      }
+
+      await expect(createPluginRunnerFromConfig([build()])).resolves.toBeDefined()
     })
+  }
 
-    await expect(createPluginRunnerFromConfig([plugin])).resolves.toBeDefined()
-  })
+  it('accepts every plugin package together, the way a consumer wires them', async () => {
+    // A consumer's `theo.config.ts` passes one array, not one plugin. Registering them together
+    // is the only way the seam's cross-package behaviour is exercised at all — decoration keys
+    // share a namespace, and theokit 0.48.8 resolves a collision last-writer-wins rather than
+    // throwing (DuplicateDecorationError is still exported but never constructed). Nothing
+    // collides today; this case is what would notice when something does.
+    const built = Object.values(PLUGIN_FACTORIES).map((build) => build())
 
-  it('accepts @theokit/plugin-db-drizzle', async () => {
-    // The plan carried this as an open question: this package drives an external binary, and the
-    // offline tier must stay credential-free, so importing it might have pulled a CLI into a
-    // suite that gates every pull request. Measured instead of assumed — the module imports in
-    // ~4ms and `drizzleDb({ driver: 'postgres' })` builds without touching the filesystem or shelling out — no URL is
-    // passed, and the plugin deliberately does not read env at construction. It is
-    // covered rather than exempted, and no CLI verb is invoked here.
-    await expect(
-      createPluginRunnerFromConfig([drizzleDb({ driver: 'postgres' })]),
-    ).resolves.toBeDefined()
+    await expect(createPluginRunnerFromConfig(built)).resolves.toBeDefined()
   })
 })

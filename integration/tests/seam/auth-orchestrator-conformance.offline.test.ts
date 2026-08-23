@@ -23,7 +23,7 @@
  * Credential-free by construction — `*.offline.test.ts`, so it runs on every pull request.
  */
 
-import { createServer, type IncomingMessage, type Server } from 'node:http'
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { type AddressInfo } from 'node:net'
 
 import { google } from '@theokit/auth-google'
@@ -40,10 +40,14 @@ interface Session {
 
 let server: Server
 let baseUrl: string
+let previousNodeEnv: string | undefined
+let previousMockBase: string | undefined
+let discoveryHits = 0
 
 beforeAll(async () => {
   server = createServer((req, res) => {
     if (req.url === '/.well-known/openid-configuration') {
+      discoveryHits += 1
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(
         JSON.stringify({
@@ -68,12 +72,22 @@ beforeAll(async () => {
 
   // The override is honored only for loopback and only under NODE_ENV=test — the package's own
   // SSRF guard. Both conditions are met deliberately here.
+  previousNodeEnv = process.env.NODE_ENV
+  previousMockBase = process.env.MOCK_GOOGLE_OIDC_BASE_URL
   process.env.NODE_ENV = 'test'
   process.env.MOCK_GOOGLE_OIDC_BASE_URL = baseUrl
 })
 
 afterAll(async () => {
-  delete process.env.MOCK_GOOGLE_OIDC_BASE_URL
+  // Both process globals are restored, not merely one. Measured: vitest isolates process.env per
+  // test file here, so nothing leaks today — but `rules/testing.md § 3` asks for independence
+  // from the test, not from the runner's current configuration. `isolate: false` or a different
+  // pool would turn this into an order-dependency that only shows up as a confusing failure
+  // somewhere else.
+  if (previousMockBase === undefined) delete process.env.MOCK_GOOGLE_OIDC_BASE_URL
+  else process.env.MOCK_GOOGLE_OIDC_BASE_URL = previousMockBase
+  if (previousNodeEnv === undefined) delete process.env.NODE_ENV
+  else process.env.NODE_ENV = previousNodeEnv
   await new Promise<void>((resolve) => server.close(() => resolve()))
 })
 
@@ -88,6 +102,21 @@ afterAll(async () => {
  */
 function incomingRequest(url = '/auth/google'): IncomingMessage {
   return { url, method: 'GET', headers: { host: 'app.invalid' } } as IncomingMessage
+}
+
+/**
+ * A `ServerResponse` that records instead of writing. `finishSignIn` sets the session cookie on
+ * it; recording rather than ignoring means the round-trip case can say what came back if it ever
+ * gets that far.
+ */
+function collectingResponse(): ServerResponse {
+  const headers = new Map<string, unknown>()
+  return {
+    setHeader: (name: string, value: unknown) => headers.set(name, value),
+    getHeader: (name: string) => headers.get(name),
+    writeHead: () => undefined,
+    end: () => undefined,
+  } as unknown as ServerResponse
 }
 
 function orchestratorFor(provider: unknown) {
@@ -116,12 +145,13 @@ describe('the real auth orchestrator is what drives a provider', () => {
   it('fails a provider that cannot build an authorization URL', async () => {
     const result = orchestratorFor({ name: 'broken' }).startSignIn('broken', incomingRequest())
 
-    // Asserted as "rejects", then asserted NOT to be the PKCE precondition: `auth-google` throws
-    // GoogleAuthError('missing_pkce_verifier') before doing anything else when a transaction has
-    // no verifier, and a case that passed on that would be vacuous — it would "fail" for every
-    // provider, working or broken.
-    await expect(result).rejects.toThrow()
-    await expect(result).rejects.not.toThrow(/missing_pkce_verifier/)
+    // Asserted by class AND message, per `rules/testing.md § 4.1`. A bare `rejects.toThrow()`
+    // was measured to be blind in the way that matters: mutating the call to
+    // `startSignIn('brokn', …)` — a provider-lookup miss, not a seam failure — kept it green,
+    // failing with `AuthProviderNotFoundError`. That is the very error this file's own docstring
+    // records as misleading, so the test would have been blind to the trap it documents.
+    await expect(result).rejects.toThrow(TypeError)
+    await expect(result).rejects.toThrow(/createAuthorizationURL is not a function/)
   })
 
   it('drives google through to its own authorization URL', async () => {
@@ -136,10 +166,81 @@ describe('the real auth orchestrator is what drives a provider', () => {
     const response = await orchestrator.startSignIn('google', incomingRequest())
     const location = response.headers.get('location')
 
+    expect(response.status).toBe(302)
     expect(location, 'startSignIn returned no redirect').toBeTruthy()
+
+    const url = new URL(location!)
     // The host comes from the LOCAL discovery document. If discovery silently fell back to
-    // Google, this reads accounts.google.com and fails — which is the point.
-    expect(new URL(location!).host).toBe(LOCAL_AUTHORIZE_HOST)
-    expect(new URL(location!).searchParams.get('client_id')).toBe('conformance-client-id')
+    // Google, this reads accounts.google.com and fails — which is the point. The hit counter is
+    // what turns that from a claim into a measurement: `discoverOidcProvider` memoizes at module
+    // scope and `clearOidcCache` is never called in this repository, so "it used our document"
+    // and "it used a cached one" are otherwise indistinguishable.
+    expect(url.host).toBe(LOCAL_AUTHORIZE_HOST)
+    expect(discoveryHits, 'the local discovery document was never fetched').toBeGreaterThan(0)
+
+    // All seven parameters the provider sets, not one. A provider that dropped `state` or
+    // downgraded `code_challenge_method` to `plain` passed the earlier version of this test
+    // unchanged — and those are the two that carry the CSRF and PKCE guarantees.
+    expect(url.searchParams.get('client_id')).toBe('conformance-client-id')
+    expect(url.searchParams.get('redirect_uri')).toBe('https://app.invalid/auth/google/callback')
+    expect(url.searchParams.get('response_type')).toBe('code')
+    expect(url.searchParams.get('scope')).toBeTruthy()
+    expect(url.searchParams.get('state'), 'no state — CSRF guard absent').toBeTruthy()
+    expect(url.searchParams.get('code_challenge')).toBeTruthy()
+    expect(url.searchParams.get('code_challenge_method')).toBe('S256')
+
+    // The transaction cookie's security attributes have no coverage anywhere else in this
+    // repository — measured with a grep across `packages/` and `integration/`. This is the only
+    // test that drives `startSignIn`, so it is the only place they can be asserted.
+    const setCookie = response.headers.get('set-cookie')
+    expect(setCookie, 'startSignIn set no transaction cookie').toBeTruthy()
+    expect(setCookie).toMatch(/HttpOnly/)
+    expect(setCookie).toMatch(/Secure/)
+    expect(setCookie).toMatch(/SameSite=Lax/)
   })
+
+  it.fails(
+    'completes the round trip: the cookie startSignIn sets is one finishSignIn can read',
+    async () => {
+      // `it.fails` — NOT a skip. It passes while the body throws and turns RED the moment the body
+      // succeeds, which is exactly the signal wanted here: the defect is upstream, and this test is
+      // what tells us when it is gone.
+      //
+      // Measured against @theokit/sdk@2.18.0: `startSignIn` writes `theo_oauth_tx=...` (index.js:249)
+      // while the transaction store reads `__Host-theo_oauth_tx` (index.js:107). The cookie is
+      // therefore never found, and EVERY OAuth sign-in driven through `defineAuth` fails at the
+      // callback with AuthCallbackError. Reproduced end to end before writing this.
+      //
+      // Filed as B-019. A conformance suite that stopped at the 302 would certify half a round trip
+      // — which is the failure mode this file's own docstring argues against.
+      //
+      // The provider here is deliberately minimal: what is under test is the ORCHESTRATOR's cookie
+      // handling, not a package's provider logic. Driving `auth-google` this far would need a token
+      // endpoint too, and would tell us about Google's leg rather than the seam's.
+      const provider = {
+        name: 'roundtrip',
+        createAuthorizationURL: (tx: { state: string }) =>
+          Promise.resolve(new URL(`https://${LOCAL_AUTHORIZE_HOST}/a?state=${tx.state}`)),
+        handleCallback: () => Promise.resolve({ profile: { sub: 'round-trip-user' } }),
+      }
+      const orchestrator = orchestratorFor(provider)
+
+      const started = await orchestrator.startSignIn(
+        'roundtrip',
+        incomingRequest('/auth/roundtrip'),
+      )
+      const cookie = started.headers.get('set-cookie')!.split(';')[0]
+      const state = new URL(started.headers.get('location')!).searchParams.get('state')
+
+      await orchestrator.finishSignIn(
+        'roundtrip',
+        {
+          url: `/auth/roundtrip/callback?code=any&state=${state}`,
+          method: 'GET',
+          headers: { host: 'app.invalid', cookie },
+        } as IncomingMessage,
+        collectingResponse(),
+      )
+    },
+  )
 })

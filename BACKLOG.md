@@ -37,9 +37,9 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-19 items — **Open** 16 · **In flight** 0 · **Closed** 3
+22 items — **Open** 19 · **In flight** 0 · **Closed** 3
 
-### Open (16)
+### Open (19)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -59,6 +59,9 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-017`](#b-017--the-measurement-target-gate-reads-an-npm-subpath-specifier-as-a-missing-file--) | the measurement-target gate reads an npm subpath specifier as a missing file | `raw` | — |
 | [`B-018`](#b-018--nineteen-transitive-high-advisories-sit-in-the-workspace-with-nothing-watching-them--) | nineteen transitive HIGH advisories sit in the workspace with nothing watching them | `raw` | — |
 | [`B-019`](#b-019--four-packages-integrate-through-a-seam-the-current-sdk-major-no-longer-has--) | four packages integrate through a seam the current SDK major no longer has | `raw` | — |
+| [`B-020`](#b-020--code-quality-was-returning-pass-over-zero-languages--) | /code-quality was returning PASS over zero languages | `raw` | — |
+| [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package--) | the OAuth transaction cookie is encrypted with a constant published in the package | `raw` | — |
+| [`B-022`](#b-022--assertproductionsecret-warns-about-a-boot-refusal-nothing-implements--) | `assertProductionSecret` warns about a boot refusal nothing implements | `raw` | — |
 
 ### In flight (0)
 
@@ -587,7 +590,12 @@ domain: auth-provider
 repo: auth-google
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `integration/tests/seam/auth-orchestrator-conformance.offline.test.ts` carries an
+`it.fails` round-trip case reproducing a SECOND, worse defect in the same seam: `defineAuth`
+writes the transaction cookie as `theo_oauth_tx` (sdk 2.18.0 `dist/server/auth/index.js:249`) and
+reads `__Host-theo_oauth_tx` (`:107`), so `finishSignIn` always throws `AuthCallbackError: OAuth
+transaction cookie missing or expired`. Reproduced end to end 2026-08-23. Every OAuth sign-in
+driven through this orchestrator fails at the callback — on 2.x, the version these packages pin.
 why_now: measured 2026-08-23 — `auth-github`, `auth-google`, `auth-magic-link` and
 `plugin-copilot` all declare `@theokit/sdk: ^2.18.0`, and the three auth packages are written
 against `defineAuth` from `@theokit/sdk/server/auth`. In `@theokit/sdk@4.53.1` (current latest)
@@ -611,3 +619,87 @@ dod:
 
 note: `repo:` is `auth-google` because that is where the conformance test caught it; the decision
 spans all four packages.
+
+## B-020 — /code-quality was returning PASS over zero languages [ ]
+
+> Registered 2026-08-23 while running the CODE-QUALITY phase on B-001.
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: bug
+source: human
+evidence: none-yet
+why_now: measured 2026-08-23 — `.claude/rules/code-quality-languages.txt` contained only comments,
+so `run_code_quality.py` returned `{"verdict": "PASS", "languages_audited": []}`. Every gate in
+`cycle-code-quality.md` (dead code, symbol fabrication, wiring, mutation) was skipped, and the
+cycle reported PASS. This is a TypeScript monorepo of eleven packages; enabling `typescript`
+turned the same run into `languages_audited: ["typescript"]`. A PASS over nothing is
+indistinguishable in the report from a PASS over everything, which is the failure mode the whole
+cycle exists to prevent.
+status: raw
+dod:
+
+- a run whose `languages_audited` is empty while manifests exist on disk emits a finding, not
+  `PASS` — the honest verdict is closer to `auditor_unavailable` than to a clean pass
+- the check compares the enabled set against the manifests actually present, so a repo that
+  gains a language cannot be silently unaudited
+- a regression test covers both directions: empty-enablement-with-manifests fails, and a
+  genuinely pre-code repo with no manifest still passes
+
+note: the enablement line is now present locally, but `.claude/` is gitignored in this repository
+(personal-environment rule), so the configuration cannot travel with the repo and the next
+checkout starts unaudited again. That is the second half of this item, and it is the reason the
+fix belongs in the kit — a default that audits what it finds — rather than in a config file this
+repo cannot version.
+
+## B-021 — the OAuth transaction cookie is encrypted with a constant published in the package [ ]
+
+> Registered 2026-08-23 by the auth-provider reviewer during B-001's REVIEW phase.
+
+domain: auth-provider
+repo: auth-google
+suggested_mode: review
+source: human
+evidence: none-yet
+why_now: measured 2026-08-23 in `@theokit/sdk@2.18.0` — `txCookieSecret` (`dist/server/auth/index.js:193`)
+falls back to the literal `DEV_ONLY_INSECURE_OAUTH_TX_SECRET_REPLACE_IN_PROD` when neither
+`opts.session.secret` nor `THEOKIT_OAUTH_TX_SECRET` is set. `DefineAuthOptions.session` is typed
+`SessionManager<TSession>`, which declares four methods and **no `secret`**, so the first branch is
+unreachable for any value satisfying the declared type — confirmed against a real construction:
+`createSessionManager({secret}).secret === undefined`. The transaction cookie carries `state` and
+`pkceVerifier`, and it is written without the `__Host-` prefix its own store contract declares
+(`oauth-transaction-store.d.ts:9`), so a sibling subdomain can set it. `AuthSecretTooShortError`
+does not fire: the constant is 48 chars. Latent today only because [[B-019]]'s cookie-name
+mismatch makes the callback unreachable; it becomes live the moment that is fixed.
+status: raw
+dod:
+
+- a sign-in cannot proceed when the transaction secret is the published constant — it fails at
+  boot, not at request time
+- the transaction cookie is written under the `__Host-` name its store reads
+- a regression test forges a transaction under the published constant and asserts the callback
+  refuses it
+
+note: the fix is in `@theokit/sdk`, another repository. What belongs here is the measurement, the
+regression test, and a decision on whether these packages may ship against a version that has it.
+
+## B-022 — `assertProductionSecret` warns about a boot refusal nothing implements [ ]
+
+domain: auth-provider
+repo: auth-github
+suggested_mode: review
+source: human
+evidence: none-yet
+why_now: measured 2026-08-23 — `theokit@0.48.8` exports `assertProductionSecret` from
+`theokit/server/auth`, and it has zero callers in this repository. It is also never called by
+`createSessionManager` itself (grepped the bundled chunk: only the definition and the export
+list). What actually runs is `normalizeSecrets`, a 32-character floor applied in every
+environment. So the guard's own message — that a production server will refuse to boot until the
+placeholder is replaced — is not backed by anything these packages wire.
+status: raw
+dod:
+
+- either the packages call it where they claim the guarantee, or the claim is removed from the
+  surface that makes it
+- a test asserts the chosen behaviour under `NODE_ENV=production`, since that is the only branch
+  where it would bite

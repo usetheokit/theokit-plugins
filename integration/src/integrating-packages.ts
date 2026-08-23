@@ -26,11 +26,30 @@ export interface IntegratingPackage {
   readonly seam: Seam
   /** Required when `seam` is `'none'`: why this package plugs into neither surface. */
   readonly reason?: string
+  /**
+   * Repo-relative path to a conformance case that lives outside `integration/tests/seam/`.
+   *
+   * Set this ONLY when a package is exercised somewhere else. The conformance suites drive
+   * themselves from this array, so a row with a seam and neither a local case nor this pointer
+   * fails — which is what makes the registry load-bearing rather than a list.
+   *
+   * Be clear about what a pointer proves: that a case is CLAIMED at a path which exists. It does
+   * not prove the case still hands the export to the seam. Local coverage is strictly stronger,
+   * and a pointer is the right trade only when the local fixture would cost more than it earns.
+   */
+  readonly coveredBy?: string
 }
 
 export const INTEGRATING_PACKAGES: readonly IntegratingPackage[] = Object.freeze([
   // --- plugin seam: exports an object with { name, register } ---
-  { pkg: 'plugin-copilot', seam: 'plugin' },
+  {
+    pkg: 'plugin-copilot',
+    seam: 'plugin',
+    // Covered in its own package rather than here: `defineCopilot` needs zod schemas, and zod is
+    // not a dependency of this workspace. Duplicating the fixture would mean a new devDependency
+    // plus ~20 lines to re-assert what that file already asserts.
+    coveredBy: 'packages/plugin-copilot/tests/integration/plugin-runner-conformance.test.ts',
+  },
   { pkg: 'plugin-db-drizzle', seam: 'plugin' },
   { pkg: 'plugin-payments', seam: 'plugin' },
   { pkg: 'plugin-voice', seam: 'plugin' },
