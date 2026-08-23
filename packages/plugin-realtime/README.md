@@ -34,6 +34,8 @@ export default defineRoom({
 })
 ```
 
+<!-- doc-example: needs="@theokit/sdk/subscription" needs="./app/rooms/cursor.js" -->
+
 ```ts
 // server bootstrap
 import {
@@ -59,6 +61,8 @@ for (const [roomId, sub] of mounted.subscriptions) {
 ```
 
 ## React hooks (`@theokit/plugin-realtime/react`)
+
+<!-- doc-example: needs="@theokit/sdk" -->
 
 ```tsx
 import { RoomProvider, useOthers, useRoom } from '@theokit/plugin-realtime/react'

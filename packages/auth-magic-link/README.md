@@ -14,6 +14,8 @@ Peer dependencies: `@theokit/sdk >= 1.5.0`, `theokit >= 0.2.4`. Zero runtime dep
 
 ## Quick start (dev)
 
+<!-- doc-example: needs="./session.js" -->
+
 ```ts
 // server/auth/index.ts
 import { defineAuth } from '@theokit/sdk/server/auth'
@@ -42,6 +44,8 @@ Magic-link does NOT use the OAuth authorization flow — call `provider.startSig
 Both methods accept a Web `Request` as well as Node's `IncomingMessage`, so they drop
 straight into a TheoKit route:
 
+<!-- doc-example: needs="../../../auth/providers.js" -->
+
 ```ts
 // server/routes/api/auth/magic-link/start.ts
 import { route } from 'theokit/server'
@@ -58,6 +62,8 @@ export const POST = route()
   })
   .build()
 ```
+
+<!-- doc-example: needs="../../../auth/providers.js" -->
 
 ```ts
 // server/routes/api/auth/magic-link/callback.ts
@@ -91,6 +97,8 @@ The default `resolveEmail` reads `?email=` from the URL OR the `email` field fro
 ## Production stores
 
 ### `@theokit/orm` adapter
+
+<!-- doc-example: needs="@theokit/orm" partial -->
 
 ```ts
 import { defineEntity, BaseEntity } from '@theokit/orm'
@@ -141,6 +149,8 @@ The `sendEmail` callback is intentionally unopinionated. Examples for popular tr
 
 ### Resend
 
+<!-- doc-example: needs="resend" -->
+
 ```ts
 import { Resend } from 'resend'
 
@@ -159,6 +169,8 @@ sendEmail: async ({ to, magicLinkUrl, expiresAt }) => {
 
 ### SendGrid
 
+<!-- doc-example: needs="@sendgrid/mail" -->
+
 ```ts
 import sgMail from '@sendgrid/mail'
 
@@ -175,6 +187,8 @@ sendEmail: async ({ to, magicLinkUrl, expiresAt }) => {
 ```
 
 ### Nodemailer (SMTP)
+
+<!-- doc-example: needs="nodemailer" -->
 
 ```ts
 import nodemailer from 'nodemailer'

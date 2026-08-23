@@ -63,9 +63,13 @@ Both paths are configurable via `stt.endpoint` / `tts.endpoint`. They must start
 
 ## Browser usage
 
+<!-- doc-example: needs="@theokit/ui" -->
+
 ```tsx
 // React 18/19 client component
 'use client'
+import { useState } from 'react'
+
 import { VoiceRecorderBar } from '@theokit/plugin-voice/ui'
 import { ChatComposer } from '@theokit/ui'
 
@@ -86,6 +90,8 @@ export function ChatPage() {
 ## Error hierarchy
 
 All errors extend a base `VoicePluginError`. Catch the base class for generic handling, or the specific subclass for targeted UX:
+
+<!-- doc-example: partial -->
 
 ```ts
 import {

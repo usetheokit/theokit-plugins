@@ -49,6 +49,9 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import ts from 'typescript'
+
+import { parseExampleMarkers, splitFences } from './lib/markdown-fences.mjs'
 import { publishedPackages, publishedSpecifiers, ROOT } from './lib/published-entries.mjs'
 
 const ALLOWLIST = join(ROOT, 'tools', 'doc-api-drift-allowlist.txt')
@@ -349,3 +352,271 @@ console.log(
     carried.length > 0 ? `; the other ${carried.length} are deferred above, not resolved.` : '.'
   }`,
 )
+
+// =================================================================================================
+// Example-compile pass — the blocks, not just their imports.
+//
+// The import pass above asks whether documented NAMES resolve. It cannot see a wrong signature, a
+// dropped option, or a method that moved — and one of each shipped under #67 that a careful reading
+// would have missed. The sharper demonstration is local: a gate added to this repository the same
+// week required a README to call its seam factory in a code block, and the example written to
+// satisfy it was `export default { plugins: [copilot({…})] }`, which is not the config surface.
+// Every gate passed it.
+//
+// The hard part is not compiling. It is that `./session.js` (a reader's file), `@theokit/orm` (a
+// real package this probe may not have installed), `yourSqliteDb` (a placeholder) and a genuinely
+// wrong example are indistinguishable to a compiler — three attempts to count failures produced 2,
+// 49 and 23, all wrong for that reason. So a block declares what it assumes, and the summary
+// reports three numbers rather than one, because one number would hide the other two.
+//
+// Marker syntax and why it is an HTML comment: docs/adr/0003.
+
+/** Blocks worth compiling, with their declared markers. */
+function exampleBlocks() {
+  const out = []
+  for (const file of documentationFiles()) {
+    const text = withoutRemovedLines(readFileSync(join(ROOT, file), 'utf8'))
+    for (const block of splitFences(text).blocks) {
+      if (!['ts', 'tsx', 'typescript'].includes(block.lang)) continue
+      const { markers, unknown } = parseExampleMarkers(block.precedingLine)
+      out.push({ file, ...block, markers, unknown })
+    }
+  }
+  return out
+}
+
+function checkExampleBlocks() {
+  const blocks = exampleBlocks()
+  if (blocks.length === 0) {
+    // Not a pass. Every README here opens with a code example; finding none means the extraction
+    // broke, and reporting green on that is how a gate starts checking nothing while looking
+    // healthy — the guard this file already applies to its import pass.
+    console.error(`[${LABEL}] x no example blocks found — the extraction is broken, not the docs`)
+    process.exit(2)
+  }
+
+  const badMarkers = blocks.filter((b) => b.unknown.length > 0)
+  if (badMarkers.length > 0) {
+    console.error(
+      `\n[${LABEL}] FAIL — ${badMarkers.length} block(s) declare a marker nobody reads:`,
+    )
+    for (const b of badMarkers) {
+      console.error(`      ${b.file}:${b.startLine} — unknown: ${b.unknown.join(', ')}`)
+    }
+    console.error('\n  A typo here would silently downgrade the block to the default.')
+    return { failed: true }
+  }
+
+  const typeChecked = []
+  const parseOnly = []
+  const harnessGaps = []
+
+  // Parse-only first: a `partial` block still has to be syntactically valid. An elision means the
+  // block cannot type-check; it does not mean it can be anything.
+  for (const b of blocks.filter((b) => b.markers.partial)) {
+    const parsed = ts.createSourceFile(
+      `${b.file}#${b.startLine}`,
+      b.body,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX,
+    )
+    const syntax = parsed.parseDiagnostics ?? []
+    parseOnly.push({ ...b, syntax })
+  }
+
+  // `continues` blocks are compiled JOINED to the preceding compilable block of the same file.
+  // A marker that only silenced the resulting TS2304 would be decorative: it would let a block
+  // referencing a name that exists NOWHERE pass, which is the opposite of what the declaration
+  // says. Joining makes the claim ("this shares scope with the block above") checkable.
+  const compilable = []
+  for (const b of blocks.filter((b) => !b.markers.partial)) {
+    const prev = compilable.at(-1)
+    if (b.markers.continues && prev !== undefined && prev.file === b.file) {
+      // Identical import lines are dropped on join. Two blocks in a walkthrough each repeat the
+      // import a reader already has in scope, and concatenating them verbatim produced
+      // `TS2300: Duplicate identifier` — a diagnostic about the harness, not the documentation.
+      const seen = new Set(prev.body.split('\n').map((l) => l.trim()))
+      const added = b.body
+        .split('\n')
+        .filter((l) => !(/^import\b/.test(l.trim()) && seen.has(l.trim())))
+        .join('\n')
+      prev.body = `${prev.body}\n${added}`
+      prev.joined = (prev.joined ?? 1) + 1
+      continue
+    }
+    compilable.push({ ...b })
+  }
+
+  const byRoot = new Map()
+  for (const b of compilable) {
+    const root = resolutionRoot(b.file)
+    if (!byRoot.has(root)) byRoot.set(root, [])
+    byRoot.get(root).push(b)
+  }
+
+  const failures = []
+  for (const [root, rootBlocks] of byRoot) {
+    const probeDir = join(root, PROBE_DIRNAME)
+    rmSync(probeDir, { recursive: true, force: true })
+    mkdirSync(probeDir, { recursive: true })
+
+    // A module a block DECLARES it needs is stubbed as ambient `any`, so the import resolves and
+    // every other diagnostic in the block still surfaces.
+    //
+    // The first version skipped such a block entirely, which turned `needs=` into an escape hatch:
+    // declaring one unresolvable module silenced every unrelated error beside it. Measured — the
+    // wrong `export default { plugins: [...] }` example passed, because the block also imported a
+    // reader's file.
+    const declared = new Set(rootBlocks.flatMap((b) => b.markers.needs))
+    if (declared.size > 0) {
+      writeFileSync(
+        join(probeDir, 'declared-modules.d.ts'),
+        `${[...declared].map((m) => `declare module ${JSON.stringify(m)};`).join('\n')}\n`,
+      )
+    }
+
+    const probes = rootBlocks.map((b, index) => {
+      const probe = join(probeDir, `block-${index}.tsx`)
+      // `satisfies=` checks the block's DEFAULT EXPORT against a declared type, by rewriting
+      // `export default X` to a binding and asserting on it.
+      //
+      // Without this the gate cannot see the defect that motivated the whole item: the wrong
+      // `export default { plugins: [copilot({…})] }` example type-checks CLEANLY, because a plain
+      // object literal with no expected type always does. Nothing in the block tells a compiler
+      // the file is a `theo.config.ts`. Measured: `const wrong: TheoConfig = { plugins: [] }`
+      // reports TS2740 naming thirteen missing properties, so the type has teeth once it is named.
+      let body = b.body
+      let assertion = ''
+      if (b.markers.satisfies) {
+        body = body.replace(/^export default /m, 'const __docDefault = ')
+        assertion =
+          `\nconst __docCheck: import('theokit').${b.markers.satisfies} = __docDefault\n` +
+          `void __docCheck\n`
+      }
+      writeFileSync(probe, `${body}\n${assertion}`)
+      return { probe, block: b }
+    })
+    writeFileSync(
+      join(probeDir, 'tsconfig.json'),
+      `${JSON.stringify(
+        {
+          compilerOptions: {
+            noEmit: true,
+            strict: true,
+            skipLibCheck: true,
+            target: 'es2022',
+            module: 'esnext',
+            moduleResolution: 'bundler',
+            jsx: 'react-jsx',
+            baseUrl: ROOT,
+            paths,
+          },
+          files: [
+            ...(declared.size > 0 ? ['declared-modules.d.ts'] : []),
+            ...probes.map((e) => relative(probeDir, e.probe)),
+          ],
+        },
+        null,
+        2,
+      )}\n`,
+    )
+
+    let output = ''
+    try {
+      execFileSync('npx', ['tsc', '-p', probeDir], {
+        cwd: root,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+    } catch (error) {
+      if (typeof error.status !== 'number') {
+        console.error(`[${LABEL}] x tsc could not be run for example blocks: ${error.message}`)
+        rmSync(probeDir, { recursive: true, force: true })
+        process.exit(2)
+      }
+      output = `${error.stdout ?? ''}${error.stderr ?? ''}`
+    }
+
+    const errsByProbe = new Map()
+    for (const raw of output.split('\n')) {
+      const m = /block-(\d+)\.tsx\((\d+),\d+\): error (TS\d+): (.+)$/.exec(raw.trim())
+      if (m === null) continue
+      const entry = probes[Number(m[1])]
+      if (entry === undefined) continue
+      if (!errsByProbe.has(entry)) errsByProbe.set(entry, [])
+      errsByProbe.get(entry).push({ line: Number(m[2]), code: m[3], message: m[4] })
+    }
+
+    for (const entry of probes) {
+      const errs = errsByProbe.get(entry) ?? []
+      const unresolved = errs.filter((e) => e.code === 'TS2307')
+      // Declared modules are stubbed above, so anything still unresolved was NOT declared — a
+      // documentation failure. A declaration that somehow still fails to resolve is a harness gap.
+      const blockDeclared = new Set(entry.block.markers.needs)
+      const stillUnresolved = unresolved.filter((e) =>
+        [...blockDeclared].some((d) => e.message.includes(`'${d}'`)),
+      )
+      if (stillUnresolved.length > 0) {
+        harnessGaps.push({ ...entry.block, errs: stillUnresolved })
+        continue
+      }
+      // A stub is ambient `any`, and `any` propagates: a callback whose parameter type came from a
+      // stubbed module reports TS7006/TS7031. That is a consequence of the harness standing in for
+      // a module, not a defect in the documentation, so it is dropped for blocks that declared one
+      // — and only for those. A block with no `needs=` still fails on an untyped parameter, which
+      // is how the two real defects in this pass were found.
+      const meaningful =
+        blockDeclared.size > 0 ? errs.filter((e) => !['TS7006', 'TS7031'].includes(e.code)) : errs
+      if (meaningful.length > 0) failures.push({ ...entry.block, errs: meaningful })
+      else typeChecked.push(entry.block)
+    }
+
+    rmSync(probeDir, { recursive: true, force: true })
+  }
+
+  const syntaxFailures = parseOnly.filter((b) => b.syntax.length > 0)
+  if (syntaxFailures.length > 0) {
+    console.error(`\n[${LABEL}] FAIL — ${syntaxFailures.length} partial block(s) do not parse:`)
+    for (const b of syntaxFailures) {
+      const at = b.startLine + (ts.getLineAndCharacterOfPosition ? 0 : 0)
+      console.error(
+        `      ${b.file}:${at} — ${ts.flattenDiagnosticMessageText(b.syntax[0].messageText, ' ')}`,
+      )
+    }
+    console.error('\n  An elision does not excuse a syntax error.')
+  }
+
+  if (failures.length > 0) {
+    console.error(`\n[${LABEL}] FAIL — ${failures.length} example block(s) do not compile:`)
+    for (const b of failures) {
+      // The README line, not the fence. A diagnostic pointing at the opener makes the reader
+      // count lines to find what it is talking about, in a file where blocks run 30 lines.
+      for (const e of b.errs.slice(0, 3)) {
+        console.error(`      ${b.file}:${b.startLine + e.line} — ${e.code}: ${e.message}`)
+      }
+    }
+    console.error('\n  A reader who copies one of these gets code that does not compile.')
+  }
+
+  if (harnessGaps.length > 0) {
+    // Reported, and NOT a documentation failure. Conflating the two is what made three separate
+    // measurements of this produce three different wrong numbers.
+    console.log(
+      `\n[${LABEL}] i ${harnessGaps.length} block(s) not compiled — a module they declare is not installed where the reader stands:`,
+    )
+    for (const b of harnessGaps)
+      console.log(`      ${b.file}:${b.startLine} — ${b.errs[0].message}`)
+  }
+
+  // Three numbers, never one. One would hide the other two, and "how much did you actually check"
+  // is the question a gate must not make its reader compute.
+  console.log(
+    `[${LABEL}] examples — ${typeChecked.reduce((n, b) => n + (b.joined ?? 1), 0)} type-checked, ${parseOnly.length} parsed only (declared partial), ${harnessGaps.reduce((n, b) => n + (b.joined ?? 1), 0)} not set up`,
+  )
+
+  return { failed: failures.length > 0 || syntaxFailures.length > 0 }
+}
+
+const exampleResult = checkExampleBlocks()
+if (exampleResult.failed) process.exit(1)

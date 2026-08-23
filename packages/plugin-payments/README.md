@@ -62,6 +62,8 @@ guard, so the **compiler** stops a call the provider cannot serve:
 | `supportsPartialRefund` | `refundPartial`      | ✓      | ✗ — refunds integrally, and says so |
 | `supportsSubscriptions` | `cancelSubscription` | ✓      | ✓                                   |
 
+<!-- doc-example: partial -->
+
 ```ts
 import { supportsPix, supportsPartialRefund } from '@theokit/plugin-payments'
 
@@ -102,6 +104,8 @@ pnpm add @theokit/orm drizzle-orm reflect-metadata
 ```
 
 ## Multi-provider in practice
+
+<!-- doc-example: partial -->
 
 ```ts
 import {
@@ -231,6 +235,8 @@ The plugin holds the providers, one idempotency store and one handler registry �
 which is what a webhook route needs, and nothing more. A route handler becomes
 one call:
 
+<!-- doc-example: partial -->
+
 ```ts
 export async function POST(req: Request, { params }: { params: { gateway: string } }) {
   const result = await plugin.handleWebhook(params.gateway, {
@@ -254,6 +260,8 @@ them into one.
 The plugin publishes its gateways on the request context, so a handler reaches
 them without importing and wiring the plugin a second time:
 
+<!-- doc-example: partial -->
+
 ```ts
 export const POST = route().handler(async ({ ctx, request, params }) => {
   const result = await ctx.payments.handleWebhook(params.gateway, {
@@ -261,7 +269,7 @@ export const POST = route().handler(async ({ ctx, request, params }) => {
     headers: Object.fromEntries(request.headers),
     url: request.url,
   })
-  ...
+  // … your own handling …
 })
 ```
 
@@ -290,6 +298,8 @@ ones that never touch money.
 `Stripe.Event` in a way the neutral contract cannot express. Reach for it when
 you take one gateway and want its own event union; reach for `payments()` when
 you take more than one, or want to be able to.
+
+<!-- doc-example: partial -->
 
 ```ts
 import { stripePayments } from '@theokit/plugin-payments/stripe'
@@ -393,6 +403,8 @@ export async function startCheckout() {
 
 The memory store ships as default but is **not multi-replica safe**. For production, swap it for the orm-backed store:
 
+<!-- doc-example: needs="@theokit/orm" partial -->
+
 ```ts
 import { createOrmStore } from '@theokit/plugin-payments'
 import { stripePayments } from '@theokit/plugin-payments/stripe'
@@ -460,6 +472,8 @@ When wiring subscription support, register handlers for these 7 events (no built
 ## Auth integration (G11)
 
 Tie Stripe customers to your authenticated users via `metadata`:
+
+<!-- doc-example: partial -->
 
 ```ts
 await createCheckoutSession(client, {

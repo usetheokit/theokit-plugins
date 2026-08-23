@@ -30,30 +30,32 @@ pnpm add @theokit/plugin-email@next resend @theokit/auth-magic-link@next
 
 ## Wire it into your app
 
-```ts
-import { ResendProvider, sendMagicLink } from "@theokit/plugin-email";
-import { magicLink } from "@theokit/auth-magic-link";
+<!-- doc-example: partial -->
 
-const email = ResendProvider({ apiKey: process.env.RESEND_API_KEY });
+```ts
+import { ResendProvider, sendMagicLink } from '@theokit/plugin-email'
+import { magicLink } from '@theokit/auth-magic-link'
+
+const email = ResendProvider({ apiKey: process.env.RESEND_API_KEY })
 
 // Use directly:
 await email.send({
-  from: "Acme <noreply@app.test>",
-  to: "user@example.com",
-  subject: "Welcome",
-  html: "<h1>Welcome!</h1>",
-  text: "Welcome!",
-});
+  from: 'Acme <noreply@app.test>',
+  to: 'user@example.com',
+  subject: 'Welcome',
+  html: '<h1>Welcome!</h1>',
+  text: 'Welcome!',
+})
 
 // Wire magic-link:
 const magicLinkProvider = magicLink({
-  store: ...,
-  callbackBaseUrl: "https://app.test",
+  store: yourTokenStore,
+  callbackBaseUrl: 'https://app.test',
   sendEmail: sendMagicLink(email, {
-    from: "Acme <noreply@app.test>",
-    appName: "Acme",
+    from: 'Acme <noreply@app.test>',
+    appName: 'Acme',
   }),
-});
+})
 ```
 
 ## EmailProvider contract
@@ -102,6 +104,8 @@ const consoleProvider = defineEmailProvider({
 
 ### Plain HTML/text templates (no React Email required)
 
+<!-- doc-example: partial -->
+
 ```ts
 import { defineEmailTemplate } from '@theokit/plugin-email'
 
@@ -119,6 +123,8 @@ await email.send({ from: 'noreply@app.test', to: 'ana@example.com', subject, htm
 ### React Email templates (opt-in)
 
 Install peers first: `pnpm add @react-email/render @react-email/components react`.
+
+<!-- doc-example: needs="@react-email/components" needs="react/jsx-runtime" partial -->
 
 ```tsx
 import { defineEmailTemplate, renderReactEmail } from '@theokit/plugin-email'
@@ -145,6 +151,8 @@ export const welcomeTemplate = defineEmailTemplate<{ name: string }>('welcome', 
 ## Magic-link integration
 
 `sendMagicLink(provider, opts)` returns a function satisfying `@theokit/auth-magic-link`'s `SendMagicLinkFn` contract:
+
+<!-- doc-example: partial -->
 
 ```ts
 import { ResendProvider, sendMagicLink } from '@theokit/plugin-email'
@@ -175,6 +183,8 @@ Resend deduplicates on the `Idempotency-Key` **HTTP request header**. Plugin-ema
 `EmailMessage.idempotencyKey` through the Resend SDK's request options, which is what
 sets that header — sending the same key twice returns the same message id instead of
 delivering twice:
+
+<!-- doc-example: partial -->
 
 ```ts
 await email.send({

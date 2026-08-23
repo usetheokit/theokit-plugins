@@ -14,6 +14,8 @@ Peer dependencies: `@theokit/sdk >= 1.5.0`, `theokit >= 0.2.4`.
 
 ## Usage
 
+<!-- doc-example: needs="./session.js" -->
+
 ```ts
 // server/auth/index.ts
 import { defineAuth } from '@theokit/sdk/server/auth'
@@ -37,6 +39,8 @@ export const auth = defineAuth({
 
 Wire into your routes:
 
+<!-- doc-example: needs="../../../auth/index.js" -->
+
 ```ts
 // server/routes/api/auth/github/start.ts
 import { generateOAuthState } from 'theokit/server/auth'
@@ -59,6 +63,8 @@ export const GET = route()
   })
   .build()
 ```
+
+<!-- doc-example: needs="../../../auth/index.js" -->
 
 ```ts
 // server/routes/api/auth/github/callback.ts
@@ -99,6 +105,8 @@ Node-shaped, so it needs a Node server rather than a route.
 ### GitHub Enterprise Server
 
 Override the four endpoints:
+
+<!-- doc-example: continues -->
 
 ```ts
 github({

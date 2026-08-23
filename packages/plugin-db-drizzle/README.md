@@ -117,19 +117,30 @@ register it through (#43). `drizzleDb({ devtoolsTab: false })` still resolves to
 
 The plugin re-uses `@theokit/orm`'s `withAgentContext` AsyncLocalStorage. Wrap session-scoped queries the same way you do with orm direct:
 
+<!-- doc-example: needs="@theokit/orm" partial -->
+
+<!-- doc-example: partial -->
+
 ```ts
 import { withAgentContext } from '@theokit/orm'
 
-await withAgentContext({ userId: session.userId }, async () => {
+await withAgentContext({ agentId: session.agentId, conversationId }, async () => {
   return await users.findMany()
 })
 ```
+
+`AgentContext` carries `agentId`, `runId` and `conversationId` — all optional. It does **not**
+carry a user id: this context is what identifies the _agent run_, not the end user. For row-level
+security keyed to a user, put the user id where your own policy reads it; `withAgentContext` will
+not carry it for you.
 
 For native RLS policy generation, drizzle-kit's RLS support is the canonical path — this plugin does not add a layer on top.
 
 ## Migration from `@theokit/orm` direct usage
 
 If you currently wire orm directly:
+
+<!-- doc-example: partial -->
 
 ```ts
 // Before
