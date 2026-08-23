@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `@theokit/plugin-realtime`'s `RoomProvider` takes an optional `sender` port, so presence and broadcasts reach other participants instead of staying local (#B-010)
 - `pnpm quality:doc-api` now type-checks the TypeScript blocks of every published README, not just their import names. A block declares what it assumes with a `doc-example` comment (#B-009)
 - `pnpm quality:changelog` now fails when a package tag is newer than the newest dated section — a release that shipped without being recorded (#B-008)
 

@@ -29,6 +29,39 @@ export interface RealtimeSubscribeClient {
 }
 
 /**
+ * A frame a client sends the server.
+ *
+ * This is the server's own union, not a new one: `internal/runtime.ts` already parses exactly
+ * these shapes and validates their payloads against the room's Zod schema. Declaring a second
+ * vocabulary here would mean a consumer's adapter had to translate, in a place where the room's
+ * schema is not available.
+ *
+ * @public
+ */
+export type RealtimeOutboundFrame =
+  | { kind: 'presence-update'; patch: Partial<Presence> }
+  | { kind: 'broadcast'; event: string; payload: BroadcastPayload }
+
+/**
+ * The send-side port — the mirror of {@link RealtimeSubscribeClient}.
+ *
+ * The hooks were given a receive-only client and never a send-side one, which is why presence and
+ * broadcasts stayed local: not a missing channel, a missing port. The server half has always been
+ * complete — `RealtimeRuntime` fans a validated broadcast out to every participant — and it is
+ * deliberately transport-agnostic, so this side is too. A consumer supplies whatever reaches their
+ * own endpoint: a WebSocket they own, a POST to their own route.
+ *
+ * Structural, and deliberately NOT imported from `@theokit/sdk`. Measured 2026-08-23:
+ * `subscribe()` returns `AsyncGenerator<TOutput, void, void>` and the `./subscription` subpath
+ * exports no outbound verb, so there is nothing upstream to import — by either route.
+ *
+ * @public
+ */
+export interface RealtimeSendClient {
+  send(frame: RealtimeOutboundFrame): void
+}
+
+/**
  * Room state surface exposed via React Context.
  *
  * @public
@@ -144,6 +177,14 @@ export interface RoomProviderProps {
   initialPresence?: Presence
   /** G8-compatible subscribe client. */
   client: RealtimeSubscribeClient
+  /**
+   * Optional outbound transport.
+   *
+   * Omitted, the hooks behave exactly as they did before this existed: `emit` merges into local
+   * presence and `emitBroadcast` does nothing. The package is published, so the port is additive
+   * by construction rather than by intention.
+   */
+  sender?: RealtimeSendClient
   /** Base URL for the realtime endpoint (defaults to `''` = relative). */
   baseUrl?: string
   /** Optional subscription name override (defaults to `realtime:{roomId}`). */
@@ -157,7 +198,7 @@ export interface RoomProviderProps {
  * @public
  */
 export function RoomProvider(props: RoomProviderProps): React.ReactElement {
-  const { roomId, initialPresence, client, baseUrl, subscriptionName, children } = props
+  const { roomId, initialPresence, client, sender, baseUrl, subscriptionName, children } = props
   const [state, setState] = React.useState<InternalRoomState>(() => ({
     others: {},
     myPresence: { ...(initialPresence ?? {}) },
@@ -221,21 +262,29 @@ export function RoomProvider(props: RoomProviderProps): React.ReactElement {
     () => ({
       state,
       roomId,
-      emit(_out) {
-        // Outbound presence updates require an outbound channel back to the
-        // server (G8 WS upstream). For the v0.1 hooks scaffold we update
-        // local state optimistically; the wire-up to send via client is a
-        // post-MVP enhancement once G8 `subscribe` upstream `.send()` API
-        // stabilizes (currently AsyncGenerator is read-only).
-        const merged = { ...state.myPresence, ..._out.patch } as Presence
+      emit(out) {
+        // Merged optimistically FIRST, and still merged when a sender is present: waiting for the
+        // round trip would make the local UI lag its own input.
+        //
+        // The server DOES echo — `fanout` notifies every listener in the room including the
+        // sender — so this patch is applied twice. That is safe because a presence patch is a
+        // merge rather than an increment, and re-applying lands on the same state. A room whose
+        // presence carried a counter would not be safe, which is the consumer's schema choice;
+        // `integration/tests/seam/realtime-two-clients.offline.test.ts` pins the idempotence.
+        const merged = { ...state.myPresence, ...out.patch } as Presence
         setStateAndNotify({ ...state, myPresence: merged })
+        // Not wrapped in try/catch: a transport that is down is the consumer's to handle, and
+        // swallowing it here would leave them with a UI that looks synced and is not
+        // (`rules/error-handling.md` § 2).
+        sender?.send({ kind: 'presence-update', patch: out.patch })
       },
-      emitBroadcast(_event, _payload) {
-        // Same upstream constraint as `emit`; broadcasts are tracked locally
-        // until upstream support lands.
+      emitBroadcast(event, payload) {
+        // Nothing local to do: a broadcast is other participants' state, not this client's. With
+        // no sender this stays the no-op the README documents.
+        sender?.send({ kind: 'broadcast', event, payload })
       },
     }),
-    [state, roomId, setStateAndNotify],
+    [state, roomId, sender, setStateAndNotify],
   )
 
   return React.createElement(RoomContext.Provider, { value }, children)

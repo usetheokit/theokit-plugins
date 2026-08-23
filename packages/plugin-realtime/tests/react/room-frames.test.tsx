@@ -15,6 +15,8 @@ import * as React from 'react'
 import { describe, expect, it } from 'vitest'
 
 import {
+  type RealtimeOutboundFrame,
+  type RealtimeSendClient,
   type RealtimeSubscribeClient,
   RoomProvider,
   useBroadcast,
@@ -267,5 +269,130 @@ describe('useRoom() object surface', () => {
     expect(() =>
       (document.querySelector('[data-testid="cast"]') as HTMLButtonElement).click(),
     ).not.toThrow()
+  })
+})
+
+describe('RoomProvider send-side port', () => {
+  /** A sender that records what the hooks hand it. */
+  function recording(): { sender: RealtimeSendClient; sent: RealtimeOutboundFrame[] } {
+    const sent: RealtimeOutboundFrame[] = []
+    return { sender: { send: (frame) => void sent.push(frame) }, sent }
+  }
+
+  it('sends a presence-update frame when a sender is supplied', () => {
+    const { client } = controllable()
+    const { sender, sent } = recording()
+    let room: ReturnType<typeof useRoom> | undefined
+
+    function Probe(): null {
+      room = useRoom()
+      return null
+    }
+    render(
+      <RoomProvider roomId="r" client={client} sender={sender}>
+        <Probe />
+      </RoomProvider>,
+    )
+
+    act(() => {
+      room!.updateMyPresence({ cursor: [1, 2] })
+    })
+
+    expect(sent).toHaveLength(1)
+    expect(sent[0]).toEqual({ kind: 'presence-update', patch: { cursor: [1, 2] } })
+  })
+
+  it('sends a broadcast frame when a sender is supplied', () => {
+    const { client } = controllable()
+    const { sender, sent } = recording()
+    let room: ReturnType<typeof useRoom> | undefined
+
+    function Probe(): null {
+      room = useRoom()
+      return null
+    }
+    render(
+      <RoomProvider roomId="r" client={client} sender={sender}>
+        <Probe />
+      </RoomProvider>,
+    )
+
+    act(() => {
+      room!.broadcast('question', { text: 'hi' })
+    })
+
+    expect(sent).toEqual([{ kind: 'broadcast', event: 'question', payload: { text: 'hi' } }])
+  })
+
+  it('still merges presence optimistically when a sender is supplied', () => {
+    // The local update is not traded for the remote one: the server does not echo the sender's own
+    // frame back, so waiting for it would mean the update never arrives.
+    const { client } = controllable()
+    const { sender } = recording()
+    let room: ReturnType<typeof useRoom> | undefined
+
+    function Probe(): null {
+      room = useRoom()
+      return null
+    }
+    render(
+      <RoomProvider roomId="r" client={client} sender={sender}>
+        <Probe />
+      </RoomProvider>,
+    )
+
+    act(() => {
+      room!.updateMyPresence({ cursor: [3, 4] })
+    })
+
+    expect(room!.myPresence).toMatchObject({ cursor: [3, 4] })
+  })
+
+  it('sends nothing and still merges locally when no sender is supplied', () => {
+    // The behaviour every current consumer has, pinned — the port is additive on a published
+    // package, and this is what makes that claim checkable rather than asserted.
+    const { client } = controllable()
+    let room: ReturnType<typeof useRoom> | undefined
+
+    function Probe(): null {
+      room = useRoom()
+      return null
+    }
+    render(
+      <RoomProvider roomId="r" client={client}>
+        <Probe />
+      </RoomProvider>,
+    )
+
+    act(() => {
+      room!.updateMyPresence({ cursor: [5, 6] })
+      room!.broadcast('question', { text: 'ignored' })
+    })
+
+    expect(room!.myPresence).toMatchObject({ cursor: [5, 6] })
+  })
+
+  it('lets a failing transport surface rather than swallowing it', () => {
+    // rules/error-handling.md § 2: a transport that is down is the consumer's to handle, and a
+    // hook that swallowed it would leave them with a UI that looks synced and is not.
+    const { client } = controllable()
+    const failing: RealtimeSendClient = {
+      send: () => {
+        throw new Error('transport down')
+      },
+    }
+    let room: ReturnType<typeof useRoom> | undefined
+
+    function Probe(): null {
+      room = useRoom()
+      return null
+    }
+    render(
+      <RoomProvider roomId="r" client={client} sender={failing}>
+        <Probe />
+      </RoomProvider>,
+    )
+
+    expect(() => room!.broadcast('question', { text: 'hi' })).toThrow('transport down')
   })
 })
