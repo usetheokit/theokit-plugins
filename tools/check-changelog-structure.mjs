@@ -20,10 +20,21 @@
 // Released sections are deliberately NOT checked. Unbreakable Rule 6 forbids editing them, so
 // reporting a defect nobody may fix would be noise on every run forever.
 
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { ROOT } from './lib/published-entries.mjs'
+import { ROOT as REPO_ROOT } from './lib/published-entries.mjs'
+
+/**
+ * The tree this run inspects.
+ *
+ * Overridable so the regression suite can point the SHIPPED code at a throwaway repository
+ * instead of re-implementing the tag reading and the parsing in the test — a second
+ * implementation would pass while this one broke, which is the whole failure mode being guarded
+ * against elsewhere in this repository.
+ */
+const ROOT = process.env.CHANGELOG_ROOT ?? REPO_ROOT
 
 /** The only categories Keep a Changelog defines, in the order they must appear. */
 const CANONICAL = ['Added', 'Changed', 'Deprecated', 'Removed', 'Fixed', 'Security']
@@ -90,14 +101,104 @@ function check(text) {
   return problems
 }
 
-const path = join(ROOT, 'CHANGELOG.md')
-const problems = check(readFileSync(path, 'utf8'))
+// ---------------------------------------------------------------------------------------------
+// Release-drift gate: a package tag newer than the newest dated section means a release shipped
+// and the narrative did not record it.
+//
+// The root `v*` tag convention stopped at v0.3.0 while the CHANGELOG kept recording versioned
+// releases, and five versions ended up existing only in prose. `docs/adr/0002-the-repository-releases-packages-not-itself.md` records
+// the decision that came out of measuring it: this repository releases PACKAGES, not itself, so
+// the root CHANGELOG carries dated sections rather than a version of its own.
+//
+// The convention died silently precisely because nothing checked. Tags are the only artefact a
+// release produces without a human, so they are what the record is compared against.
+//
+// What this deliberately does NOT catch: a release recorded badly. Day granularity also means a
+// release and its record on the same day always agree. Both are floors, stated rather than hidden.
 
+/** The newest tag's date and name, or null when git cannot answer. */
+function newestTag() {
+  try {
+    const out = execFileSync(
+      'git',
+      [
+        'for-each-ref',
+        '--sort=-creatordate',
+        '--format=%(creatordate:short) %(refname:short)',
+        'refs/tags',
+      ],
+      { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+    ).trim()
+    if (!out) return null
+    const [date, ...rest] = out.split('\n')[0].split(' ')
+    return { date, name: rest.join(' ') }
+  } catch {
+    return null
+  }
+}
+
+/** The newest `## YYYY-MM-DD` heading in the file. */
+function newestRecord(text) {
+  const dates = [...text.matchAll(/^## (\d{4}-\d{2}-\d{2})/gm)].map((m) => m[1])
+  return dates.length ? dates.sort().at(-1) : null
+}
+
+/** Set false when the drift comparison could not be made, so the summary cannot claim it was. */
+let driftChecked = true
+
+function checkDrift(text) {
+  const tag = newestTag()
+  if (tag === null) {
+    driftChecked = false
+    // Reported, never passed over quietly. A shallow clone or a tarball has no tags, and failing
+    // there would break the gate for a reason unrelated to the CHANGELOG — but claiming a clean
+    // check the run did not make is the defect this repository keeps finding in its own gates.
+    console.error('  \u2139 no git tags readable — the release-drift check did not run')
+    return []
+  }
+  const record = newestRecord(text)
+  if (record === null) {
+    return [
+      `no dated release section (\`## YYYY-MM-DD\`) in the file, while ${tag.name} is tagged ` +
+        `${tag.date} — see docs/adr/0002-the-repository-releases-packages-not-itself.md`,
+    ]
+  }
+  if (record < tag.date) {
+    return [
+      `${tag.name} was tagged ${tag.date}, newer than the newest record (${record}) — a release ` +
+        `shipped and the CHANGELOG does not say so. See docs/adr/0002-the-repository-releases-packages-not-itself.md`,
+    ]
+  }
+  return []
+}
+
+const path = join(ROOT, 'CHANGELOG.md')
+const text = readFileSync(path, 'utf8')
+const problems = check(text)
+const drifts = checkDrift(text)
+
+// Two invariants share this exit code, so each names itself. A failure that says only
+// "CHANGELOG problem" sends the reader to guess which of two unrelated things broke.
 if (problems.length > 0) {
   console.error(`CHANGELOG.md — ${problems.length} structural problem(s) in [Unreleased]:\n`)
   for (const problem of problems) console.error(`  ${problem}`)
   console.error('\nMerge the duplicated sections; keep every entry.')
-  process.exit(1)
 }
+if (drifts.length > 0) {
+  console.error(`CHANGELOG.md — ${drifts.length} release-drift problem(s):\n`)
+  for (const drift of drifts) console.error(`  ${drift}`)
+  console.error('\nRecord the release under a `## YYYY-MM-DD` section naming what shipped.')
+}
+if (problems.length > 0 || drifts.length > 0) process.exit(1)
 
-console.log('CHANGELOG.md [Unreleased]: one section per category, in canonical order.')
+// Never unconditional. The first version printed "the newest release is recorded" even when no
+// tags were readable and nothing had been compared — the third time this exact defect appeared in
+// this repository's own gates, after the decoration-key and seam-documentation checks. A summary
+// that claims a comparison the run did not make is worse than no summary: the green line is what
+// a reader trusts.
+console.log(
+  'CHANGELOG.md [Unreleased]: one section per category, in canonical order.\n' +
+    (driftChecked
+      ? 'CHANGELOG.md: the newest release is recorded.'
+      : 'CHANGELOG.md: release drift NOT checked — no git tags readable.'),
+)
