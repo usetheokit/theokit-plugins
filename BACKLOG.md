@@ -37,9 +37,9 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-18 items — **Open** 15 · **In flight** 0 · **Closed** 3
+19 items — **Open** 16 · **In flight** 0 · **Closed** 3
 
-### Open (15)
+### Open (16)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -58,6 +58,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-016`](#b-016--theokitplugin-forms-headless-tier-cannot-be-consumed-without-usetheoui--) | `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` | `raw` | — |
 | [`B-017`](#b-017--the-measurement-target-gate-reads-an-npm-subpath-specifier-as-a-missing-file--) | the measurement-target gate reads an npm subpath specifier as a missing file | `raw` | — |
 | [`B-018`](#b-018--nineteen-transitive-high-advisories-sit-in-the-workspace-with-nothing-watching-them--) | nineteen transitive HIGH advisories sit in the workspace with nothing watching them | `raw` | — |
+| [`B-019`](#b-019--four-packages-integrate-through-a-seam-the-current-sdk-major-no-longer-has--) | four packages integrate through a seam the current SDK major no longer has | `raw` | — |
 
 ### In flight (0)
 
@@ -577,3 +578,36 @@ dod:
 
 note: `repo:` is `plugin-canvas` because that is the only package whose chain reaches a published
 artefact; the fix is repository-wide.
+
+## B-019 — four packages integrate through a seam the current SDK major no longer has [ ]
+
+> Registered 2026-08-23 while implementing B-001's auth conformance test, which found it.
+
+domain: auth-provider
+repo: auth-google
+suggested_mode: review
+source: human
+evidence: none-yet
+why_now: measured 2026-08-23 — `auth-github`, `auth-google`, `auth-magic-link` and
+`plugin-copilot` all declare `@theokit/sdk: ^2.18.0`, and the three auth packages are written
+against `defineAuth` from `@theokit/sdk/server/auth`. In `@theokit/sdk@4.53.1` (current latest)
+that subpath exports `Auth, AuthCallbackError, AuthCancelledError, AuthConfigError,
+AuthProviderNotFoundError, AuthSecretTooShortError, validateReturnTo` plus types — **`defineAuth`
+is gone**, replaced by a class `Auth`. A consumer whose app resolves sdk 4.x cannot wire these
+providers the documented way. This is the #42 defect class exactly: a package typed against a
+framework API, and the framework moved. It surfaced within minutes of the conformance test
+existing (`integration/tests/seam/auth-orchestrator-conformance.offline.test.ts` failed with
+`TypeError: defineAuth is not a function` while the sdk was briefly resolved at `@latest`).
+status: raw
+dod:
+
+- a decision, recorded as an ADR, on whether these packages move to the `Auth` class or stay
+  pinned to sdk 2.x — and if they stay, the pin is a `<3.0.0` ceiling rather than a caret range
+  that npm may resolve past
+- the conformance suite asserts against the sdk major the packages actually declare, and fails
+  when the declared range admits a version whose seam is absent
+- `plugin-copilot` is checked too: it declares the same range but does not use `defineAuth`, so
+  its exposure may be different and should be measured, not assumed
+
+note: `repo:` is `auth-google` because that is where the conformance test caught it; the decision
+spans all four packages.
