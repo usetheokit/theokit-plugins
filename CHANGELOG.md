@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Seam-conformance registry: every package under `packages/` now declares which TheoKit surface it plugs into, and a test fails when one is missing (#B-001)
+
 - `plugin-realtime`'s React surface has frame-reduction tests: which `joined` frame means "you"
   rather than "somebody else", where a `presence-changed` is routed, and what a `left` with no
   connectionId must not do. It moved from 69.73% to 98.52% statements and 53.12% to 87.5%
