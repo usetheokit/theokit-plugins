@@ -40,7 +40,10 @@ afterEach(() => {
  * A real repository rather than a stub: the tool reads tag dates through `git for-each-ref`, and a
  * fake would test a different code path than the one that ships.
  */
-function repo(changelog: string, tag?: { name: string; date: string }): string {
+function repo(
+  changelog: string,
+  tag?: { name: string; date: string; lightweight?: boolean },
+): string {
   const root = mkdtempSync(join(tmpdir(), 'cl-drift-'))
   created.push(root)
   mkdirSync(join(root, 'tools', 'lib'), { recursive: true })
@@ -55,11 +58,16 @@ function repo(changelog: string, tag?: { name: string; date: string }): string {
   git(['add', '-A'])
   git(['commit', '-q', '-m', 'init', '--no-verify'])
   if (tag) {
-    const stamp = `${tag.date}T12:00:00`
-    git(['tag', '-a', tag.name, '-m', tag.name], {
-      GIT_COMMITTER_DATE: stamp,
-      GIT_AUTHOR_DATE: stamp,
-    })
+    if (tag.lightweight) {
+      // No -a: the date variables are ignored, which is exactly the case being pinned.
+      git(['tag', tag.name])
+    } else {
+      const stamp = `${tag.date}T12:00:00 +0000`
+      git(['tag', '-a', tag.name, '-m', tag.name], {
+        GIT_COMMITTER_DATE: stamp,
+        GIT_AUTHOR_DATE: stamp,
+      })
+    }
   }
   return root
 }
@@ -151,12 +159,87 @@ describe('a release that shipped must be recorded', () => {
     expect(output, 'blamed drift for a structural failure').not.toMatch(/release-drift/)
   })
 
-  it('passes against this repository', () => {
+  it('passes against this repository, and says whether it could compare', () => {
+    // Split from "it passes" deliberately. The earlier version asserted the clean-check line
+    // unconditionally and failed in a workspace with no tags — which is every `actions/checkout`
+    // default, so it would have failed in CI while the gate it guards sat inert there. The tag
+    // fetch is fixed in `ci.yml`; this test no longer assumes ambient tags, because a test that
+    // fails for the environment teaches people to distrust it.
+    const tags = execFileSync('git', ['tag', '-l'], { cwd: REPO_ROOT, encoding: 'utf8' }).trim()
     const result = spawnSync('node', [TOOL], { cwd: REPO_ROOT, encoding: 'utf8' })
 
     expect(result.status).toBe(0)
-    expect(`${result.stdout}`, 'reported success without checking the record').toMatch(
-      /the newest release is recorded/,
+    if (tags) {
+      expect(`${result.stdout}`, 'reported success without checking the record').toMatch(
+        /the newest release is recorded/,
+      )
+    } else {
+      expect(`${result.stdout}`, 'claimed a comparison it could not make').toMatch(
+        /release drift NOT checked/,
+      )
+    }
+  })
+
+  it('ignores a tag that is not a package release', () => {
+    // Measured on the unfiltered version: `nightly`, `backup-before-refactor`, `v9.9.9` and a tag
+    // on an abandoned branch each produced "a release shipped and the CHANGELOG does not say so"
+    // about something that shipped nothing. The only escapes were deleting the tag or writing a
+    // dated section for a release that never happened — a gate that pressures a fabricated
+    // CHANGELOG entry is worse than no gate.
+    const root = repo(`${UNRELEASED}## 2026-08-01\n\nEarlier release.\n`, {
+      name: 'nightly',
+      date: '2026-08-30',
+    })
+
+    expect(check(root).code, 'a scratch tag was read as a release').toBe(0)
+  })
+
+  it('refuses a lightweight release tag instead of reading a meaningless date from it', () => {
+    // `creatordate` on a lightweight tag is the TARGET COMMIT's date, so tagging today's release
+    // onto an old commit reported the old date and the gate went green on an unrecorded release.
+    const root = repo(`${UNRELEASED}## 2026-08-01\n\nEarlier release.\n`, {
+      name: '@theokit/plugin-voice@0.9.0',
+      date: '2026-08-30',
+      lightweight: true,
+    })
+
+    const { code, output } = check(root)
+
+    expect(code).toBe(1)
+    expect(output).toMatch(/lightweight tag/)
+  })
+
+  it('does not read a date out of a fenced example', () => {
+    // ADR 0002 models the target format inside a fence, so it is a pattern someone would paste.
+    // The shared scanner from `tools/lib/markdown-fences.mjs` is what keeps this honest — the
+    // same one the seam-documentation check uses, rather than a second implementation.
+    const root = repo(
+      `${UNRELEASED}\`\`\`markdown\n## 2099-01-01\n\`\`\`\n\n## 2026-08-01\n\nEarlier.\n`,
+      { name: '@theokit/plugin-voice@0.8.0', date: '2026-08-23' },
     )
+
+    expect(check(root).code, 'a date inside a code fence was read as a record').toBe(1)
+  })
+
+  it('does not accept a future date as a record', () => {
+    const root = repo(`${UNRELEASED}## 2099-01-01\n\nFuture.\n\n## 2026-08-01\n\nEarlier.\n`, {
+      name: '@theokit/plugin-voice@0.8.0',
+      date: '2026-08-23',
+    })
+
+    expect(check(root).code, 'a future date would pass forever').toBe(1)
+  })
+
+  it('says a date is misformatted rather than reporting it as absent', () => {
+    const root = repo(`${UNRELEASED}## 2026-8-3\n\nUnpadded.\n`, {
+      name: '@theokit/plugin-voice@0.8.0',
+      date: '2026-08-23',
+    })
+
+    const { code, output } = check(root)
+
+    expect(code).toBe(1)
+    expect(output, 'told the author their heading was missing').toMatch(/misformatted/)
+    expect(output).not.toMatch(/no dated release section/)
   })
 })

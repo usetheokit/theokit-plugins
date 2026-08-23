@@ -24,6 +24,7 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { splitFences } from './lib/markdown-fences.mjs'
 import { ROOT as REPO_ROOT } from './lib/published-entries.mjs'
 
 /**
@@ -116,7 +117,31 @@ function check(text) {
 // What this deliberately does NOT catch: a release recorded badly. Day granularity also means a
 // release and its record on the same day always agree. Both are floors, stated rather than hidden.
 
-/** The newest tag's date and name, or null when git cannot answer. */
+/**
+ * Package tags only — `@scope/name@version`.
+ *
+ * The unfiltered `refs/tags` listing was measured to fire on anything: `nightly`,
+ * `backup-before-refactor`, `v9.9.9`, a tag on an abandoned branch. Each produced the sentence
+ * "a release shipped and the CHANGELOG does not say so" about something that shipped nothing, and
+ * the only escapes were deleting the tag or writing a dated section for a release that never
+ * happened. A gate that pressures a fabricated CHANGELOG entry is worse than no gate, and the file
+ * it would corrupt is the one Unbreakable Rule 6 protects.
+ */
+const PACKAGE_TAG_GLOB = 'refs/tags/@*/*'
+
+/**
+ * The newest package tag's date and name, or null when git cannot answer.
+ *
+ * Dates are rendered in **UTC**, not in the tag's stored timezone. `%(creatordate:short)` renders
+ * tagger-local, and this repository already has four tags stamped by CI at 00:04 UTC while the
+ * maintainer writes headings in UTC-3 — the same instant, two calendar days. Canonicalising both
+ * sides to UTC is what makes the comparison mean anything.
+ *
+ * `%(taggerdate)` rather than `%(creatordate)`: on a LIGHTWEIGHT tag, creatordate is the target
+ * commit's date, so tagging today's release onto a January commit reported January and the gate
+ * went green on an unrecorded release. A lightweight tag has no taggerdate, so it comes back empty
+ * and is refused loudly below rather than being read as a meaningless date.
+ */
 function newestTag() {
   try {
     const out = execFileSync(
@@ -124,23 +149,58 @@ function newestTag() {
       [
         'for-each-ref',
         '--sort=-creatordate',
-        '--format=%(creatordate:short) %(refname:short)',
-        'refs/tags',
+        '--format=%(objecttype) %(taggerdate:format-local:%Y-%m-%d) %(refname:short)',
+        PACKAGE_TAG_GLOB,
       ],
-      { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+      {
+        cwd: ROOT,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        env: { ...process.env, TZ: 'UTC' },
+      },
     ).trim()
     if (!out) return null
-    const [date, ...rest] = out.split('\n')[0].split(' ')
-    return { date, name: rest.join(' ') }
+
+    const [type, date, ...rest] = out.split('\n')[0].split(' ')
+    const name = rest.join(' ')
+    if (type !== 'tag') return { lightweight: true, name }
+    if (!isRealDate(date)) return { malformed: true, date, name }
+    return { date, name }
   } catch {
     return null
   }
 }
 
-/** The newest `## YYYY-MM-DD` heading in the file. */
+/** True for a zero-padded date that is a real calendar day and not in the future. */
+function isRealDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const parsed = new Date(`${value}T00:00:00Z`)
+  if (Number.isNaN(parsed.getTime())) return false
+  // Round-trips only for a day that exists: 2026-13-45 and 2026-02-30 do not.
+  return parsed.toISOString().slice(0, 10) === value
+}
+
+/**
+ * The newest `## YYYY-MM-DD` heading, counting only headings OUTSIDE fenced code blocks.
+ *
+ * A date inside a fence is an example, not a record — and ADR 0002 models the target format inside
+ * one, so it is a pattern someone would plausibly paste. Measured before this: a fenced
+ * `## 2099-01-01` made the gate green over a stale record, which is the same class of defect the
+ * commit immediately before this one fixed in the seam-documentation check. That scanner is now
+ * shared rather than reimplemented.
+ *
+ * A future date is refused for the same reason: it would pass forever.
+ */
 function newestRecord(text) {
-  const dates = [...text.matchAll(/^## (\d{4}-\d{2}-\d{2})/gm)].map((m) => m[1])
-  return dates.length ? dates.sort().at(-1) : null
+  const { prose } = splitFences(text)
+  const today = new Date().toISOString().slice(0, 10)
+  const headings = prose
+    .map((line) => /^## (\S+)/.exec(line))
+    .filter(Boolean)
+    .map((m) => m[1])
+  const dates = headings.filter((d) => isRealDate(d) && d <= today)
+  const malformed = headings.filter((d) => /^\d{4}-\d{1,2}-\d{1,2}$/.test(d) && !dates.includes(d))
+  return { newest: dates.length ? dates.sort().at(-1) : null, malformed }
 }
 
 /** Set false when the drift comparison could not be made, so the summary cannot claim it was. */
@@ -150,23 +210,46 @@ function checkDrift(text) {
   const tag = newestTag()
   if (tag === null) {
     driftChecked = false
+    driftChecked = false
     // Reported, never passed over quietly. A shallow clone or a tarball has no tags, and failing
     // there would break the gate for a reason unrelated to the CHANGELOG — but claiming a clean
     // check the run did not make is the defect this repository keeps finding in its own gates.
     console.error('  \u2139 no git tags readable — the release-drift check did not run')
     return []
   }
-  const record = newestRecord(text)
-  if (record === null) {
+  const ADR = 'docs/adr/0002-the-repository-releases-packages-not-itself.md'
+
+  // A tag whose date cannot be trusted is refused loudly rather than compared. Reading a
+  // meaningless date and reporting a confident verdict from it is the worse failure.
+  if (tag.lightweight) {
     return [
-      `no dated release section (\`## YYYY-MM-DD\`) in the file, while ${tag.name} is tagged ` +
-        `${tag.date} — see docs/adr/0002-the-repository-releases-packages-not-itself.md`,
+      `${tag.name} is a lightweight tag, so it carries no tagger date — a release tag must be ` +
+        `annotated (\`git tag -a\`) for the record to be checkable. See ${ADR}`,
     ]
   }
-  if (record < tag.date) {
+  if (tag.malformed) {
+    return [`${tag.name} has an unreadable tagger date (\`${tag.date}\`). See ${ADR}`]
+  }
+
+  const { newest, malformed } = newestRecord(text)
+  if (malformed.length > 0) {
+    // Distinguished from "no heading at all": `## 2026-8-3` is a heading somebody wrote and got
+    // slightly wrong, and reporting it as absent sends them looking for the wrong thing.
     return [
-      `${tag.name} was tagged ${tag.date}, newer than the newest record (${record}) — a release ` +
-        `shipped and the CHANGELOG does not say so. See docs/adr/0002-the-repository-releases-packages-not-itself.md`,
+      `a dated section is misformatted: ${malformed.join(', ')} — use zero-padded ` +
+        `\`## YYYY-MM-DD\`. See ${ADR}`,
+    ]
+  }
+  if (newest === null) {
+    return [
+      `no dated release section (\`## YYYY-MM-DD\`) outside a code block, while ${tag.name} is ` +
+        `tagged ${tag.date} — see ${ADR}`,
+    ]
+  }
+  if (newest < tag.date) {
+    return [
+      `${tag.name} was tagged ${tag.date} (UTC), newer than the newest record (${newest}) — a ` +
+        `release shipped and the CHANGELOG does not say so. See ${ADR}`,
     ]
   }
   return []
