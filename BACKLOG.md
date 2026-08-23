@@ -44,7 +44,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention--) | The request-decoration namespace is global and has no convention | `raw` | — |
+| [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention--) | The request-decoration namespace is global and has no convention | `triaged` | — |
 | [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain--) | No test asserts that a package belongs to exactly one domain | `raw` | — |
 | [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams--) | The `plugin-` prefix names four different integration seams | `raw` | — |
 | [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it--) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `raw` | — |
@@ -121,13 +121,22 @@ domain: plugin-server
 repo: plugin-payments
 suggested_mode: review
 source: human
-evidence: none-yet
-why_now: `theokit/server/plugins` exports `DuplicateDecorationError` (measured in
+evidence: `.claude/knowledge-base/discoveries/opportunities/decoration-key-convention-opportunity.md`
+why_now: **corrected 2026-08-23 — the original justification was stale and is kept below for the
+record.** Measured against theokit 0.48.8: two plugins with distinct names claiming one key are
+BOTH registered without error, and `applyDecorations` overwrites last-writer-wins, so a request
+context holds `{"payments":"FROM-SECOND"}` and the first plugin's decoration is simply gone.
+`DuplicateDecorationError` is constructed in 0 of 160 `.js` files under `theokit/dist` — a dead
+export — and `PluginRunner.register`'s own comment says the change was deliberate: "Cross-plugin
+decoration-key collisions are PERMITTED (per blueprint D1)". No gate in this repository reads
+decoration keys at all. Two keys now exist, not one: `copilot`
+(`packages/plugin-copilot/src/plugin.ts:53`) and `payments`
+(`packages/plugin-payments/src/plugin.ts:62`).
+why_now_original: `theokit/server/plugins` exports `DuplicateDecorationError` (measured in
 `dist/server/plugins/index.d.ts`, theokit@0.48.7). Two packages claiming one key fail at runtime in
-the consumer's app, for a reason neither package's own tests can see. Today only one key exists
-(`payments`), so the collision is latent rather than observed — and every package added to this
-domain increases the chance nobody notices until a consumer installs two of them.
-status: raw
+the consumer's app... Today only one key exists (`payments`). — Both halves are now false: the
+error is never thrown, and there are two keys. The risk did not go away; it got quieter.
+status: triaged
 dod:
 
 - a documented naming rule for decoration keys, in a rule file rather than in prose in one package
@@ -545,6 +554,10 @@ dod:
 - a plan citing an unscoped npm subpath specifier scores it as a module, not as a missing file
 - an opportunity citing `path/to/@scope/pkg/file.ts:12` resolves it, instead of truncating at
   the `@` into a path that exists nowhere
+- an opportunity citing a dotted directory resolves it too: measured 2026-08-23 on B-002's
+  opportunity, `.github/workflows/ci.yml:120` is truncated by the same `\b` to
+  `github/workflows/ci.yml:120` and fires `fabricated_evidence`. One regex, three shapes it
+  cannot express: npm subpath specifiers, `@scope` packages, and dotfile directories
 - the fix distinguishes specifier from path by resolution, not by a denylist of known package names
 - a genuinely fabricated path still trips `fabricated_target` — a regression test covers both
 
