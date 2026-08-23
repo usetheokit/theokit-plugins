@@ -21,6 +21,7 @@
     "@theokit/auth-google": "workspace:*",
     "@theokit/auth-magic-link": "workspace:^",
     "@theokit/plugin-copilot": "workspace:*",
+    "@theokit/plugin-db-drizzle": "workspace:^",
     "@theokit/plugin-email": "workspace:*",
     "@theokit/plugin-payments": "workspace:*",
     "@theokit/plugin-voice": "workspace:*",

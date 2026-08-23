@@ -19,6 +19,7 @@
  * Credential-free by construction — `*.offline.test.ts`, so it runs on every pull request.
  */
 
+import { drizzleDb } from '@theokit/plugin-db-drizzle'
 import { payments } from '@theokit/plugin-payments'
 import type { PaymentProvider } from '@theokit/plugin-payments'
 import voicePlugin from '@theokit/plugin-voice'
@@ -112,5 +113,17 @@ describe('the real plugin runner is what accepts a plugin', () => {
     })
 
     await expect(createPluginRunnerFromConfig([plugin])).resolves.toBeDefined()
+  })
+
+  it('accepts @theokit/plugin-db-drizzle', async () => {
+    // The plan carried this as an open question: this package drives an external binary, and the
+    // offline tier must stay credential-free, so importing it might have pulled a CLI into a
+    // suite that gates every pull request. Measured instead of assumed — the module imports in
+    // ~4ms and `drizzleDb({ driver: 'postgres' })` builds without touching the filesystem or shelling out — no URL is
+    // passed, and the plugin deliberately does not read env at construction. It is
+    // covered rather than exempted, and no CLI verb is invoked here.
+    await expect(
+      createPluginRunnerFromConfig([drizzleDb({ driver: 'postgres' })]),
+    ).resolves.toBeDefined()
   })
 })

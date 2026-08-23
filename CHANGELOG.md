@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Seam-conformance registry: every package under `packages/` now declares which TheoKit surface it plugs into, and a test fails when one is missing (#B-001)
-- Seam-conformance suite for the plugin packages: `plugin-payments` and `plugin-voice` are now handed to the real `createPluginRunnerFromConfig` on every pull request (#B-001)
+- Seam-conformance suite for the plugin packages: `plugin-payments`, `plugin-voice` and `plugin-db-drizzle` are now handed to the real `createPluginRunnerFromConfig` on every pull request (#B-001)
 
 - `plugin-realtime`'s React surface has frame-reduction tests: which `joined` frame means "you"
   rather than "somebody else", where a `presence-changed` is routed, and what a `left` with no
