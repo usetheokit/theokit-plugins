@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `pnpm quality:changelog` now fails when a package tag is newer than the newest dated section — a release that shipped without being recorded (#B-008)
+
+### Changed
+
+- The root CHANGELOG uses dated release sections instead of version headers. This repository releases packages, not itself: the root manifest is a private `0.0.0`, and five version headers named a version no tag or manifest carried. Decision in `docs/adr/0002` (#B-008)
+
+## 2026-08-23
+
+Eleven packages cut together: `@theokit/auth-github@0.3.0`, `@theokit/auth-google@0.3.0`,
+`@theokit/auth-magic-link@0.4.0`, `@theokit/plugin-canvas@0.5.0`, `@theokit/plugin-copilot@0.3.0`,
+`@theokit/plugin-db-drizzle@0.4.0`, `@theokit/plugin-email@0.2.0`, `@theokit/plugin-forms@0.3.0`,
+`@theokit/plugin-payments@0.4.0`, `@theokit/plugin-realtime@0.1.4`, `@theokit/plugin-voice@0.8.0`.
+
+### Added
+
 - `pnpm check:manifests` now fails when a package declares a seam and no code block in its README calls that seam's factory (#B-007)
 - `pnpm check:manifests` now fails when two packages claim the same request-decoration key — the framework accepts a collision silently and keeps only the last plugin registered (#B-002)
 - Seam-conformance registry: every package under `packages/` now declares which TheoKit surface it plugs into, and a test fails when one is missing (#B-001)
@@ -317,7 +332,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   holding every service credential. It is now passed as an environment variable (#74)
 - Every GitHub Action is pinned to a commit SHA rather than a movable tag (#74)
 
-## [0.7.0] - 2026-08-21
+## 2026-08-21 (recorded at the time as 0.7.0)
 
 Derivado por `cycle-release.md`: `Added` não-vazio — **minor**. `Removed` também não é vazio,
 o que a regra lê como major; aqui isso significaria `1.0.0`, e três coisas dizem que não é.
@@ -360,7 +375,7 @@ sustente.
 
 ### Security
 
-## [0.6.1] - 2026-08-19
+## 2026-08-19 (recorded at the time as 0.6.1)
 
 Derivado por `cycle-release.md`: só entradas em `Fixed` — **patch**.
 
@@ -382,7 +397,7 @@ Derivado por `cycle-release.md`: só entradas em `Fixed` — **patch**.
 
 ### Security
 
-## [0.6.0] - 2026-08-18
+## 2026-08-18 (recorded at the time as 0.6.0)
 
 Derivado por `cycle-release.md`: `Removed` vazio, nenhuma entrada de `Changed` começando com
 **BREAKING**, `Added` não-vazio — **minor**, sem a tensão que 0.4.0 e 0.5.0 tiveram.
@@ -409,7 +424,7 @@ Derivado por `cycle-release.md`: `Removed` vazio, nenhuma entrada de `Changed` c
 
 ### Security
 
-## [0.5.0] - 2026-08-18
+## 2026-08-18 (recorded at the time as 0.5.0)
 
 **Por que 0.5.0 e não 1.0.0.** A regra mecânica de `cycle-release.md` derivaria `major`: há
 entradas em `Changed` começando com **BREAKING**. Mas `1.0.0` é uma afirmação sobre maturidade,
@@ -472,7 +487,7 @@ em 0.4.0.
 
 ### Security
 
-## [0.4.0] - 2026-08-18
+## 2026-08-18 (recorded at the time as 0.4.0)
 
 ### Added
 

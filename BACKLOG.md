@@ -37,15 +37,14 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-25 items — **Open** 20 · **In flight** 0 · **Closed** 5
+26 items — **Open** 20 · **In flight** 0 · **Closed** 6
 
 ### Open (20)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams--) | The `plugin-` prefix names four different integration seams | `raw` | — |
-| [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it--) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `raw` | — |
+| [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it--) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `triaged` | — |
 | [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish--) | Nothing compiles the code examples our READMEs publish | `raw` | — |
 | [`B-010`](#b-010--plugin-realtimes-presence-and-broadcast-never-leave-the-client--) | `plugin-realtime`'s presence and broadcast never leave the client | `raw` | — |
 | [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `raw` | — |
@@ -63,12 +62,13 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-023`](#b-023--the-release-pipeline-cannot-open-its-own-version-packages-pr--) | the release pipeline cannot open its own Version Packages PR | `raw` | — |
 | [`B-024`](#b-024--plugin-payments-claims-ctxstripe-a-vendor-noun-a-consumer-is-likely-to-want--) | `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want | `raw` | — |
 | [`B-025`](#b-025--no-python-runs-in-ci-so-a-consumer-side-kit-invariant-could-not-execute--) | no Python runs in CI, so a consumer-side kit invariant could not execute | `raw` | — |
+| [`B-026`](#b-026--three-gates-in-a-row-shipped-a-summary-line-the-run-had-not-earned--) | three gates in a row shipped a summary line the run had not earned | `raw` | — |
 
 ### In flight (0)
 
 _None._
 
-### Closed (5)
+### Closed (6)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -77,6 +77,7 @@ _None._
 | [`B-004`](#b-004--auth-magic-link-has-no-live-suite-while-the-other-two-auth-providers-do-x) | `auth-magic-link` has no live suite while the other two auth providers do | `shipped` | — |
 | [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain-x) | No test asserts that a package belongs to exactly one domain | `killed` | — |
 | [`B-006`](#b-006--backlog-init-assumed-an-umbrella-and-would-have-refused-to-run-here-x) | `/backlog-init` assumed an umbrella and would have refused to run here | `shipped` | — |
+| [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams-x) | The `plugin-` prefix names four different integration seams | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
@@ -310,7 +311,7 @@ dod:
 - the routing table it writes goes only into `rules/cycle-backlog.md`, never a second copy in
   `BACKLOG.md` [x]
 
-## B-007 — The `plugin-` prefix names four different integration seams [ ]
+## B-007 — The `plugin-` prefix names four different integration seams [x]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `plugin-prefix-overloaded`).
 
@@ -318,13 +319,13 @@ domain: plugin-server
 repo: plugin-forms
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/plugin-prefix-overloaded-opportunity.md` — `plugin-copilot` is a TheoPlugin whose README never contains `copilot(`, `plugins:` or `theo.config`, and whose npm description names `defineCopilot` instead; a consumer following it never registers the plugin
 why_now: measured 2026-08-18 — `plugin-payments` is a `TheoPlugin`, `plugin-forms` is React and Zod
 with no server seam, `plugin-db-drizzle` is a set of CLI descriptors, and `plugin-email` is a
 function library. Four consumption models behind one prefix: what a developer learns from one
 package transfers to none of the others. This is a naming and API-surface decision on already
 published packages, so it is registered rather than acted on.
-status: raw
+status: shipped
 dod:
 
 - each package's README opens with the export going into the exact config field that consumes it
@@ -332,6 +333,19 @@ dod:
   kept with the seam documented per package
 - no package is renamed before B-001 exists, so the conformance test proves the move did not break
   integration
+
+resolution: shipped 2026-08-23 in PR #120. The decision recorded (ADR D1) is **keep the prefix,
+document the seam** — eleven published packages make a rename breaking for all of them, and the
+measured cost does not reach that price. `pnpm check:manifests` now fails when a package declares a
+seam and no code block in its README calls that seam's factory (7 checked). `plugin-copilot`'s
+README and npm description were the one measured defect and are fixed.
+
+Two things the cycle produced that are worth more than the gate: the check was tightened from
+"factory appears anywhere" to "factory appears in a code block" because integration validation
+showed a prose mention kept it green; and the review then showed the fence regex implementing that
+could classify prose AS code, which would have carried the stricter message while behaving like the
+looser one. Both are covered by tests. A `.gitattributes` was added as the root-cause half of the
+CRLF finding.
 
 ## B-008 — The root `v*` tag convention is dead and the CHANGELOG still implies it [ ]
 
@@ -341,14 +355,14 @@ domain: dev-tooling
 repo: plugin-db-drizzle
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/root-tag-convention-dead-opportunity.md` — five versions exist only in prose, the root manifest is a private `0.0.0`, and `changeset version` cannot update the root CHANGELOG at all: 61 entries sit under `[Unreleased]` after this morning's 11-package release shipped them
 why_now: measured 2026-08-18 while cutting 0.5.0 — `git tag` holds `v0.1.0`, `v0.2.0` and
 `v0.3.0` and then stops, while `CHANGELOG.md` records `## [0.4.0] - 2026-08-18` as released.
 `changesets/action` tags per package (`@theokit/plugin-email@0.1.3` and so on) and never
 tagged the root, so the root convention ended without anyone deciding it should. A reader
 who trusts the CHANGELOG headers looks for a tag that does not exist, and `git describe`
 answers with a package tag instead of a release.
-status: raw
+status: triaged
 dod:
 
 - a decision recorded as an ADR: either the release flow creates the root tag again, or the
@@ -829,3 +843,36 @@ dod:
 
 note: this is the half of B-005 that is local and measurable. The other half — the kit's test being
 bound to its own routing table — belongs to the kit's backlog.
+
+## B-026 — three gates in a row shipped a summary line the run had not earned [ ]
+
+> Registered 2026-08-23 after the third instance, during B-008.
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: review
+source: human
+evidence: none-yet
+why_now: measured across three consecutive slices in one day. Each new gate printed an
+unconditional success line regardless of whether it had checked anything:
+(1) `check_decoration_keys` printed `✓ no two packages claim the same request-decoration key` after
+resolving zero keys — found by the [[B-002]] reviewer, who showed an ordinary refactor turned a real
+collision into an unresolved line under that green;
+(2) `checkSeamDocumentation` printed `✓ every package with a seam names its factory in its README
+(0 checked)` when the registry was missing — found by the [[B-007]] reviewer;
+(3) `checkDrift` printed `CHANGELOG.md: the newest release is recorded.` while also printing
+`the release-drift check did not run` — found during B-008's own integration validation.
+Three different authors' worth of the same defect in one file each. Each was fixed locally, and
+nothing stops the fourth.
+status: raw
+dod:
+
+- a shared helper, or a lint rule, that makes "report success" and "report what was skipped" one
+  decision instead of two independent `console.log` calls
+- a test that fails when a gate's success line can be reached without the corresponding check
+  having run — the property, not three instances of it
+- the existing three are migrated to it, so the rule has users and not only a README
+
+note: the pattern is worth naming because the failure is invisible by construction. A gate that
+misses a defect gets found eventually; a gate that reports success it did not earn teaches everyone
+downstream to trust a line that means nothing.

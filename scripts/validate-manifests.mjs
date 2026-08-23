@@ -55,6 +55,8 @@ import { join } from 'node:path'
 
 import ts from 'typescript'
 
+import { splitFences } from '../tools/lib/markdown-fences.mjs'
+
 const EXPECTED_REPO_URL = 'git+https://github.com/usetheokit/theokit-plugins.git'
 const PACKAGES_DIR = 'packages'
 
@@ -623,52 +625,15 @@ function checkSeamDocumentation(dirs) {
  * Prose is excluded deliberately. A sentence saying "`copilot()` returns a TheoPlugin" satisfies a
  * substring search while showing a reader nothing they can copy — measured: deleting the wiring
  * example from `plugin-copilot`'s README left exactly that sentence behind, and a
- * presence-anywhere check stayed green. Requiring the call to appear as CODE is not the same as
- * requiring a particular documentation shape: all seven packages with a seam already do it,
- * verified before tightening.
+ * presence-anywhere check stayed green.
  *
- * Scanned line by line rather than matched with a paired regex. The regex this replaced
- * (`^```[a-z]*\n(.*?)^```` with the `m` flag) had two failure modes, both demonstrated:
- *
- *   - an opener it did not recognise — an info string (```` ```ts title="x" ````), an uppercase
- *     tag, a trailing space — was not skipped, it DESYNCHRONISED the pairing, so the next fence
- *     became an opener and the prose between two blocks was captured as code. That turns the
- *     check back into the prose-tolerant version this file exists to replace.
- *   - correct documentation was rejected: CRLF line endings (no `.gitattributes` here, so a
- *     Windows clone gets them), a fence indented inside a list item, `~~~` fences, and 4-space
- *     indented blocks.
- *
- * A scanner tracks the open fence and its marker, which makes every one of those cases fall out
- * rather than needing a case each.
+ * The scanner itself lives in `tools/lib/markdown-fences.mjs`, shared with the CHANGELOG
+ * release-drift gate, which needs the other half of the same split — is this `## 2026-08-23` a
+ * real heading, or an example inside a fence? Two implementations of one parser is how one of
+ * them ends up being the buggy one nobody noticed.
  */
 function readmeCode(path) {
-  const lines = readFileSync(path, 'utf8').split(/\r?\n/)
-  const out = []
-  let fence = null // the marker + indent that opened the current block
-
-  for (const line of lines) {
-    const m = /^(\s{0,3})(`{3,}|~{3,})(.*)$/.exec(line)
-    if (fence === null) {
-      // An opener may carry an info string; per CommonMark a backtick fence's info string may
-      // not itself contain a backtick.
-      if (m && !(m[2][0] === '`' && m[3].includes('`')))
-        fence = { marker: m[2][0], len: m[2].length }
-      continue
-    }
-    // A closer is the same marker, at least as long, with nothing after it.
-    if (m && m[2][0] === fence.marker && m[2].length >= fence.len && m[3].trim() === '') {
-      fence = null
-      continue
-    }
-    out.push(line)
-  }
-
-  // Indented code blocks (4 spaces) are code too, and CommonMark allows them anywhere a
-  // paragraph does not precede. Being liberal here is the safe direction: this function decides
-  // what counts as documentation, and missing a real example produces a false FAILURE.
-  for (const line of lines) if (/^ {4,}\S/.test(line)) out.push(line)
-
-  return out.join('\n')
+  return splitFences(readFileSync(path, 'utf8')).code.join('\n')
 }
 
 const packageDirs = readdirSync(PACKAGES_DIR).sort()
