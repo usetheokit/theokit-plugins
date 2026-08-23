@@ -59,7 +59,7 @@ function describeRow(spec: ServiceSpec, missing: readonly string[]): string[] {
  * `seam/` is the same shape for a different boundary: it asserts that a package composes with the
  * framework surface it claims to integrate through. No provider, no credential, no registry entry.
  */
-const CROSS_CUTTING_DIRS = new Set(['consumer', 'seam'])
+const CROSS_CUTTING_DIRS = new Set(['consumer', 'seam', 'manifests'])
 
 async function testDirectories(): Promise<string[]> {
   const entries = await readdir(new URL('.', import.meta.url), { withFileTypes: true })

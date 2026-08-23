@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `pnpm check:manifests` now fails when two packages claim the same request-decoration key — the framework accepts a collision silently and keeps only the last plugin registered (#B-002)
 - Seam-conformance registry: every package under `packages/` now declares which TheoKit surface it plugs into, and a test fails when one is missing (#B-001)
 - Seam-conformance suite for the plugin packages: `plugin-payments`, `plugin-voice` and `plugin-db-drizzle` are now handed to the real `createPluginRunnerFromConfig` on every pull request (#B-001)
 - Seam-conformance suite for the auth packages: `auth-google` is now driven through the real `defineAuth` orchestrator, with OIDC discovery served from loopback so the check needs no network (#B-001)
