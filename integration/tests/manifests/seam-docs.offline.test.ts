@@ -19,7 +19,7 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -126,6 +126,101 @@ describe('a package with a seam names its factory in its README', () => {
     expect(output).toMatch(/no code block in the README calls/)
   })
 
+  it.each([
+    ['an info string on the fence', '# a\n\n```ts title="theo.config.ts"\nalphaPlugin()\n```\n'],
+    ['CRLF line endings', '# a\r\n\r\n```ts\r\nalphaPlugin()\r\n```\r\n'],
+    [
+      'a fence indented inside a list item',
+      '# a\n\n1. Step\n\n   ```ts\n   alphaPlugin()\n   ```\n',
+    ],
+    ['a tilde fence', '# a\n\n~~~ts\nalphaPlugin()\n~~~\n'],
+    ['a four-space indented block', '# a\n\n    alphaPlugin()\n'],
+    ['an uppercase language tag', '# a\n\n```TS\nalphaPlugin()\n```\n'],
+  ])('accepts correct documentation written with %s', (_label, readme) => {
+    // Every one of these was REJECTED by the paired regex this replaced. The CRLF case is the
+    // operational one: there is no `.gitattributes` here, so a Windows clone with
+    // core.autocrlf=true would have failed all seven seam packages with a message blaming the
+    // documentation.
+    const root = fixture({ alpha: { seam: 'plugin', factory: 'alphaPlugin', readme } })
+
+    expect(validate(root).code, 'correct documentation was rejected').toBe(0)
+  })
+
+  it('does not let an unrecognized fence turn prose into code', () => {
+    // The failure that mattered most: an opener the regex could not parse was not skipped, it
+    // DESYNCHRONISED the pairing — so the next fence became an opener and the prose between two
+    // blocks was captured as code. That silently restored the prose-tolerant behaviour this
+    // check exists to replace.
+    const root = fixture({
+      alpha: {
+        seam: 'plugin',
+        factory: 'alphaPlugin',
+        readme:
+          '# a\n\n```ts title="x"\nconst z = 1\n```\n\nCall `alphaPlugin()` here.\n\n```ts\nconst y = 2\n```\n',
+      },
+    })
+
+    expect(validate(root).code, 'prose between two code blocks was read as code').toBe(1)
+  })
+
+  it('does not harvest a row from an object literal that is not in the registry', () => {
+    // The walk used to collect ANY object literal carrying `pkg` and `seam` — including examples
+    // in helpers and JSDoc. That invented violations naming packages that do not exist, and with
+    // `seam: 'none'` silently inflated the count the vacuous-pass guard trusted.
+    const root = fixture({
+      alpha: {
+        seam: 'plugin',
+        factory: 'alphaPlugin',
+        readme: '# a\n\n```ts\nalphaPlugin()\n```\n',
+      },
+    })
+    const registry = join(root, 'integration', 'src', 'integrating-packages.ts')
+    writeFileSync(
+      registry,
+      `export function example() {\n  return { pkg: 'ghost', seam: 'plugin', factory: 'ghostFactory' }\n}\n` +
+        readFileSync(registry, 'utf8'),
+    )
+
+    const { code, output } = validate(root)
+
+    expect(code).toBe(0)
+    expect(output, 'a phantom row was harvested from a helper').not.toMatch(/ghost/)
+  })
+
+  it('reports a row whose field is not a string literal instead of dropping it', () => {
+    const root = fixture({
+      alpha: {
+        seam: 'plugin',
+        factory: 'alphaPlugin',
+        readme: '# a\n\n```ts\nalphaPlugin()\n```\n',
+      },
+    })
+    writeFileSync(
+      join(root, 'integration', 'src', 'integrating-packages.ts'),
+      `const PLUGIN = 'plugin'\nexport const INTEGRATING_PACKAGES = [\n  { pkg: 'alpha', seam: PLUGIN, factory: 'alphaPlugin' },\n]\n`,
+    )
+
+    const { code, output } = validate(root)
+
+    expect(code, 'a row the parser could not read was dropped silently').toBe(1)
+    expect(output).toMatch(/not a string literal/)
+  })
+
+  it('does not claim a clean check when there is no registry at all', () => {
+    // Same lesson as the decoration-key check one function over: a summary that claims success
+    // after checking nothing is a green line the run did not earn.
+    const root = fixture({ alpha: { seam: 'plugin', factory: 'alphaPlugin', readme: '# a\n' } })
+    rmSync(join(root, 'integration'), { recursive: true, force: true })
+
+    const { code, output } = validate(root)
+
+    expect(code).toBe(0)
+    expect(output, 'reported a clean check having checked nothing').not.toMatch(
+      /✓ every package with a seam/,
+    )
+    expect(output).toMatch(/no seam registry found/)
+  })
+
   it('asks nothing of a package that plugs into nothing', () => {
     const root = fixture({
       alpha: {
@@ -152,10 +247,10 @@ describe('a package with a seam names its factory in its README', () => {
     expect(output).toMatch(/names no factory/)
   })
 
-  it('fails when the registry parses fewer rows than there are packages', () => {
-    // The vacuous-pass guard. If the registry's shape moves, every assertion above becomes a
-    // comparison over an empty list — and the run would otherwise print a clean summary it did
-    // not earn.
+  it('fails when a package on disk has no registry row', () => {
+    // The vacuous-pass guard, compared as SETS. Comparing counts let a stale row for a deleted
+    // package pay for a live package with no row at all: the numbers matched, the guard stayed
+    // quiet, and the live package was never checked.
     const root = fixture({
       alpha: {
         seam: 'plugin',
@@ -174,8 +269,8 @@ describe('a package with a seam names its factory in its README', () => {
 
     const { code, output } = validate(root)
 
-    expect(code, 'a partial registry parse was reported as a clean run').toBe(1)
-    expect(output).toMatch(/the registry's shape moved/)
+    expect(code, 'a package with no registry row was reported as a clean run').toBe(1)
+    expect(output).toMatch(/has no row for 1 package\(s\) with a manifest: beta/)
   })
 
   it("passes against this repository, including plugin-copilot's corrected README", () => {
