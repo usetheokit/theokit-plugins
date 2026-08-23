@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.5.0
+
+### Minor Changes
+
+- f6de463: Framework peer ranges describe the version each package is built against.
+
+  `@theokit/sdk` was declared `>=2.18.0` — unbounded — on the four packages that import it, while
+  the published SDK is 4.53.1 and their devDependency pins `^2.18.0`. A consumer on the current SDK
+  satisfied the peer, installed without a warning, and received code compiled two majors earlier.
+  Narrowed to `^2.18.0`.
+
+  `plugin-canvas` declared `@theokit/ui: ^1.1.0` while building against `^1.3.2`; narrowed to
+  `^1.3.2`. No live break there — `DiffViewer` is exported from 1.1.0 — but the range promised
+  versions nothing compiles against.
+
+- f71f9bc: The `theokit` peer floor is `>=0.48.7`, the version these packages are actually built against.
+
+  The declared floors ranged from `>=0.1.0-alpha.5` to `>=0.4.0-beta.0` while every one of these
+  packages carries `theokit: ^0.48.7` as its devDependency. Those ranges span the framework's move
+  from `defineRoute({...})`-style functions to builders, so they admitted versions the code does not
+  compile against — and the failure would land in a consumer's build, pointing at our package.
+
+  Two of the old floors were pre-release versions, which promised compatibility with a version the
+  framework itself did not consider stable.
+
+  Widening a floor again is welcome, and now has a price: a CI job that builds the package against
+  the version being claimed. `check:manifests` fails when a peer floor drops below the
+  devDependency the package is built with.
+
+### Patch Changes
+
+- 46b22c8: Seven `@theokit/*` peer dependencies that no package imported are removed.
+
+  Each appeared in the source only inside comments — several of them in comments explaining the
+  structural shape chosen precisely to AVOID depending on the package, and one in
+  `plugin-payments` stating outright that "plugin doesn't take a peerDep on a specific
+  @theokit/orm version". A peer nobody imports is not inert: it drags its own dependency tree into
+  the consumer's resolution, which is how `@theokit/plugin-forms` became impossible to install
+  with npm (#64).
+
+  Removed: `@theokit/sdk` from plugin-canvas and plugin-realtime, `@theokit/orm` from
+  plugin-db-drizzle and plugin-payments, and `@theokit/plugin-canvas`, `@theokit/plugin-voice` and
+  `@theokit/ui` from plugin-copilot. Nothing imported them, so no consumer code changes.
+
 ## 0.4.2
 
 ### Patch Changes

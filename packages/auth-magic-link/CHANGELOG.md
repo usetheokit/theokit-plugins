@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.4.0
+
+### Minor Changes
+
+- 8da6ba8: `startSignIn` accepts the body a framework already parsed, so the provider composes with a TheoKit
+  route.
+
+  TheoKit hands a route handler a `Request` built without a body and delivers the parsed value
+  separately as `ctx.body`. `startSignIn(request)` could therefore never reach the address inside a
+  route: it threw `invalid_email` while the email sat in `ctx.body`. #68 made the type accept a
+  `Request`; this makes the runtime work.
+
+  The new parameter is optional and the resolution order is unchanged — `?email=` still wins, and a
+  caller that reads the body from the stream is unaffected. Inside a route, pass it through:
+  `startSignIn(request, body)`.
+
+- f6de463: Framework peer ranges describe the version each package is built against.
+
+  `@theokit/sdk` was declared `>=2.18.0` — unbounded — on the four packages that import it, while
+  the published SDK is 4.53.1 and their devDependency pins `^2.18.0`. A consumer on the current SDK
+  satisfied the peer, installed without a warning, and received code compiled two majors earlier.
+  Narrowed to `^2.18.0`.
+
+  `plugin-canvas` declared `@theokit/ui: ^1.1.0` while building against `^1.3.2`; narrowed to
+  `^1.3.2`. No live break there — `DiffViewer` is exported from 1.1.0 — but the range promised
+  versions nothing compiles against.
+
+- f71f9bc: The `theokit` peer floor is `>=0.48.7`, the version these packages are actually built against.
+
+  The declared floors ranged from `>=0.1.0-alpha.5` to `>=0.4.0-beta.0` while every one of these
+  packages carries `theokit: ^0.48.7` as its devDependency. Those ranges span the framework's move
+  from `defineRoute({...})`-style functions to builders, so they admitted versions the code does not
+  compile against — and the failure would land in a consumer's build, pointing at our package.
+
+  Two of the old floors were pre-release versions, which promised compatibility with a version the
+  framework itself did not consider stable.
+
+  Widening a floor again is welcome, and now has a price: a CI job that builds the package against
+  the version being claimed. `check:manifests` fails when a peer floor drops below the
+  devDependency the package is built with.
+
 ## 0.3.0
 
 ### Minor Changes

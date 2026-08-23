@@ -1,6 +1,6 @@
 {
   "name": "@theokit/plugin-email",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "Email plugin for TheoKit — EmailProvider interface + Resend default + React Email opt-in peer + canonical magic-link template helper. Form 4 Hybrid per plan p7-plugin-email v1.0.",
   "type": "module",
   "main": "./dist/index.js",
