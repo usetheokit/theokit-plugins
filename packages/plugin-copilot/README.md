@@ -39,17 +39,21 @@ wrote.
 ```ts
 // theo.config.ts
 import { copilot } from '@theokit/plugin-copilot'
+import { config } from 'theokit'
+
 import support from './app/copilots/support.js'
 
-export default {
-  plugins: [
-    copilot({
-      provider: myRealtimeProvider,
-      agent: myAgent,
-      copilots: [support],
-    }),
-  ],
-}
+export default config()
+  .set({
+    plugins: [
+      copilot({
+        provider: myRealtimeProvider, // a CopilotRealtimeProvider
+        agent: myAgent, // anything with Agent.streamObject
+        copilots: [support],
+      }),
+    ],
+  })
+  .build()
 ```
 
 **2. Define a copilot.** `defineCopilot` describes one bot; the file's default export is what step
