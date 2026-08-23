@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `pnpm check:manifests` now fails when a package declares a seam and no code block in its README calls that seam's factory (#B-007)
 - `pnpm check:manifests` now fails when two packages claim the same request-decoration key — the framework accepts a collision silently and keeps only the last plugin registered (#B-002)
 - Seam-conformance registry: every package under `packages/` now declares which TheoKit surface it plugs into, and a test fails when one is missing (#B-001)
 - Seam-conformance suite for the plugin packages: `plugin-payments`, `plugin-voice` and `plugin-db-drizzle` are now handed to the real `createPluginRunnerFromConfig` on every pull request (#B-001)
@@ -87,6 +88,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- `@theokit/plugin-copilot`'s README and npm description named `defineCopilot` and never the plugin, so a consumer following them never registered it (#B-007)
 - The seam registry is now load-bearing: a package declared as plugging into a seam fails the suite unless a conformance case builds it or names where one lives (#B-001)
 
 - **`<CopilotChat />` showed the user to themselves as another participant.**

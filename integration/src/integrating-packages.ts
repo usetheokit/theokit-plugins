@@ -27,6 +27,15 @@ export interface IntegratingPackage {
   /** Required when `seam` is `'none'`: why this package plugs into neither surface. */
   readonly reason?: string
   /**
+   * The exported function whose result goes into the seam — `copilot()`, not `defineCopilot()`.
+   *
+   * Required when `seam` is not `'none'`, and absent when it is. `pnpm check:manifests` looks for
+   * this name in the package's README: a package that declares a seam and never documents the
+   * function that reaches it leaves a consumer with an integration that looks wired and is not.
+   * Measured on `plugin-copilot`, whose README contained zero occurrences of `copilot(`.
+   */
+  readonly factory?: string
+  /**
    * Repo-relative path to a conformance case that lives outside `integration/tests/seam/`.
    *
    * Set this ONLY when a package is exercised somewhere else. The conformance suites drive
@@ -45,19 +54,20 @@ export const INTEGRATING_PACKAGES: readonly IntegratingPackage[] = Object.freeze
   {
     pkg: 'plugin-copilot',
     seam: 'plugin',
+    factory: 'copilot',
     // Covered in its own package rather than here: `defineCopilot` needs zod schemas, and zod is
     // not a dependency of this workspace. Duplicating the fixture would mean a new devDependency
     // plus ~20 lines to re-assert what that file already asserts.
     coveredBy: 'packages/plugin-copilot/tests/integration/plugin-runner-conformance.test.ts',
   },
-  { pkg: 'plugin-db-drizzle', seam: 'plugin' },
-  { pkg: 'plugin-payments', seam: 'plugin' },
-  { pkg: 'plugin-voice', seam: 'plugin' },
+  { pkg: 'plugin-db-drizzle', seam: 'plugin', factory: 'drizzleDb' },
+  { pkg: 'plugin-payments', seam: 'plugin', factory: 'payments' },
+  { pkg: 'plugin-voice', seam: 'plugin', factory: 'voicePlugin' },
 
   // --- auth seam: exports a provider that defineAuth drives ---
-  { pkg: 'auth-github', seam: 'auth' },
-  { pkg: 'auth-google', seam: 'auth' },
-  { pkg: 'auth-magic-link', seam: 'auth' },
+  { pkg: 'auth-github', seam: 'auth', factory: 'github' },
+  { pkg: 'auth-google', seam: 'auth', factory: 'google' },
+  { pkg: 'auth-magic-link', seam: 'auth', factory: 'magicLink' },
 
   // --- neither: declared, not omitted ---
   {
