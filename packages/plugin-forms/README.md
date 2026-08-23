@@ -59,6 +59,8 @@ export const schema = z.object({
 
 Then import it from the action handler:
 
+<!-- doc-example: needs="./schemas/save-memory.js" -->
+
 ```ts
 // server/actions/save-memory.ts
 import { action } from 'theokit/server'
@@ -76,6 +78,8 @@ export const saveMemory = action()
 The TheoKit Vite plugin detects the convention and exposes the schema at runtime as `actions.saveMemory.__zodSchema`. `<TheoForm>` reads it to drive RHF's `zodResolver` — no client re-declaration.
 
 ## Cookbook 1 — basic form with `<TheoForm.Field>` (styled tier)
+
+<!-- doc-example: needs="@theo/actions" -->
 
 ```tsx
 'use client'
@@ -155,6 +159,8 @@ function SubmitButton() {
 ## Cookbook 3 — headless `useTheoField` (no `@usetheo/ui`)
 
 For consumers who don't use `@usetheo/ui` (shadcn primitives, MUI, raw HTML):
+
+<!-- doc-example: needs="@theo/actions" -->
 
 ```tsx
 'use client'

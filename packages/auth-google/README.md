@@ -14,10 +14,12 @@ Peer dependencies: `@theokit/sdk >= 1.5.0`, `theokit >= 0.2.4`.
 
 ## Usage
 
+<!-- doc-example: needs="./session.js" -->
+
 ```ts
 // server/auth/index.ts
 import { defineAuth } from '@theokit/sdk/server/auth'
-import { google } from '@theokit/auth-google'
+import { google, type GoogleProfile } from '@theokit/auth-google'
 import { sessionManager } from './session.js'
 
 export const auth = defineAuth({
@@ -30,8 +32,10 @@ export const auth = defineAuth({
     }),
   ],
   onSignIn: async ({ profile }) => {
-    // profile is GoogleProfile { sub, email, email_verified, name?, picture?, locale? }
-    return { userId: profile.sub, email: profile.email }
+    // `onSignIn` is typed `<TProfile>(args: { profile: TProfile; … })` — TProfile is unbound, so
+    // the callback cannot annotate it and the cast is what a consumer actually writes.
+    const p = profile as GoogleProfile // { sub, email, email_verified, name?, picture?, locale? }
+    return { userId: p.sub, email: p.email }
   },
 })
 ```
@@ -43,6 +47,8 @@ Wire into your routes:
 > needs a Node server. The provider itself also accepts a Web `Request`, which is what
 > TheoKit's `route()` handler hands you — so inside TheoKit you drive the provider directly
 > and own the session, as below.
+
+<!-- doc-example: needs="../../../auth/index.js" -->
 
 ```ts
 // server/routes/api/auth/google/start.ts
@@ -66,6 +72,8 @@ export const GET = route()
   })
   .build()
 ```
+
+<!-- doc-example: needs="../../../auth/index.js" -->
 
 ```ts
 // server/routes/api/auth/google/callback.ts
@@ -123,13 +131,15 @@ Per plan v1.1 EC-13 (Accepted Risk): the `email_verified` boolean comes directly
 The `google()` factory ships with `openid profile email`. If you need additional scopes (Drive, Gmail, Calendar, etc.), wrap the provider and post-process the URL:
 
 ```ts
-import { google as baseGoogle } from '@theokit/auth-google'
+import type { OAuthTransaction } from '@theokit/sdk/server/auth'
 
-function googleWithDriveScope(opts) {
+import { google as baseGoogle, type GoogleProviderOptions } from '@theokit/auth-google'
+
+function googleWithDriveScope(opts: GoogleProviderOptions) {
   const base = baseGoogle(opts)
   return {
     ...base,
-    async createAuthorizationURL(tx) {
+    async createAuthorizationURL(tx: OAuthTransaction) {
       const url = await base.createAuthorizationURL(tx)
       url.searchParams.set(
         'scope',

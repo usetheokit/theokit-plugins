@@ -49,3 +49,4 @@ tmp/
 # Kit de manutencao (Squad) instalado em .claude/ — nao versionado
 .claude/
 .pytest_cache/
+.doc-probes/

@@ -37,15 +37,14 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-26 items — **Open** 20 · **In flight** 0 · **Closed** 6
+26 items — **Open** 19 · **In flight** 0 · **Closed** 7
 
-### Open (20)
+### Open (19)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it--) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `triaged` | — |
-| [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish--) | Nothing compiles the code examples our READMEs publish | `raw` | — |
+| [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish--) | Nothing compiles the code examples our READMEs publish | `triaged` | — |
 | [`B-010`](#b-010--plugin-realtimes-presence-and-broadcast-never-leave-the-client--) | `plugin-realtime`'s presence and broadcast never leave the client | `raw` | — |
 | [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `raw` | — |
 | [`B-012`](#b-012--plugin-forms-cannot-upload-a-file--) | `plugin-forms` cannot upload a file | `raw` | — |
@@ -68,7 +67,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (6)
+### Closed (7)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -78,6 +77,7 @@ _None._
 | [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain-x) | No test asserts that a package belongs to exactly one domain | `killed` | — |
 | [`B-006`](#b-006--backlog-init-assumed-an-umbrella-and-would-have-refused-to-run-here-x) | `/backlog-init` assumed an umbrella and would have refused to run here | `shipped` | — |
 | [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams-x) | The `plugin-` prefix names four different integration seams | `shipped` | — |
+| [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it-x) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
@@ -347,7 +347,7 @@ could classify prose AS code, which would have carried the stricter message whil
 looser one. Both are covered by tests. A `.gitattributes` was added as the root-cause half of the
 CRLF finding.
 
-## B-008 — The root `v*` tag convention is dead and the CHANGELOG still implies it [ ]
+## B-008 — The root `v*` tag convention is dead and the CHANGELOG still implies it [x]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `root-tag-convention-dead`).
 
@@ -362,7 +362,7 @@ why_now: measured 2026-08-18 while cutting 0.5.0 — `git tag` holds `v0.1.0`, `
 tagged the root, so the root convention ended without anyone deciding it should. A reader
 who trusts the CHANGELOG headers looks for a tag that does not exist, and `git describe`
 answers with a package tag instead of a release.
-status: triaged
+status: shipped
 dod:
 
 - a decision recorded as an ADR: either the release flow creates the root tag again, or the
@@ -372,6 +372,17 @@ dod:
 - if the root tag is revived, something fails when a release lands without it — the
   convention died silently precisely because nothing checked
 
+resolution: shipped 2026-08-23 in PR #121. Decision in `docs/adr/0002-the-repository-releases-packages-not-itself.md`
+(versioned, not in `.claude/`, because the failure message cites it): the repository releases
+packages, not itself. Dated sections replace version headers; the root tag is not revived. Five
+prose-only versions reconciled with zero entry text changed. `pnpm quality:changelog` fails when a
+package tag is newer than the newest dated section.
+
+The finding worth keeping: the gate was **inert in CI**. `actions/checkout` defaults to
+`fetch-depth: 1` with `--no-tags`, so the check that exists to stop silent drift took its no-tags
+branch on every run — honest on stdout, invisible under a green check mark. Verified after the fix
+that CI now prints `the newest release is recorded`, where it would have printed `did not run`.
+
 ## B-009 — Nothing compiles the code examples our READMEs publish [ ]
 
 > Registered 2026-08-20 by `/backlog-item` (slug: `readme-examples-compile-gate`).
@@ -380,7 +391,17 @@ domain: dev-tooling
 repo: plugin-db-drizzle
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/readme-examples-compile-gate-opportunity.md`
+— three real defects across eleven published READMEs, none visible to the name-resolution gate:
+`withAgentContext({ userId })` against an `AgentContext` that has no `userId`, two untyped
+parameters in `auth-google`'s wrapper example, and `useState` called without being imported. Three
+attempts to count failures produced 2, 49 and 23, all wrong for one reason — nothing declared which
+references were deliberate.
+correction: the item was first evidenced by the `export default { plugins: [...] }` example from
+[[B-007]], called "not the real config API" in a commit, a PR and this block. **Measured, it
+works**: `loadConfig` refuses only `null` or a non-object, and `.build()` returns
+`Partial<TheoConfig>`, which a bare `{ plugins }` satisfies. It diverged from the convention three
+sibling packages use — not a defect. The claim is corrected rather than removed.
 why_now: measured 2026-08-20 while closing #67 — ten names the READMEs told a reader to import
 existed in none of `theokit@0.48.8`'s 24 export subpaths, and eight READMEs shipped that way. The
 gate added in the same pass (`tools/check-doc-api-drift.mjs`) asks the compiler whether the imported
@@ -389,7 +410,7 @@ method that moved. Both defects fixed under #67 that a careful reading would sti
 found by compiling the block instead — `provider.startSignIn(req)` resolves to a `URL` rather than a
 string, and `payments` never moved to the `/stripe` subpath the migration guide pointed at. That
 verification happened once, by hand, in a scratch directory that no longer exists.
-status: raw
+status: triaged
 dod:
 
 - a gate that compiles the `ts / `tsx blocks of the versioned Markdown, not just their import

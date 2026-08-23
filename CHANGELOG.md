@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `pnpm quality:doc-api` now type-checks the TypeScript blocks of every published README, not just their import names. A block declares what it assumes with a `doc-example` comment (#B-009)
 - `pnpm quality:changelog` now fails when a package tag is newer than the newest dated section — a release that shipped without being recorded (#B-008)
 
 ### Changed
@@ -103,6 +104,7 @@ Eleven packages cut together: `@theokit/auth-github@0.3.0`, `@theokit/auth-googl
 
 ### Fixed
 
+- Three documented examples did not compile: `withAgentContext({ userId })` against an `AgentContext` that has no `userId`, two untyped parameters in `auth-google`'s wrapper example, and a React example calling `useState` without importing it (#B-009)
 - `@theokit/plugin-copilot`'s README and npm description named `defineCopilot` and never the plugin, so a consumer following them never registered it (#B-007)
 - The seam registry is now load-bearing: a package declared as plugging into a seam fails the suite unless a conformance case builds it or names where one lives (#B-001)
 

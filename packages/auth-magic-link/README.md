@@ -14,6 +14,8 @@ Peer dependencies: `@theokit/sdk >= 1.5.0`, `theokit >= 0.2.4`. Zero runtime dep
 
 ## Quick start (dev)
 
+<!-- doc-example: needs="./session.js" -->
+
 ```ts
 // server/auth/index.ts
 import { defineAuth } from '@theokit/sdk/server/auth'
@@ -31,7 +33,12 @@ export const auth = defineAuth({
       },
     }),
   ],
-  onSignIn: async ({ profile }) => ({ userId: profile.email, email: profile.email }),
+  onSignIn: async ({ profile }) => {
+    // `onSignIn` is typed `<TProfile>(args: { profile: TProfile; … })` — TProfile is unbound, so
+    // the callback cannot annotate it. The magic-link profile is `{ email }`.
+    const { email } = profile as { email: string }
+    return { userId: email, email }
+  },
 })
 ```
 
@@ -41,6 +48,8 @@ Magic-link does NOT use the OAuth authorization flow — call `provider.startSig
 
 Both methods accept a Web `Request` as well as Node's `IncomingMessage`, so they drop
 straight into a TheoKit route:
+
+<!-- doc-example: needs="../../../auth/providers.js" -->
 
 ```ts
 // server/routes/api/auth/magic-link/start.ts
@@ -58,6 +67,8 @@ export const POST = route()
   })
   .build()
 ```
+
+<!-- doc-example: needs="../../../auth/providers.js" -->
 
 ```ts
 // server/routes/api/auth/magic-link/callback.ts
@@ -91,6 +102,8 @@ The default `resolveEmail` reads `?email=` from the URL OR the `email` field fro
 ## Production stores
 
 ### `@theokit/orm` adapter
+
+<!-- doc-example: needs="@theokit/orm" partial -->
 
 ```ts
 import { defineEntity, BaseEntity } from '@theokit/orm'
@@ -141,6 +154,8 @@ The `sendEmail` callback is intentionally unopinionated. Examples for popular tr
 
 ### Resend
 
+<!-- doc-example: needs="resend" partial -->
+
 ```ts
 import { Resend } from 'resend'
 
@@ -159,6 +174,8 @@ sendEmail: async ({ to, magicLinkUrl, expiresAt }) => {
 
 ### SendGrid
 
+<!-- doc-example: needs="@sendgrid/mail" partial -->
+
 ```ts
 import sgMail from '@sendgrid/mail'
 
@@ -175,6 +192,8 @@ sendEmail: async ({ to, magicLinkUrl, expiresAt }) => {
 ```
 
 ### Nodemailer (SMTP)
+
+<!-- doc-example: needs="nodemailer" partial -->
 
 ```ts
 import nodemailer from 'nodemailer'

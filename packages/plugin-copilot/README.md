@@ -36,19 +36,29 @@ any other. Without this the package's request surface is never installed — `ct
 undefined and nothing says why, because an unregistered plugin looks exactly like a plugin nobody
 wrote.
 
+<!-- doc-example: needs="./app/copilots/support.js" -->
+
 ```ts
 // theo.config.ts
-import { copilot } from '@theokit/plugin-copilot'
+import {
+  copilot,
+  type CopilotAgentLike,
+  type CopilotRealtimeProvider,
+} from '@theokit/plugin-copilot'
 import { config } from 'theokit'
 
 import support from './app/copilots/support.js'
+
+// The two you supply: a realtime transport, and anything with `Agent.streamObject`.
+declare const myRealtimeProvider: CopilotRealtimeProvider
+declare const myAgent: CopilotAgentLike
 
 export default config()
   .set({
     plugins: [
       copilot({
-        provider: myRealtimeProvider, // a CopilotRealtimeProvider
-        agent: myAgent, // anything with Agent.streamObject
+        provider: myRealtimeProvider,
+        agent: myAgent,
         copilots: [support],
       }),
     ],
@@ -100,6 +110,8 @@ export default defineCopilot({
 })
 ```
 
+<!-- doc-example: needs="./copilots/support.js" partial -->
+
 ```ts
 // server bootstrap
 import { Agent } from '@theokit/sdk'
@@ -149,6 +161,8 @@ await runtime.activate('support-bot')
 ```
 
 ## React composição
+
+<!-- doc-example: needs="./bootstrap" -->
 
 ```tsx
 // app/page.tsx

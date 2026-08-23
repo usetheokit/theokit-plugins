@@ -14,10 +14,12 @@ Peer dependencies: `@theokit/sdk >= 1.5.0`, `theokit >= 0.2.4`.
 
 ## Usage
 
+<!-- doc-example: needs="./session.js" -->
+
 ```ts
 // server/auth/index.ts
 import { defineAuth } from '@theokit/sdk/server/auth'
-import { github } from '@theokit/auth-github'
+import { github, type GitHubProfile } from '@theokit/auth-github'
 import { sessionManager } from './session.js'
 
 export const auth = defineAuth({
@@ -30,12 +32,17 @@ export const auth = defineAuth({
     }),
   ],
   onSignIn: async ({ profile }) => {
-    return { userId: String(profile.id), email: profile.email, login: profile.login }
+    // `onSignIn` is typed `<TProfile>(args: { profile: TProfile; … })` — TProfile is unbound, so
+    // the callback cannot annotate it and the cast is what a consumer actually writes.
+    const p = profile as GitHubProfile
+    return { userId: String(p.id), email: p.email, login: p.login }
   },
 })
 ```
 
 Wire into your routes:
+
+<!-- doc-example: needs="../../../auth/index.js" -->
 
 ```ts
 // server/routes/api/auth/github/start.ts
@@ -59,6 +66,8 @@ export const GET = route()
   })
   .build()
 ```
+
+<!-- doc-example: needs="../../../auth/index.js" -->
 
 ```ts
 // server/routes/api/auth/github/callback.ts
@@ -99,6 +108,8 @@ Node-shaped, so it needs a Node server rather than a route.
 ### GitHub Enterprise Server
 
 Override the four endpoints:
+
+<!-- doc-example: continues partial -->
 
 ```ts
 github({
