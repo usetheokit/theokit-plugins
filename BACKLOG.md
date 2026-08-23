@@ -37,14 +37,13 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-24 items — **Open** 21 · **In flight** 0 · **Closed** 3
+24 items — **Open** 20 · **In flight** 0 · **Closed** 4
 
-### Open (21)
+### Open (20)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention--) | The request-decoration namespace is global and has no convention | `triaged` | — |
 | [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain--) | No test asserts that a package belongs to exactly one domain | `raw` | — |
 | [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams--) | The `plugin-` prefix names four different integration seams | `raw` | — |
 | [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it--) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `raw` | — |
@@ -69,10 +68,11 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (3)
+### Closed (4)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
+| [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention-x) | The request-decoration namespace is global and has no convention | `shipped` | — |
 | [`B-003`](#b-003--plugin-realtimes-integration-tests-never-open-a-websocket-x) | `plugin-realtime`'s integration tests never open a WebSocket | `shipped` | — |
 | [`B-004`](#b-004--auth-magic-link-has-no-live-suite-while-the-other-two-auth-providers-do-x) | `auth-magic-link` has no live suite while the other two auth providers do | `shipped` | — |
 | [`B-006`](#b-006--backlog-init-assumed-an-umbrella-and-would-have-refused-to-run-here-x) | `/backlog-init` assumed an umbrella and would have refused to run here | `shipped` | — |
@@ -114,7 +114,7 @@ suite's measured blind spot is written into its own header — deleting the Web 
 providers' URL parsing leaves it green, because those providers read nothing but `searchParams`.
 For them the guard is `pnpm typecheck`, which is a different mechanism than this item asks for.
 
-## B-002 — The request-decoration namespace is global and has no convention [ ]
+## B-002 — The request-decoration namespace is global and has no convention [x]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `decoration-key-convention`).
 
@@ -137,13 +137,19 @@ why_now_original: `theokit/server/plugins` exports `DuplicateDecorationError` (m
 `dist/server/plugins/index.d.ts`, theokit@0.48.7). Two packages claiming one key fail at runtime in
 the consumer's app... Today only one key exists (`payments`). — Both halves are now false: the
 error is never thrown, and there are two keys. The risk did not go away; it got quieter.
-status: triaged
+status: shipped
 dod:
 
 - a documented naming rule for decoration keys, in a rule file rather than in prose in one package
 - a monorepo-wide check that fails when two packages declare the same key
 - the check covers keys declared as string literals, since that is how the one existing key is
   written
+
+resolution: shipped 2026-08-23 in PR #119. `pnpm check:manifests` fails when two packages claim
+one key, parsed with the TypeScript compiler and resolving identifiers across the whole package.
+The convention lives in `.claude/rules/decoration-keys.md`. Keys that cannot be resolved
+statically are reported and the summary degrades rather than claiming a clean comparison. One
+known exception recorded rather than fixed in passing: [[B-024]].
 
 ## B-003 — `plugin-realtime`'s integration tests never open a WebSocket [x]
 
