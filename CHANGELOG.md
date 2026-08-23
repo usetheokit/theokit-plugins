@@ -13,10 +13,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Seam-conformance suite for the auth packages: `auth-google` is now driven through the real `defineAuth` orchestrator, with OIDC discovery served from loopback so the check needs no network (#B-001)
 - The OAuth transaction cookie's `HttpOnly` / `Secure` / `SameSite` attributes are asserted for the first time; nothing in this repository covered them before (#B-001)
 
-### Fixed
-
-- The seam registry is now load-bearing: a package declared as plugging into a seam fails the suite unless a conformance case builds it or names where one lives (#B-001)
-
 - `plugin-realtime`'s React surface has frame-reduction tests: which `joined` frame means "you"
   rather than "somebody else", where a `presence-changed` is routed, and what a `left` with no
   connectionId must not do. It moved from 69.73% to 98.52% statements and 53.12% to 87.5%
@@ -89,6 +85,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   notify loop ran over an empty set on every frame (#115)
 
 ### Fixed
+
+- The seam registry is now load-bearing: a package declared as plugging into a seam fails the suite unless a conformance case builds it or names where one lives (#B-001)
 
 - **`<CopilotChat />` showed the user to themselves as another participant.**
   `useCopilotPresence()` filters the local user out only when given its connectionId, and the
