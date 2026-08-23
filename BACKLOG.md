@@ -37,14 +37,14 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-22 items — **Open** 19 · **In flight** 0 · **Closed** 3
+24 items — **Open** 21 · **In flight** 0 · **Closed** 3
 
-### Open (19)
+### Open (21)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention--) | The request-decoration namespace is global and has no convention | `raw` | — |
+| [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention--) | The request-decoration namespace is global and has no convention | `triaged` | — |
 | [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain--) | No test asserts that a package belongs to exactly one domain | `raw` | — |
 | [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams--) | The `plugin-` prefix names four different integration seams | `raw` | — |
 | [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it--) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `raw` | — |
@@ -62,6 +62,8 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-020`](#b-020--code-quality-was-returning-pass-over-zero-languages--) | /code-quality was returning PASS over zero languages | `raw` | — |
 | [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package--) | the OAuth transaction cookie is encrypted with a constant published in the package | `raw` | — |
 | [`B-022`](#b-022--assertproductionsecret-warns-about-a-boot-refusal-nothing-implements--) | `assertProductionSecret` warns about a boot refusal nothing implements | `raw` | — |
+| [`B-023`](#b-023--the-release-pipeline-cannot-open-its-own-version-packages-pr--) | the release pipeline cannot open its own Version Packages PR | `raw` | — |
+| [`B-024`](#b-024--plugin-payments-claims-ctxstripe-a-vendor-noun-a-consumer-is-likely-to-want--) | `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want | `raw` | — |
 
 ### In flight (0)
 
@@ -120,13 +122,22 @@ domain: plugin-server
 repo: plugin-payments
 suggested_mode: review
 source: human
-evidence: none-yet
-why_now: `theokit/server/plugins` exports `DuplicateDecorationError` (measured in
+evidence: `.claude/knowledge-base/discoveries/opportunities/decoration-key-convention-opportunity.md`
+why_now: **corrected 2026-08-23 — the original justification was stale and is kept below for the
+record.** Measured against theokit 0.48.8: two plugins with distinct names claiming one key are
+BOTH registered without error, and `applyDecorations` overwrites last-writer-wins, so a request
+context holds `{"payments":"FROM-SECOND"}` and the first plugin's decoration is simply gone.
+`DuplicateDecorationError` is constructed in 0 of 160 `.js` files under `theokit/dist` — a dead
+export — and `PluginRunner.register`'s own comment says the change was deliberate: "Cross-plugin
+decoration-key collisions are PERMITTED (per blueprint D1)". No gate in this repository reads
+decoration keys at all. Two keys now exist, not one: `copilot`
+(`packages/plugin-copilot/src/plugin.ts:53`) and `payments`
+(`packages/plugin-payments/src/plugin.ts:62`).
+why_now_original: `theokit/server/plugins` exports `DuplicateDecorationError` (measured in
 `dist/server/plugins/index.d.ts`, theokit@0.48.7). Two packages claiming one key fail at runtime in
-the consumer's app, for a reason neither package's own tests can see. Today only one key exists
-(`payments`), so the collision is latent rather than observed — and every package added to this
-domain increases the chance nobody notices until a consumer installs two of them.
-status: raw
+the consumer's app... Today only one key exists (`payments`). — Both halves are now false: the
+error is never thrown, and there are two keys. The risk did not go away; it got quieter.
+status: triaged
 dod:
 
 - a documented naming rule for decoration keys, in a rule file rather than in prose in one package
@@ -544,6 +555,10 @@ dod:
 - a plan citing an unscoped npm subpath specifier scores it as a module, not as a missing file
 - an opportunity citing `path/to/@scope/pkg/file.ts:12` resolves it, instead of truncating at
   the `@` into a path that exists nowhere
+- an opportunity citing a dotted directory resolves it too: measured 2026-08-23 on B-002's
+  opportunity, `.github/workflows/ci.yml:120` is truncated by the same `\b` to
+  `github/workflows/ci.yml:120` and fires `fabricated_evidence`. One regex, three shapes it
+  cannot express: npm subpath specifiers, `@scope` packages, and dotfile directories
 - the fix distinguishes specifier from path by resolution, not by a denylist of known package names
 - a genuinely fabricated path still trips `fabricated_target` — a regression test covers both
 
@@ -703,3 +718,62 @@ dod:
   surface that makes it
 - a test asserts the chosen behaviour under `NODE_ENV=production`, since that is the only branch
   where it would bite
+
+## B-023 — the release pipeline cannot open its own Version Packages PR [ ]
+
+> Registered 2026-08-23 during B-001's RELEASE phase, which hit it.
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: bug
+source: human
+evidence: none-yet
+why_now: measured 2026-08-23 — merging `develop → main` (#117) started `release.yml`, which ran
+`changeset version`, consumed all 11 changesets, pushed the bumps to `changeset-release/main`, and
+then failed: `HttpError: GitHub Actions is not permitted to create or approve pull requests`
+(run 32638787879). The versioning half had already run, so the changesets were gone and **nothing
+was published** — the repository was left mid-release, with the bumps on a branch nobody had asked
+for. Recovering meant opening the PR by hand (#118) and merging it, which then published all 11
+packages successfully (run 32639033942). The workflow has a step literally named "Fail loudly if
+the release PR could not be opened", so the failure mode was anticipated; the permission was not
+granted.
+status: raw
+dod:
+
+- a release either completes or leaves the changesets intact — the half-applied state above must
+  not be reachable
+- the fix is a permission or a token, not a documented manual step: "open the PR by hand" makes
+  every release depend on someone knowing that
+- a dry-run path exists so the next change to `release.yml` is verifiable without publishing
+
+note: the pipeline is otherwise correct — versions, tags and GitHub releases were all right once
+the PR existed. This is one missing setting ("Allow GitHub Actions to create and approve pull
+requests"), not a broken design.
+
+## B-024 — `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want [ ]
+
+> Registered 2026-08-23 by the plugin-server reviewer during B-002's REVIEW phase.
+
+domain: plugin-server
+repo: plugin-payments
+suggested_mode: review
+source: human
+evidence: none-yet
+why_now: found 2026-08-23 while writing the decoration-key rule, which claimed "both existing keys"
+follow the exported-const form. There are **three** keys, and `stripe`
+(`packages/plugin-payments/src/stripe.ts:123`) follows neither half of the convention: it is an
+inline literal with no exported const, so a consumer retypes it instead of importing it; and it is
+a vendor noun rather than a plugin noun. A consumer using the Stripe SDK is a plausible claimant of
+`ctx.stripe`, and per the measurement in [[B-002]] the framework resolves that collision silently,
+last-writer-wins — in their app, moving when they reorder their own config. `pnpm check:manifests`
+cannot see it: the check compares keys across OUR packages, and a consumer's key is outside this
+repository by construction.
+status: raw
+dod:
+
+- the key is namespaced by the plugin rather than by the vendor, and exported as a const so it can
+  be imported
+- the rename is shipped as a breaking change with a migration note, since `ctx.stripe` is public
+  surface as much as an exported function — `@theokit/plugin-payments` is published at 0.4.0
+- `rules/decoration-keys.md`'s table is updated in the same change, so the rule stops recording a
+  known exception

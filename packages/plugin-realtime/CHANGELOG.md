@@ -1,5 +1,42 @@
 # @theokit/plugin-realtime
 
+## 0.1.4
+
+### Patch Changes
+
+- 46b22c8: Seven `@theokit/*` peer dependencies that no package imported are removed.
+
+  Each appeared in the source only inside comments — several of them in comments explaining the
+  structural shape chosen precisely to AVOID depending on the package, and one in
+  `plugin-payments` stating outright that "plugin doesn't take a peerDep on a specific
+  @theokit/orm version". A peer nobody imports is not inert: it drags its own dependency tree into
+  the consumer's resolution, which is how `@theokit/plugin-forms` became impossible to install
+  with npm (#64).
+
+  Removed: `@theokit/sdk` from plugin-canvas and plugin-realtime, `@theokit/orm` from
+  plugin-db-drizzle and plugin-payments, and `@theokit/plugin-canvas`, `@theokit/plugin-voice` and
+  `@theokit/ui` from plugin-copilot. Nothing imported them, so no consumer code changes.
+
+- db67bbc: Removes `RoomContextValue.subscribe`, which nothing called.
+
+  It was the only writer to the provider's listener set, and nothing called it — so the notify loop
+  ran over an empty set on every frame. Neither `RoomContext` nor `RoomContextValue` is exported,
+  so it was unreachable from outside the module too.
+
+  No behaviour change: `setStateAndNotify` still keeps `stateRef` in step with the state the frame
+  loop reads, which is the reason it exists.
+
+- 8d1f897: A client that reconnects stays in the room.
+
+  Presence is keyed by `connectionId` and `leaveRoom` deletes by that key alone. A tab that reloads
+  drops its socket without telling the server, so the dead subscription's generator only noticed at
+  its next frame — by which point the same user had reconnected under the same id, and the dead
+  session's `release()` removed the LIVE registration. The room saw the reconnecting client vanish,
+  and everyone else received a `left` frame for somebody who had just joined.
+
+  The runtime now records which handle owns each `(room, connectionId)`, so a superseded release is
+  a no-op. The subscription is still dropped either way — a stale handle's frame listener must go.
+
 ## 0.1.3
 
 ### Patch Changes
