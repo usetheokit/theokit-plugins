@@ -8,26 +8,64 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Seam-conformance registry: every package under `packages/` now declares which TheoKit surface it plugs into, and a test fails when one is missing (#B-001)
+- Seam-conformance suite for the plugin packages: `plugin-payments`, `plugin-voice` and `plugin-db-drizzle` are now handed to the real `createPluginRunnerFromConfig` on every pull request (#B-001)
+- Seam-conformance suite for the auth packages: `auth-google` is now driven through the real `defineAuth` orchestrator, with OIDC discovery served from loopback so the check needs no network (#B-001)
+- The OAuth transaction cookie's `HttpOnly` / `Secure` / `SameSite` attributes are asserted for the first time; nothing in this repository covered them before (#B-001)
+
+- `plugin-realtime`'s React surface has frame-reduction tests: which `joined` frame means "you"
+  rather than "somebody else", where a `presence-changed` is routed, and what a `left` with no
+  connectionId must not do. It moved from 69.73% to 98.52% statements and 53.12% to 87.5%
+  branches (#113)
+- `<CopilotProvider />` has tests. `handleFrame` — the whole translation from room frames into
+  messages, presence and the error banner — was almost entirely unexecuted at 41.93% statements
+  and 9.61% branches. `plugin-copilot`'s React surface is now at 100% and the package went from
+  81.55% to 93.59% statements, 66.49% to 89.7% branches. No defect this time: every assertion
+  passed on the first run (#113)
+- `<CopilotChat />` has tests. It was at 0% coverage in every metric — the whole component, never
+  mounted — and is now at 100% lines, statements and functions. Mounting it is what found #114
+  (#113)
+- **Coverage is measured, and has a floor.** Nothing measured it before: no provider was
+  installed and the project's own `coverage.min_percent = 80` sat commented out, so the number
+  had never been produced in this repository. Measured on the first run it ranged from 58.82% to
+  97.74% — and the lowest, `plugin-forms`, had never mounted either of its components.
+  `pnpm coverage` now runs every package through `@vitest/coverage-v8` with an 80% line floor,
+  and `ci.yml` runs it beside the unit suite (#109)
+- `@theokit/plugin-forms` gains component-level tests: `<TheoField>` was at 8.33% line coverage
+  and `<TheoForm>` at 40%, neither had ever been mounted. Line and function coverage for the
+  package went from 58.82% / 50% to 100% / 100%, and the new assertions are about accessible
+  relationships and submit behaviour rather than markup — which is how the two defects above were
+  found
 - `Workflow Lint`, a CI gate running actionlint and zizmor over `.github/workflows/` (#74)
 - Every published package declares `engines.node`; none of the eleven did (#74)
+- `pnpm quality:changelog`, a CI gate that fails when the `[Unreleased]` block declares a category
+  twice or out of the Keep a Changelog order (#100)
 
 ### Changed
 
+- Framework peer ranges now describe the version each package is built against. `@theokit/sdk`
+  was `>=2.18.0` — unbounded — on the four packages that import it, while the published SDK is
+  4.53.1 and their devDependency pins `^2.18.0`: a consumer on the current SDK satisfied the peer
+  and received code compiled two majors earlier. `plugin-canvas` declared `@theokit/ui: ^1.1.0`
+  while building against `^1.3.2`. Both narrowed, and `check:manifests` now compares the floor of
+  EVERY framework peer against its devDependency rather than only `theokit`'s (#107, #108)
+- The `theokit` peer floor on nine packages is `>=0.48.7`, the version they are built against.
+  The declared floors ran from `>=0.1.0-alpha.5` to `>=0.4.0-beta.0` — ranges spanning the
+  framework's move to a builder API — while every one of those packages carries `theokit: ^0.48.7`
+  as its devDependency. They admitted versions the code does not compile against, and the failure
+  would land in a consumer's build pointing at our package. `check:manifests` now fails when a
+  peer floor drops below the devDependency the package is built with (#69)
+- `@theokit/plugin-forms` declares `zod: ^4.0.0` and is developed against zod 4. It advertised
+  `^3.25.0 || ^4.0.0` while its own peer chain forbids zod 3 — `@theokit/react` requires
+  `@theokit/sdk@^1.1.0`, which requires `zod@^4.0.0` — and the repository built and tested it
+  against `zod@3.25.76`, so the version tested was not a version a consumer could install. This
+  does not by itself make `npm install` succeed; the remaining conflict is upstream and is
+  measured on #64
 - **Breaking:** the minimum supported Node is 22.12.0, was 20.12.0. Node 20 reached end of life,
   and CI had been running 22 all along — so the version tested was never the version declared (#74)
 - pnpm pinned to 10.34.1 across the repository, resolved from `packageManager` (#74)
 - The npm used by the publish step is pinned to an exact version rather than a range that could
   drift into npm 12, which breaks the release path (#74)
-
-### Security
-
-- A `workflow_dispatch` input reached the shell as text spliced into a command line, in the step
-  holding every service credential. It is now passed as an environment variable (#74)
-- Every GitHub Action is pinned to a commit SHA rather than a movable tag (#74)
-
-### Added
-
-### Changed
 
 - **Test runs no longer claim every core on the host.** None of the 11 package configs capped `maxWorkers`, so vitest's default applied — `os.availableParallelism()`, one fork per core, each booting a full test environment. This repo's `test` script fans out across packages, so that default is paid once per package _concurrently_: measured on a 12-thread machine, pnpm runs 6 packages at a time, which is 72 CPU-bound forks on 12 cores. The cap now leaves 4 cores free (`Math.max(2, cpus().length - 4)`), which scales with the runner instead of hard-coding one machine's core count. It costs no wall-clock — measured in `theokit-ui`, the full suite ran 73.96s at 4 workers against 74.36s at 12, so the parallelism above the cap was already noise. (usetheokit/theokit-ui#51)
 
@@ -42,9 +80,239 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Removed
 
+- `RoomContextValue.subscribe` in `@theokit/plugin-realtime`, along with the listener set it was
+  the only writer to. Nothing called it, and neither the context nor its type is exported, so the
+  notify loop ran over an empty set on every frame (#115)
+
 ### Fixed
 
+- The seam registry is now load-bearing: a package declared as plugging into a seam fails the suite unless a conformance case builds it or names where one lives (#B-001)
+
+- **`<CopilotChat />` showed the user to themselves as another participant.**
+  `useCopilotPresence()` filters the local user out only when given its connectionId, and the
+  component passed none — while naming the result `otherPresence`. It had no id to pass:
+  `CopilotContextValue` never exposed one, though `CopilotProvider` receives `userConnectionId`
+  and broadcasts with it, and a consumer's `renderParticipants` inherited the same blind spot.
+  The id is now on the context, optional so a hand-built provider keeps working (#114)
+- **A release could reach npm without a single test having run on the commit it published.**
+  `release.yml` and `ci.yml` trigger on the same event — a push to `main` — and run in parallel
+  with nothing linking them, and the release job did `install` + `build` + `changeset publish`
+  and no gates. The merge of the "Version Packages" pull request creates a commit neither
+  branch's CI had seen, so the publish could win the race against a CI run that was failing on
+  it. The release job now typechecks and runs the full suite before publishing (#112)
+- `BACKLOG.md` is excluded from Prettier. Its `## Index` block is generated by
+  `backlog_index.py --write`, and Prettier pads table columns the generator does not — so
+  `--check` reported the index stale after every `pnpm format`, and the two gates could never
+  both be green (#111)
+- **A `plugin-realtime` client that reconnected disappeared from the room for everyone.** Presence
+  is keyed by `connectionId` and `leaveRoom` deletes by that key alone, so when a reloaded tab
+  reconnected under the same id, the previous session's late `release()` removed the live
+  registration — and the other participants got a `left` frame for somebody who had just joined.
+  Measured over a real WebSocket: first session `getPresence` returns `["alice"]`, after a
+  reconnect `[]`, unchanged at +400ms. The runtime now records which handle owns each
+  `(room, connectionId)` and a superseded release is a no-op (#110)
+- **The README's Status section linked a file that was deliberately deleted and counted tests that
+  had not been counted in a long time.** `ROADMAP.md` was removed in `6159e6d` ("no longer
+  relevant") and the link to it survived, so the published README pointed at a 404. The same
+  paragraph claimed "661 tests" where the suites now run 897, and cited an "ecosystem milestone
+  M6" and an "M0–M3 Harness" that nothing in this repository defines any more. It now states only
+  what is checkable here, and the test count is gone rather than corrected — a hardcoded number
+  rots the same way twice
+- **The `@theokit/plugin-forms` README documented a form that no screen reader could use.**
+  `FormField.Control` clones its direct child to inject `id` / `aria-invalid` /
+  `aria-describedby`, and Cookbook 1 put a consumer component in that slot, which swallowed all
+  three — the label pointed at an id nothing had (#105). Its `<FormField.Error />` was
+  self-closing, and that component renders only its children, so the alert appeared empty and the
+  reason the server gave was discarded (#106). Both were invisible to anyone reviewing by sight.
+  The cookbook is corrected and both shapes are pinned by tests (#105, #106)
+- **A mis-permissioned `.env` made CI green without calling a single provider.** The `.env` load
+  had a comment-only `catch {}`, so EACCES, EISDIR and any parse error were all reported as the
+  comment's "No local .env is the normal case in CI". A correctly populated but unreadable file
+  therefore yielded an empty credential set, every live suite skipped naming a credential that
+  was right there, and the run passed — the exact outcome this package exists to prevent. Only
+  ENOENT is recoverable now; anything else propagates (#81)
+- **`E2E_LIVE=false` turned the paid suites ON.** The switch was `!== '0'`, so every non-empty
+  value except the literal `0` opted in: a developer editing `E2E_LIVE=0` to `E2E_LIVE=false` to
+  stop live runs started them — real email through Resend, real Stripe and AbacatePay checkouts,
+  real OpenAI credit — while the generated `.env.example` header promises "Nothing runs without
+  E2E_LIVE=1". It is now equality against that documented value, and an unrecognised value stays
+  off rather than being guessed at (#79)
+- `@theokit/plugin-forms` built with `tsup src/index.ts --format esm --dts --clean`, and a CLI
+  entry argument overrides `tsup.config.ts`, so that config's `entry` was dead. Every sibling
+  package runs bare `tsup` and lets the config decide; adding an entry to the config here would
+  have been silently ignored. The script now matches its siblings
+- `@theokit/plugin-forms` declared `@usetheo/ui` an OPTIONAL peer while its public barrel imports
+  it at module scope, so a clean install succeeded and the first `import` threw
+  `ERR_MODULE_NOT_FOUND`. The declaration now matches the code. The "headless works peer-free"
+  path the flag promised has never existed in any published version — the barrel has re-exported
+  `TheoField` since the v0.1.0 scaffold — so the promise is retracted rather than left broken, and
+  making it real is tracked as its own API decision (#103)
+- **`npm install @theokit/plugin-forms` succeeds.** `@hookform/resolvers` was declared a peer,
+  putting it in the consumer's top-level resolution, where npm eagerly satisfies its own optional
+  peer `@typeschema/main` — and `@typeschema/zod` pins `zod@^3.23.8` while `@theokit/sdk`
+  requires `zod@^4.0.0`. Two transitive chains, mutually exclusive, neither of them this
+  repository's. It was never a consumer contract either: `TheoForm` imports `zodResolver` from it
+  internally and the consumer never names the package. As a dependency it resolves inside the
+  package's own subtree and the conflict does not arise (#64)
+- **The peer-without-use gate checked exactly one name.** `checkFrameworkContract` asked whether
+  `theokit` was declared and unimported, so any `@theokit/*` peer in the same state was invisible
+  to it — seven of them were, across five packages. A peer nobody imports is not inert: it drags
+  its own dependency tree into the consumer's resolution, which is how `@theokit/plugin-forms`
+  became impossible to install. The gate now covers every framework peer, with per-peer
+  exemptions, and the seven decorative peers are gone (#66)
+- Clicking "Cancel" on the GitHub consent screen made `pnpm flow:github` sit for two minutes and
+  then report "timed out waiting for the consent redirect" — about a redirect that had already
+  arrived. The denial redirect carries `?error=access_denied` and no code, which fell into the
+  no-code branch: 204, server left listening, timer left running. It now answers the browser,
+  closes the server and rejects immediately with the error GitHub named (#98)
+- `pnpm flow:stripe-webhook` failed runs in which nothing had gone wrong. Async event types with
+  no instance on the account yet — which the script itself describes as arriving
+  minutes-to-hours later — were pushed into the same array as triggered events that never
+  arrived, and the exit check counted that array against the number of events triggered. On a
+  fresh test account where all three triggered events arrived, verified and mapped correctly, the
+  run still exited 1 reporting "2 of 3 event types never arrived", counting two that were never
+  among the three. They are now reported as a note (#88)
+- `pnpm flow:stripe-webhook` reported `NEVER ARRIVED` for two event types it had just verified.
+  The handler registrations were a second, hand-written copy of the normalised types `EXPECTED`
+  declares, and it held four of the five: `checkout.expired` and `payment.disputed` had no
+  handler, so a real delivery with a Stripe-produced signature was normalised correctly, recorded
+  nowhere, and reported as unverified after burning the full 120-second window. The registrations
+  are now derived from `EXPECTED` (#87)
+- The Stripe reconciliation test asserted `amountInCents: 500` and `currency: 'USD'` against a
+  fixture whose provisioning instructions say only "create a product with a one-time price". An
+  operator following them to the letter got a failure naming the provider, for a requirement
+  nobody had written down. It now reads the amount and currency off the price the session was
+  built from — which is also the stronger claim: comparing the reported amount to the price tests
+  the provider, comparing it to a literal tests the dashboard (#94)
+- `LONG_BASE`, a constant the delivered-mail suite explained two of its tests by, produced a
+  byte-identical message. The magic-link callback path is absolute, so
+  `new URL('/auth/magic-link/callback', base)` discards whatever path the base carried. A
+  maintainer shortening it would have believed they were weakening coverage, and one lengthening
+  it that they were strengthening it; neither is true. Removed, and the comments now name what
+  does produce the fold — a 102-character link against a 76-column quoted-printable line (#102)
+- The text-part magic-link test asserted that the delivered link survives recovery without ever
+  asserting that it had been folded — the guard its sibling html test carries. A change that
+  stopped folding the link would have left it green while its name claimed to cover the fold. It
+  now asserts the link is longer than a quoted-printable line, so the fold is necessary rather
+  than assumed (#97)
+- **The delivered-mail suite was correct only in declaration order.** Six tests shared one
+  module-level `delivered` array, and two of them sent nothing — they asserted against whatever
+  a describe-level `beforeAll` had left behind. Under `--sequence.shuffle` one failed on a
+  mailbox address, pointing at the delivery path rather than the ordering, and the other — whose
+  comment calls it a guard for the next test — kept passing against an unrelated message, which
+  is a guard that cannot fail. Every test now produces its own delivery (#86)
+- The service registry described `exercise` as "the load-bearing field. It is not decoration",
+  and nothing branches on it: its only readers are a printed label in the readiness report and a
+  comment in the generated `.env.example`. A reader who believed the docblock would assume that
+  changing `api-key` to `oauth-redirect` changed what runs, when it changes one printed word. It
+  now says what the field does, and names the choice that actually decides — the suite author
+  reaching for `describeLive` or `describeManualOAuth` (#96)
+- The `auth-github` live suite read `.code` off a variable only assigned inside a `catch`. If
+  GitHub ever stopped refusing a deliberately invalid code — the upstream drift that suite's one
+  live assertion exists to detect — the catch would not run and the read would throw a
+  `TypeError`, reporting a harness crash instead of naming the contract that moved. It now
+  asserts the rejection happened before reading off it (#89)
+- **The seam suite proved that the auth providers compose with a hand-written shim, not with a
+  TheoKit route.** It called `config.handler(ctx)` directly and built `ctx` itself, so it skipped
+  every stage the framework runs before a handler and, worse, built a `ctx` the framework never
+  builds. Three defects hid behind that: the shim put a body-carrying `Request` on `ctx.request`
+  where TheoKit puts a bodyless one, so the magic-link assertion the file called load-bearing
+  passed on an accident (#76); the CSRF stage never ran, so a POST route with no `csrf: false`
+  read as composable while a real consumer gets 403 before the handler (#78); and the suite saw
+  the handler's throw rather than the response, so it could not see that a rejected state answers
+  500 with the provider's internal message echoed to the caller (#95). The suite now runs a live
+  `node:http` server through TheoKit's own `executeRoute`
+- **The assertion guarding the packaging contract's coverage was the inverse of the comment
+  beside it.** `toBeGreaterThanOrEqual(11)` passes when a package is added — 12 >= 11 — and fails
+  only when one is removed, while the comment promised the opposite: "if a package is added, this
+  fails until it is acknowledged". Alongside it, `private: true` dropped a package from all four
+  assertions with a bare `continue`, leaving no trace: marking one private removes six tests and
+  nothing objected. The count is now exact, and packages outside the contract must be declared in
+  a named list rather than disappear (#93)
+- **The packaging contract resolved one subpath out of four.** Presence in the tarball and a
+  shipped `.d.ts` are static facts that keep holding while `dist/stripe.js` imports a chunk that
+  stopped being packed, or pulls a peer nobody declared — so `@theokit/plugin-payments/stripe`
+  could throw `ERR_MODULE_NOT_FOUND` for a consumer with all three assertions green. That is the
+  exact shape of the incident this file was written for. Every subpath with a runtime entry is
+  now imported: seven secondary subpaths across five packages that had never been loaded (#83)
+- **The `node:`-prefix packaging check would have reddened every pull request over legal code.**
+  It found module specifiers with a regex, and `from` matched inside `Buffer.from('crypto')` —
+  the optional-paren group ate the parenthesis and the argument was read as an import. Both
+  `crypto` and `os` are builtin names, so `Buffer.from('crypto')` or `Array.from('os')` anywhere
+  in a published bundle reported a packaging BLOCKER that was not there. Specifiers now come from
+  the TypeScript AST, covering static imports, re-exports and dynamic `import()`, with comments
+  and string literals excluded by construction (#84)
+- **The generated `.env.example` had drifted and nothing compared it to its generator.** The
+  committed copy still carried the pre-rename header, telling a contributor to copy it to
+  `e2e/.env` and to regenerate with `pnpm --filter @theokit/plugins-e2e env:example` — a filter
+  matching no project in this workspace, so following it looks like a broken generator and ends
+  in the hand-edit that generation exists to prevent. Regenerated, and a drift gate now compares
+  the committed file against a pure `renderEnvExample()` extracted from the script. The write
+  side is guarded to run only when the script is the entry point: importing it used to write the
+  file as a side effect, which would have made the comparison agree with itself (#90)
+- **Two variables the suites read were declared nowhere, so both CI gates were blind to them.**
+  `GROQ_API_KEY` is read by the voice suite and lived only in prose inside that service's
+  `caveat`, plus a hand-appended block in the `.env.example` generator — the drift that
+  generator's own docblock forbids. The registry had no slot for it: the model had required
+  credentials and targets, and this is neither, so `ServiceSpec` gained `optionalCredentials`.
+  `E2E_LIVE` is the master switch and belongs to no service; deleting its three mappings from
+  `integration.yml` made the entire nightly live run skip and still exit 0, a green tick over
+  zero provider calls. It is now a named constant with its own gate. A third gate closes the
+  class rather than the two instances: every variable any suite reads through `required('NAME')`
+  must be declared in the registry (#80)
+- **A suite that narrowed its credentials with `requires` lost the rail that says where it is
+  safe to act.** The two options answer different questions — `requires` narrows which
+  credentials a contract needs, `sends` declares that the suite writes or spends and so makes the
+  spec's target variables mandatory — and they were one branch, so passing the first dropped the
+  second. All three voice suites narrow with `requires` and spend real money, so
+  `VOICE_TEST_TTS_VOICE` was never checked: the suite fell back to a default voice and billed
+  OpenAI while the readiness report in the same run printed that variable as missing. The
+  decision is now a pure function, `missingForSuite`, with the environment reader injected so it
+  can be tested without one (#82)
+- **A hardcoded credential in the workflow block that runs the paid suites passed the gate meant
+  to stop exactly that.** `integration.yml` maps every registry variable twice — once for the
+  readiness report, once for the live suites — and the check read `.find()`, the first match. A
+  literal in the second block left it green while the value would land in the public git history.
+  The sibling check, which asserts every registry variable is mapped at all, settled for a
+  substring, so a mapping that had been commented out still counted. Both now match a YAML key
+  anchored to the start of a non-comment line, and the literal check reports every occurrence with
+  its line number (#85)
+- The assertion that `ci.yml` invokes the credential-free suites was `toContain('integration:offline')`
+  — satisfied by the comment three lines above the step, the one explaining that the assertion
+  exists. Deleting the step left the gate green and every credential-free suite would have stopped
+  running on pull requests. It now matches a `run:` line (#91)
+- The stranded-suite walk descended exactly one directory level while vitest's include glob is
+  `tests/**` at any depth, so a credential-free suite three directories down ran only in the
+  nightly and the gate reported nothing — the gate's blind spot having the same shape as the
+  defect it exists to report. The walk is now recursive (#92)
+- **The gate that finds stranded test suites was satisfied by prose.** It decided whether a suite
+  needs a credential by regexing the raw source for `required(` and `describeLive(`, comments
+  included — so a file that merely _described_ the convention was read as credential-bound and
+  dropped out of the walk, leaving the gate to report an empty list, which reads exactly like
+  coverage. The classification is now structural, from the TypeScript AST: it asks whether the
+  file _calls_ one of those helpers, resolving renamed and namespace imports, so comments, JSDoc
+  and string literals are excluded by construction rather than by another pattern. Verified in
+  both directions against a probe suite: the old detector classified it credential-bound and went
+  green; the new one names it as stranded (#99)
+- **Every CI-wiring gate in this repository ran only in the 04:00 nightly.** `readiness.test.ts`
+  holds the assertions that the registry reaches CI — that each variable is mapped into the
+  workflow, that each mapping is a secret reference and not a literal, that no test directory
+  lacks a registry entry, and that every credential-free suite runs on every PR. It was selected
+  by neither command `ci.yml` invokes (`vitest run tests/consumer .offline.test.ts` matches
+  neither filter), so a variable added to the registry with no workflow mapping went green on the
+  pull request and surfaced to whoever read the nightly. Renamed to `readiness.offline.test.ts`,
+  which is the convention the file itself defines and had exempted itself from (#77)
+- The `[Unreleased]` block declared `Added`, `Changed` and `Security` twice each, leaving two
+  `Changed` entries fourteen lines away from the other three. The release bump is derived from
+  those sections, and the rule that derives it assumes each names one place in the file — so the
+  entry marked `**Breaking:**` was reachable or not depending on which of the two `Changed`
+  headings an extractor happened to match. Merged into one canonical series, every entry kept (#100)
+
 ### Security
+
+- A `workflow_dispatch` input reached the shell as text spliced into a command line, in the step
+  holding every service credential. It is now passed as an environment variable (#74)
+- Every GitHub Action is pinned to a commit SHA rather than a movable tag (#74)
 
 ## [0.7.0] - 2026-08-21
 

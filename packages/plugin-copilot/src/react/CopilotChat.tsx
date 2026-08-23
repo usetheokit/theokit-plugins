@@ -46,7 +46,10 @@ export interface CopilotChatProps {
  */
 export function CopilotChat(props: CopilotChatProps = {}): React.ReactElement {
   const ctx = useCopilot()
-  const otherPresence = useCopilotPresence()
+  // Pass the local id so this really is "other". Without it `useCopilotPresence` returns the
+  // whole room and the user saw themselves listed as a participant (#114); the hook's own
+  // docblock says it filters "via the connectionId you pass", and nothing was passing one.
+  const otherPresence = useCopilotPresence(ctx.userConnectionId)
   const anyTyping = useCopilotTyping()
   const [draft, setDraft] = React.useState('')
 

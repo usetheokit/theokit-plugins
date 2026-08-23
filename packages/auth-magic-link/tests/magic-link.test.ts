@@ -426,6 +426,66 @@ describe('magicLink() input hardening (T3.2 #204/#209/#205)', () => {
     await expect(provider.startSignIn(request)).rejects.toMatchObject({ code: 'invalid_email' })
   })
 
+  it('#101: resolves the email from a pre-parsed body when the Request carries none', async () => {
+    // TheoKit hands a route handler a Request built WITHOUT a body — the parsed body arrives
+    // separately as `ctx.body`. Before this, `startSignIn(request)` inside a route could not
+    // reach the address the framework had already parsed, and threw invalid_email while the
+    // email sat in ctx.body. #68 made the type accept a Request; this makes the runtime work.
+    const sent: string[] = []
+    const provider = magicLink({
+      store: createMemoryStore(),
+      sendEmail: ({ to }) => {
+        sent.push(to)
+        return Promise.resolve()
+      },
+      callbackBaseUrl: 'https://myapp.test',
+    })
+
+    const request = new Request('https://myapp.test/api/auth/magic-link/start', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+    })
+
+    await provider.startSignIn(request, { email: 'Seam@Example.test' })
+
+    expect(sent).toEqual(['seam@example.test'])
+  })
+
+  it('#101: still refuses a pre-parsed body with no usable email', async () => {
+    const provider = magicLink({
+      store: createMemoryStore(),
+      sendEmail: sendEmail(),
+      callbackBaseUrl: 'https://myapp.test',
+    })
+    const request = new Request('https://myapp.test/api/auth/magic-link/start', { method: 'POST' })
+
+    await expect(provider.startSignIn(request, { nope: 1 })).rejects.toMatchObject({
+      code: 'invalid_email',
+    })
+  })
+
+  it('#101: the query string still wins, so existing callers are unchanged', async () => {
+    // Order is unchanged: query string first, then the body — whether that body was pre-parsed
+    // or read from the stream. A caller relying on ?email= keeps the behaviour it had.
+    const sent: string[] = []
+    const provider = magicLink({
+      store: createMemoryStore(),
+      sendEmail: ({ to }) => {
+        sent.push(to)
+        return Promise.resolve()
+      },
+      callbackBaseUrl: 'https://myapp.test',
+    })
+    const request = new Request(
+      'https://myapp.test/api/auth/magic-link/start?email=from-query@example.test',
+      { method: 'POST' },
+    )
+
+    await provider.startSignIn(request, { email: 'from-body@example.test' })
+
+    expect(sent).toEqual(['from-query@example.test'])
+  })
+
   it('#209: propagates a stream/transport error instead of swallowing it to null', async () => {
     const provider = magicLink({
       store: createMemoryStore(),

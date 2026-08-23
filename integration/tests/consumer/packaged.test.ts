@@ -36,6 +36,8 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { moduleSpecifiers } from '../../src/module-specifiers.js'
+
 const REPO_ROOT = new URL('../../../', import.meta.url).pathname
 
 interface PackedFile {
@@ -119,17 +121,40 @@ const NODE_BUILTINS = new Set([
 
 const DIRS = packageDirs()
 
+/**
+ * Packages deliberately outside the packaging contract.
+ *
+ * Empty, and that is the point: marking a manifest `private: true` used to drop it from all
+ * four assertions with a bare `continue`, leaving no trace in the output. A package can leave
+ * this file's scope — but as a decision recorded here, not as a side effect of a manifest edit
+ * nobody reads (#93).
+ */
+const PRIVATE_BY_DESIGN: readonly string[] = []
+
+/** How many publishable packages this contract is expected to cover. */
+const EXPECTED_PUBLISHABLE = 11
+
+const PRIVATE = DIRS.filter((dir) => manifestOf(dir).private === true)
+const PUBLISHABLE = DIRS.filter((dir) => manifestOf(dir).private !== true)
+
 describe('consumer smoke — the packaging contract', () => {
-  it('covers every package under packages/, with no exclusions', () => {
-    // A list that silently shrank would make this whole file look thorough while
-    // testing less. Eleven is the current count; if a package is added, this
-    // fails until it is acknowledged.
-    expect(DIRS.length).toBeGreaterThanOrEqual(11)
+  it('covers every publishable package under packages/, with no silent exclusions', () => {
+    // `toBeGreaterThanOrEqual(11)` was the inverse of what the comment beside it promised:
+    // it passed when a package was ADDED — 12 >= 11 — and failed only when one was removed.
+    // The count is exact, so a new package fails this until the number is raised deliberately.
+    expect(
+      PUBLISHABLE.length,
+      `packages/ holds ${PUBLISHABLE.length} publishable manifests: ${PUBLISHABLE.join(', ')}`,
+    ).toBe(EXPECTED_PUBLISHABLE)
+
+    expect(
+      PRIVATE,
+      'packages dropped from the packaging contract by `private: true` and not declared above',
+    ).toEqual(PRIVATE_BY_DESIGN)
   })
 
-  for (const dir of DIRS) {
+  for (const dir of PUBLISHABLE) {
     const pkg = manifestOf(dir)
-    if (pkg.private === true) continue
 
     describe(pkg.name, () => {
       const files = packedFiles(dir)
@@ -177,9 +202,12 @@ describe('consumer smoke — the packaging contract', () => {
         const offenders: string[] = []
         for (const file of files.filter((f) => f.endsWith('.js'))) {
           const text = readFileSync(join(REPO_ROOT, 'packages', dir, file), 'utf8')
-          for (const m of text.matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g)) {
-            const spec = m[1]
-            if (spec !== undefined && NODE_BUILTINS.has(spec)) offenders.push(`${file}: ${spec}`)
+          // Specifiers come from the AST, not a regex. The regex this replaced matched
+          // `Buffer.from('crypto')` — `from` matched, `\(?` ate the paren, and the argument
+          // was read as a module specifier — so ordinary code reported a packaging BLOCKER
+          // that was not there, on every PR (#84).
+          for (const spec of moduleSpecifiers(text, file)) {
+            if (NODE_BUILTINS.has(spec)) offenders.push(`${file}: ${spec}`)
           }
         }
         expect(
@@ -188,18 +216,29 @@ describe('consumer smoke — the packaging contract', () => {
         ).toEqual([])
       })
 
-      it('imports its main entry and exposes a non-empty barrel', async () => {
-        // Imports dist/, not src/, so it exercises what a consumer resolves:
-        // bundled output, externals, and every peer the entry pulls at load time.
-        const main = pkg.exports?.['.']
-        const runtime = typeof main === 'string' ? main : main?.import
-        if (runtime === undefined) return
-        const mod = (await import(join(REPO_ROOT, 'packages', dir, normalize(runtime)))) as Record<
-          string,
-          unknown
-        >
-        expect(Object.keys(mod).length, `${pkg.name} main entry exports nothing`).toBeGreaterThan(0)
-      }, 30_000)
+      // Every subpath, not just the barrel. Presence in the tarball and a shipped .d.ts are
+      // both static facts: they hold while `dist/stripe.js` imports a shared chunk that
+      // stopped being packed, or pulls a peer nobody declared. Only resolving the subpath
+      // answers the question this file exists to ask — if somebody installs this, does it
+      // load — and it was asked of one subpath out of four (#83).
+      const loadable = entries.filter(([subpath]) => subpath !== './package.json')
+
+      for (const [subpath, target] of loadable) {
+        const runtime = typeof target === 'string' ? target : target.import
+        if (runtime === undefined) continue
+
+        it(`resolves and loads ${subpath}`, async () => {
+          // Imports dist/, not src/, so it exercises what a consumer resolves: bundled
+          // output, externals, and every peer the entry pulls at load time.
+          const mod = (await import(
+            join(REPO_ROOT, 'packages', dir, normalize(runtime))
+          )) as Record<string, unknown>
+          expect(
+            Object.keys(mod).length,
+            `${pkg.name}${subpath === '.' ? '' : subpath.slice(1)} exports nothing at runtime`,
+          ).toBeGreaterThan(0)
+        }, 30_000)
+      }
     })
   }
 })

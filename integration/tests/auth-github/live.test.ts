@@ -90,6 +90,14 @@ describeLive(
       } catch (e) {
         caught = e
       }
+      // Assert it threw before reading off it. If GitHub ever starts ACCEPTING this code —
+      // precisely the upstream drift this suite's one live assertion exists to detect — `caught`
+      // stays undefined and the property read throws a TypeError, reporting a harness crash
+      // instead of the readable failure naming which contract moved (#89).
+      expect(
+        caught,
+        'GitHub accepted a deliberately invalid code — the refusal contract moved',
+      ).toBeDefined()
       const code = (caught as { code?: string }).code
       expect(
         ['missing_access_token', 'token_exchange_failed'],

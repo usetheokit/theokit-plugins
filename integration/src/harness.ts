@@ -37,6 +37,35 @@ export interface LiveSuiteOptions {
 }
 
 /**
+ * The variables this suite may not run without.
+ *
+ * Two rails, answering different questions. `requires` narrows which CREDENTIALS a contract
+ * needs — GitHub answers an authorize URL knowing only the client id, and gating that on a
+ * client secret keeps a real answer dark for no reason. `sends` declares whether the suite
+ * writes or spends, which is what makes the spec's `target` variables mandatory: a key proves
+ * who you are, a target says where it is safe to act.
+ *
+ * They used to be one branch, so passing `requires` dropped `sends` with it. All three voice
+ * suites narrow with `requires` and spend real money, so `VOICE_TEST_TTS_VOICE` was never
+ * checked: the suite fell back to a default voice and billed OpenAI while the readiness report
+ * in the same run printed that variable as missing (#82).
+ *
+ * @param isSet - Injected so the decision can be tested without an environment. Defaults to the
+ * real reader.
+ */
+export function missingForSuite(
+  spec: ServiceSpec,
+  opts: LiveSuiteOptions,
+  isSet: (name: string) => boolean = has,
+): readonly string[] {
+  const sends = opts.sends ?? true
+  if (opts.requires === undefined) return missingFor(spec, { includeTarget: sends })
+
+  const targets = sends ? spec.target.map((cred) => cred.name) : []
+  return [...new Set([...opts.requires, ...targets])].filter((name) => !isSet(name))
+}
+
+/**
  * Declare a live suite for one service.
  *
  * Skips, loudly and with a reason, when the run is not opted into, the
@@ -58,10 +87,7 @@ export function describeLive(
     describe.skip(`${spec.label} — ${name} [skipped: ${unsafe}]`, body)
     return
   }
-  const missing =
-    opts.requires === undefined
-      ? missingFor(spec, { includeTarget: opts.sends ?? true })
-      : opts.requires.filter((name) => !has(name))
+  const missing = missingForSuite(spec, opts)
   if (missing.length > 0) {
     describe.skip(`${spec.label} — ${name} [skipped: missing ${missing.join(', ')}]`, body)
     return

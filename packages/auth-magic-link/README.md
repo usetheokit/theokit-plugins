@@ -37,7 +37,7 @@ export const auth = defineAuth({
 
 ## Wiring
 
-Magic-link does NOT use the OAuth `startSignIn` flow — call `provider.startSignIn(req)` directly:
+Magic-link does NOT use the OAuth authorization flow — call `provider.startSignIn(req, body?)` directly:
 
 Both methods accept a Web `Request` as well as Node's `IncomingMessage`, so they drop
 straight into a TheoKit route:
@@ -48,9 +48,11 @@ import { route } from 'theokit/server'
 import { magicLinkProvider } from '../../../auth/providers.js' // your magicLink() instance
 
 export const POST = route()
-  .handler(async ({ request }) => {
-    // Reads the address from `?email=` or from the JSON / form-encoded body.
-    const redirect = await magicLinkProvider.startSignIn(request)
+  .handler(async ({ request, body }) => {
+    // Pass `body` through. TheoKit parses the request body and hands the handler a `Request`
+    // built WITHOUT one, so `startSignIn(request)` alone finds nothing to read and throws
+    // `invalid_email` while the address sits in `body` (#101). `?email=` still wins when present.
+    const redirect = await magicLinkProvider.startSignIn(request, body)
     // `startSignIn` resolves to a URL object, not a string.
     return new Response(null, { status: 303, headers: { location: redirect.href } })
   })

@@ -2,8 +2,16 @@
  * The service registry — the single place that knows which credentials each
  * plugin needs, and what a live test can actually do with them.
  *
- * `exercise` is the load-bearing field. It is not decoration: it decides whether
- * an unattended run can cover the whole path or only part of it.
+ * `exercise` RECORDS how far an unattended run can cover the path. It does not decide it:
+ * nothing branches on this field. Its two readers are the readiness report, which prints it
+ * beside the service, and the `.env.example` generator, which puts it in a comment. What
+ * actually decides is the suite author, by reaching for `describeLive` or
+ * `describeManualOAuth` — so this field and that choice can disagree, and only a human
+ * reading both would notice.
+ *
+ * It said "load-bearing … not decoration" until #96 measured the two call sites. Saying so
+ * mattered: a reader who believed it would assume changing `api-key` to `oauth-redirect`
+ * changed what runs, when it changes one printed word.
  *
  * - `api-key` — a static credential the plugin sends on every call (Resend,
  *   Stripe, OpenAI, Groq, OpenRouter). The full path runs anywhere, including
@@ -38,7 +46,7 @@
  * could add. They are `GH_OAUTH_*` for that reason, not for brevity.
  */
 
-/** How far an unattended run can exercise the credential. */
+/** How far an unattended run can exercise the credential. Reported, never branched on — see the module docblock. */
 export type Exercise = 'api-key' | 'oauth-redirect'
 
 /** One credential the service needs, and how a human obtains it. */
@@ -63,6 +71,16 @@ export interface ServiceSpec {
   readonly exercise: Exercise
   /** Credentials without which nothing runs. */
   readonly credentials: readonly CredentialVar[]
+  /**
+   * Credentials a suite reads but the service does not need to be considered ready.
+   *
+   * Their absence skips ONE suite and leaves the rest running, so they must not gate the
+   * service — but they are real variables the code reads, so they must be mapped in CI and must
+   * appear in `.env.example`. Without this slot the only place to put one was prose: GROQ_API_KEY
+   * lived inside the voice `caveat` and was hand-appended to the .env.example generator, which
+   * left both CI gates blind to it because they iterate the registry (#80).
+   */
+  readonly optionalCredentials?: readonly CredentialVar[]
   /**
    * Where a live test is allowed to write, or what it is allowed to spend on.
    * Separate from `credentials` because a key proves who you are, not where it
@@ -217,8 +235,15 @@ export const SERVICES: readonly ServiceSpec[] = [
         where: 'Any of the six the plugin accepts (see VALID_VOICES in options.ts)',
       },
     ],
+    optionalCredentials: [
+      {
+        name: 'GROQ_API_KEY',
+        what: 'Groq API key — lights up the Groq STT backend; without it that one suite skips and the OpenAI path still runs',
+        where: 'console.groq.com/keys',
+      },
+    ],
     caveat:
-      'Costs a fraction of a cent per run: one short tts-1 sentence plus one whisper transcription of the ~1s clip it produces. GROQ_API_KEY is optional and only lights up the Groq STT backend; without it that one test skips and the OpenAI path still runs. Note the variable is OPENAI_API_KEY, not OPEN_AI_API_KEY — the plugin itself falls back to the former (DEFAULT_STT_ENV_VAR/DEFAULT_TTS_ENV_VAR), so the other spelling looks configured and silently is not.',
+      'Costs a fraction of a cent per run: one short tts-1 sentence plus one whisper transcription of the ~1s clip it produces. Note the variable is OPENAI_API_KEY, not OPEN_AI_API_KEY — the plugin itself falls back to the former (DEFAULT_STT_ENV_VAR/DEFAULT_TTS_ENV_VAR), so the other spelling looks configured and silently is not.',
   },
   {
     id: 'auth-github',
@@ -286,6 +311,21 @@ export function serviceById(id: string): ServiceSpec {
 }
 
 /** Every variable name the registry knows about, credentials and targets alike. */
+/**
+ * The master switch every live suite is gated on.
+ *
+ * Deliberately NOT a member of any `ServiceSpec`: it proves nothing, points at nothing, and its
+ * absence does not skip one suite — it skips ALL of them, and the job still exits 0. A green
+ * tick over zero provider calls is the single most convincing way to believe in coverage that
+ * does not exist, so the workflow mapping is gated on its own rather than through the registry
+ * loop (#80).
+ */
+export const RUN_SWITCH_VAR = 'E2E_LIVE'
+
 export function allVariableNames(): string[] {
-  return SERVICES.flatMap((s) => [...s.credentials, ...s.target]).map((c) => c.name)
+  return SERVICES.flatMap((s) => [
+    ...s.credentials,
+    ...s.target,
+    ...(s.optionalCredentials ?? []),
+  ]).map((c) => c.name)
 }

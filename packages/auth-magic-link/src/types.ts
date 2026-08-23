@@ -71,6 +71,12 @@ export interface MagicLinkProviderOptions {
   tokenLifetimeMs?: number
   /** Page to redirect after start (e.g., "check your email"). Defaults to '/auth/check-email'. */
   checkEmailPage?: string
-  /** Source of email when starting sign-in. Defaults to reading req.body.email or req.url ?email=. */
-  resolveEmail?: (req: IncomingMessage | Request) => Promise<string | null>
+  /**
+   * Source of email when starting sign-in. Defaults to reading `?email=` or the request body.
+   *
+   * `parsedBody` is the body a framework already parsed, when there is one. TheoKit hands a route
+   * handler a `Request` built without a body and delivers the parsed value separately, so inside
+   * a route the request itself carries nothing to read (#101).
+   */
+  resolveEmail?: (req: IncomingMessage | Request, parsedBody?: unknown) => Promise<string | null>
 }

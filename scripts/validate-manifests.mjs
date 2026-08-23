@@ -88,14 +88,48 @@ const FRAMEWORK_OWNED_TYPES = ['TheoPluginApp', 'TheoApp', 'TheoPlugin']
  * here means somebody looked; an absent entry means the gate refuses.
  */
 const PEER_WITHOUT_USE_EXEMPT = {
-  'auth-github':
-    'Exchange + fetch helpers a route handler calls directly. Publishing them on ctx is the natural adapter step — see #42 item 2.',
-  'auth-magic-link':
-    'Same shape as auth-github: token issue/verify helpers called from the consumer route.',
-  'plugin-email':
-    'Holds an EmailProvider — the closest analogue to what plugin-payments now publishes on ctx.payments.',
-  'plugin-realtime':
-    'Providers are in-memory and Yjs; never imports @theokit/sdk either, so it opens no socket. Adapter value unclear — measure before deciding.',
+  'auth-github': {
+    theokit:
+      'Exchange + fetch helpers a route handler calls directly. Publishing them on ctx is the natural adapter step — see #42 item 2.',
+  },
+  'auth-magic-link': {
+    theokit:
+      'Same shape as auth-github: token issue/verify helpers called from the consumer route.',
+  },
+  'plugin-email': {
+    theokit:
+      'Holds an EmailProvider — the closest analogue to what plugin-payments now publishes on ctx.payments.',
+  },
+  'plugin-realtime': {
+    theokit:
+      'Providers are in-memory and Yjs; never imports @theokit/sdk either, so it opens no socket. Adapter value unclear — measure before deciding.',
+  },
+}
+
+/**
+ * The lowest version a simple range admits: `^0.48.7` and `>=0.48.7` both yield `0.48.7`.
+ *
+ * Deliberately not a semver-range parser. The manifests in this repository use exactly these two
+ * forms, and a partial parser that silently mishandled a third would be worse than one that
+ * refuses: `null` means "cannot read this", and the caller skips rather than guesses.
+ */
+function rangeFloor(range) {
+  const match = /^(?:\^|~|>=)?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/.exec(range.trim())
+  if (match === null) return null
+  return {
+    parts: [Number(match[1]), Number(match[2]), Number(match[3])],
+    prerelease: match[4] ?? null,
+  }
+}
+
+/** True when `a` is strictly below `b`. A prerelease sorts below the same release. */
+function isBelow(a, b) {
+  for (let i = 0; i < 3; i += 1) {
+    if (a.parts[i] !== b.parts[i]) return a.parts[i] < b.parts[i]
+  }
+  if (a.prerelease === b.prerelease) return false
+  if (a.prerelease !== null && b.prerelease === null) return true
+  return false
 }
 
 const violations = []
@@ -173,13 +207,24 @@ function checkFrameworkContract(dir, pkg, where) {
   }
   walk(srcDir)
 
-  let referencesTheokit = false
+  // Every framework peer, not just `theokit`. The check covered exactly one name, so a
+  // decorative `@theokit/*` peer was invisible to it — and a peer nobody imports still drags
+  // its dependency tree into the consumer's resolution, which is what made plugin-forms
+  // impossible to install (#64, #66).
+  const frameworkPeers = Object.keys(pkg.peerDependencies ?? {}).filter(
+    (name) => name === 'theokit' || name.startsWith('@theokit/'),
+  )
+  const imported = new Set()
+
   for (const file of sources) {
     const text = readFileSync(file, 'utf8')
-    // A real reference is an import specifier. `theokit` inside a comment or a
-    // string is not one — which is how plugin-canvas read as a consumer of the
-    // framework while only mentioning it in a JSDoc example.
-    if (/\bfrom\s+['"]theokit(\/[^'"]*)?['"]/.test(text)) referencesTheokit = true
+    // A real reference is an import specifier. A name inside a comment or a string is not
+    // one — which is how plugin-canvas read as a consumer of the framework while only
+    // mentioning it in a JSDoc example.
+    for (const peer of frameworkPeers) {
+      const escaped = peer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      if (new RegExp(`\\bfrom\\s+['"]${escaped}(\\/[^'"]*)?['"]`).test(text)) imported.add(peer)
+    }
 
     // Same lesson as the import check above, applied where it was missing: prose is not
     // code. `type TheoApp` inside a comment explaining this very rule tripped it, and a
@@ -205,21 +250,64 @@ function checkFrameworkContract(dir, pkg, where) {
     }
   }
 
-  const hasPeer = typeof pkg.peerDependencies?.theokit === 'string'
-  if (hasPeer && !referencesTheokit && !(dir in PEER_WITHOUT_USE_EXEMPT)) {
+  const exempt = PEER_WITHOUT_USE_EXEMPT[dir] ?? {}
+
+  for (const peer of frameworkPeers) {
+    if (imported.has(peer)) {
+      if (peer in exempt) {
+        violations.push(
+          `${where}: imports \`${peer}\` AND is exempted for it — the exemption is stale, remove ${peer} from PEER_WITHOUT_USE_EXEMPT['${dir}'].`,
+        )
+      }
+      continue
+    }
+    if (peer in exempt) continue
     violations.push(
-      `${where}: declares a \`theokit\` peerDependency and imports nothing from it. Either use it (a TheoPlugin-shaped export, a ctx decoration, a hook) or drop the peer — or add ${dir} to PEER_WITHOUT_USE_EXEMPT with the reason. See #42 item 3.`,
+      `${where}: declares a \`${peer}\` peerDependency and imports nothing from it. A peer nobody imports still drags its dependency tree into the consumer's resolution (#64). Either use it or drop it — or add it to PEER_WITHOUT_USE_EXEMPT['${dir}'] with the reason. See #42 item 3, #66.`,
     )
   }
-  if (!hasPeer && dir in PEER_WITHOUT_USE_EXEMPT) {
-    violations.push(
-      `${where}: listed in PEER_WITHOUT_USE_EXEMPT but declares no \`theokit\` peer — the exemption is stale, remove it.`,
-    )
+
+  // A peer range that admits versions the package is not BUILT against is a promise nobody
+  // checked, and it fails in the CONSUMER's build while naming our package. Both ends drift:
+  //
+  //   floor too low  — six packages imported `theokit` with floors from >=0.1.0-alpha.5 to
+  //                    >=0.4.0-beta.0, spanning the framework's builder-API change (#69)
+  //   no ceiling     — four declared `@theokit/sdk: >=2.18.0` while the SDK shipped 4.53.1,
+  //                    two majors past what their devDependency pins (#107)
+  //
+  // Checked for every framework peer that has a devDependency to compare against; a peer with
+  // no devDependency is not compiled here at all, so there is nothing to measure it by.
+  for (const peer of frameworkPeers) {
+    const devRange = pkg.devDependencies?.[peer]
+    const peerRange = pkg.peerDependencies?.[peer]
+    if (typeof devRange !== 'string' || typeof peerRange !== 'string') continue
+
+    const devFloor = rangeFloor(devRange)
+    const peerFloor = rangeFloor(peerRange)
+    if (devFloor === null || peerFloor === null) continue
+
+    if (isBelow(peerFloor, devFloor)) {
+      violations.push(
+        `${where}: peerDependencies["${peer}"] is ${JSON.stringify(peerRange)} but the package is built against ${JSON.stringify(devRange)} — the range admits versions BELOW what compiles here. Raise the floor, or add a CI job that builds this package against it. See #69.`,
+      )
+    }
+
+    // NOT checked here: whether an unbounded `>=X` admits a version the devDependency's `^X`
+    // would exclude. It is the same defect as the floor — a promise nothing measures — but
+    // whether it is currently FALSE depends on what the registry has published, and this gate
+    // runs offline. Measured 2026-08-22: `>=2.18.0` on @theokit/sdk admitted 4.53.1, two majors
+    // past the compiled ^2.18.0, and was narrowed (#107); `theokit >=0.48.7` and
+    // `@theokit/react >=1.1.0` admitted nothing their caret ranges did not, so flagging them
+    // would be a gate firing on something that is not yet wrong — which is how a gate teaches
+    // people to skip it.
   }
-  if (referencesTheokit && dir in PEER_WITHOUT_USE_EXEMPT) {
-    violations.push(
-      `${where}: references theokit AND is exempted — the exemption is stale, remove ${dir} from PEER_WITHOUT_USE_EXEMPT.`,
-    )
+
+  for (const peer of Object.keys(exempt)) {
+    if (!frameworkPeers.includes(peer)) {
+      violations.push(
+        `${where}: exempted for \`${peer}\` but declares no such peer — the exemption is stale, remove it.`,
+      )
+    }
   }
 }
 
@@ -234,5 +322,5 @@ if (violations.length > 0) {
 
 console.log(
   '✓ every package manifest is publishable (repository + directory, provenance, no escaping local paths)\n' +
-    '✓ no package re-invents a theokit type, and every `theokit` peer is used or triaged',
+    '✓ no package re-invents a theokit type, and every `theokit`/`@theokit/*` peer is used or triaged',
 )

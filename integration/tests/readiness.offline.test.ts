@@ -1,9 +1,14 @@
 /**
  * Readiness report — which services can actually be exercised right now.
  *
- * This is the one suite that always runs, with or without credentials. It does
- * not talk to any API; it answers the question you ask before a live run: "what
- * is wired up, and what is each missing?"
+ * This suite needs no credential and talks to no API, so it runs on every PR through
+ * `pnpm integration:offline` as well as in the nightly. It answers the question you ask
+ * before a live run: "what is wired up, and what is each missing?"
+ *
+ * The `.offline.test.ts` name is load-bearing, not decoration. The file used to be
+ * `readiness.test.ts` and claimed in this very docstring to be "the one suite that always
+ * runs" — it was selected by neither PR command, so every gate below it, including the ones
+ * asserting that the registry reaches CI, executed only in the 04:00 nightly (#77).
  *
  * It exists because the honest state of a live suite is otherwise invisible. Six
  * services with five skipped and one green reads, at a glance, exactly like six
@@ -11,12 +16,14 @@
  */
 
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { readdir } from 'node:fs/promises'
 
 import { describe, expect, it } from 'vitest'
 
 import { has, liveRunEnabled, missingFor, unsafeReason } from '../src/credentials.js'
-import { SERVICES, allVariableNames, type ServiceSpec } from '../src/services.js'
+import { RUN_SWITCH_VAR, SERVICES, allVariableNames, type ServiceSpec } from '../src/services.js'
+import { callsCredentialBoundApi, credentialNamesRead } from '../src/suite-classification.js'
 
 /** The lines describing one service: its status, then each gap and how to close it. */
 function describeRow(spec: ServiceSpec, missing: readonly string[]): string[] {
@@ -29,6 +36,13 @@ function describeRow(spec: ServiceSpec, missing: readonly string[]): string[] {
     const doc = docs.find((c) => c.name === name)
     lines.push(`             ${name} — ${doc?.what ?? ''}`)
     if (doc !== undefined) lines.push(`             ↳ ${doc.where}`)
+  }
+  // Optional credentials never appear in `missing` — by definition they do not gate the service —
+  // so without this the report would stop mentioning them entirely when they moved out of the
+  // caveat prose and into the registry.
+  for (const cred of spec.optionalCredentials ?? []) {
+    const state = has(cred.name) ? 'set' : 'not set'
+    lines.push(`             optional: ${cred.name} (${state}) — ${cred.what}`)
   }
   if (spec.caveat !== undefined) lines.push(`             ⚠ ${spec.caveat}`)
   return lines
@@ -165,6 +179,25 @@ describe('live-test readiness', () => {
   })
 })
 
+/**
+ * Every line of `workflow` that maps `name` as a YAML key, with its 1-based line number.
+ *
+ * Anchored to the start of the line and blind to comments, because both gates below used to
+ * settle for a substring: a name appearing only inside a `#` comment counted as mapped, and the
+ * literal check read `.find()` — the FIRST match — while integration.yml maps every registry
+ * variable twice, in the readiness block and again in the block that runs the paid suites. A
+ * credential hardcoded in the second block left both gates green (#85).
+ */
+function envMappings(workflow: string, name: string): { line: number; text: string }[] {
+  const found: { line: number; text: string }[] = []
+  workflow.split('\n').forEach((text, index) => {
+    const trimmed = text.trim()
+    if (trimmed.startsWith('#')) return
+    if (new RegExp(`^${name}:(\\s|$)`).test(trimmed)) found.push({ line: index + 1, text })
+  })
+  return found
+}
+
 describe('the registry reaches CI', () => {
   it('maps every registry variable into the e2e workflow', () => {
     // The failure this prevents, committed by the author of this very test:
@@ -180,7 +213,7 @@ describe('the registry reaches CI', () => {
       new URL('../../.github/workflows/integration.yml', import.meta.url),
       'utf8',
     )
-    const unmapped = allVariableNames().filter((name) => !workflow.includes(`${name}:`))
+    const unmapped = allVariableNames().filter((name) => envMappings(workflow, name).length === 0)
     expect(unmapped, 'registry variables with no env: mapping in integration.yml').toEqual([])
   })
 
@@ -197,24 +230,26 @@ describe('the registry reaches CI', () => {
     // `*.offline.test.ts` — the two things `pnpm integration:offline` runs, and the only
     // command `ci.yml` invokes.
     const { readdir, readFile } = await import('node:fs/promises')
+    const { join, relative } = await import('node:path')
     const root = new URL('.', import.meta.url)
+    const rootPath = fileURLToPath(root)
 
-    const files: string[] = []
-    for (const entry of await readdir(root, { withFileTypes: true })) {
-      if (entry.isFile() && entry.name.endsWith('.test.ts')) files.push(entry.name)
-      if (!entry.isDirectory()) continue
-      for (const inner of await readdir(new URL(`${entry.name}/`, root))) {
-        if (inner.endsWith('.test.ts')) files.push(`${entry.name}/${inner}`)
-      }
-    }
+    // Recursive, because vitest's own include glob is `tests/**` at any depth. The walk used to
+    // descend exactly one level, so a credential-free suite three directories down ran only in
+    // the nightly and this gate stayed green — the gate's blind spot having the same shape as
+    // the defect it exists to report (#92).
+    const files = (await readdir(rootPath, { recursive: true, withFileTypes: true }))
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.test.ts'))
+      .map((entry) => relative(rootPath, join(entry.parentPath, entry.name)))
 
     const stranded: string[] = []
     for (const file of files) {
-      // `readiness.test.ts` itself is the report; it always runs and needs nothing.
-      if (file === 'readiness.test.ts') continue
       const source = await readFile(new URL(file, root), 'utf8')
-      const needsCredential = /\brequired\(/.test(source) || /\bdescribeLive\(/.test(source)
-      if (needsCredential) continue
+      // Structural, not textual. Regexing the raw source read this very file as
+      // credential-bound — the paragraph above names `required(...)` and `describeLive(...)`
+      // in prose — so it dropped out of the walk and the gate reported an empty list, which
+      // reads exactly like coverage (#99).
+      if (callsCredentialBoundApi(source, file)) continue
       const reachable = file.startsWith('consumer/') || file.includes('.offline.test.ts')
       if (!reachable) stranded.push(file)
     }
@@ -225,12 +260,65 @@ describe('the registry reaches CI', () => {
     ).toEqual([])
   })
 
+  it('declares in the registry every variable a suite actually reads', async () => {
+    // A variable read by a suite and absent from the registry is invisible to BOTH gates in this
+    // describe, because they iterate `allVariableNames()`. GROQ_API_KEY was exactly that: read by
+    // the voice suite, documented only in prose inside that service's `caveat`, and hand-appended
+    // to the .env.example generator — the drift that generator's own docblock forbids (#80).
+    const { readdir, readFile } = await import('node:fs/promises')
+    const { join, relative } = await import('node:path')
+    const rootPath = fileURLToPath(new URL('.', import.meta.url))
+
+    const registered = new Set(allVariableNames())
+    const undeclared = new Map<string, string[]>()
+
+    for (const entry of await readdir(rootPath, { recursive: true, withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith('.test.ts')) continue
+      const file = relative(rootPath, join(entry.parentPath, entry.name))
+      const source = await readFile(join(entry.parentPath, entry.name), 'utf8')
+      for (const name of credentialNamesRead(source, file)) {
+        if (registered.has(name)) continue
+        undeclared.set(name, [...(undeclared.get(name) ?? []), file])
+      }
+    }
+
+    expect(
+      Object.fromEntries(undeclared),
+      'variables read by a suite but absent from SERVICES — both CI gates are blind to these',
+    ).toEqual({})
+  })
+
+  it('maps the live-run switch, so the nightly cannot all-skip and still report success', () => {
+    // Every other variable in this describe skips ONE service when it goes missing, and the
+    // readiness report names it. E2E_LIVE skips EVERY suite, and the job exits 0 — a green tick
+    // over zero provider calls. It is not in any ServiceSpec, so the registry loop above cannot
+    // see it, and until this assertion existed nothing did (#80).
+    const workflow = readFileSync(
+      new URL('../../.github/workflows/integration.yml', import.meta.url),
+      'utf8',
+    )
+    const mappings = envMappings(workflow, RUN_SWITCH_VAR)
+    expect(
+      mappings.length,
+      `${RUN_SWITCH_VAR} has no env: mapping in integration.yml — every live suite would skip`,
+    ).toBeGreaterThan(0)
+
+    const notEnabled = mappings
+      .filter((mapping) => !/:\s*'?1'?\s*$/.test(mapping.text))
+      .map((mapping) => `integration.yml:${mapping.line}`)
+    expect(notEnabled, `${RUN_SWITCH_VAR} mapped to something other than 1`).toEqual([])
+  })
+
   it('gives ci.yml the offline command, so the convention has somewhere to land', () => {
-    // The other half: the convention is worthless if nothing invokes it. This is the
-    // assertion that would have failed before `integration:offline` existed.
+    // The other half: the convention is worthless if nothing invokes it.
+    //
+    // Matched against a `run:` LINE, not against the file's text. `toContain` was satisfied by
+    // the comment three lines above the step — the one explaining that this assertion exists —
+    // so deleting the step left the gate green and every credential-free suite silently stopped
+    // running on pull requests (#91).
     const ci = readFileSync(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8')
-    expect(ci, 'ci.yml never runs the credential-free integration suites').toContain(
-      'integration:offline',
+    expect(ci, 'ci.yml has no step running `pnpm integration:offline`').toMatch(
+      /^\s*run:\s*pnpm integration:offline\s*$/m,
     )
   })
 
@@ -240,10 +328,12 @@ describe('the registry reaches CI', () => {
       new URL('../../.github/workflows/integration.yml', import.meta.url),
       'utf8',
     )
-    const literals = allVariableNames().filter((name) => {
-      const line = workflow.split('\n').find((l) => l.trim().startsWith(`${name}:`))
-      return line !== undefined && !line.includes('${{ secrets.')
-    })
+    // EVERY mapping, not the first one found: the second block is the one that spends money.
+    const literals = allVariableNames().flatMap((name) =>
+      envMappings(workflow, name)
+        .filter((mapping) => !mapping.text.includes('${{ secrets.'))
+        .map((mapping) => `${name} (integration.yml:${mapping.line})`),
+    )
     expect(literals, 'variables set to a literal instead of a secret').toEqual([])
   })
 })

@@ -27,33 +27,21 @@
     "test:watch": "vitest"
   },
   "peerDependencies": {
-    "@theokit/plugin-canvas": ">=0.3.3",
     "@theokit/plugin-realtime": ">=0.1.2",
-    "@theokit/plugin-voice": ">=0.7.3",
-    "@theokit/sdk": ">=2.18.0",
-    "@theokit/ui": "^1.1.0",
+    "@theokit/sdk": "^2.18.0",
     "@types/react": ">=18 || >=19",
     "react": ">=18 || >=19",
-    "theokit": ">=0.4.0-beta.0",
+    "theokit": ">=0.48.7",
     "zod": "^3.25.0 || ^4.0.0"
   },
   "peerDependenciesMeta": {
     "zod": {
       "optional": true
     },
-    "@theokit/ui": {
-      "optional": true
-    },
     "react": {
       "optional": true
     },
     "@types/react": {
-      "optional": true
-    },
-    "@theokit/plugin-canvas": {
-      "optional": true
-    },
-    "@theokit/plugin-voice": {
       "optional": true
     }
   },

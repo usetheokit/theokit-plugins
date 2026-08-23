@@ -104,8 +104,11 @@ describeLive(
       expect(plaintext, 'Google endpoints not served over https').toEqual([])
     }, 30_000)
   },
-  // No credential needed: discovery is public and the client id is not checked.
-  { requires: [] },
+  // No credential needed: discovery is public and the client id is not checked. `sends: false`
+  // states the second rail explicitly — this reads a public document and spends nothing, so the
+  // spec's target (GOOGLE_OAUTH_REDIRECT_URI) must not gate it. It used to be implied by
+  // `requires` short-circuiting the whole check, which is the bug #82 fixed.
+  { requires: [], sends: false },
 )
 
 describeLive(

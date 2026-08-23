@@ -13,7 +13,7 @@
     "env:example": "tsx scripts/env-example.ts",
     "flow:github": "node scripts/full-flow-github.mjs",
     "flow:stripe-webhook": "node scripts/full-flow-stripe-webhook.mjs",
-    "readiness": "vitest run tests/readiness.test.ts",
+    "readiness": "vitest run tests/readiness.offline.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
@@ -21,9 +21,11 @@
     "@theokit/auth-google": "workspace:*",
     "@theokit/auth-magic-link": "workspace:^",
     "@theokit/plugin-copilot": "workspace:*",
+    "@theokit/plugin-db-drizzle": "workspace:^",
     "@theokit/plugin-email": "workspace:*",
     "@theokit/plugin-payments": "workspace:*",
     "@theokit/plugin-voice": "workspace:*",
+    "@theokit/sdk": ">=2.18.0 <3.0.0",
     "@types/mailparser": "^3.4.6",
     "@types/node": "^25.6.2",
     "@types/nodemailer": "^8.0.1",

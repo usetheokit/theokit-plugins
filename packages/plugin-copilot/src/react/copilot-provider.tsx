@@ -96,6 +96,9 @@ export function CopilotProvider(props: CopilotProviderProps): React.ReactElement
       presence,
       isAnyCopilotTyping,
       sendBroadcast,
+      // So a component can tell the local user apart from the room. This provider already had
+      // the id — it broadcasts with it — and simply never published it (#114).
+      userConnectionId,
       ...(currentUsage !== undefined ? { usage: currentUsage } : {}),
       ...(lastError !== undefined ? { lastError } : {}),
     }),
@@ -106,6 +109,7 @@ export function CopilotProvider(props: CopilotProviderProps): React.ReactElement
       presence,
       isAnyCopilotTyping,
       sendBroadcast,
+      userConnectionId,
       currentUsage,
       lastError,
     ],

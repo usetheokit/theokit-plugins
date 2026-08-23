@@ -37,30 +37,43 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-9 items — **Open** 7 · **In flight** 0 · **Closed** 2
+22 items — **Open** 19 · **In flight** 0 · **Closed** 3
 
-### Open (7)
+### Open (19)
 
-| Item                                                                                                | Title                                                                          | Status | Severity |
-| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------ | -------- |
-| [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `raw`  | —        |
-| [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention--)               | The request-decoration namespace is global and has no convention               | `raw`  | —        |
-| [`B-003`](#b-003--plugin-realtimes-integration-tests-never-open-a-websocket--)                      | `plugin-realtime`'s integration tests never open a WebSocket                   | `raw`  | —        |
-| [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain--)                   | No test asserts that a package belongs to exactly one domain                   | `raw`  | —        |
-| [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams--)                      | The `plugin-` prefix names four different integration seams                    | `raw`  | —        |
-| [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it--)           | The root `v*` tag convention is dead and the CHANGELOG still implies it        | `raw`  | —        |
-| [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish--)                         | Nothing compiles the code examples our READMEs publish                         | `raw`  | —        |
+| Item | Title | Status | Severity |
+|---|---|---|---|
+| [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
+| [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention--) | The request-decoration namespace is global and has no convention | `raw` | — |
+| [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain--) | No test asserts that a package belongs to exactly one domain | `raw` | — |
+| [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams--) | The `plugin-` prefix names four different integration seams | `raw` | — |
+| [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it--) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `raw` | — |
+| [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish--) | Nothing compiles the code examples our READMEs publish | `raw` | — |
+| [`B-010`](#b-010--plugin-realtimes-presence-and-broadcast-never-leave-the-client--) | `plugin-realtime`'s presence and broadcast never leave the client | `raw` | — |
+| [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `raw` | — |
+| [`B-012`](#b-012--plugin-forms-cannot-upload-a-file--) | `plugin-forms` cannot upload a file | `raw` | — |
+| [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout--) | `plugin-payments` ships only hosted checkout | `raw` | — |
+| [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited--) | three AbacatePay legs are declared uncoverable and never revisited | `raw` | — |
+| [`B-015`](#b-015--the-oauth-consent-round-trip-is-automated-for-nobody--) | the OAuth consent round trip is automated for nobody | `raw` | — |
+| [`B-016`](#b-016--theokitplugin-forms-headless-tier-cannot-be-consumed-without-usetheoui--) | `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` | `raw` | — |
+| [`B-017`](#b-017--the-measurement-target-gate-reads-an-npm-subpath-specifier-as-a-missing-file--) | the measurement-target gate reads an npm subpath specifier as a missing file | `raw` | — |
+| [`B-018`](#b-018--nineteen-transitive-high-advisories-sit-in-the-workspace-with-nothing-watching-them--) | nineteen transitive HIGH advisories sit in the workspace with nothing watching them | `raw` | — |
+| [`B-019`](#b-019--four-packages-integrate-through-a-seam-the-current-sdk-major-no-longer-has--) | four packages integrate through a seam the current SDK major no longer has | `raw` | — |
+| [`B-020`](#b-020--code-quality-was-returning-pass-over-zero-languages--) | /code-quality was returning PASS over zero languages | `raw` | — |
+| [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package--) | the OAuth transaction cookie is encrypted with a constant published in the package | `raw` | — |
+| [`B-022`](#b-022--assertproductionsecret-warns-about-a-boot-refusal-nothing-implements--) | `assertProductionSecret` warns about a boot refusal nothing implements | `raw` | — |
 
 ### In flight (0)
 
 _None._
 
-### Closed (2)
+### Closed (3)
 
-| Item                                                                                         | Title                                                                     | Status    | Severity |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | --------- | -------- |
-| [`B-004`](#b-004--auth-magic-link-has-no-live-suite-while-the-other-two-auth-providers-do-x) | `auth-magic-link` has no live suite while the other two auth providers do | `shipped` | —        |
-| [`B-006`](#b-006--backlog-init-assumed-an-umbrella-and-would-have-refused-to-run-here-x)     | `/backlog-init` assumed an umbrella and would have refused to run here    | `shipped` | —        |
+| Item | Title | Status | Severity |
+|---|---|---|---|
+| [`B-003`](#b-003--plugin-realtimes-integration-tests-never-open-a-websocket-x) | `plugin-realtime`'s integration tests never open a WebSocket | `shipped` | — |
+| [`B-004`](#b-004--auth-magic-link-has-no-live-suite-while-the-other-two-auth-providers-do-x) | `auth-magic-link` has no live suite while the other two auth providers do | `shipped` | — |
+| [`B-006`](#b-006--backlog-init-assumed-an-umbrella-and-would-have-refused-to-run-here-x) | `/backlog-init` assumed an umbrella and would have refused to run here | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
@@ -74,13 +87,13 @@ domain: plugin-server
 repo: plugin-email
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/seam-conformance-tests-opportunity.md` — 8 of 11 packages have no conformance test; a mutation in `packages/plugin-payments/src/plugin.ts` passed typecheck, test, lint, build and integration:offline while `createPluginRunnerFromConfig` threw on it
 why_now: measured 2026-08-18 — exactly 1 of 11 packages decorates the request (`plugin-payments`,
 via `PAYMENTS_DECORATION_KEY`); `plugin-db-drizzle` has a `register(_app)` that deliberately does
 nothing; a grep hit in `plugin-canvas` was `DOMPurify.addHook`, unrelated. #42 shipped because a
 package typed against a framework API that did not exist, and nothing in CI would catch the same
 class of defect today.
-status: raw
+status: triaged
 dod:
 
 - a test per integrating package that hands its export to the real framework surface it claims —
@@ -121,9 +134,10 @@ dod:
 - the check covers keys declared as string literals, since that is how the one existing key is
   written
 
-## B-003 — `plugin-realtime`'s integration tests never open a WebSocket [ ]
+## B-003 — `plugin-realtime`'s integration tests never open a WebSocket [x]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `realtime-in-process-only`).
+> Measured and closed 2026-08-22 — see `resolution:`.
 
 domain: plugin-server
 repo: plugin-realtime
@@ -136,12 +150,29 @@ why_now: measured 2026-08-18 — the package has 57 tests including
 description says it consumes `@theokit/sdk@>=1.7.0 subscribe` for WS transport, so the transport is
 the part a consumer depends on and the part nothing exercises. This is the same shape as #48: a
 suite that agrees with its author about a boundary it never crosses.
-status: raw
+status: shipped
+resolution: three of the four points were already met when this was measured, by
+`tests/integration/wire-round-trip.test.ts` — a real `ws` server and a real client socket, added
+in `617483a` on the same day this item was filed. The fourth, reconnect, was genuinely missing and
+is now covered.
+found_a_real_failure_mode: the item predicted "presence that never expires". The measurement
+showed the opposite, and a worse defect: a client that RECONNECTS is never registered at all.
+Over the real socket, `getPresence('doc')` returns `["alice"]` during the first session and `[]`
+after a drop and reconnect — unchanged at +400ms, so not a race. Cause: presence is keyed by
+`connectionId` and `leaveRoom` deletes by that key alone, so the dead session's late `release()`
+removed the live registration, and every other participant got a `left` frame for somebody who had
+just joined. Filed and fixed as #110.
+note_on_the_premise: the title is wrong as written and is kept verbatim, because renumbering or
+rewording an item is how a registry stops being an audit trail. The suite it says does not exist
+was added the same day the item was registered.
 dod:
 
-- presence and broadcast asserted across two clients over a real WebSocket connection
-- a disconnect/reconnect case, since presence that never expires is the characteristic defect here
-- the test fails if the transport is swapped for an in-process stub
+- presence and broadcast asserted across two clients over a real WebSocket connection [x]
+  (presence in the `joined` frame, and a Yjs update crossing as base64 into a second document)
+- a disconnect/reconnect case, since presence that never expires is the characteristic defect here [x]
+  (disconnect was covered; reconnect was added, and it failed — see `found_a_real_failure_mode`)
+- the test fails if the transport is swapped for an in-process stub [x]
+  ("the encoding is load-bearing: the raw Uint8Array would not survive JSON")
 
 ## B-004 — `auth-magic-link` has no live suite while the other two auth providers do [x]
 
@@ -319,3 +350,356 @@ dod:
   as a gap in the gate rather than as a defect in the documentation
 - it runs in `ci.yml` alongside `quality:docs`, and the run says how many blocks it compiled — a
   number nobody can read is how the previous gate's blind spot stayed invisible
+
+## B-010 — `plugin-realtime`'s presence and broadcast never leave the client [ ]
+
+> Registered 2026-08-22 by `/backlog-item` (slug: `realtime-outbound-channel`).
+
+domain: plugin-server
+repo: plugin-realtime
+suggested_mode: evolve
+source: human
+evidence: none-yet
+why_now: measured 2026-08-22 — `emitBroadcast` in `src/react/index.ts` is an EMPTY function body,
+and `emit` only merges into local state. The README says so in bold for both hooks ("**Local-only
+in v0.1** — events are scoped to the current client and do not fan out to other participants
+yet"), so this is a declared limitation rather than a defect. It is the largest one in the
+repository: a realtime plugin whose outbound channel does not exist. Two people in the same room
+see nothing of each other through these hooks. The inbound half works — the live suite drives
+frames over a real WebSocket and they arrive.
+status: raw
+dod:
+
+- a presence update from one client is observable by a second client over a real transport
+- a broadcast from one client reaches the other, asserted across two connections
+- the README table stops saying "Local-only in v0.1" for whichever hooks now sync
+- the blocking dependency is named: the code cites "G8 `subscribe` upstream `.send()` API" as
+  the thing that must stabilise first, and whether that has landed is the first thing to measure
+
+## B-011 — `useYDoc()` throws instead of wiring the Y.Doc [ ]
+
+> Registered 2026-08-22 by `/backlog-item` (slug: `realtime-ydoc-autowiring`).
+
+domain: plugin-server
+repo: plugin-realtime
+suggested_mode: evolve
+source: human
+evidence: none-yet
+why_now: measured 2026-08-22 — `useYDoc()` in `src/react/index.ts` throws unconditionally, and
+the message names the workaround (use YjsRealtimeProvider server-side, consume updates via
+`useBroadcast`). That workaround depends on B-010, which is itself local-only, so the documented
+escape route does not currently work either. The provider ships and the CRDT round trip is
+covered over a real socket by `wire-round-trip.test.ts`; what is missing is the React wiring.
+status: raw
+dod:
+
+- `useYDoc()` returns a `Y.Doc` when the room descriptor declares `storage: 'yjs'`
+- it still refuses, with a message naming the cause, when the room does not
+- a two-client convergence test over a real transport, not in-process
+- ordering against B-010 is decided rather than assumed: if the escape route it documents needs
+  B-010, say so in the plan
+
+## B-012 — `plugin-forms` cannot upload a file [ ]
+
+> Registered 2026-08-22 by `/backlog-item` (slug: `forms-multipart-upload`).
+
+domain: client-surface
+repo: plugin-forms
+suggested_mode: evolve
+source: human
+evidence: none-yet
+why_now: measured 2026-08-22 — `README.md:216` states "**No file uploads in v0.1.**
+`multipart/form-data` deferred to v0.2." A form library without file upload is a form library a
+consumer outgrows on their second form. The declaration is honest; the gap is real.
+status: raw
+dod:
+
+- a `<TheoField>` bound to a file input submits through the action as multipart
+- the server error path for an oversized or rejected file reaches the field, like every other
+  server error already does
+- the accessible wiring holds for the file control, asserted the way #105 taught: the label
+  resolves to the control and the error is announced
+
+## B-013 — `plugin-payments` ships only hosted checkout [ ]
+
+> Registered 2026-08-22 by `/backlog-item` (slug: `payments-embedded-checkout`).
+
+domain: plugin-server
+repo: plugin-payments
+suggested_mode: evolve
+source: human
+evidence: none-yet
+why_now: measured 2026-08-22 — `src/checkout.ts:7` records that the contract returns a redirect
+URL and that "Elements/embedded deferred to v0.x". A consumer who wants the payment form inside
+their own page cannot have it. The hosted path is well covered: the live suite creates real
+Stripe sessions and reconciles them, and the idempotency round trip is asserted against the real
+API.
+status: raw
+dod:
+
+- the contract expresses an embedded/Elements session without breaking the hosted one
+- a live test proves the embedded session is accepted by the provider, not only typed
+- AbacatePay's position is stated rather than assumed — it may have no analogue, and saying so
+  is a result
+
+## B-014 — three AbacatePay legs are declared uncoverable and never revisited [ ]
+
+> Registered 2026-08-22 by `/backlog-item` (slug: `abacatepay-uncovered-legs`).
+
+domain: plugin-server
+repo: plugin-payments
+suggested_mode: live-test
+source: human
+evidence: none-yet
+why_now: measured 2026-08-22 — the service registry records three legs as NOT covered, each with
+a measured reason: subscriptions (`/subscriptions/create` answers "PIX Automático is not
+available for this store"), the refund happy path (a devMode payment adds no balance, so only the
+refusal is verifiable), and `verifyWebhook` (delivery needs a public HTTPS endpoint). The full
+live run on 2026-08-22 passed 179 tests with none of these among them. Each reason may have
+changed on the provider's side since it was written, and nothing re-checks.
+status: raw
+dod:
+
+- each of the three is re-measured against the current provider, and the result recorded — a
+  still-blocked leg is a successful outcome if the block is re-verified rather than assumed
+- any leg that became reachable gets a live test
+- the caveat text in `integration/src/services.ts` is updated to match what was measured, with
+  the date
+
+## B-015 — the OAuth consent round trip is automated for nobody [ ]
+
+> Registered 2026-08-22 by `/backlog-item` (slug: `oauth-roundtrip-unattended`).
+
+domain: auth-provider
+repo: auth-github
+suggested_mode: live-test
+source: human
+evidence: none-yet
+why_now: measured 2026-08-22 — the full live run skipped exactly two behaviours, both the same:
+"full consent round trip [skipped: needs a browser session, so it cannot run in CI]", for
+`auth-github` and `auth-google`. The server half is covered live; the leg where a human clicks
+"allow" is exercised only by hand, through `pnpm flow:github`. So the single most important thing
+these packages do — turn a real consent into a session — is verified by somebody remembering to
+run a script.
+status: raw
+dod:
+
+- the round trip runs unattended against the real provider, or the reason it cannot is
+  re-measured and written down with a date
+- if a headless browser is the answer, the cost is stated: a browser in CI is a dependency with
+  its own failure modes, and this decision is made deliberately
+- `auth-google` is covered by the same mechanism or explicitly excluded with a reason
+
+## B-016 — `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` [ ]
+
+> Registered 2026-08-22 by `/backlog-item` (slug: `forms-headless-entrypoint`).
+
+domain: client-surface
+repo: plugin-forms
+suggested_mode: evolve
+source: human
+evidence: none-yet
+why_now: measured 2026-08-22 while closing #103 — the barrel re-exports `TheoField`, which
+imports `@usetheo/ui` at module scope, so `import { useTheoField } from '@theokit/plugin-forms'`
+drags the UI package in. Splitting the entry point was attempted and reverted, because
+`TheoForm.tsx:39` imports `TheoField` to build `TheoForm.Field` — an ADR-D1 compound documented
+in Cookbook 1 — so the barrel reaches it either way, and `splitting: false` would duplicate
+`TheoFormContext` and give a consumer two React contexts. Filed as #104 and closed not-planned:
+the fix requires removing a published API, which is a product decision.
+status: raw
+dod:
+
+- a decision recorded as an ADR: `TheoForm.Field` is removed and the styled tier moves to
+  `@theokit/plugin-forms/field`, or the headless-peer-free promise is dropped from the docs
+- whichever is chosen, `@usetheo/ui` is declared honestly — optional only if the barrel really
+  does not need it
+- the packaging gate already loads every subpath (#83), so a new entry is covered on arrival
+
+## B-017 — the measurement-target gate reads an npm subpath specifier as a missing file [ ]
+
+> Registered 2026-08-23 while running `/discover-plan-confidence` on B-001.
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: bug
+source: human
+evidence: none-yet
+why_now: measured 2026-08-23 — `skills/discover-plan-confidence/scripts/check_measurement_targets.py`
+matches any backticked token containing a slash (`PATH_TARGET_RE`) and resolves it against the
+repo root. A plan naming `theokit/server/plugins` — a real npm module specifier with a subpath,
+not a path — is scored `fabricated_target`, which is a HARD CAP: the plan drops to 49 and
+`INVALID`. Scoped packages escape only by accident, because `@` is outside the regex's first
+character class, so `@theokit/sdk/server/auth` passes while the unscoped sibling fails. The same
+file defines `TARGETS_HEADER_RE` and never uses it, so the scan covers the whole document rather
+than the Measurement Questions section it documents.
+Measured the same day in the sibling script `skills/discover-confidence/scripts/check_evidence_pointers.py`:
+`CODE_POINTER_RE` opens with `\b` and a class excluding `@`, so
+`packages/auth-github/node_modules/@theokit/sdk/dist/server/auth/index.d.ts:14` is matched from
+after the scope as `theokit/sdk/dist/server/auth/index.d.ts:14`, resolves nowhere, and fires
+`fabricated_evidence` — a HARD CAP. Any opportunity citing a file inside a scoped npm package is
+INVALID by construction. Same root cause, two scripts.
+status: raw
+dod:
+
+- a plan citing an unscoped npm subpath specifier scores it as a module, not as a missing file
+- an opportunity citing `path/to/@scope/pkg/file.ts:12` resolves it, instead of truncating at
+  the `@` into a path that exists nowhere
+- the fix distinguishes specifier from path by resolution, not by a denylist of known package names
+- a genuinely fabricated path still trips `fabricated_target` — a regression test covers both
+
+related: the workaround used on B-001's plan was to write the specifier as it appears in source
+(`from 'theokit/server/plugins'`), which the regex does not match. That is a phrasing accident,
+not a fix, and it will not occur to the next author.
+
+note: `.claude/` is not versioned here. Per the personal-environment rule, this item's fix belongs
+in the kit's own repository; registering it here records the finding so it is not lost.
+
+## B-018 — nineteen transitive HIGH advisories sit in the workspace with nothing watching them [ ]
+
+> Registered 2026-08-23 by `/deps-audit` while auditing B-001's plan.
+
+domain: dev-tooling
+repo: plugin-canvas
+suggested_mode: review
+source: human
+evidence: none-yet
+why_now: measured 2026-08-23 — `pnpm audit --json` reports
+`{"low":4,"moderate":12,"high":19,"critical":0}`. Every HIGH is transitive (none declared in any
+manifest here): `brace-expansion` (6), `undici` (4), `js-yaml` (4), `nanoid` (2), `form-data` (1),
+`postcss` (1), `deepmerge-ts` (1). One reaches a published package —
+`packages/plugin-canvas > jsdom > form-data` — but through a devDependency, so it does not ship to
+consumers. Nothing in CI runs `pnpm audit`, so this count is invisible between manual audits, and
+a future advisory on a runtime path would be equally invisible.
+status: raw
+dod:
+
+- a gate that fails when a HIGH advisory reaches a package's **runtime** dependency chain, and
+  reports without failing when it reaches only a dev chain
+- the distinction is measured from the manifests, not asserted in a comment
+- `osv-scanner` cross-checks `pnpm audit` rather than either being the single source
+  (`rules/deps-audit-golden-rule.md § 5` names both for npm; only one is installed today)
+
+note: `repo:` is `plugin-canvas` because that is the only package whose chain reaches a published
+artefact; the fix is repository-wide.
+
+## B-019 — four packages integrate through a seam the current SDK major no longer has [ ]
+
+> Registered 2026-08-23 while implementing B-001's auth conformance test, which found it.
+
+domain: auth-provider
+repo: auth-google
+suggested_mode: review
+source: human
+evidence: `integration/tests/seam/auth-orchestrator-conformance.offline.test.ts` carries an
+`it.fails` round-trip case reproducing a SECOND, worse defect in the same seam: `defineAuth`
+writes the transaction cookie as `theo_oauth_tx` (sdk 2.18.0 `dist/server/auth/index.js:249`) and
+reads `__Host-theo_oauth_tx` (`:107`), so `finishSignIn` always throws `AuthCallbackError: OAuth
+transaction cookie missing or expired`. Reproduced end to end 2026-08-23. Every OAuth sign-in
+driven through this orchestrator fails at the callback — on 2.x, the version these packages pin.
+why_now: measured 2026-08-23 — `auth-github`, `auth-google`, `auth-magic-link` and
+`plugin-copilot` all declare `@theokit/sdk: ^2.18.0`, and the three auth packages are written
+against `defineAuth` from `@theokit/sdk/server/auth`. In `@theokit/sdk@4.53.1` (current latest)
+that subpath exports `Auth, AuthCallbackError, AuthCancelledError, AuthConfigError,
+AuthProviderNotFoundError, AuthSecretTooShortError, validateReturnTo` plus types — **`defineAuth`
+is gone**, replaced by a class `Auth`. A consumer whose app resolves sdk 4.x cannot wire these
+providers the documented way. This is the #42 defect class exactly: a package typed against a
+framework API, and the framework moved. It surfaced within minutes of the conformance test
+existing (`integration/tests/seam/auth-orchestrator-conformance.offline.test.ts` failed with
+`TypeError: defineAuth is not a function` while the sdk was briefly resolved at `@latest`).
+status: raw
+dod:
+
+- a decision, recorded as an ADR, on whether these packages move to the `Auth` class or stay
+  pinned to sdk 2.x — and if they stay, the pin is a `<3.0.0` ceiling rather than a caret range
+  that npm may resolve past
+- the conformance suite asserts against the sdk major the packages actually declare, and fails
+  when the declared range admits a version whose seam is absent
+- `plugin-copilot` is checked too: it declares the same range but does not use `defineAuth`, so
+  its exposure may be different and should be measured, not assumed
+
+note: `repo:` is `auth-google` because that is where the conformance test caught it; the decision
+spans all four packages.
+
+## B-020 — /code-quality was returning PASS over zero languages [ ]
+
+> Registered 2026-08-23 while running the CODE-QUALITY phase on B-001.
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: bug
+source: human
+evidence: none-yet
+why_now: measured 2026-08-23 — `.claude/rules/code-quality-languages.txt` contained only comments,
+so `run_code_quality.py` returned `{"verdict": "PASS", "languages_audited": []}`. Every gate in
+`cycle-code-quality.md` (dead code, symbol fabrication, wiring, mutation) was skipped, and the
+cycle reported PASS. This is a TypeScript monorepo of eleven packages; enabling `typescript`
+turned the same run into `languages_audited: ["typescript"]`. A PASS over nothing is
+indistinguishable in the report from a PASS over everything, which is the failure mode the whole
+cycle exists to prevent.
+status: raw
+dod:
+
+- a run whose `languages_audited` is empty while manifests exist on disk emits a finding, not
+  `PASS` — the honest verdict is closer to `auditor_unavailable` than to a clean pass
+- the check compares the enabled set against the manifests actually present, so a repo that
+  gains a language cannot be silently unaudited
+- a regression test covers both directions: empty-enablement-with-manifests fails, and a
+  genuinely pre-code repo with no manifest still passes
+
+note: the enablement line is now present locally, but `.claude/` is gitignored in this repository
+(personal-environment rule), so the configuration cannot travel with the repo and the next
+checkout starts unaudited again. That is the second half of this item, and it is the reason the
+fix belongs in the kit — a default that audits what it finds — rather than in a config file this
+repo cannot version.
+
+## B-021 — the OAuth transaction cookie is encrypted with a constant published in the package [ ]
+
+> Registered 2026-08-23 by the auth-provider reviewer during B-001's REVIEW phase.
+
+domain: auth-provider
+repo: auth-google
+suggested_mode: review
+source: human
+evidence: none-yet
+why_now: measured 2026-08-23 in `@theokit/sdk@2.18.0` — `txCookieSecret` (`dist/server/auth/index.js:193`)
+falls back to the literal `DEV_ONLY_INSECURE_OAUTH_TX_SECRET_REPLACE_IN_PROD` when neither
+`opts.session.secret` nor `THEOKIT_OAUTH_TX_SECRET` is set. `DefineAuthOptions.session` is typed
+`SessionManager<TSession>`, which declares four methods and **no `secret`**, so the first branch is
+unreachable for any value satisfying the declared type — confirmed against a real construction:
+`createSessionManager({secret}).secret === undefined`. The transaction cookie carries `state` and
+`pkceVerifier`, and it is written without the `__Host-` prefix its own store contract declares
+(`oauth-transaction-store.d.ts:9`), so a sibling subdomain can set it. `AuthSecretTooShortError`
+does not fire: the constant is 48 chars. Latent today only because [[B-019]]'s cookie-name
+mismatch makes the callback unreachable; it becomes live the moment that is fixed.
+status: raw
+dod:
+
+- a sign-in cannot proceed when the transaction secret is the published constant — it fails at
+  boot, not at request time
+- the transaction cookie is written under the `__Host-` name its store reads
+- a regression test forges a transaction under the published constant and asserts the callback
+  refuses it
+
+note: the fix is in `@theokit/sdk`, another repository. What belongs here is the measurement, the
+regression test, and a decision on whether these packages may ship against a version that has it.
+
+## B-022 — `assertProductionSecret` warns about a boot refusal nothing implements [ ]
+
+domain: auth-provider
+repo: auth-github
+suggested_mode: review
+source: human
+evidence: none-yet
+why_now: measured 2026-08-23 — `theokit@0.48.8` exports `assertProductionSecret` from
+`theokit/server/auth`, and it has zero callers in this repository. It is also never called by
+`createSessionManager` itself (grepped the bundled chunk: only the definition and the export
+list). What actually runs is `normalizeSecrets`, a 32-character floor applied in every
+environment. So the guard's own message — that a production server will refuse to boot until the
+placeholder is replaced — is not backed by anything these packages wire.
+status: raw
+dod:
+
+- either the packages call it where they claim the guarantee, or the claim is removed from the
+  surface that makes it
+- a test asserts the chosen behaviour under `NODE_ENV=production`, since that is the only branch
+  where it would bite

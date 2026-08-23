@@ -52,4 +52,37 @@ describe('useTheoField', () => {
     expect(result.current.error?.message).toBe('Required')
     expect(result.current.error?.type).toBe('server')
   })
+
+  it('refuses to run outside a <TheoForm>, naming what to wrap the tree in', () => {
+    // The typed refusal the hook exists to give (`rules/error-handling.md`: explicit, with
+    // enough context to act on). Without a FormProvider the RHF context is null, and returning
+    // an empty field state here would let a form render clean and silently never bind.
+    expect(() => renderHook(() => useTheoField('name'))).toThrow(
+      /must be called from a descendant of <TheoForm>/,
+    )
+  })
+
+  it('reports no error for a parent path whose child holds the error', () => {
+    // `errors.address` is an object once `address.city` fails, but it is a BRANCH of the error
+    // tree, not an error: it has neither `message` nor `type`. Treating it as one would mark
+    // the group invalid and render an empty message beside a field that is fine.
+    let formApi: UseFormReturn<{ address: { city: string } }> | null = null
+    const wrapper = ({ children }: { children: ReactNode }) => {
+      formApi = useForm({ defaultValues: { address: { city: '' } } })
+      return <FormProvider {...formApi}>{children}</FormProvider>
+    }
+    const { result, rerender } = renderHook(
+      () => ({ parent: useTheoField('address'), child: useTheoField('address.city') }),
+      { wrapper },
+    )
+    act(() => {
+      formApi!.setError('address.city', { type: 'server', message: 'Unknown city' })
+    })
+    rerender()
+
+    expect(result.current.child.isInvalid, 'the field that failed').toBe(true)
+    expect(result.current.child.error?.message).toBe('Unknown city')
+    expect(result.current.parent.isInvalid, 'the group containing it').toBe(false)
+    expect(result.current.parent.error).toBeUndefined()
+  })
 })
