@@ -1,6 +1,6 @@
 {
   "name": "@theokit/plugin-db-drizzle",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Standalone DB plugin for TheoKit — wraps drizzle-kit + @theokit/orm with a plugin-shape factory, 7-verb theokit db CLI, drizzle-kit studio passthrough, and optional devtools tab integration. Form 4 Hybrid per plan p5-plugin-db-drizzle v1.0.",
   "type": "module",
   "main": "./dist/index.js",

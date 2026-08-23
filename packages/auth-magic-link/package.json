@@ -1,6 +1,6 @@
 {
   "name": "@theokit/auth-magic-link",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Email magic-link provider for @theokit/sdk/server/auth. Pluggable MagicLinkStore + email-callback for any transport (Resend/SendGrid/SMTP).",
   "type": "module",
   "main": "./dist/index.js",

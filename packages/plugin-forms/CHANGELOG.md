@@ -1,5 +1,55 @@
 # Changelog
 
+## 0.3.0
+
+### Minor Changes
+
+- a154a82: `@hookform/resolvers` moves from `peerDependencies` to `dependencies`, which makes
+  `npm install @theokit/plugin-forms` succeed.
+
+  It was never a consumer contract: `TheoForm` imports `zodResolver` from
+  `@hookform/resolvers/zod` internally and the consumer never names the package. As a peer it sat
+  in the consumer's top-level resolution, where npm eagerly satisfies its OPTIONAL peer
+  `@typeschema/main` — and `@typeschema/zod` pins `zod@^3.23.8` while `@theokit/sdk` requires
+  `zod@^4.0.0`. Two transitive chains, mutually exclusive, neither of them ours. As a dependency it
+  resolves inside this package's own subtree and the conflict does not arise.
+
+  `react-hook-form` stays a peer, correctly: the consumer holds that instance and passes it around.
+
+- b187501: The `zod` peer is `^4.0.0`, and the package is developed and tested against zod 4.
+
+  It advertised `^3.25.0 || ^4.0.0` while its own peer chain forbids zod 3: `@theokit/react` requires
+  `@theokit/sdk@^1.1.0`, and `@theokit/sdk@1.9.0` requires `zod@^4.0.0`. The repository meanwhile
+  built and tested the package against `zod@3.25.76`, so the version tested was not a version a
+  consumer can install. Both halves are now the same version.
+
+  This does not on its own make `npm install @theokit/plugin-forms` succeed — see #64.
+
+### Patch Changes
+
+- 76ef4ce: The README's Cookbook 1 produced an inaccessible form; it now produces an accessible one.
+
+  `FormField.Control` clones its DIRECT child to inject `id`, `aria-invalid` and
+  `aria-describedby`, and the example put a consumer component in that slot, which received those
+  props and dropped them: the label pointed at an id nothing had, and the invalid state was never
+  announced (#105). `FormField.Error` renders its children and reads nothing on its own, so the
+  self-closing `<FormField.Error />` showed an empty alert while the server's reason was discarded
+  (#106).
+
+  Documentation only — no runtime change. Both shapes are now pinned by tests that assert the
+  accessible relationships rather than the markup.
+
+- 2369e29: `@usetheo/ui` is no longer declared an optional peer, because the package cannot load without it.
+
+  The public barrel re-exports `TheoField`, which imports `@usetheo/ui` at module scope, so a clean
+  install without it threw `ERR_MODULE_NOT_FOUND` on any import from the package root. The
+  declaration now says what the code does.
+
+  Nobody loses a working capability: the barrel has re-exported `TheoField` since the v0.1.0
+  scaffold, and both published versions carry `@usetheo/ui` in `dist/index.js`, so the "headless
+  works peer-free" path this flag promised has never existed. Making it real means a separate entry
+  point for the styled tier — an API change, tracked as #104.
+
 ## 0.2.3
 
 ### Patch Changes
