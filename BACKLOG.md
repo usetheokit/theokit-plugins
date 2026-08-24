@@ -37,22 +37,20 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-37 items — **Open** 4 · **In flight** 0 · **Closed** 33
+37 items — **Open** 2 · **In flight** 0 · **Closed** 35
 
-### Open (4)
+### Open (2)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
-| [`B-034`](#b-034--the-advisory-gate-is-single-sourced-against-a-rule-that-names-two-scanners----) | the advisory gate is single-sourced, against a rule that names two scanners | `raw` | — |
 | [`B-035`](#b-035--a-pre-code-repo-is-marked-invalid-for-having-no-code----) | a pre-code repo is marked INVALID for having no code | `raw` | — |
-| [`B-036`](#b-036--the-release-dry-runs-pins-and-gates-can-drift-from-releaseyml-with-nothing-detecting-it--) | the release dry run's pins and gates can drift from `release.yml` with nothing detecting it | `raw` | — |
 | [`B-037`](#b-037--ctxstripe-is-a-vendor-noun-on-published-surface-and-renaming-it-is-a-breaking-change--) | `ctx.stripe` is a vendor noun on published surface, and renaming it is a breaking change | `raw` | — |
 
 ### In flight (0)
 
 _None._
 
-### Closed (33)
+### Closed (35)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -89,6 +87,8 @@ _None._
 | [`B-031`](#b-031--the-skip-message-names-a-script-nobody-checks-exists---x) | the skip message names a script nobody checks exists | `shipped` | — |
 | [`B-032`](#b-032--the-consumer-gate-resolves-peers-from-the-monorepo-so-it-cannot-see-a-missing-one---x) | the consumer gate resolves peers from the monorepo, so it cannot see a missing one | `shipped` | — |
 | [`B-033`](#b-033--two-kit-skills-ship-the-same-module-name-so-their-suites-cannot-run-together---x) | two kit skills ship the same module name, so their suites cannot run together | `shipped` | — |
+| [`B-034`](#b-034--the-advisory-gate-is-single-sourced-against-a-rule-that-names-two-scanners---x) | the advisory gate is single-sourced, against a rule that names two scanners | `shipped` | — |
+| [`B-036`](#b-036--the-release-dry-runs-pins-and-gates-can-drift-from-releaseyml-with-nothing-detecting-it-x) | the release dry run's pins and gates can drift from `release.yml` with nothing detecting it | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
@@ -1607,7 +1607,7 @@ skills` names all 17.
 Three tests, and one of them guards the guard: a single slice, and the root suite, must still run
 normally. Kit suite after: `run_slice_tests.sh` exit 0, root 127 passed, `check_xrefs.py` PASS.
 
-## B-034 — the advisory gate is single-sourced, against a rule that names two scanners   [ ]
+## B-034 — the advisory gate is single-sourced, against a rule that names two scanners   [x]
 
 domain: dev-tooling
 repo: plugin-db-drizzle
@@ -1622,11 +1622,41 @@ evidence: measured 2026-08-24 while shipping [[B-018]]. `rules/deps-audit-golden
   rather than guessed at.
 why_now: [[B-018]] shipped the gate, so there is now something for the second scanner to cross-check.
   Before it, there was no audit in CI at all and the golden rule's § 5 had nothing to bind.
-status: raw
+status: shipped
 dod:
   - `osv-scanner` runs in CI beside `pnpm audit`, its action pinned to a real SHA that was looked up
   - a disagreement between the two scanners is reported, not silently resolved toward either
   - the gate's coverage note stops saying single-sourced, because it stops being true
+shipped: 2026-08-24 — and the item's own assumption about HOW was wrong, which is the point of it
+having been filed instead of guessed.
+
+**There is no action to pin.** `google/osv-scanner-action`'s `action.yml` carries no `runs:` — it is
+18 lines of metadata, and a `uses:` pointing at it fails. What that repository ships is reusable
+WORKFLOWS (`osv-scanner-reusable.yml` and two siblings), which run as a job and upload SARIF; they
+cannot hand results back to the gate, and the gate is the thing that has to compare the two scanners.
+Both facts were read from the repository. The earlier attempt — `google/osv-scanner-action/setup-action@v2.2.3`,
+written from memory — was wrong in every part: that path does not exist and the SHA was invented.
+This item exists because that near-miss was caught before it shipped.
+
+So the binary is fetched from the release and verified against the release's own `SHA256SUMS`:
+`v2.5.1`, `f9f25499…2194be` for `osv-scanner_linux_amd64`, both looked up and the checksum confirmed
+locally against the downloaded bytes. A pinned version plus a verified checksum is the honest
+equivalent of a SHA pin for a downloaded artifact — `dod` bullet 1 in the only form available.
+
+**Disagreements are reported, never resolved.** The gate reads `OSV_RESULTS` and compares GHSA id
+sets in BOTH directions, matching on `id` AND `aliases` — for npm, OSV's own id is usually the GHSA
+but not always, and matching one field alone would manufacture disagreements out of a naming
+difference. It does not fail on divergence: the two read different databases on different refresh
+cycles, so one seeing something first is normal, and a gate red for a reason nobody here can act on
+is a gate people route around.
+
+Measured baseline, which is what makes a future divergence meaningful: **29 GHSA ids from
+`pnpm audit`, 29 from OSV, zero either way.** Verified the reporting works by injecting a divergent
+OSV file — `only \`osv-scanner\` sees GHSA-0000-0000-0000 (ghost-pkg)`.
+
+**The coverage note is now conditional**, so it is true either way: cross-checked with the counts
+when the file is present, and single-sourced when it is absent — which keeps the gate working on a
+machine without the scanner instead of failing there.
 
 ## B-035 — a pre-code repo is marked INVALID for having no code   [ ]
 
@@ -1655,7 +1685,7 @@ dod:
     one layer down
 
 
-## B-036 — the release dry run's pins and gates can drift from `release.yml` with nothing detecting it [ ]
+## B-036 — the release dry run's pins and gates can drift from `release.yml` with nothing detecting it [x]
 
 > Registered 2026-08-24 by the reviewer during B-023's REVIEW phase (finding HIGH-1).
 
@@ -1671,13 +1701,31 @@ it here". A note is not a check. If `release.yml` gains a step and the dry run d
 goes GREEN on a commit the real release rejects — worse than having no dry run, because it produces
 confidence it has not earned. That is the same failure shape this repository already paid for with
 the `pnpm version` reserved-word trap, where a step "still looked like it had worked" for two months.
-status: raw
+status: shipped
 dod:
 
 - a check fails when the two workflows pin different SHAs for the same action
 - the check states what it does NOT compare, since the gate list is not derivable from the YAML
   without interpreting it — a check that silently covers half the drift is the problem again
 - it runs where a change to either workflow is seen, not only on a dispatch nobody remembers
+shipped: 2026-08-24 — `integration/tests/manifests/workflow-pin-drift.offline.test.ts`, 3 cases.
+
+All three `dod` bullets:
+
+- **fails when the two pin different SHAs** — mutating `actions/checkout` in the dry run turns it red
+  with `actions/checkout: release.yml pins 3d3c42e5aac5…, release-dryrun.yml pins 000000000000…`.
+  Both pins in the message, so the reader does not have to open two files to see which moved.
+- **states what it does NOT compare** — the gate STEPS. Whether the dry run runs the same
+  `pnpm typecheck` and `pnpm test` is a question about what a `run:` block MEANS, not about what a
+  `uses:` line says, and answering it would need the YAML interpreted. Named in the file header and
+  again in an assertion message, because a check silently covering half the drift is the problem
+  this item is about.
+- **runs where a change to either workflow is seen** — `integration:offline`, on every pull request.
+
+Two vacuity guards, and neither is a formality: an empty pin map would make the comparison agree
+perfectly while checking nothing, and two workflows sharing no action would make the drift assertion
+pass over an empty set. A third case covers the other direction — a dry run pinning an action the
+release does not use is rehearsing a different job, and the main comparison cannot see it.
 
 ## B-037 — `ctx.stripe` is a vendor noun on published surface, and renaming it is a breaking change [ ]
 

@@ -100,6 +100,46 @@ function audit() {
   }
 }
 
+/**
+ * The GHSA ids `osv-scanner` reported, or `null` when it did not run.
+ *
+ * `rules/deps-audit-golden-rule.md § 5` names `npm audit` AND `osv-scanner` for npm, cross-checked.
+ * Until 2026-08-24 only the first ran, and this gate said so rather than implying otherwise.
+ *
+ * The file is produced by CI (`osv-scanner scan source --lockfile pnpm-lock.yaml --format json`)
+ * and read here; the scanner is not invoked from this script, so a machine without it keeps working
+ * and reports itself single-sourced instead of failing.
+ *
+ * Both `id` and `aliases` are read: for npm packages OSV's own id is usually the GHSA, but not
+ * always — matching on one field alone would manufacture disagreements out of a naming difference.
+ */
+function osvGhsaIds() {
+  const path = process.env.OSV_RESULTS
+  if (path === undefined || !existsSync(path)) return null
+  let parsed
+  try {
+    parsed = JSON.parse(readFileSync(path, 'utf8'))
+  } catch (error) {
+    // Loud, never silent: a malformed file must not read as "the scanners agree".
+    console.error(
+      `[deps-advisories] x OSV_RESULTS at ${path} is not readable JSON: ${error.message}`,
+    )
+    return null
+  }
+  const ids = new Map()
+  for (const result of parsed.results ?? []) {
+    for (const pkg of result.packages ?? []) {
+      for (const vuln of pkg.vulnerabilities ?? []) {
+        for (const ident of [vuln.id, ...(vuln.aliases ?? [])]) {
+          if (typeof ident === 'string' && ident.startsWith('GHSA-'))
+            ids.set(ident, pkg.package.name)
+        }
+      }
+    }
+  }
+  return ids
+}
+
 const report = audit()
 const shipping = []
 const contained = []
@@ -146,15 +186,53 @@ if (shipping.length > 0) {
 console.log(
   `\n[deps-advisories] ${contained.length} HIGH advisor(y|ies) found, none reaching a runtime chain.`,
 )
+
+// The cross-check the golden rule names. A disagreement is REPORTED and not resolved toward either
+// scanner: they read different databases on different refresh cycles, so one seeing something first
+// is normal and neither is authoritative. Failing on any divergence would make the gate red for a
+// reason nobody in this repository can act on — and a gate people cannot act on is a gate they
+// route around.
+//
+// What it IS good for: the day one scanner stops seeing a whole class of package, this is what
+// notices. Measured 2026-08-24, the two agree exactly — 29 GHSA ids each, zero either way — which
+// is the baseline that makes a future divergence meaningful.
+const osvIds = osvGhsaIds()
+const coverage = []
+if (osvIds === null) {
+  coverage.push(
+    '`osv-scanner` did not run — no OSV_RESULTS file. The golden rule names it as a cross-check for',
+    'npm, so this run is single-sourced on `pnpm audit`.',
+  )
+} else {
+  const auditIds = new Map()
+  for (const advisory of Object.values(report.advisories)) {
+    if (typeof advisory.github_advisory_id === 'string') {
+      auditIds.set(advisory.github_advisory_id, advisory.module_name)
+    }
+  }
+  const onlyAudit = [...auditIds.keys()].filter((id) => !osvIds.has(id)).sort()
+  const onlyOsv = [...osvIds.keys()].filter((id) => !auditIds.has(id)).sort()
+
+  coverage.push(
+    `cross-checked against \`osv-scanner\`: ${auditIds.size} GHSA id(s) from \`pnpm audit\`, ` +
+      `${osvIds.size} from OSV, ${onlyAudit.length + onlyOsv.length} disagreement(s).`,
+  )
+  for (const id of onlyAudit)
+    coverage.push(`  only \`pnpm audit\` sees ${id} (${auditIds.get(id)})`)
+  for (const id of onlyOsv) coverage.push(`  only \`osv-scanner\` sees ${id} (${osvIds.get(id)})`)
+  if (onlyAudit.length + onlyOsv.length > 0) {
+    coverage.push(
+      '  Reported, not resolved: the two read different databases on different refresh cycles.',
+    )
+  }
+}
+
 process.exit(
   reportGate({
     label: 'deps-advisories',
     subject: 'advisories',
     checked: Object.keys(report.advisories).length,
-    skipped: [
-      '`osv-scanner` was not run (not installed); the golden rule names it as a cross-check for npm,',
-      'so this run is single-sourced on `pnpm audit`.',
-    ],
+    skipped: coverage,
   })
     ? 0
     : 1,

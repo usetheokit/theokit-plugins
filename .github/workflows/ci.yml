@@ -194,12 +194,41 @@ jobs:
       # It lives in this job rather than in `test` so a registry outage does not read as a test
       # failure.
       #
-      # `osv-scanner` is NOT installed here, and the gate's own output says so. The golden rule
-      # names it as the cross-check for npm, and adding it means an action reference pinned to a
-      # SHA — every other `uses:` in this file is, and zizmor enforces it. A SHA written from
-      # memory is a fabrication with a plausible shape, so the cross-check is filed as its own
-      # item rather than guessed at here. The run reports its coverage as single-sourced.
+      # The cross-check `rules/deps-audit-golden-rule.md § 5` names for npm (B-034).
+      #
+      # Fetched as a RELEASE BINARY verified against the release's own SHA256SUMS, not as an
+      # action. `google/osv-scanner-action`'s `action.yml` carries no `runs:` — it is metadata, and
+      # a `uses:` pointing at it fails. What that repository actually ships is reusable WORKFLOWS,
+      # which run as a job and upload SARIF; they cannot hand results back to the gate below, and
+      # the gate is the thing that has to compare the two scanners. Both facts were read from the
+      # repository, because the earlier attempt at this line was written from memory
+      # (`google/osv-scanner-action/setup-action@v2.2.3`) and every part of it was wrong — the
+      # path does not exist and the SHA was invented. That near-miss is why B-034 exists.
+      #
+      # A pinned version plus a verified checksum is the honest equivalent of a SHA pin for a
+      # downloaded artifact: `shasum -c` fails the step if the bytes are not the ones measured on
+      # 2026-08-24 against v2.5.1.
+      - name: Fetch osv-scanner (pinned, checksum-verified)
+        env:
+          OSV_VERSION: v2.5.1
+          OSV_SHA256: f9f25499a2c8cc367b3af45df2ea7eeca7fbccceab9c35079968f4b3652194be
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/osv-scanner" \
+            "https://github.com/google/osv-scanner/releases/download/$OSV_VERSION/osv-scanner_linux_amd64"
+          echo "$OSV_SHA256  $RUNNER_TEMP/osv-scanner" | shasum -a 256 -c -
+          chmod +x "$RUNNER_TEMP/osv-scanner"
+
+      # `|| true`: the scanner exits non-zero when it FINDS something, which is not a failure of
+      # this step — the gate below decides what matters, on runtime reachability rather than on
+      # presence. Losing that distinction is what makes a vulnerability gate get switched off.
+      - name: Scan the lockfile with osv-scanner
+        run: |
+          "$RUNNER_TEMP/osv-scanner" scan source --lockfile pnpm-lock.yaml \
+            --format json > "$RUNNER_TEMP/osv.json" || true
+
       - name: Dependency advisories gate (runtime chains only)
+        env:
+          OSV_RESULTS: ${{ runner.temp }}/osv.json
         run: pnpm quality:deps
 
   test:
