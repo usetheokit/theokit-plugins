@@ -6,17 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Fixed
+### Added
 
-- The `route()` examples in four READMEs declared no policy, so a reader copying one got a build failure from `theokit@0.50.0+`, which requires it (#155).
+- `pnpm check:manifests` now refuses a framework peer range whose ceiling nobody typed — a `^` on a `0.x` version, which pins the MINOR rather than admitting the next release (#151).
+- `pnpm quality:route-examples` refuses a README `route()` example that declares no policy, which `theokit@0.50.0+` requires (#155).
 
 ### Changed
 
 - These packages are built, tested and documented against `theokit@0.50.1`; the peer floor moves to match, instead of admitting versions nobody here verifies (#155).
 
-### Added
+### Fixed
 
-- `pnpm check:manifests` now refuses a framework peer range whose ceiling nobody typed — a `^` on a `0.x` version, which pins the MINOR rather than admitting the next release (#151).
+- The `route()` examples in four READMEs declared no policy, so a reader copying one got a build failure from `theokit@0.50.0+`, which requires it (#155).
 
 ## 2026-08-24 (second cut)
 
