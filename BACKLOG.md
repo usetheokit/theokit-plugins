@@ -37,14 +37,13 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-26 items — **Open** 19 · **In flight** 0 · **Closed** 7
+26 items — **Open** 18 · **In flight** 0 · **Closed** 8
 
-### Open (19)
+### Open (18)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish--) | Nothing compiles the code examples our READMEs publish | `triaged` | — |
 | [`B-010`](#b-010--plugin-realtimes-presence-and-broadcast-never-leave-the-client--) | `plugin-realtime`'s presence and broadcast never leave the client | `raw` | — |
 | [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `raw` | — |
 | [`B-012`](#b-012--plugin-forms-cannot-upload-a-file--) | `plugin-forms` cannot upload a file | `raw` | — |
@@ -67,7 +66,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (7)
+### Closed (8)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -78,6 +77,7 @@ _None._
 | [`B-006`](#b-006--backlog-init-assumed-an-umbrella-and-would-have-refused-to-run-here-x) | `/backlog-init` assumed an umbrella and would have refused to run here | `shipped` | — |
 | [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams-x) | The `plugin-` prefix names four different integration seams | `shipped` | — |
 | [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it-x) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `shipped` | — |
+| [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish-x) | Nothing compiles the code examples our READMEs publish | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
@@ -383,7 +383,7 @@ The finding worth keeping: the gate was **inert in CI**. `actions/checkout` defa
 branch on every run — honest on stdout, invisible under a green check mark. Verified after the fix
 that CI now prints `the newest release is recorded`, where it would have printed `did not run`.
 
-## B-009 — Nothing compiles the code examples our READMEs publish [ ]
+## B-009 — Nothing compiles the code examples our READMEs publish [x]
 
 > Registered 2026-08-20 by `/backlog-item` (slug: `readme-examples-compile-gate`).
 
@@ -410,7 +410,7 @@ method that moved. Both defects fixed under #67 that a careful reading would sti
 found by compiling the block instead — `provider.startSignIn(req)` resolves to a `URL` rather than a
 string, and `payments` never moved to the `/stripe` subpath the migration guide pointed at. That
 verification happened once, by hand, in a scratch directory that no longer exists.
-status: triaged
+status: shipped
 dod:
 
 - a gate that compiles the `ts / `tsx blocks of the versioned Markdown, not just their import
@@ -422,6 +422,21 @@ dod:
   as a gap in the gate rather than as a defect in the documentation
 - it runs in `ci.yml` alongside `quality:docs`, and the run says how many blocks it compiled — a
   number nobody can read is how the previous gate's blind spot stayed invisible
+
+resolution: shipped 2026-08-23 in PR #122. `pnpm quality:doc-api` now type-checks each block as its
+own program, with what the block assumes declared in a `doc-example` comment. Mechanism and
+reasoning in `docs/adr/0003-documented-examples-declare-what-they-assume.md`.
+
+Five real defects found, four of them by the gate on its first runs — including `onSignIn`
+published in a non-compiling form in **all three** auth READMEs, and `defineConfig` published by
+three blocks while exported by nothing.
+
+Two things worth keeping from the review. The first version compiled a package's blocks as one
+program, and that single choice produced three failures at once: a syntax error suppressed every
+semantic diagnostic in the package, a `needs=` stub in one section downgraded unrelated blocks, and
+the counts moved silently. And `declare module './x.js'` does nothing — TypeScript does not apply
+ambient declarations to relative specifiers — so 14 of 64 blocks were skipped while the commit
+claimed the opposite. Counts went 31/18/15 → 40/24/0.
 
 ## B-010 — `plugin-realtime`'s presence and broadcast never leave the client [ ]
 

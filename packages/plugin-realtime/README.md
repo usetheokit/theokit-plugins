@@ -99,14 +99,90 @@ function Cursors() {
 
 Hooks available:
 
-| Hook                       | Returns                                                                   | Notes                                                                                                         |
-| -------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `useRoom<P, E>()`          | `{roomId, others, myPresence, connectionId, updateMyPresence, broadcast}` | Throws outside `<RoomProvider>`                                                                               |
-| `useOthers<P>()`           | `Record<connectionId, P>`                                                 | Read-only snapshot of other clients' presence                                                                 |
-| `usePresence<P>()`         | `P`                                                                       | Local client's current presence                                                                               |
-| `useUpdateMyPresence<P>()` | `(patch: Partial<P>) => void`                                             | **Local-only in v0.1** — updates local state optimistically but does not sync to the server yet               |
-| `useBroadcast<E>()`        | `(event: string, payload: E) => void`                                     | **Local-only in v0.1** — events are scoped to the current client and do not fan out to other participants yet |
-| `useYDoc()`                | `Y.Doc`                                                                   | Throws in v0.1 — Y.Doc auto-wiring deferred to v0.x                                                           |
+| Hook                       | Returns                                                                   | Notes                                                                                                                                     |
+| -------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `useRoom<P, E>()`          | `{roomId, others, myPresence, connectionId, updateMyPresence, broadcast}` | Throws outside `<RoomProvider>`                                                                                                           |
+| `useOthers<P>()`           | `Record<connectionId, P>`                                                 | Read-only snapshot of other clients' presence                                                                                             |
+| `usePresence<P>()`         | `P`                                                                       | Local client's current presence                                                                                                           |
+| `useUpdateMyPresence<P>()` | `(patch: Partial<P>) => void`                                             | **Local-only unless a `sender` is supplied** — merges locally either way; with a sender, also sends a `presence-update` frame             |
+| `useBroadcast<E>()`        | `(event: string, payload: E) => void`                                     | **Local-only in v0.1 unless a `sender` is supplied** — with no sender this is a no-op; with one, the server fans out to every participant |
+| `useYDoc()`                | `Y.Doc`                                                                   | Throws in v0.1 — Y.Doc auto-wiring deferred to v0.x                                                                                       |
+
+### Sending: the `sender` port
+
+`RoomProvider` takes a receive-side `client` and an optional send-side `sender`. Supply one and the
+hooks stop being local-only; supply nothing and behaviour is exactly what it was.
+
+The port is deliberately transport-agnostic, because the server half is: `RealtimeRuntime` takes
+whatever provider you run, and this side takes whatever transport you run. A WebSocket you own, a
+POST to your own route — the plugin does not choose.
+
+<!-- doc-example: needs="./my-transport.js" -->
+
+```tsx
+import {
+  RoomProvider,
+  type RealtimeSendClient,
+  type RealtimeSubscribeClient,
+} from '@theokit/plugin-realtime/react'
+
+import { socket } from './my-transport.js'
+
+// The receive side you already supply.
+declare const subscribeClient: RealtimeSubscribeClient
+
+const sender: RealtimeSendClient = {
+  send: (frame) => socket.send(JSON.stringify(frame)),
+}
+
+export function Room({ children }: { children: React.ReactNode }) {
+  return (
+    <RoomProvider roomId="cursor" client={subscribeClient} sender={sender}>
+      {children}
+    </RoomProvider>
+  )
+}
+```
+
+**You wire both ends.** Nothing in this package calls `dispatchFrame` — a plugin cannot register a
+route, so the inbound handler is yours. A `sender` that writes to a socket nobody reads sends into
+nothing: on the server, hand what arrives to the runtime.
+
+<!-- doc-example: needs="./my-server-socket.js" -->
+
+```ts
+import type { RealtimeRuntime } from '@theokit/plugin-realtime'
+
+import { socket } from './my-server-socket.js'
+
+// Yours: the runtime you constructed, and the ids this connection belongs to.
+declare const runtime: RealtimeRuntime
+declare const roomId: string
+declare const connectionId: string
+
+socket.on('message', (raw: string) => {
+  void runtime.dispatchFrame(roomId, connectionId, JSON.parse(raw))
+})
+```
+
+`dispatchFrame` validates against the room's schema before the provider fans out, so an invalid
+patch fails with a named error rather than reaching other clients. A patch is merged over the
+connection's current presence **before** validation, so a partial update is valid in a room whose
+presence has required fields.
+
+**Memoise the sender.** It is a dependency of the room context, so an inline
+`sender={{ send: … }}` is a new identity on every parent render and re-renders every `useRoom`,
+`useOthers` and `usePresence` consumer with it — measured at 6 consumer renders across 5 parent
+renders, against 1 for a stable reference. Define it outside the component or wrap it in
+`useMemo`.
+
+**Your own frames come back.** The provider notifies every listener in the room, including the
+sender. The echo is not a second application of your patch: it carries the server's **full**
+presence and replaces your local copy with it.
+
+So the server is authoritative, and that has a consequence worth knowing — a key you set that the
+room's presence schema does not declare survives locally until the echo arrives, and is stripped
+when it does. Declare every field you rely on.
 
 ## Yjs CRDT provider (opt-in)
 

@@ -13,6 +13,7 @@
  */
 
 import * as React from 'react'
+import type { InboundWireFrame } from '../internal/runtime.js'
 import type { BroadcastPayload, Presence } from '../types.js'
 
 /**
@@ -26,6 +27,51 @@ export interface RealtimeSubscribeClient {
     input: TInput,
     opts: { baseUrl: string; transport?: 'ws' | 'sse' | 'auto' },
   ): AsyncGenerator<TOutput, void, void>
+}
+
+/**
+ * A frame a client sends the server.
+ *
+ * This IS the server's own union — `InboundWireFrame` from `internal/runtime.ts`, re-exported
+ * rather than restated. The first version hand-rolled a narrower copy carrying only
+ * `presence-update` and `broadcast`, which meant two things: the duplicate had to be kept in step
+ * by hand, and `yjs-update` / `yjs-awareness` could not travel the port at all — so a consumer
+ * driving the shipped Yjs provider had no send side.
+ *
+ * `rules/parsimony-ladder.md` rung 4: the type was already declared and already public.
+ *
+ * @public
+ */
+export type RealtimeOutboundFrame = InboundWireFrame
+
+/**
+ * The send-side port — the mirror of {@link RealtimeSubscribeClient}.
+ *
+ * The hooks were given a receive-only client and never a send-side one, which is why presence and
+ * broadcasts stayed local: not a missing channel, a missing port. The server half has always been
+ * complete — `RealtimeRuntime` fans a validated broadcast out to every participant — and it is
+ * deliberately transport-agnostic, so this side is too. A consumer supplies whatever reaches their
+ * own endpoint: a WebSocket they own, a POST to their own route.
+ *
+ * Structural, and deliberately NOT imported from `@theokit/sdk`. Measured 2026-08-23:
+ * `subscribe()` returns `AsyncGenerator<TOutput, void, void>` and the `./subscription` subpath
+ * exports no outbound verb, so there is nothing upstream to import — by either route.
+ *
+ * @public
+ */
+export interface RealtimeSendClient {
+  /**
+   * Hand a frame to the transport.
+   *
+   * May return a promise. The README's own suggestion — "a POST to your own route" — is async, and
+   * a `void` return silently swallowed its rejection: measured, an async sender produced one
+   * unhandled rejection and nothing else while the local UI showed the update as applied.
+   *
+   * A rejection is the consumer's to handle. `useUpdateMyPresence` awaits nothing, so attach your
+   * own `.catch` if a failed send should surface — the hook will not invent a retry or a rollback
+   * policy for you.
+   */
+  send(frame: RealtimeOutboundFrame): void | Promise<void>
 }
 
 /**
@@ -144,6 +190,14 @@ export interface RoomProviderProps {
   initialPresence?: Presence
   /** G8-compatible subscribe client. */
   client: RealtimeSubscribeClient
+  /**
+   * Optional outbound transport.
+   *
+   * Omitted, the hooks behave exactly as they did before this existed: `emit` merges into local
+   * presence and `emitBroadcast` does nothing. The package is published, so the port is additive
+   * by construction rather than by intention.
+   */
+  sender?: RealtimeSendClient
   /** Base URL for the realtime endpoint (defaults to `''` = relative). */
   baseUrl?: string
   /** Optional subscription name override (defaults to `realtime:{roomId}`). */
@@ -157,7 +211,7 @@ export interface RoomProviderProps {
  * @public
  */
 export function RoomProvider(props: RoomProviderProps): React.ReactElement {
-  const { roomId, initialPresence, client, baseUrl, subscriptionName, children } = props
+  const { roomId, initialPresence, client, sender, baseUrl, subscriptionName, children } = props
   const [state, setState] = React.useState<InternalRoomState>(() => ({
     others: {},
     myPresence: { ...(initialPresence ?? {}) },
@@ -221,21 +275,35 @@ export function RoomProvider(props: RoomProviderProps): React.ReactElement {
     () => ({
       state,
       roomId,
-      emit(_out) {
-        // Outbound presence updates require an outbound channel back to the
-        // server (G8 WS upstream). For the v0.1 hooks scaffold we update
-        // local state optimistically; the wire-up to send via client is a
-        // post-MVP enhancement once G8 `subscribe` upstream `.send()` API
-        // stabilizes (currently AsyncGenerator is read-only).
-        const merged = { ...state.myPresence, ..._out.patch } as Presence
+      emit(out) {
+        // SEND FIRST, then merge. The order matters for a synchronous throw: merging first left
+        // the local UI showing an update that was never sent — measured, exactly the "looks
+        // synced and is not" this design cites as its reason. Sending first means a transport
+        // that refuses loudly also prevents the false merge.
+        //
+        // Not wrapped in try/catch: a transport that is down is the consumer's to handle
+        // (`rules/error-handling.md` § 2). An ASYNC rejection is a different case that no order
+        // fixes — the merge has already happened when it arrives — and `RealtimeSendClient.send`
+        // documents that as the consumer's to catch.
+        void sender?.send({ kind: 'presence-update', patch: out.patch })
+        // Optimistic, so the local UI does not lag its own input.
+        //
+        // The server echoes: `fanout` notifies every listener in the room including the sender.
+        // But the echo is not a re-application of this patch — it carries the server's FULL
+        // presence, and `applyPresenceChangedFrame` REPLACES `myPresence` with it. So the server
+        // is authoritative, and a key this client set that the room's schema does not declare is
+        // stripped when the echo lands. That is worth knowing and is not idempotence; an earlier
+        // version of this comment claimed the patch was applied twice, and it is not.
+        const merged = { ...state.myPresence, ...out.patch } as Presence
         setStateAndNotify({ ...state, myPresence: merged })
       },
-      emitBroadcast(_event, _payload) {
-        // Same upstream constraint as `emit`; broadcasts are tracked locally
-        // until upstream support lands.
+      emitBroadcast(event, payload) {
+        // Nothing local to do: a broadcast is other participants' state, not this client's. With
+        // no sender this stays the no-op the README documents.
+        void sender?.send({ kind: 'broadcast', event, payload })
       },
     }),
-    [state, roomId, setStateAndNotify],
+    [state, roomId, sender, setStateAndNotify],
   )
 
   return React.createElement(RoomContext.Provider, { value }, children)
