@@ -50,14 +50,23 @@ let received: unknown
 let currentAction: Record<string, unknown>
 
 beforeAll(async () => {
-  const { readdirSync, readFileSync } = await import('node:fs')
+  const { existsSync, readdirSync, readFileSync } = await import('node:fs')
   const { join } = await import('node:path')
   const { pathToFileURL } = await import('node:url')
 
-  const root = join(process.cwd(), '..', '..', 'node_modules', '.pnpm')
-  const pkg = readdirSync(root).find((d) => d.startsWith('theokit@'))
-  if (pkg === undefined) throw new Error('theokit is not installed; agreement cannot be verified.')
-  const dist = join(root, pkg, 'node_modules', 'theokit', 'dist')
+  // Resolved through THIS package's own `node_modules/theokit`, which pnpm points at the version
+  // plugin-forms declares. The previous version listed the workspace-root `.pnpm` store and took
+  // the first `theokit@*` entry it found — whichever the filesystem happened to return, belonging
+  // to whichever package. With two versions installed that is 0.48.8 while this package depends on
+  // 0.50.1, so the suite was measuring a framework it does not use, and the DIAGNOSIS test below
+  // could never have fired on the fix it promises to detect. A gate that cannot fail is the defect
+  // this repository keeps finding in its own gates, and this one had it in its instrument.
+  const dist = join(process.cwd(), 'node_modules', 'theokit', 'dist')
+  if (!existsSync(dist)) {
+    throw new Error(
+      'theokit is not resolvable from packages/plugin-forms; agreement cannot be verified.',
+    )
+  }
   const holder = readdirSync(dist).find(
     (f) =>
       f.endsWith('.js') &&
@@ -186,25 +195,29 @@ describe('a real action, over a real multipart request', () => {
 })
 
 describe('what the framework can and cannot carry', () => {
-  it('DIAGNOSIS: a scalar array loses every element but the last', async () => {
-    // Measured, and it is a framework defect rather than a converter one. `parseWebRequestBody`
-    // collects text parts into a PLAIN OBJECT (`fields[key] = value`), so two parts named `tags`
-    // overwrite each other before `synthesizeFormData` rebuilds the FormData. By the time
-    // `formDataToObject` calls `getAll('tags')`, there is only ever one value to get.
+  it('a scalar array survives the round trip', async () => {
+    // This was the DIAGNOSIS test, and it asserted the opposite: `toEqual(['third'])`. The
+    // framework collected text parts into a plain object (`fields[key] = value`), so two parts
+    // named `tags` overwrote each other before the FormData was rebuilt, and by the time
+    // `formDataToObject` called `getAll('tags')` there was only ever one value to get.
     //
-    // There is no client-side fix: the collapse happens upstream of the convention. Pinning it
-    // here so the limitation is a checked fact rather than a footnote, and so the day it is fixed
-    // this test fails and tells us.
+    // Fixed upstream in usetheokit/theokit#430, shipped in `theokit@0.50.1`, and verified against
+    // the published package rather than a local build. The three producer sites now accumulate;
+    // the consumer end was always correct.
     //
-    // Reported upstream as usetheokit/theokit#430 (re-verified against theokit@0.48.8 on
-    // 2026-08-24). The exact site is the `multipart/form-data` branch of `parseWebRequestBody`:
-    // `fields[key] = value` for strings, beside `files.push(...)` for files — the asymmetry is in
-    // one loop. The Node path repeats it at the busboy `field` handler.
+    // What is asserted here is the CONVENTION holding end to end — `valuesToFormData` writes the
+    // parts, the framework reads them back, the handler sees what the caller passed. That is the
+    // same thing the test always measured; only the answer changed.
+    //
+    // Version boundary, stated because it is load-bearing: this passes against >= 0.50.1 and fails
+    // against everything before it. `packages/plugin-forms/package.json` pins the devDependency at
+    // `>=0.50.1` for exactly that reason. Widening it back below that version turns this red, which
+    // is the correct outcome and not a regression in this package.
     const schema = z.object({ tags: z.array(z.string()) })
 
     const { seen } = await roundTrip({ tags: ['first', 'second', 'third'] }, schema)
 
-    expect((seen as { tags: string[] }).tags).toEqual(['third'])
+    expect((seen as { tags: string[] }).tags).toEqual(['first', 'second', 'third'])
   })
 
   it('but a FILE array survives, because files are not collected into an object', async () => {
