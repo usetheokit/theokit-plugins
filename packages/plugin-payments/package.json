@@ -34,7 +34,7 @@
     "drizzle-orm": ">=0.36.0",
     "reflect-metadata": "^0.2.0",
     "stripe": ">=14.0.0",
-    "theokit": ">=0.48.7"
+    "theokit": ">=0.50.1"
   },
   "peerDependenciesMeta": {
     "drizzle-orm": {
@@ -47,7 +47,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "stripe": "^14.8.0",
-    "theokit": "^0.48.7",
+    "theokit": ">=0.50.1",
     "tsup": "^8.5.0",
     "typescript": "^5.8.0",
     "vitest": "^4.1.8"
