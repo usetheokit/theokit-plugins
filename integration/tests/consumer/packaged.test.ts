@@ -228,8 +228,14 @@ describe('consumer smoke — the packaging contract', () => {
         if (runtime === undefined) continue
 
         it(`resolves and loads ${subpath}`, async () => {
-          // Imports dist/, not src/, so it exercises what a consumer resolves: bundled
-          // output, externals, and every peer the entry pulls at load time.
+          // Imports dist/, not src/, so it exercises the bundled output and its externals.
+          //
+          // It does NOT exercise peers, and used to claim it did. The import is by absolute path
+          // into `packages/<name>/`, so every peer resolves from this monorepo's own
+          // `node_modules` and none is ever missing — a missing-peer defect survived in a PUBLISHED
+          // package while this gate reported it green (B-016, B-032). `isolated-entries.offline.test.ts`
+          // is the one that can see it: it copies `dist` into a fixture holding exactly the
+          // declared dependencies.
           const mod = (await import(
             join(REPO_ROOT, 'packages', dir, normalize(runtime))
           )) as Record<string, unknown>
