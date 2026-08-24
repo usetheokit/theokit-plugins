@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Embedded checkout in `@theokit/plugin-payments`: `createCheckout({ uiMode: 'embedded', returnUrl })` returns a `clientSecret` to mount the payment form inside your own page. Proven against real Stripe, not only typed (#B-013)
 - `<TheoForm encType="multipart/form-data">` in `@theokit/plugin-forms` converts values to the multipart shape the framework reconstructs, so file uploads work. The README said "No file uploads in v0.1"; the file always reached the action, and what was missing was one schema-guided conversion (#B-012)
 - `useYDoc()` in `@theokit/plugin-realtime` returns the room's Yjs document instead of throwing. Pass a stable `ydoc` to `<RoomProvider>`; live edits flow both ways. There is no initial sync yet — a client joining an existing document sees it empty until somebody types. `yjs` stays an optional peer (#B-011)
 - `@theokit/plugin-realtime`'s `RoomProvider` takes an optional `sender` port, so presence and broadcasts reach other participants instead of staying local (#B-010)
@@ -16,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **BREAKING:** `CheckoutResult` in `@theokit/plugin-payments` is discriminated by `uiMode`. Narrow on it to read `url` (hosted) or `clientSecret` (embedded). `url` stays required on the hosted branch rather than becoming optional, so the guarantee every existing caller relies on is unchanged — but reading it without narrowing is now a compile error (#B-013)
+- `CheckoutInput` makes the invalid URL combination unrepresentable: an embedded call takes `returnUrl`, a hosted one takes `successUrl`/`cancelUrl`. Stripe refuses the two together, so the type refuses first (#B-013)
 - The root CHANGELOG uses dated release sections instead of version headers. This repository releases packages, not itself: the root manifest is a private `0.0.0`, and five version headers named a version no tag or manifest carried. Decision in `docs/adr/0002` (#B-008)
 
 ## 2026-08-23

@@ -18,7 +18,13 @@ function fakeProvider(name: string, event: Partial<PaymentEvent> = {}): PaymentP
   return {
     name,
     createCheckout: () =>
-      Promise.resolve({ id: 'c', url: 'https://pay/1', provider: name, raw: {} }),
+      Promise.resolve({
+        id: 'c',
+        uiMode: 'hosted' as const,
+        url: 'https://pay/1',
+        provider: name,
+        raw: {},
+      }),
     verifyWebhook: () =>
       Promise.resolve({
         type: 'checkout.completed',

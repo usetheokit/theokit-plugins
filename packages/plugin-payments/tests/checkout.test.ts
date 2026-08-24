@@ -32,7 +32,11 @@ describe('createCheckoutSession (P#6 T2.4)', () => {
     })
 
     expect(result.sessionId).toBe('cs_test_xxx')
-    expect(result.url).toBe('https://checkout.stripe.com/c/pay/cs_test_xxx')
+    // Narrowed, because the envelope is discriminated now: an embedded session has no url at all.
+    expect(result.uiMode).toBe('hosted')
+    expect(result.uiMode === 'hosted' ? result.url : null).toBe(
+      'https://checkout.stripe.com/c/pay/cs_test_xxx',
+    )
   })
 
   it('throws CheckoutSessionMisconfigError when session lacks URL', async () => {
@@ -154,5 +158,51 @@ describe('formatAmountForDisplay (P#6 T2.4 currency helper)', () => {
   it('formats JPY without decimal point', () => {
     const formatted = formatAmountForDisplay(1500, 'JPY')
     expect(formatted).not.toContain('.')
+  })
+})
+
+describe('createCheckoutSession and the embedded mode', () => {
+  /** A client whose `create` echoes what a real embedded session looks like. */
+  function embeddedClient(session: Record<string, unknown>) {
+    return {
+      checkout: { sessions: { create: () => Promise.resolve(session) } },
+    } as unknown as Parameters<typeof createCheckoutSession>[0]
+  }
+
+  it('returns the client secret instead of throwing on the null url', async () => {
+    // This helper passes `params` VERBATIM, so a consumer could always ask Stripe for an embedded
+    // session — and then hit the same null-url throw the provider used to have. Leaving it there
+    // while the provider serves both modes would be a second copy of the same wall.
+    const result = await createCheckoutSession(
+      embeddedClient({
+        id: 'cs_1',
+        url: null,
+        client_secret: 'cs_1_secret_abc',
+        ui_mode: 'embedded',
+      }),
+      { ui_mode: 'embedded', mode: 'payment', line_items: [], return_url: 'https://x/return' },
+    )
+
+    expect(result.uiMode).toBe('embedded')
+    expect(result.uiMode === 'embedded' ? result.clientSecret : null).toBe('cs_1_secret_abc')
+  })
+
+  it('still refuses a hosted session with no url', async () => {
+    // The existing guarantee, unchanged: a hosted session without a url is a misconfiguration.
+    await expect(
+      createCheckoutSession(embeddedClient({ id: 'cs_1', url: null }), {
+        mode: 'payment',
+        line_items: [],
+      }),
+    ).rejects.toBeInstanceOf(CheckoutSessionMisconfigError)
+  })
+
+  it('fails by name when an embedded session has no client secret', async () => {
+    await expect(
+      createCheckoutSession(
+        embeddedClient({ id: 'cs_1', url: null, client_secret: null, ui_mode: 'embedded' }),
+        { ui_mode: 'embedded', mode: 'payment', line_items: [], return_url: 'https://x/return' },
+      ),
+    ).rejects.toThrow(/client secret|client_secret/i)
   })
 })

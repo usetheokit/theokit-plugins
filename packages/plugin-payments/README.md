@@ -10,12 +10,12 @@ Multi-provider payments for TheoKit. One neutral contract, with Stripe and Abaca
 
 `PaymentProvider`, the four things every gateway here does:
 
-| Method                        | What it is for                                                        |
-| ----------------------------- | --------------------------------------------------------------------- |
-| `createCheckout(input)`       | A hosted checkout — one-off or `mode: 'subscription'`. Returns a URL. |
-| `verifyWebhook(req)`          | Authenticity + normalisation. Throws on a bad signature.              |
-| `retrieveCheckout(reference)` | Where a charge stands, **asked** rather than waited for.              |
-| `refund(input)`               | Refund a completed charge in full.                                    |
+| Method                        | What it is for                                                                                                                                                      |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `createCheckout(input)`       | A checkout — one-off or `mode: 'subscription'`, hosted or embedded. The result is discriminated by `uiMode`: hosted carries `url`, embedded carries `clientSecret`. |
+| `verifyWebhook(req)`          | Authenticity + normalisation. Throws on a bad signature.                                                                                                            |
+| `retrieveCheckout(reference)` | Where a charge stands, **asked** rather than waited for.                                                                                                            |
+| `refund(input)`               | Refund a completed charge in full.                                                                                                                                  |
 
 Plus:
 
@@ -44,7 +44,7 @@ SDK — which is the coupling this package exists to remove.
 
 **AbacatePay — `@theokit/plugin-payments/abacatepay`**
 
-- `AbacatePayProvider({ apiKey, webhookSecret })` — hosted checkout plus inline PIX via `createPixCharge`.
+- `AbacatePayProvider({ apiKey, webhookSecret })` — hosted checkout plus inline PIX via `createPixCharge`. Embedded checkout is **not implemented by this adapter**; whether AbacatePay offers one is unverified — see below.
 - No SDK and no peer dependency: it speaks REST over `fetch`.
 
 ### Why subpaths
@@ -89,6 +89,58 @@ subscription is a capability. That looks arbitrary until you see the rule:
 - a **method** a provider does not have is a capability, because its absence has
   to be visible to the compiler. Otherwise every consumer writes a call that
   type-checks and throws.
+
+## Hosted and embedded checkout
+
+`createCheckout` serves both, discriminated by `uiMode`. Narrow on it to reach the field that mode
+carries:
+
+<!-- doc-example: needs="./my-provider.js" -->
+
+```ts
+import type { CheckoutResult } from '@theokit/plugin-payments'
+
+import { provider } from './my-provider.js'
+
+// Hosted — the default. Written exactly as it was before `uiMode` existed.
+const hosted: CheckoutResult = await provider.createCheckout({
+  items: [{ ref: 'price_123', quantity: 1 }],
+  successUrl: 'https://shop.example/ok',
+  cancelUrl: 'https://shop.example/cancel',
+})
+if (hosted.uiMode === 'hosted') {
+  // redirect the customer to hosted.url
+}
+
+// Embedded — the form mounts inside your page.
+const embedded: CheckoutResult = await provider.createCheckout({
+  items: [{ ref: 'price_123', quantity: 1 }],
+  uiMode: 'embedded',
+  returnUrl: 'https://shop.example/return?s={CHECKOUT_SESSION_ID}',
+})
+if (embedded.uiMode === 'embedded') {
+  // hand embedded.clientSecret to Stripe's client-side SDK
+}
+```
+
+**`returnUrl` replaces the hosted pair — it does not join it.** Measured live: Stripe answers
+`` `success_url` is not supported with `ui_mode: embedded` `` and refuses the request outright. The
+input type makes the combination unrepresentable, so a wrong call fails at compile time instead of
+at the gateway.
+
+**`url` stays required on the hosted branch.** It could have become optional, and that would have
+moved a compile-time guarantee into a runtime check for every caller who never uses embedded.
+Narrowing keeps the promise where it was — at the cost of one `if`, which is the compile error that
+replaces a runtime `undefined`.
+
+### AbacatePay and embedded checkout
+
+This adapter does not implement embedded checkout, and refuses such a request by name
+(`embedded_not_implemented`).
+
+**Whether AbacatePay offers one is unverified.** Nobody has asked its API: the live measurement
+behind this feature was run against Stripe. Saying "AbacatePay does not support embedded checkout"
+would state as fact something no measurement here supports, so it is not said.
 
 ## Install
 
@@ -377,7 +429,7 @@ const plugin = stripePayments()
 
 // In your server action:
 export async function startCheckout() {
-  const { url, sessionId } = await createCheckoutSession(plugin.getStripeClient(), {
+  const session = await createCheckoutSession(plugin.getStripeClient(), {
     mode: 'payment',
     line_items: [
       {
@@ -395,7 +447,12 @@ export async function startCheckout() {
     metadata: { userId: 'u_123' }, // tie to your auth session
   })
 
-  return { redirectTo: url, sessionId }
+  // Narrowed: the envelope is discriminated, because an embedded session has no url at all. This
+  // example asked for hosted (`success_url` is present), so this branch is the one it gets.
+  if (session.uiMode !== 'hosted') {
+    throw new Error('expected a hosted session')
+  }
+  return { redirectTo: session.url, sessionId: session.sessionId }
 }
 ```
 
