@@ -29,6 +29,8 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { reportGateAndExit } from './lib/gate-summary.mjs'
+
 const PACKAGES_DIR = 'packages'
 
 /** Fenced code blocks, with the line the fence opened on. */
@@ -75,17 +77,6 @@ for (const entry of readdirSync(PACKAGES_DIR, { withFileTypes: true })) {
   }
 }
 
-// Non-vacuity floor: a sweep that examined nothing and reported green is the defect, not the
-// check. If no README shows a route example any more, this file has outlived its subject and
-// should be deleted rather than left printing a green line.
-if (examplesChecked === 0) {
-  console.error(
-    'check-route-examples: no README contains a route() example — nothing was checked.\n' +
-      'Either the examples moved, or this check no longer has a subject. Do not leave it green.',
-  )
-  process.exit(1)
-}
-
 if (violations.length > 0) {
   for (const v of violations) console.error(`✗ ${v}`)
   console.error(
@@ -94,4 +85,12 @@ if (violations.length > 0) {
   process.exit(1)
 }
 
-console.log(`✓ every route() example declares a policy (${String(examplesChecked)} checked)`)
+// The non-vacuity floor is the shared one (B-026): a gate that examined nothing and printed a
+// green line is the defect, not the check. Reimplementing it here — as the first version of this
+// file did — is how the fourth gate got missed, which is what `gate-summary.offline.test.ts`
+// exists to catch. It caught this one.
+reportGateAndExit({
+  label: 'route-examples',
+  subject: 'route() example declaring a policy',
+  checked: examplesChecked,
+})
