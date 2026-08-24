@@ -396,6 +396,24 @@ export function RoomProvider(props: RoomProviderProps): React.ReactElement {
     }
   }, [roomId, baseUrl, subscriptionName, client, ydoc, setStateAndNotify])
 
+  // The document's send half. Separate from the subscription effect because it has a different
+  // lifetime: the subscription reconnects on a room change, this one detaches whenever the
+  // document or the transport is swapped — and a listener that outlives its document writes the
+  // previous room's edits into the next one.
+  React.useEffect(() => {
+    if (ydoc === undefined || sender === undefined) return
+
+    const onUpdate = (update: Uint8Array, origin: unknown): void => {
+      // The frame we just applied from the wire fires this listener too. Without the origin
+      // check it goes straight back out, and two clients saturate each other.
+      if (origin === REMOTE_ORIGIN) return
+      void sender.send({ kind: 'yjs-update', bytes: update })
+    }
+
+    ydoc.on('update', onUpdate)
+    return () => ydoc.off('update', onUpdate)
+  }, [ydoc, sender])
+
   const value = React.useMemo<RoomContextValue>(
     () => ({
       state,

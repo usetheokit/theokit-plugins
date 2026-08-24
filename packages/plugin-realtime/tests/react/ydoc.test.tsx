@@ -240,3 +240,102 @@ describe('inbound Yjs frames', () => {
     }
   })
 })
+
+describe('outbound document updates', () => {
+  /** A sender that records what the hooks hand it. */
+  function recording(): { sender: RealtimeSendClient; sent: RealtimeOutboundFrame[] } {
+    const sent: RealtimeOutboundFrame[] = []
+    return { sender: { send: (frame) => void sent.push(frame) }, sent }
+  }
+
+  it('sends a local document change through the port', async () => {
+    const doc = new Y.Doc()
+    const { sender, sent } = recording()
+    const { client } = controllable()
+
+    render(
+      <RoomProvider roomId="r" client={client} ydoc={doc} sender={sender}>
+        <Probe />
+      </RoomProvider>,
+    )
+
+    await act(async () => {
+      doc.getText('t').insert(0, 'typed here')
+      await Promise.resolve()
+    })
+
+    const updates = sent.filter((f) => f.kind === 'yjs-update')
+    expect(updates, 'a local edit never reached the transport').toHaveLength(1)
+  })
+
+  it('does not send back an update it just received', async () => {
+    // R4. Applying a remote update fires the document's own `update` event, so without an origin
+    // check every frame is echoed straight back and two clients saturate each other.
+    const source = new Y.Doc()
+    source.getText('t').insert(0, 'from the wire')
+
+    const doc = new Y.Doc()
+    const { sender, sent } = recording()
+    const { client, push } = controllable()
+
+    render(
+      <RoomProvider roomId="r" client={client} ydoc={doc} sender={sender}>
+        <Probe />
+      </RoomProvider>,
+    )
+
+    await push({
+      type: 'yjs-update',
+      connectionId: 'other',
+      bytes: b64(Y.encodeStateAsUpdate(source)),
+    })
+    await waitFor(() => expect(doc.getText('t').toString()).toBe('from the wire'))
+
+    expect(
+      sent.filter((f) => f.kind === 'yjs-update'),
+      'the update was echoed back to the sender it came from',
+    ).toHaveLength(0)
+  })
+
+  it('does not throw on a local change when no sender is wired', async () => {
+    // Additive on a published package: a consumer who passes `ydoc` and no `sender` must see the
+    // document work locally and nothing blow up.
+    const doc = new Y.Doc()
+    const { client } = controllable()
+
+    render(
+      <RoomProvider roomId="r" client={client} ydoc={doc}>
+        <Probe />
+      </RoomProvider>,
+    )
+
+    await act(async () => {
+      doc.getText('t').insert(0, 'local only')
+      await Promise.resolve()
+    })
+
+    expect(doc.getText('t').toString()).toBe('local only')
+  })
+
+  it('detaches the document listener on unmount', async () => {
+    // An undetached listener outlives the provider and sends through a transport nobody is
+    // watching — and a swapped document would be written to by the previous room.
+    const doc = new Y.Doc()
+    const { sender, sent } = recording()
+    const { client } = controllable()
+
+    const view = render(
+      <RoomProvider roomId="r" client={client} ydoc={doc} sender={sender}>
+        <Probe />
+      </RoomProvider>,
+    )
+    view.unmount()
+
+    await act(async () => {
+      doc.getText('t').insert(0, 'after unmount')
+      await Promise.resolve()
+    })
+
+    expect(sent.filter((f) => f.kind === 'yjs-update')).toHaveLength(0)
+  })
+})

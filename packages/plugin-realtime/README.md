@@ -106,7 +106,7 @@ Hooks available:
 | `usePresence<P>()`         | `P`                                                                       | Local client's current presence                                                                                                           |
 | `useUpdateMyPresence<P>()` | `(patch: Partial<P>) => void`                                             | **Local-only unless a `sender` is supplied** — merges locally either way; with a sender, also sends a `presence-update` frame             |
 | `useBroadcast<E>()`        | `(event: string, payload: E) => void`                                     | **Local-only in v0.1 unless a `sender` is supplied** — with no sender this is a no-op; with one, the server fans out to every participant |
-| `useYDoc()`                | `Y.Doc`                                                                   | Throws in v0.1 — Y.Doc auto-wiring deferred to v0.x                                                                                       |
+| `useYDoc()`                | `Y.Doc`                                                                   | The document passed to `<RoomProvider ydoc={...}>`, wired both ways. Throws, naming the prop, when none was passed                        |
 
 ### Sending: the `sender` port
 
@@ -201,6 +201,49 @@ const provider = createYjsRealtimeProvider({ maxUpdateBytes: 1_048_576 })
 ```
 
 Requires `yjs ^13` + `y-protocols ^1` peers. Dynamic `import('yjs')` keeps the SSR/server-only path zero-cost when CRDT isn't used.
+
+### Wiring the document on the client
+
+You construct the `Y.Doc`; the provider wires it. Inbound `yjs-update` frames are applied to it,
+and your local edits go out through the same `sender` port the presence and broadcast hooks use.
+
+```tsx
+import * as React from 'react'
+import * as Y from 'yjs'
+import { RoomProvider, useYDoc } from '@theokit/plugin-realtime/react'
+
+function Editor(): React.ReactElement {
+  const doc = useYDoc() as Y.Doc
+  return <button onClick={() => doc.getText('body').insert(0, 'hello')}>write</button>
+}
+
+export function Page({
+  client,
+  sender,
+}: {
+  client: React.ComponentProps<typeof RoomProvider>['client']
+  sender: React.ComponentProps<typeof RoomProvider>['sender']
+}): React.ReactElement {
+  const [doc] = React.useState(() => new Y.Doc())
+  return (
+    <RoomProvider roomId="doc-1" client={client} sender={sender} ydoc={doc}>
+      <Editor />
+    </RoomProvider>
+  )
+}
+```
+
+Two preconditions, refused in two different places on purpose:
+
+- **No `ydoc` passed** — `useYDoc()` throws, naming the prop. That is decidable on the client.
+- **The room does not declare `storage: 'yjs'`** — the *server* refuses the frame with
+  `RealtimeError({ code: 'yjs_storage_not_declared' })`. The descriptor lives server-side and a
+  client is not a trust boundary, so putting the same rule in both places would mean maintaining it
+  twice. The consequence is worth knowing: a document wired to a non-CRDT room looks fine until the
+  first edit.
+
+Without a `sender`, the document still works locally and nothing is transmitted — the same
+additive shape the presence and broadcast hooks have.
 
 ## Custom provider (Liveblocks / PartyKit / Redis / CF DO)
 
