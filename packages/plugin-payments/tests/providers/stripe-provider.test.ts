@@ -69,6 +69,76 @@ function makeClient(opts: {
 }
 
 describe('StripeProvider.createCheckout', () => {
+  it('sends ui_mode and return_url for an embedded request, and no success_url', async () => {
+    // The exclusion is Stripe's, measured live: "`success_url` is not supported with
+    // `ui_mode: embedded`". Asserting on the PARAMS is what catches a build that sends both — the
+    // response would look fine in a stub, and the real API would refuse it.
+    const { client, create } = makeClient({
+      session: { url: null, client_secret: 'cs_1_secret_abc' },
+    })
+    const provider = StripeProvider({ client })
+
+    await provider.createCheckout({
+      items: [{ ref: 'price_abc', quantity: 1 }],
+      uiMode: 'embedded',
+      returnUrl: 'https://shop.example/return?s={CHECKOUT_SESSION_ID}',
+    })
+
+    const params = create.mock.calls[0]?.[0] as Stripe.Checkout.SessionCreateParams
+    expect(params.ui_mode).toBe('embedded')
+    expect(params.return_url).toBe('https://shop.example/return?s={CHECKOUT_SESSION_ID}')
+    expect(params.success_url, 'Stripe refuses this combination outright').toBeUndefined()
+    expect(params.cancel_url).toBeUndefined()
+  })
+
+  it('returns the client secret for an embedded session', async () => {
+    const { client } = makeClient({
+      session: { url: null, client_secret: 'cs_1_secret_abc' },
+    })
+    const provider = StripeProvider({ client })
+
+    const result = await provider.createCheckout({
+      items: [{ ref: 'price_abc', quantity: 1 }],
+      uiMode: 'embedded',
+      returnUrl: 'https://shop.example/return',
+    })
+
+    expect(result.uiMode).toBe('embedded')
+    expect(result.uiMode === 'embedded' ? result.clientSecret : null).toBe('cs_1_secret_abc')
+  })
+
+  it('fails by name when an embedded session comes back without a client secret', async () => {
+    // The negative case. Returning an empty string would hand the consumer something to pass to a
+    // client SDK that will fail somewhere less informative (`rules/error-handling.md` § 2).
+    const { client } = makeClient({ session: { url: null, client_secret: null } })
+    const provider = StripeProvider({ client })
+
+    await expect(
+      provider.createCheckout({
+        items: [{ ref: 'price_abc', quantity: 1 }],
+        uiMode: 'embedded',
+        returnUrl: 'https://shop.example/return',
+      }),
+    ).rejects.toThrow(/client secret|client_secret/i)
+  })
+
+  it('does not send ui_mode at all for a hosted request', async () => {
+    // Absence matters: sending `ui_mode: 'hosted'` explicitly is valid today but pins this package
+    // to a default Stripe owns. Staying silent keeps the hosted request byte-identical to the one
+    // every existing caller already makes.
+    const { client, create } = makeClient({})
+    const provider = StripeProvider({ client })
+
+    await provider.createCheckout({
+      items: [{ ref: 'price_abc', quantity: 1 }],
+      successUrl: 'https://shop.example/ok',
+    })
+
+    const params = create.mock.calls[0]?.[0] as Stripe.Checkout.SessionCreateParams
+    expect(params.ui_mode).toBeUndefined()
+    expect(params.return_url).toBeUndefined()
+  })
+
   it('maps item refs to Stripe price ids and returns the hosted URL', async () => {
     const { client, create } = makeClient({})
     const provider = StripeProvider({ client })

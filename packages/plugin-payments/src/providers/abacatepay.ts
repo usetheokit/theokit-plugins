@@ -314,6 +314,21 @@ export function AbacatePayProvider(
     name: PROVIDER,
 
     async createCheckout(input: CheckoutInput): Promise<CheckoutResult> {
+      if (input.uiMode === 'embedded') {
+        // First, so the caller learns the real cause. Falling through would fail on the missing
+        // url further down — a message about a URL, for somebody whose problem is a mode.
+        //
+        // The wording is deliberately about THIS ADAPTER. Nobody here has asked AbacatePay whether
+        // it serves embedded checkout: the live probe that established the shape of this feature
+        // was run against Stripe. Writing "AbacatePay does not support embedded" would state as
+        // fact something no measurement here supports, which is the assumption this refusal exists
+        // to avoid making on the caller's behalf.
+        throw new PaymentProviderError(
+          PROVIDER,
+          'embedded_not_implemented',
+          'This AbacatePay adapter does not implement embedded checkout. Whether the provider offers one is unverified — it has not been measured here. Use hosted mode, or route embedded sessions to a provider whose adapter serves them.',
+        )
+      }
       if (input.currency !== undefined && input.currency.toUpperCase() !== 'BRL') {
         throw new PaymentProviderError(
           PROVIDER,

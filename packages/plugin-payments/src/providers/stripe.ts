@@ -145,8 +145,19 @@ export function StripeProvider(
         // without knowing the catalogue.
         mode: input.mode ?? 'payment',
         line_items: input.items.map((i) => ({ price: i.ref, quantity: i.quantity })),
-        ...(input.successUrl !== undefined ? { success_url: input.successUrl } : {}),
-        ...(input.cancelUrl !== undefined ? { cancel_url: input.cancelUrl } : {}),
+        // The two modes take DIFFERENT url fields, not optional ones. Measured live 2026-08-24:
+        // Stripe answers "`success_url` is not supported with `ui_mode: embedded`" and refuses the
+        // request. The neutral input makes the combination unrepresentable, so this branch only has
+        // to send the right half — but sending it from one place keeps the two facts together.
+        //
+        // `ui_mode` is omitted entirely for hosted rather than sent as `'hosted'`: that is Stripe's
+        // default, and naming it here would pin this package to a default the provider owns.
+        ...(input.uiMode === 'embedded'
+          ? { ui_mode: 'embedded' as const, return_url: input.returnUrl }
+          : {
+              ...(input.successUrl !== undefined ? { success_url: input.successUrl } : {}),
+              ...(input.cancelUrl !== undefined ? { cancel_url: input.cancelUrl } : {}),
+            }),
         ...(input.customerRef !== undefined ? { customer: input.customerRef } : {}),
         ...(input.currency !== undefined ? { currency: input.currency.toLowerCase() } : {}),
         ...(input.metadata !== undefined ? { metadata: { ...input.metadata } } : {}),
@@ -168,14 +179,34 @@ export function StripeProvider(
         )
       }
 
+      if (input.uiMode === 'embedded') {
+        // An embedded session has no URL by design — that is the shape, not a fault. What it must
+        // have is the secret the caller hands to Stripe's client-side SDK; without it there is
+        // nothing to mount, and an empty string would fail somewhere far less informative.
+        if (typeof session.client_secret !== 'string' || session.client_secret.length === 0) {
+          throw new PaymentProviderError(
+            PROVIDER,
+            'missing_client_secret',
+            'Stripe created an embedded session without a client secret. There is nothing to mount the payment form with, so this cannot be reported as a success.',
+          )
+        }
+        return {
+          id: session.id,
+          uiMode: 'embedded',
+          clientSecret: session.client_secret,
+          provider: PROVIDER,
+          raw: session,
+        }
+      }
+
       if (session.url === null || session.url === undefined) {
-        // Stripe returns a null url for embedded (ui_mode) sessions. The neutral
-        // contract promises a redirect URL, so this is a misconfiguration rather
-        // than a value to pass along as empty.
+        // Hosted mode promises somewhere to send the customer. A null url here means the request
+        // was misconfigured, not that an embedded session came back — that case is handled above,
+        // by the mode the caller asked for rather than by guessing from the response.
         throw new PaymentProviderError(
           PROVIDER,
           'missing_checkout_url',
-          'Stripe created a session without a URL. Hosted mode needs success_url and cancel_url; embedded sessions are not served by this contract.',
+          'Stripe created a hosted session without a URL. Hosted mode needs success_url and cancel_url.',
         )
       }
 
