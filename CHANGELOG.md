@@ -111,6 +111,7 @@ Eleven packages cut together: `@theokit/auth-github@0.3.0`, `@theokit/auth-googl
 
 ### Fixed
 
+- `@theokit/plugin-forms` documented a headless tier "usable in any React stack" that cannot be reached: the package has one entry point and it imports `@usetheo/ui` at module scope, so the import fails before any component renders. Three README claims were false, one contradicting the package's own manifest. The behaviour is now documented and pinned by a consumer test (#B-016)
 - The auth caveats now say the round trip is blocked by a **session credential**, not by the absence of a browser, and carry the date last measured. A headless browser without a session gets the same redirect to a login screen, so "needs a browser" invited reaching for one and discovering the real cost late (#B-015)
 - The AbacatePay readiness caveat listed the refund happy path as uncovered. It was covered by a test in the same commit that added the caveat, so the claim was false from the day it was written — not stale. The remaining two entries now carry the kind of block (provider capability vs structural) and the date last measured (#B-014)
 - Yjs frames now carry base64 in both directions in `@theokit/plugin-realtime`. Only the server-to-client half was encoded, so a frame produced by a browser could not survive `JSON.stringify` — the transport the package's own README documents. `dispatchFrame` still accepts raw bytes (#B-028)

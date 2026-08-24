@@ -37,15 +37,14 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-31 items — **Open** 17 · **In flight** 0 · **Closed** 14
+32 items — **Open** 17 · **In flight** 0 · **Closed** 15
 
 ### Open (17)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-015`](#b-015--the-oauth-consent-round-trip-is-automated-for-nobody--) | the OAuth consent round trip is automated for nobody | `triaged` | — |
-| [`B-016`](#b-016--theokitplugin-forms-headless-tier-cannot-be-consumed-without-usetheoui--) | `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` | `raw` | — |
+| [`B-016`](#b-016--theokitplugin-forms-headless-tier-cannot-be-consumed-without-usetheoui--) | `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` | `triaged` | — |
 | [`B-017`](#b-017--the-measurement-target-gate-reads-an-npm-subpath-specifier-as-a-missing-file--) | the measurement-target gate reads an npm subpath specifier as a missing file | `raw` | — |
 | [`B-018`](#b-018--nineteen-transitive-high-advisories-sit-in-the-workspace-with-nothing-watching-them--) | nineteen transitive HIGH advisories sit in the workspace with nothing watching them | `raw` | — |
 | [`B-019`](#b-019--four-packages-integrate-through-a-seam-the-current-sdk-major-no-longer-has--) | four packages integrate through a seam the current SDK major no longer has | `raw` | — |
@@ -60,12 +59,13 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-029`](#b-029--a-client-joining-a-room-sees-an-empty-document-until-somebody-types----) | a client joining a room sees an empty document until somebody types | `raw` | — |
 | [`B-030`](#b-030--a-multipart-scalar-array-loses-every-element-but-the-last----) | a multipart scalar array loses every element but the last | `raw` | — |
 | [`B-031`](#b-031--the-skip-message-names-a-script-nobody-checks-exists----) | the skip message names a script nobody checks exists | `raw` | — |
+| [`B-032`](#b-032--the-consumer-gate-resolves-peers-from-the-monorepo-so-it-cannot-see-a-missing-one----) | the consumer gate resolves peers from the monorepo, so it cannot see a missing one | `raw` | — |
 
 ### In flight (0)
 
 _None._
 
-### Closed (14)
+### Closed (15)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -82,6 +82,7 @@ _None._
 | [`B-012`](#b-012--plugin-forms-cannot-upload-a-file-x) | `plugin-forms` cannot upload a file | `shipped` | — |
 | [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout-x) | `plugin-payments` ships only hosted checkout | `shipped` | — |
 | [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited-x) | three AbacatePay legs are declared uncoverable and never revisited | `shipped` | — |
+| [`B-015`](#b-015--the-oauth-consent-round-trip-is-automated-for-nobody-x) | the OAuth consent round trip is automated for nobody | `shipped` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
@@ -632,7 +633,7 @@ dod:
 - the caveat text in `integration/src/services.ts` is updated to match what was measured, with
   the date
 
-## B-015 — the OAuth consent round trip is automated for nobody [ ]
+## B-015 — the OAuth consent round trip is automated for nobody [x]
 
 > Registered 2026-08-22 by `/backlog-item` (slug: `oauth-roundtrip-unattended`).
 
@@ -656,7 +657,11 @@ why_now: measured 2026-08-22 — the full live run skipped exactly two behaviour
 "allow" is exercised only by hand, through `pnpm flow:github`. So the single most important thing
 these packages do — turn a real consent into a session — is verified by somebody remembering to
 run a script.
-status: triaged
+status: shipped
+shipped_by: PR #128, merged 2026-08-24. The blocker is a SESSION CREDENTIAL, not a browser —
+  re-measured and dated in both caveats. `flow:google` now exists; the harness had been telling
+  Google users to run a script that did not exist. Its header records which branches actually ran:
+  the exchange has never completed here, and that needs a human consent. Surfaced [[B-031]].
 dod:
 
 - the round trip runs unattended against the real provider, or the reason it cannot is
@@ -673,7 +678,15 @@ domain: client-surface
 repo: plugin-forms
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/forms-headless-entrypoint-opportunity.md`
+— measured 2026-08-24 against a REAL consumer layout (the dist copied, `@usetheo/ui` absent), and it
+is worse than the item recorded. The barrel does not merely drag the peer in: it **fails at module
+import** with `ERR_MODULE_NOT_FOUND`, and `package.json` declares exactly one export, so the
+headless tier has no reachable entry point at all. Three README claims are false as measured —
+":278 throws at first render, not at module import", ":195 the headless tier has no `@usetheo/ui`
+dependency", ":25 optional" (the manifest declares it a REQUIRED peer, and measurement says required
+is honest). A first probe symlinked the package and reported a clean pass, because Node resolves a
+symlink to its real path and walked up into the monorepo — recorded so the mistake is not repeated.
 why_now: measured 2026-08-22 while closing #103 — the barrel re-exports `TheoField`, which
 imports `@usetheo/ui` at module scope, so `import { useTheoField } from '@theokit/plugin-forms'`
 drags the UI package in. Splitting the entry point was attempted and reverted, because
@@ -681,7 +694,7 @@ drags the UI package in. Splitting the entry point was attempted and reverted, b
 in Cookbook 1 — so the barrel reaches it either way, and `splitting: false` would duplicate
 `TheoFormContext` and give a consumer two React contexts. Filed as #104 and closed not-planned:
 the fix requires removing a published API, which is a product decision.
-status: raw
+status: triaged
 dod:
 
 - a decision recorded as an ADR: `TheoForm.Field` is removed and the styled tier moves to
@@ -1140,3 +1153,28 @@ dod:
   - a test that fails when a service uses `describeManualOAuth` and has no matching `flow:*` script
   - it fails for the right reason: deleting the `flow:google` entry turns it red, not the suite
   - the failure message names the service and the script it expected
+
+## B-032 — the consumer gate resolves peers from the monorepo, so it cannot see a missing one   [ ]
+
+domain: client-surface
+repo: plugin-forms
+suggested_mode: review
+source: human
+evidence: measured 2026-08-24 while closing [[B-016]].
+  `integration/tests/consumer/packaged.test.ts:233` imports each entry by ABSOLUTE PATH into
+  `packages/<name>/`, so every peer resolves from the monorepo's own `node_modules`. Its comment
+  claims the assertion "exercises what a consumer resolves: bundled output, externals, and every
+  peer the entry pulls at load time" — it exercises the first two and cannot exercise the third.
+  Proven by contrast: copying `packages/plugin-forms/dist` into a fixture without `@usetheo/ui`
+  makes the barrel fail with `ERR_MODULE_NOT_FOUND`, while the harness loads the same entry green.
+  A first probe that SYMLINKED the package also passed, because Node resolves a symlink to its real
+  path and walks up into the monorepo — the same blindness, one layer out.
+why_now: [[B-016]] is a missing-peer defect that survived in a published package while a gate whose
+  stated purpose is "if somebody installs this, does it load at all?" reported it green. The gate is
+  not wrong about what it checks; it is wrong about what it says it checks, which is the pattern
+  this repository keeps finding in its own gates ([[B-026]]).
+status: raw
+dod:
+  - the harness loads each entry from a layout that does NOT resolve peers from the monorepo
+  - removing a required peer from that layout turns the assertion red, proving it observes peers
+  - the comment claiming peer coverage is either true or removed
