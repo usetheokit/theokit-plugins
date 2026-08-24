@@ -137,6 +137,31 @@ function isBelow(a, b) {
   return false
 }
 
+/**
+ * A peer range on the framework must not carry a ceiling nobody typed.
+ *
+ * `^0.48.7` reads like "0.48.7 or newer" and is not. Under semver, a caret on a `0.x` version
+ * pins the MINOR: it expands to `>=0.48.7 <0.49.0`. So the day `theokit` published `0.50.0` —
+ * 2026-08-24 — `@theokit/plugin-forms` stopped being installable alongside `theokit@latest`,
+ * while the other ten packages, which declare `>=0.48.7`, were unaffected.
+ *
+ * Nothing announced it. `rangeFloor` above compares floors, and the floor was fine; the defect
+ * was entirely in a bound the author never wrote down. It surfaces in a consumer's install, not
+ * here, which is the same asymmetry `rules/decoration-keys.md` records for decoration keys.
+ *
+ * This is about a peer on a `0.x` framework specifically. `^1.2.3` admits every `1.x`, which is
+ * the intent people expect from a caret and is left alone. Below 1.0.0 the same character means
+ * "patch only", and for a framework releasing minors that is a pin with a disguise.
+ */
+function ceilingIsBelowNextMajor(range) {
+  const match = /^([\^~])(\d+)\.(\d+)\.(\d+)/.exec(range.trim())
+  if (match === null) return null
+  const [, operator, major] = match
+  // `~` pins the minor at every major; `^` only does so below 1.0.0.
+  if (operator === '~' || Number(major) === 0) return operator
+  return null
+}
+
 const violations = []
 
 function check(dir) {
@@ -169,6 +194,18 @@ function check(dir) {
     violations.push(
       `${where}: "repository.directory" is ${JSON.stringify(pkg.repository?.directory)}, expected ${JSON.stringify(expectedDirectory)}`,
     )
+  }
+
+  for (const [peer, range] of Object.entries(pkg.peerDependencies ?? {})) {
+    if (peer !== 'theokit' && !peer.startsWith('@theokit/')) continue
+    const operator = ceilingIsBelowNextMajor(range)
+    if (operator !== null) {
+      violations.push(
+        `${where}: peer "${peer}": ${JSON.stringify(range)} carries a ceiling nobody typed — ` +
+          `"${operator}" on a 0.x version pins the MINOR, so the next framework minor release ` +
+          'silently stops satisfying it. Use ">=" unless the pin is deliberate.',
+      )
+    }
   }
 
   if (pkg.publishConfig?.provenance !== true) {
