@@ -37,16 +37,14 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-32 items — **Open** 17 · **In flight** 0 · **Closed** 15
+34 items — **Open** 17 · **In flight** 0 · **Closed** 17
 
 ### Open (17)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-016`](#b-016--theokitplugin-forms-headless-tier-cannot-be-consumed-without-usetheoui--) | `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` | `triaged` | — |
-| [`B-017`](#b-017--the-measurement-target-gate-reads-an-npm-subpath-specifier-as-a-missing-file--) | the measurement-target gate reads an npm subpath specifier as a missing file | `raw` | — |
-| [`B-018`](#b-018--nineteen-transitive-high-advisories-sit-in-the-workspace-with-nothing-watching-them--) | nineteen transitive HIGH advisories sit in the workspace with nothing watching them | `raw` | — |
+| [`B-018`](#b-018--nineteen-transitive-high-advisories-sit-in-the-workspace-with-nothing-watching-them--) | nineteen transitive HIGH advisories sit in the workspace with nothing watching them | `triaged` | — |
 | [`B-019`](#b-019--four-packages-integrate-through-a-seam-the-current-sdk-major-no-longer-has--) | four packages integrate through a seam the current SDK major no longer has | `raw` | — |
 | [`B-020`](#b-020--code-quality-was-returning-pass-over-zero-languages--) | /code-quality was returning PASS over zero languages | `raw` | — |
 | [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package--) | the OAuth transaction cookie is encrypted with a constant published in the package | `raw` | — |
@@ -60,12 +58,14 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-030`](#b-030--a-multipart-scalar-array-loses-every-element-but-the-last----) | a multipart scalar array loses every element but the last | `raw` | — |
 | [`B-031`](#b-031--the-skip-message-names-a-script-nobody-checks-exists----) | the skip message names a script nobody checks exists | `raw` | — |
 | [`B-032`](#b-032--the-consumer-gate-resolves-peers-from-the-monorepo-so-it-cannot-see-a-missing-one----) | the consumer gate resolves peers from the monorepo, so it cannot see a missing one | `raw` | — |
+| [`B-033`](#b-033--two-kit-skills-ship-the-same-module-name-so-their-suites-cannot-run-together----) | two kit skills ship the same module name, so their suites cannot run together | `raw` | — |
+| [`B-034`](#b-034--the-advisory-gate-is-single-sourced-against-a-rule-that-names-two-scanners----) | the advisory gate is single-sourced, against a rule that names two scanners | `raw` | — |
 
 ### In flight (0)
 
 _None._
 
-### Closed (15)
+### Closed (17)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -83,6 +83,8 @@ _None._
 | [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout-x) | `plugin-payments` ships only hosted checkout | `shipped` | — |
 | [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited-x) | three AbacatePay legs are declared uncoverable and never revisited | `shipped` | — |
 | [`B-015`](#b-015--the-oauth-consent-round-trip-is-automated-for-nobody-x) | the OAuth consent round trip is automated for nobody | `shipped` | — |
+| [`B-016`](#b-016--theokitplugin-forms-headless-tier-cannot-be-consumed-without-usetheoui-x) | `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` | `shipped` | — |
+| [`B-017`](#b-017--the-measurement-target-gate-reads-an-npm-subpath-specifier-as-a-missing-file-x) | the measurement-target gate reads an npm subpath specifier as a missing file | `shipped` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
@@ -670,7 +672,7 @@ dod:
   its own failure modes, and this decision is made deliberately
 - `auth-google` is covered by the same mechanism or explicitly excluded with a reason
 
-## B-016 — `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` [ ]
+## B-016 — `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` [x]
 
 > Registered 2026-08-22 by `/backlog-item` (slug: `forms-headless-entrypoint`).
 
@@ -694,7 +696,12 @@ drags the UI package in. Splitting the entry point was attempted and reverted, b
 in Cookbook 1 — so the barrel reaches it either way, and `splitting: false` would duplicate
 `TheoFormContext` and give a consumer two React contexts. Filed as #104 and closed not-planned:
 the fix requires removing a published API, which is a product decision.
-status: triaged
+status: shipped
+shipped_by: PR #129, merged 2026-08-24. Worse than the item recorded: the barrel does not merely
+  drag the peer in, it fails at module import, and there is no second entry point to reach. Four
+  README claims corrected (one contradicting the manifest on the version range too), pinned by a
+  consumer test. No entry point added — that decision is recorded with the constraint that reverted
+  the earlier attempt. Surfaced [[B-032]].
 dod:
 
 - a decision recorded as an ADR: `TheoForm.Field` is removed and the styled tier moves to
@@ -703,7 +710,7 @@ dod:
   does not need it
 - the packaging gate already loads every subpath (#83), so a new entry is covered on arrival
 
-## B-017 — the measurement-target gate reads an npm subpath specifier as a missing file [ ]
+## B-017 — the measurement-target gate reads an npm subpath specifier as a missing file [x]
 
 > Registered 2026-08-23 while running `/discover-plan-confidence` on B-001.
 
@@ -711,7 +718,13 @@ domain: dev-tooling
 repo: plugin-db-drizzle
 suggested_mode: bug
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/kit-pointer-regex-opportunity.md`
+— all four shapes reproduced 2026-08-24 by running the shipped regexes. **The gate then fired on the
+opportunity reporting it, twice**: first on the truncated strings quoted as evidence OF the
+truncation, then on the citations of the buggy files themselves (`.claude/...` loses its dot). The
+document cannot cite its own subject with line precision, so it scores 89 with
+`soft_floor_evidence_density_low` — and the caveat is the finding, not a gap. Also measured: the
+scoped-specifier case passing is not the gate handling scopes, it is the gate never seeing them.
 why_now: measured 2026-08-23 — `skills/discover-plan-confidence/scripts/check_measurement_targets.py`
 matches any backticked token containing a slash (`PATH_TARGET_RE`) and resolves it against the
 repo root. A plan naming `theokit/server/plugins` — a real npm module specifier with a subpath,
@@ -726,7 +739,16 @@ Measured the same day in the sibling script `skills/discover-confidence/scripts/
 after the scope as `theokit/sdk/dist/server/auth/index.d.ts:14`, resolves nowhere, and fires
 `fabricated_evidence` — a HARD CAP. Any opportunity citing a file inside a scoped npm package is
 INVALID by construction. Same root cause, two scripts.
-status: raw
+status: shipped
+shipped_by: the kit's own repository (`git@github.com:paulohenriquevn/squad.git`), commit `973d8cc`
+  on `workspace`, pushed 2026-08-24. Both patterns capture the token whole; classification is by
+  module resolution (walking the pnpm store, which nests packages two levels down), never by a name
+  list. The cap stays armed — verified by mutation in both directions. The installed copies here are
+  refreshed and byte-identical, and the B-017 opportunity now scores 98.7 with the line-precise
+  citations it previously could not carry.
+residue: the `workspace → develop` PR in the kit is UNOPENED — `gh` in this session authenticates as
+  `usetheodev`/`aquimai`, and the kit is under `paulohenriquevn`. Pushing straight to `develop` would
+  break the rule the kit itself enforces, so it is left for Paulo. Surfaced [[B-033]].
 dod:
 
 - a plan citing an unscoped npm subpath specifier scores it as a module, not as a missing file
@@ -754,7 +776,14 @@ domain: dev-tooling
 repo: plugin-canvas
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/deps-audit-runtime-gate-opportunity.md`
+— measured 2026-08-24 by splitting each advisory path at its first edge and looking that edge up in
+the ORIGIN package's own manifest. **All 19 HIGH enter through a devDependency; none reaches a
+runtime chain**, so none ships. 17 of 19 originate at the workspace root, which publishes nothing.
+That is a calmer picture than the count reads as, and it relocates the exposure: the problem is that
+nothing tells the nineteen apart from a twentieth that WOULD ship. No workflow runs an audit, and
+`osv-scanner` — the second scanner `rules/deps-audit-golden-rule.md § 5` requires for npm — is not
+installed, so even a manual audit is single-sourced against a rule saying it must not be.
 why_now: measured 2026-08-23 — `pnpm audit --json` reports
 `{"low":4,"moderate":12,"high":19,"critical":0}`. Every HIGH is transitive (none declared in any
 manifest here): `brace-expansion` (6), `undici` (4), `js-yaml` (4), `nanoid` (2), `form-data` (1),
@@ -762,7 +791,7 @@ manifest here): `brace-expansion` (6), `undici` (4), `js-yaml` (4), `nanoid` (2)
 `packages/plugin-canvas > jsdom > form-data` — but through a devDependency, so it does not ship to
 consumers. Nothing in CI runs `pnpm audit`, so this count is invisible between manual audits, and
 a future advisory on a runtime path would be equally invisible.
-status: raw
+status: triaged
 dod:
 
 - a gate that fails when a HIGH advisory reaches a package's **runtime** dependency chain, and
@@ -1178,3 +1207,50 @@ dod:
   - the harness loads each entry from a layout that does NOT resolve peers from the monorepo
   - removing a required peer from that layout turns the assertion red, proving it observes peers
   - the comment claiming peer coverage is either true or removed
+
+## B-033 — two kit skills ship the same module name, so their suites cannot run together   [ ]
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: bug
+source: human
+evidence: measured 2026-08-24 while fixing [[B-017]] in the kit's own repository.
+  `skills/discover-confidence/scripts/check_corner_coverage.py` and
+  `skills/discover-plan-confidence/scripts/check_corner_coverage.py` are two DIFFERENT modules with
+  the same name. Under pytest's default import mode the first one imported wins, so
+  `skills/discover-plan-confidence/tests/test_check_corner_coverage.py` imports the OTHER skill's
+  module and fails collection: `ImportError: cannot import name '_has_defer_corner_marker'`.
+  Running `pytest skills/discover-plan-confidence/tests skills/discover-confidence/tests` interrupts
+  with 3 collection errors. Verified pre-existing by stashing the B-017 changes and re-running.
+  Each suite passes when run alone, which is why nobody noticed: the kit's CI runs them separately.
+why_now: it is a trap rather than a live failure — a contributor who runs the whole test tree in one
+  command sees three errors that have nothing to do with their change, and the natural reading is
+  that they broke something. [[B-017]] hit it and had to stash to prove otherwise.
+status: raw
+dod:
+  - one command runs every kit suite and exits 0 (importmode=importlib, or per-skill packages, or
+    distinct module names — the mechanism is the decision)
+  - the fix is proven by running that one command, not by running the suites separately
+  - whichever mechanism is chosen, a NEW skill that reuses an existing script name does not
+    reintroduce it silently
+
+## B-034 — the advisory gate is single-sourced, against a rule that names two scanners   [ ]
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: evolve
+source: human
+evidence: measured 2026-08-24 while shipping [[B-018]]. `rules/deps-audit-golden-rule.md § 5` names
+  `npm audit` AND `osv-scanner` for npm, cross-checked. `which osv-scanner` → not found, and
+  `tools/check-deps-advisories.mjs` reports its own coverage as single-sourced rather than implying
+  otherwise. Adding it to CI means an action reference pinned to a 40-character SHA — 9 of the 10
+  `uses:` in `.github/workflows/ci.yml` are pinned that way and zizmor enforces it — and a SHA
+  written from memory is a fabrication with a plausible shape. So it was left out deliberately
+  rather than guessed at.
+why_now: [[B-018]] shipped the gate, so there is now something for the second scanner to cross-check.
+  Before it, there was no audit in CI at all and the golden rule's § 5 had nothing to bind.
+status: raw
+dod:
+  - `osv-scanner` runs in CI beside `pnpm audit`, its action pinned to a real SHA that was looked up
+  - a disagreement between the two scanners is reported, not silently resolved toward either
+  - the gate's coverage note stops saying single-sourced, because it stops being true
