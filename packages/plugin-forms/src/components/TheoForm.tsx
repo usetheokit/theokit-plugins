@@ -31,6 +31,7 @@ import {
   useForm,
 } from 'react-hook-form'
 import { applyActionErrorsToForm } from '../adapter/applyActionErrorsToForm.js'
+import { valuesToFormData } from '../adapter/valuesToFormData.js'
 import {
   TheoFormContext,
   type TheoFormContextValue,
@@ -52,6 +53,53 @@ export interface TheoFormAction<TInput extends FieldValues = FieldValues, TData 
     parse?: (input: unknown) => TInput
     safeParse?: (input: unknown) => { success: boolean; data?: TInput; error?: unknown }
   }
+}
+
+/**
+ * A `FileList` becomes a `File[]`; everything else is returned as it came.
+ *
+ * NOT `Array.isArray`: a browser's `FileList` is array-like and not an `Array`, and this repository
+ * cannot observe one — happy-dom's `DataTransfer.files` is itself an `Array`, measured. A check
+ * that passes every test here and fails in the browser would be worse than none.
+ */
+function normaliseValue(value: unknown): unknown {
+  if (value === null || typeof value !== 'object') return value
+  if (value instanceof Blob || Array.isArray(value)) return value
+  const length = (value as { length?: unknown }).length
+  if (typeof length !== 'number') return value
+  const items: Blob[] = []
+  for (let i = 0; i < length; i += 1) {
+    const item = (value as Record<number, unknown>)[i]
+    if (!(item instanceof Blob)) return value
+    items.push(item)
+  }
+  return items
+}
+
+/**
+ * Unwrap `FileList` values BEFORE the schema sees them.
+ *
+ * This is the resolver, deliberately, and it took two wrong answers to get here. A registered file
+ * input does not hold a `File`, so `z.array(z.instanceof(File))` — the shape the server's own
+ * reconstruction produces — failed validation and the submit died before `handleValid` ever ran.
+ * Unwrapping at conversion time is downstream of that. Unwrapping via `register`'s `setValueAs` is
+ * upstream of it but never runs: measured, RHF does not call `setValueAs` for a file input; it
+ * stores `event.target.files` directly.
+ *
+ * The resolver is the one place that sits between what RHF stores and what both the schema and the
+ * submit handler receive — RHF passes the resolver's returned `values` to the submit handler, so
+ * normalising here fixes validation and the payload in one move.
+ */
+function normaliseFileFields(inner: Resolver<never>): Resolver<never> {
+  return ((values: Record<string, unknown>, context: unknown, options: unknown) => {
+    const normalised: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(values ?? {})) normalised[key] = normaliseValue(value)
+    return (inner as unknown as (v: unknown, c: unknown, o: unknown) => unknown)(
+      normalised,
+      context,
+      options,
+    )
+  }) as unknown as Resolver<never>
 }
 
 /**
@@ -77,6 +125,22 @@ export interface TheoFormProps<TInput extends FieldValues = FieldValues, TData =
    */
   schema?: TheoFormAction<TInput, TData>['__zodSchema']
   /**
+   * How the body is encoded.
+   *
+   * `multipart/form-data` converts the values to a `FormData` before invoking the action, shaped by
+   * the schema so the server's own reconstruction reads it back. The action must declare
+   * `accept: 'form'` server-side — that is where parsing happens, and this package cannot see it.
+   *
+   * Conversion is opt-in rather than inferred from the values: an action whose input is an object
+   * on one submit and a `FormData` on the next cannot be typed, and nothing at the call site would
+   * say why the body changed.
+   *
+   * Defaults to `application/x-www-form-urlencoded`, which is what every form rendered before this
+   * prop existed. That value was hardcoded — the attribute a reader inspects to answer exactly this
+   * question, answering it wrongly.
+   */
+  encType?: 'application/x-www-form-urlencoded' | 'multipart/form-data'
+  /**
    * Optional callback fired AFTER successful submit (post-mutate). Useful for
    * navigation, toast, etc. Receives the server response data.
    */
@@ -99,12 +163,22 @@ function TheoFormRootInner<TInput extends FieldValues, TData>(
   props: TheoFormProps<TInput, TData>,
   ref: React.ForwardedRef<HTMLFormElement>,
 ): React.JSX.Element {
-  const { action, defaultValues, schema, onSuccess, children, className } = props
+  const { action, defaultValues, schema, encType, onSuccess, children, className } = props
   const action_ = useAction<TInput, TData>(action)
   // Schema priority: explicit prop > convention-attached __zodSchema > none
   const resolvedSchema = schema ?? action.__zodSchema
+  const isMultipart = encType === 'multipart/form-data'
+  if (isMultipart && resolvedSchema === undefined) {
+    // At render, not at submit: the condition is decided by props alone, so waiting would delay a
+    // developer error until a user triggers it (`rules/error-handling.md` § 3).
+    throw new Error(
+      'TheoForm: encType="multipart/form-data" needs a schema to convert with. Pass `schema`, or ' +
+        'attach `__zodSchema` to the action — the conversion follows the same schema the server ' +
+        'reconstructs the body with.',
+    )
+  }
   const resolver = resolvedSchema?.parse
-    ? (zodResolver(resolvedSchema as never) as Resolver<TInput>)
+    ? (normaliseFileFields(zodResolver(resolvedSchema as never)) as unknown as Resolver<TInput>)
     : undefined
   const form: UseFormReturn<TInput> = useForm<TInput>({
     defaultValues: defaultValues as never,
@@ -114,7 +188,10 @@ function TheoFormRootInner<TInput extends FieldValues, TData>(
   const handleValid = useCallback(
     async (values: TInput) => {
       try {
-        const data = await action_.mutateAsync(values)
+        const payload = isMultipart
+          ? (valuesToFormData(values, resolvedSchema as object) as never)
+          : values
+        const data = await action_.mutateAsync(payload)
         onSuccess?.(data)
       } catch (err) {
         // #227: route via the shared `routeActionError` (single source the unit
@@ -127,7 +204,7 @@ function TheoFormRootInner<TInput extends FieldValues, TData>(
         )
       }
     },
-    [action_, form.setError, onSuccess],
+    [action_, form.setError, onSuccess, isMultipart, resolvedSchema],
   )
 
   const ctxValue: TheoFormContextValue = {
@@ -149,7 +226,7 @@ function TheoFormRootInner<TInput extends FieldValues, TData>(
           ref={ref}
           onSubmit={(event) => void form.handleSubmit(handleValid)(event)}
           method="post"
-          encType="application/x-www-form-urlencoded"
+          encType={encType ?? 'application/x-www-form-urlencoded'}
           {...(className !== undefined ? { className } : {})}
         >
           {children}

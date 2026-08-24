@@ -37,16 +37,15 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-29 items — **Open** 19 · **In flight** 0 · **Closed** 10
+30 items — **Open** 19 · **In flight** 0 · **Closed** 11
 
 ### Open (19)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `triaged` | — |
-| [`B-012`](#b-012--plugin-forms-cannot-upload-a-file--) | `plugin-forms` cannot upload a file | `raw` | — |
-| [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout--) | `plugin-payments` ships only hosted checkout | `raw` | — |
+| [`B-012`](#b-012--plugin-forms-cannot-upload-a-file--) | `plugin-forms` cannot upload a file | `triaged` | — |
+| [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout--) | `plugin-payments` ships only hosted checkout | `triaged` | — |
 | [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited--) | three AbacatePay legs are declared uncoverable and never revisited | `raw` | — |
 | [`B-015`](#b-015--the-oauth-consent-round-trip-is-automated-for-nobody--) | the OAuth consent round trip is automated for nobody | `raw` | — |
 | [`B-016`](#b-016--theokitplugin-forms-headless-tier-cannot-be-consumed-without-usetheoui--) | `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` | `raw` | — |
@@ -62,12 +61,13 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-026`](#b-026--three-gates-in-a-row-shipped-a-summary-line-the-run-had-not-earned--) | three gates in a row shipped a summary line the run had not earned | `raw` | — |
 | [`B-027`](#b-027--no-local-gate-catches-a-manifest-edited-without-its-lockfile--) | no local gate catches a manifest edited without its lockfile | `raw` | — |
 | [`B-029`](#b-029--a-client-joining-a-room-sees-an-empty-document-until-somebody-types----) | a client joining a room sees an empty document until somebody types | `raw` | — |
+| [`B-030`](#b-030--a-multipart-scalar-array-loses-every-element-but-the-last----) | a multipart scalar array loses every element but the last | `raw` | — |
 
 ### In flight (0)
 
 _None._
 
-### Closed (10)
+### Closed (11)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -80,6 +80,7 @@ _None._
 | [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it-x) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `shipped` | — |
 | [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish-x) | Nothing compiles the code examples our READMEs publish | `shipped` | — |
 | [`B-010`](#b-010--plugin-realtimes-presence-and-broadcast-never-leave-the-client-x) | `plugin-realtime`'s presence and broadcast never leave the client | `shipped` | — |
+| [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `shipped` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
@@ -509,7 +510,9 @@ the message names the workaround (use YjsRealtimeProvider server-side, consume u
 `useBroadcast`). That workaround depends on B-010, which is itself local-only, so the documented
 escape route does not currently work either. The provider ships and the CRDT round trip is
 covered over a real socket by `wire-round-trip.test.ts`; what is missing is the React wiring.
-status: triaged
+status: shipped
+shipped_by: PR #124, merged 2026-08-23. Also closed [[B-028]] (the wire encoded only downward) and
+  surfaced [[B-029]] (no initial-sync handshake), which is filed rather than implemented.
 dod:
 
 - `useYDoc()` returns a `Y.Doc` when the room descriptor declares `storage: 'yjs'`
@@ -526,11 +529,24 @@ domain: client-surface
 repo: plugin-forms
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/forms-multipart-upload-opportunity.md`
+— **the item's premise is partially refuted, and the refutation is the finding.** A probe rendered
+a real `<TheoForm>` with a registered `<input type="file">` and the File REACHED the action: RHF
+delivers an array of `File`, and `useAction` does not serialise (`ActionInvoker` is a function the
+consumer supplies). What costs the consumer is everything after: `z.instanceof(File)` rejects what
+RHF actually hands over; `JSON.stringify` keeps the metadata and drops the bytes, so a server
+stores an empty file with no error anywhere; the multipart walk is ~15 identical lines plus a key
+convention nobody can infer; and `encType` is hardcoded `application/x-www-form-urlencoded`
+(`packages/plugin-forms/src/components/TheoForm.tsx:152`). **And the rest of the stack already does multipart end to end**: `theokit`'s client invoker sends a
+`FormData` body as-is, and an action declaring `accept: 'form'` reconstructs an object from it
+guided by the Zod schema. The convention is already fixed and is NOT the obvious one — dot notation
+for nesting, REPEATED keys for arrays (`getAll`), so a hand-rolled `tags[0]`/`tags[1]` walk yields
+an empty array with no error. The item is smaller than it looked: one schema-guided conversion in
+this package, whose correctness criterion is an exact round trip.
 why_now: measured 2026-08-22 — `README.md:216` states "**No file uploads in v0.1.**
 `multipart/form-data` deferred to v0.2." A form library without file upload is a form library a
 consumer outgrows on their second form. The declaration is honest; the gap is real.
-status: raw
+status: triaged
 dod:
 
 - a `<TheoField>` bound to a file input submits through the action as multipart
@@ -547,13 +563,22 @@ domain: plugin-server
 repo: plugin-payments
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/payments-embedded-checkout-opportunity.md`
+— measured LIVE against real Stripe. The hypothesis holds and **understates** the problem. Stripe
+accepts `ui_mode: 'embedded'` and returns `client_secret` with `url: null`, so the feature is
+unexposed rather than unavailable. The result is unreachable — the null-URL throw
+(`packages/plugin-payments/src/providers/stripe.ts:171`) precedes the return that carries `raw`
+(`:182`). And the REQUEST cannot be expressed either: Stripe refused the contract's own parameters
+with "`success_url` is not supported with `ui_mode: embedded`", and `CheckoutInput` has no
+`returnUrl` and no way to ask for the mode. AbacatePay's capability is **unmeasured** — our adapter
+requires a URL (`providers/abacatepay.ts:366`), which is evidence about our adapter, not the
+provider.
 why_now: measured 2026-08-22 — `src/checkout.ts:7` records that the contract returns a redirect
 URL and that "Elements/embedded deferred to v0.x". A consumer who wants the payment form inside
 their own page cannot have it. The hosted path is well covered: the live suite creates real
 Stripe sessions and reconciles them, and the idempotency round trip is asserted against the real
 API.
-status: raw
+status: triaged
 dod:
 
 - the contract expresses an embedded/Elements session without breaking the hosted one
@@ -1032,3 +1057,32 @@ dod:
   - the handshake is a protocol decision, recorded: `Y.encodeStateAsUpdate` replay on join is the
     obvious one, and the reason for choosing it over a state-vector exchange is written down
   - the README stops describing the workaround and describes the behaviour
+
+## B-030 — a multipart scalar array loses every element but the last   [ ]
+
+domain: plugin-server
+repo: plugin-forms
+suggested_mode: bug
+source: human
+evidence: measured 2026-08-24 by the round-trip test shipped with [[B-012]]
+  (`packages/plugin-forms/tests/integration/multipart-round-trip.test.ts`), which drives a real
+  action through `theokit`'s own `executeAction` over a real multipart request.
+  `{ tags: ['first','second','third'] }` comes back as `['third']`.
+  The cause is upstream of the convention, in the framework rather than in this package:
+  `parseWebRequestBody` collects text parts into a **plain object** (`fields[key] = value`), so two
+  parts named `tags` overwrite each other. `synthesizeFormData` then rebuilds a `FormData` from that
+  object, and by the time `formDataToObject` calls `getAll('tags')` there is only ever one value to
+  get. **File** arrays are unaffected — the same parser keeps files in an array
+  (`files.push({fieldName, …})`) — which is why [[B-012]]'s feature works and this does not.
+  There is no client-side fix: the collapse happens before any convention is applied.
+why_now: [[B-012]] shipped the client half, so a `<TheoForm encType="multipart/form-data">` is now a
+  supported path and a consumer with a multi-select or a tag list will hit this. Before it, nothing
+  in this ecosystem produced a multipart body with repeated text parts.
+status: raw
+dod:
+  - the fix is in `theokit`, not here: this item tracks reporting it and re-verifying, since
+    `rules/knowledge-base-location.md § Autonomy` forbids an item here from depending on another
+    repository's state
+  - the pinning test in this repository flips from asserting `['third']` to asserting all three
+    elements, on the day the framework carries them
+  - until then, the limitation is documented where a consumer chooses `encType`

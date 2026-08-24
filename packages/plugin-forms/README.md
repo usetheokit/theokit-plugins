@@ -216,10 +216,64 @@ applyActionErrorsToForm(form.setError, {
 
 First message per field wins (HTML5 single `aria-describedby` convention). For multi-message rendering, read `formState.errors[name]` directly.
 
+## File uploads
+
+Files work. `<TheoField>` renders no input of its own, so a file control is just an input that
+spreads `useTheoFieldRegister()`:
+
+<!-- doc-example: needs="./my-action.js" -->
+
+```tsx
+import * as React from 'react'
+import { z } from 'zod'
+import { TheoField, TheoForm, useTheoFieldRegister } from '@theokit/plugin-forms'
+
+import { upload } from './my-action.js'
+
+const schema = z.object({
+  title: z.string(),
+  docs: z.array(z.instanceof(File)),
+})
+
+function FileControl(): React.JSX.Element {
+  const register = useTheoFieldRegister()
+  return <input type="file" multiple {...register} />
+}
+
+export function UploadForm(): React.JSX.Element {
+  return (
+    <TheoForm action={upload as never} schema={schema as never} encType="multipart/form-data">
+      <TheoField name="docs">
+        <FileControl />
+      </TheoField>
+    </TheoForm>
+  )
+}
+```
+
+Three things are worth knowing, because each is a thing you would otherwise get wrong once:
+
+- **`z.array(z.instanceof(File))`, not `z.instanceof(File)`** — even for a single file. A registered
+  file input holds a `FileList`, which this package normalises to `File[]` before validation. A
+  single-file field is a one-element array on both sides.
+- **`encType="multipart/form-data"` is required and is not inferred.** Without it the values go as a
+  plain object and `JSON.stringify` keeps the file's name and drops its bytes — your server stores
+  an empty file and nothing errors. Conversion is not inferred from the values because an action
+  whose input is an object on one submit and a `FormData` on the next cannot be typed.
+- **Your action must declare `accept: 'form'` server-side.** That is where the body is parsed, and
+  this package cannot see it. Without it the server reads JSON and every field arrives empty.
+
+The size limits (`maxFileSize`, `maxFiles`, total body) are the server's, and it enforces them while
+parsing — so a rejected upload is rejected _after_ the bytes crossed the network. The rejection
+reaches the field like any other server error.
+
 ## Limitations (v0.1)
 
 - **Requires JavaScript on the client.** No progressive-enhancement path in v0.1 — forms will not submit without JS. FormData wire (PE) is targeted for v0.2.
-- **No file uploads in v0.1.** `multipart/form-data` deferred to v0.2.
+- **A multipart scalar array collapses to its last element.** `tags: ['a','b']` arrives as `['b']`.
+  The cause is in the framework's body parser, upstream of anything this package controls, and
+  there is no client-side fix. Arrays of **files** are unaffected. Pinned by a test here so the day
+  it is fixed, we find out.
 - **No form arrays / wizards.** RHF `useFieldArray` works inside `<TheoForm>` but plugin sub-parts don't ship special UX for it.
 - **`<TheoField>` (styled tier) throws at first render if `@usetheo/ui` is not installed**, not at module import. Use `useTheoField` (headless) when `@usetheo/ui` is not in the dep tree.
 - **Async zod refinements (`.refine(async)`) are stripped client-side.** RHF cannot handle async resolvers cleanly; rely on the server's `ActionInputError` for those.

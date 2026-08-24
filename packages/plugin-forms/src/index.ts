@@ -3,6 +3,7 @@
 // Phase 2 — Adapter (pure function, no React deps)
 export { applyActionErrorsToForm } from './adapter/applyActionErrorsToForm.js'
 export type { ActionInputErrorLike, SetErrorCallback } from './adapter/applyActionErrorsToForm.js'
+export { valuesToFormData } from './adapter/valuesToFormData.js'
 
 // Phase 3 — Context + hooks
 export { TheoFormContext, useTheoFormState } from './context/TheoFormContext.js'
