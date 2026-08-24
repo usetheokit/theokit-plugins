@@ -19,16 +19,20 @@
 
 import type { StreamObjectEvent } from '@theokit/sdk'
 import { describe, expect, it } from 'vitest'
+import { z } from 'zod'
 
 import { settleCost } from '../src/internal/cost.js'
 import type { CopilotAgentLike, CopilotUsage } from '../src/types.js'
 
-interface Answer {
-  text: string
-}
+const answerSchema = z.object({ text: z.string() })
+type Answer = z.infer<typeof answerSchema>
 
 /**
- * The element type of the stream `CopilotAgentLike` promises, for a given object type.
+ * The element type of the stream `CopilotAgentLike` promises, for a given SCHEMA.
+ *
+ * The generic moved from the object to the schema so a real `Agent` can satisfy the
+ * interface at all — see `src/types.ts`. A schema is what the caller actually passes,
+ * and deriving the object from it is what the SDK does.
  *
  * `ReturnType<CopilotAgentLike['streamObject']>` would instantiate the generic with
  * `unknown` and silently drop `T` — the assertion below would then hold for every object
@@ -36,14 +40,14 @@ interface Answer {
  * expression `typeof agent.streamObject<T>` passes `T` through.
  */
 declare const _agent: CopilotAgentLike
-type CopilotEvent<T> =
-  ReturnType<typeof _agent.streamObject<T>> extends AsyncIterable<infer E> ? E : never
+type CopilotEvent<S extends z.ZodType> =
+  ReturnType<typeof _agent.streamObject<S>> extends AsyncIterable<infer E> ? E : never
 
 /**
  * The assignment under test. If a real `StreamObjectEvent<Answer>` stops fitting the
  * local union, this line stops compiling — which is the entire point of the file.
  */
-function acceptsSdkEvent(event: StreamObjectEvent<Answer>): CopilotEvent<Answer> {
+function acceptsSdkEvent(event: StreamObjectEvent<Answer>): CopilotEvent<typeof answerSchema> {
   return event
 }
 

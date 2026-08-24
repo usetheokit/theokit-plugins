@@ -1,6 +1,6 @@
 # @theokit/auth-magic-link
 
-Email magic-link (passwordless) provider for [`@theokit/sdk`](https://www.npmjs.com/package/@theokit/sdk) auth orchestrator (`defineAuth`).
+Email magic-link (passwordless) provider for [`@theokit/sdk`](https://www.npmjs.com/package/@theokit/sdk) auth orchestrator (`Auth.create`).
 
 Pluggable token storage (`MagicLinkStore` — in-memory for dev, ORM-backed for production) + consumer-supplied email transport callback (any provider).
 
@@ -18,11 +18,13 @@ Peer dependencies: `@theokit/sdk >= 1.5.0`, `theokit >= 0.2.4`. Zero runtime dep
 
 ```ts
 // server/auth/index.ts
-import { defineAuth } from '@theokit/sdk/server/auth'
+import { Auth } from '@theokit/sdk/server/auth'
 import { magicLink, createMemoryStore } from '@theokit/auth-magic-link'
 import { sessionManager } from './session.js'
 
-export const auth = defineAuth({
+// `Auth.create`, not `Auth.create`. The function existed in `@theokit/sdk` 2.x and is gone
+// from 4.x, which is what npm serves; the options are unchanged, only the entry point moved.
+export const auth = Auth.create({
   session: sessionManager,
   providers: [
     magicLink({
@@ -134,7 +136,7 @@ export const GET = route()
 
 `sessions` is a `createSessionManagerWeb(...)` from `theokit/server/auth`: it writes the
 session cookie into a `Headers` you own, which keeps the whole flow on the Web shapes
-TheoKit hands you. The `defineAuth` orchestrator is the other way in, and it is Node-shaped
+TheoKit hands you. The `Auth.create` orchestrator is the other way in, and it is Node-shaped
 (`IncomingMessage` / `ServerResponse`), so it needs a Node server rather than a route.
 
 The default `resolveEmail` reads `?email=` from the URL OR the `email` field from a JSON / form-encoded body. Override via `opts.resolveEmail` for custom shapes.

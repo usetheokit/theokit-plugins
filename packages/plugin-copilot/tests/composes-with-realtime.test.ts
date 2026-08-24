@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import { createMemoryRealtimeProvider } from '@theokit/plugin-realtime'
+import { Agent } from '@theokit/sdk'
 
-import type { CopilotRealtimeProvider } from '../src/types.js'
+import type { CopilotAgentLike, CopilotRealtimeProvider } from '../src/types.js'
 
 /**
  * This package declares `@theokit/plugin-realtime` as a PEER — it is telling a consumer that the
@@ -28,5 +29,22 @@ describe('the peer this package declares can actually be handed to it', () => {
     const asCopilotProvider: CopilotRealtimeProvider = provider
 
     expect(typeof asCopilotProvider.subscribeRoom).toBe('function')
+  })
+})
+
+describe('the agent this ecosystem ships can actually be handed to it', () => {
+  it('accepts @theokit/sdk Agent where a CopilotAgentLike is required', () => {
+    // `Agent` the CLASS, not an instance: `streamObject` is a static.
+    //
+    // This failed before the contract was reparameterised. `CopilotAgentLike.streamObject<T>`
+    // took `schema: unknown` and promised `DeepPartial<T>` out — a `T` no parameter determined,
+    // so TypeScript instantiated it as `unknown` and NO implementation could satisfy it. The
+    // README meanwhile said `agent: myAgent`, inviting exactly this wiring.
+    //
+    // The SDK parameterises on the schema and derives the object from it; this now does the
+    // same. The assignment IS the assertion — it stops compiling if either side moves.
+    const asCopilotAgent: CopilotAgentLike = Agent
+
+    expect(typeof asCopilotAgent.streamObject).toBe('function')
   })
 })

@@ -311,7 +311,7 @@ export class CopilotRuntime {
       // #224: a REAL schema (not a passthrough) so non-conforming completions
       // are rejected by the agent instead of silently coerced.
       const responseSchema = z.object({ text: z.string() })
-      const iter = this.agent.streamObject<{ text: string }>({
+      const iter = this.agent.streamObject({
         schema: responseSchema,
         prompt: promptText,
         model: reg.descriptor.agent.model,

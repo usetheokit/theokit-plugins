@@ -20,6 +20,7 @@
  * this package last got someone else's shape wrong (#62).
  */
 import type { DeepPartial } from '@theokit/sdk'
+import type { z } from 'zod'
 
 /**
  * Identity of a copilot as a P#9 RoomMember. Visible to other room participants
@@ -327,6 +328,11 @@ export interface CopilotUsage {
  * a compatible `streamObject` works, which is what lets a test drive a deterministic
  * agent and a consumer bring one this package has never heard of.
  *
+ * The SCHEMA parameter is typed as `z.ZodType` rather than mirrored structurally. An earlier
+ * version avoided that to keep zod out of the contract — but zod is already a declared
+ * dependency of this package and `internal/runtime.ts` imports it at runtime, so the avoidance
+ * bought nothing and cost the contract its only real implementation.
+ *
  * The shape mirrors `@theokit/sdk`'s `StreamObjectEvent`, and `tests/sdk-shape.test.ts`
  * is what holds the mirror to the original: it asserts a real `StreamObjectEvent` is
  * assignable here. Before that assertion existed the two drifted — the SDK reported
@@ -336,8 +342,19 @@ export interface CopilotUsage {
  * @public
  */
 export interface CopilotAgentLike {
-  streamObject<T>(opts: {
-    schema: unknown
+  // Parameterised on the SCHEMA, not on the object — which is what `@theokit/sdk`'s `Agent`
+  // does (`streamObject<T extends ZodType>(…): AsyncGenerator<StreamObjectEvent<z.infer<T>>>`).
+  //
+  // It used to read `streamObject<T>(opts: { schema: unknown; … })` with `DeepPartial<T>` on the
+  // way out. That `T` was determined by no parameter, so TypeScript instantiated it as `unknown`
+  // and no real implementation could satisfy the interface: a callee cannot produce a type the
+  // caller picks arbitrarily with nothing to infer it from. `typeof Agent` — the only agent this
+  // ecosystem ships — was not assignable, while the README invited exactly that wiring.
+  //
+  // Still structural on purpose: any object with a compatible `streamObject` works, which is what
+  // lets a test drive a deterministic agent.
+  streamObject<S extends z.ZodType>(opts: {
+    schema: S
     prompt: string
     model: string | { id: string }
     apiKey?: string
@@ -345,10 +362,10 @@ export interface CopilotAgentLike {
     systemPrompt?: string
     maxRetries?: number
   }): AsyncIterable<
-    | { type: 'partial'; partial: DeepPartial<T>; attempt: number }
+    | { type: 'partial'; partial: DeepPartial<z.infer<S>>; attempt: number }
     // Extra fields the SDK sets (`raw`, `finishReason`) are accepted and ignored: this
     // is a supertype of the SDK event, not a copy of it.
-    | { type: 'complete'; object: T; usage?: CopilotUsage }
+    | { type: 'complete'; object: z.infer<S>; usage?: CopilotUsage }
   >
 
   send?(message: string, opts?: Record<string, unknown>): Promise<{ text: string }>
