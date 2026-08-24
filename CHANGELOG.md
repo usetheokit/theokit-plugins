@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- A quality gate that examined nothing now fails instead of reporting a pass. Two gates were printing `PASS` for a run that checked zero files or zero packages — one of them printing `0/0 = 0.0% (floor 100%)` and `PASS` on adjacent lines — and every gate now derives its summary from what it actually checked, through one shared helper (B-026)
+
 - **BREAKING:** `CheckoutResult` in `@theokit/plugin-payments` is discriminated by `uiMode`. Narrow on it to read `url` (hosted) or `clientSecret` (embedded). `url` stays required on the hosted branch rather than becoming optional, so the guarantee every existing caller relies on is unchanged — but reading it without narrowing is now a compile error (#B-013)
 - `CheckoutInput` makes the invalid URL combination unrepresentable: an embedded call takes `returnUrl`, a hosted one takes `successUrl`/`cancelUrl`. Stripe refuses the two together, so the type refuses first (#B-013)
 - The root CHANGELOG uses dated release sections instead of version headers. This repository releases packages, not itself: the root manifest is a private `0.0.0`, and five version headers named a version no tag or manifest carried. Decision in `docs/adr/0002` (#B-008)
