@@ -210,9 +210,14 @@ describe('RoomProvider deferred surface', () => {
     expect(() => button.click()).not.toThrow()
   })
 
-  it('useYDoc refuses, and its message says what to do instead', () => {
-    // The honest shape for a deferred feature: it throws rather than returning something that
-    // silently does nothing, and the error names the workaround.
+  it('useYDoc refuses when no document was given, naming the prop', () => {
+    // B-011. This test used to assert the DEFERRAL message — "auto-wiring is deferred to v0.x,
+    // use useBroadcast for now". That message was honest about the feature being absent and
+    // useless as advice: the workaround it named needed a client-side send path that did not
+    // exist either, which is what [[B-010]] shipped.
+    //
+    // The refusal survives, because a provider with no document still has nothing to return. What
+    // changed is the cause: a missing prop, which the caller can act on.
     function Doc(): React.ReactElement {
       useYDoc()
       return <span>unreachable</span>
@@ -224,7 +229,7 @@ describe('RoomProvider deferred surface', () => {
           <Doc />
         </RoomProvider>,
       ),
-    ).toThrow(/useYDoc.*storage: 'yjs'.*useBroadcast/s)
+    ).toThrow(/useYDoc.*ydoc/s)
   })
 })
 
