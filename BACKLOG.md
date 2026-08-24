@@ -37,15 +37,12 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-35 items — **Open** 15 · **In flight** 0 · **Closed** 20
+35 items — **Open** 12 · **In flight** 0 · **Closed** 23
 
-### Open (15)
+### Open (12)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
-| [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package--) | the OAuth transaction cookie is encrypted with a constant published in the package | `triaged` | — |
-| [`B-022`](#b-022--assertproductionsecret-warns-about-a-boot-refusal-nothing-implements--) | `assertProductionSecret` warns about a boot refusal nothing implements | `raw` | — |
 | [`B-023`](#b-023--the-release-pipeline-cannot-open-its-own-version-packages-pr--) | the release pipeline cannot open its own Version Packages PR | `raw` | — |
 | [`B-024`](#b-024--plugin-payments-claims-ctxstripe-a-vendor-noun-a-consumer-is-likely-to-want--) | `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want | `raw` | — |
 | [`B-025`](#b-025--no-python-runs-in-ci-so-a-consumer-side-kit-invariant-could-not-execute--) | no Python runs in CI, so a consumer-side kit invariant could not execute | `raw` | — |
@@ -63,10 +60,11 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (20)
+### Closed (23)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
+| [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims-x) | Nothing verifies that what a package exports is accepted by the seam it claims | `shipped` | — |
 | [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention-x) | The request-decoration namespace is global and has no convention | `shipped` | — |
 | [`B-003`](#b-003--plugin-realtimes-integration-tests-never-open-a-websocket-x) | `plugin-realtime`'s integration tests never open a WebSocket | `shipped` | — |
 | [`B-004`](#b-004--auth-magic-link-has-no-live-suite-while-the-other-two-auth-providers-do-x) | `auth-magic-link` has no live suite while the other two auth providers do | `shipped` | — |
@@ -86,13 +84,15 @@ _None._
 | [`B-018`](#b-018--nineteen-transitive-high-advisories-sit-in-the-workspace-with-nothing-watching-them-x) | nineteen transitive HIGH advisories sit in the workspace with nothing watching them | `shipped` | — |
 | [`B-019`](#b-019--four-packages-integrate-through-a-seam-the-current-sdk-major-no-longer-has-x) | four packages integrate through a seam the current SDK major no longer has | `shipped` | — |
 | [`B-020`](#b-020--code-quality-was-returning-pass-over-zero-languages-x) | /code-quality was returning PASS over zero languages | `shipped` | — |
+| [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package-x) | the OAuth transaction cookie is encrypted with a constant published in the package | `shipped` | — |
+| [`B-022`](#b-022--assertproductionsecret-warns-about-a-boot-refusal-nothing-implements-x) | `assertProductionSecret` warns about a boot refusal nothing implements | `killed` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
 ## Items
 
-## B-001 — Nothing verifies that what a package exports is accepted by the seam it claims [ ]
+## B-001 — Nothing verifies that what a package exports is accepted by the seam it claims [x]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `seam-conformance-tests`).
 
@@ -106,7 +106,7 @@ via `PAYMENTS_DECORATION_KEY`); `plugin-db-drizzle` has a `register(_app)` that 
 nothing; a grep hit in `plugin-canvas` was `DOMPurify.addHook`, unrelated. #42 shipped because a
 package typed against a framework API that did not exist, and nothing in CI would catch the same
 class of defect today.
-status: triaged
+status: shipped
 dod:
 
 - a test per integrating package that hands its export to the real framework surface it claims —
@@ -124,6 +124,22 @@ remaining nine packages have no such test, `auth-google` is covered only at comp
 suite's measured blind spot is written into its own header — deleting the Web branch of the OAuth
 providers' URL parsing leaves it green, because those providers read nothing but `searchParams`.
 For them the guard is `pnpm typecheck`, which is a different mechanism than this item asks for.
+shipped: 2026-08-24 — the plan's three phases landed in `d79d48e`, `2d7dbf3` and `8f2475d`; the
+review (`seam-conformance-tests-review-2026-08-23.md`) returned `READY_TO_MERGE_WITH_FOLLOWUPS`
+with every HIGH registered (B-019, B-021, B-022). The block was never flipped, so the three DoD
+bullets were re-measured on 2026-08-24 rather than read off the report:
+
+1. `integration/src/integrating-packages.ts` registers all 11 packages; conformance runs through
+   the real `createPluginRunnerFromConfig` and the real `defineAuth` orchestrator.
+2. Re-applying the Q3 mutation (an enumerable-shape capability check in
+   `packages/plugin-payments/src/plugin.ts`, rebuilt) leaves `pnpm test` GREEN and turns
+   `plugin-runner-conformance.offline.test.ts` RED — 2 failed of 9. Reverted; tree clean.
+3. `registry-exhaustiveness.offline.test.ts` reads `packages/` from disk and fails on any
+   directory the registry does not name, so a seamless package is exempt by a written reason and
+   never by silence.
+
+Suites at closure: 20 passed | 1 expected fail — the `it.fails` round trip that goes red the day
+the upstream sdk cookie-name defect is fixed.
 
 ## B-002 — The request-decoration namespace is global and has no convention [x]
 
@@ -909,7 +925,7 @@ checkout starts unaudited again. That is the second half of this item, and it is
 fix belongs in the kit — a default that audits what it finds — rather than in a config file this
 repo cannot version.
 
-## B-021 — the OAuth transaction cookie is encrypted with a constant published in the package [ ]
+## B-021 — the OAuth transaction cookie is encrypted with a constant published in the package [x]
 
 > Registered 2026-08-23 by the auth-provider reviewer during B-001's REVIEW phase.
 
@@ -936,7 +952,8 @@ unreachable for any value satisfying the declared type — confirmed against a r
 (`oauth-transaction-store.d.ts:9`), so a sibling subdomain can set it. `AuthSecretTooShortError`
 does not fire: the constant is 48 chars. Latent today only because [[B-019]]'s cookie-name
 mismatch makes the callback unreachable; it becomes live the moment that is fixed.
-status: triaged
+status: shipped
+shipped: 2026-08-24 — PR #132. No code changed: both defects are in `@theokit/sdk@2.18.0`, a peer this repository never builds, and the three auth packages implement a type contract without constructing the orchestrator. Shipped instead: `integration/tests/seam/sdk-tx-cookie-defects.offline.test.ts` (asserts both defects are PRESENT, so it goes red the day either is fixed) and a `THEOKIT_OAUTH_TX_SECRET` production note in all three auth READMEs. The `dod` bullets above are NOT met and cannot be met here — they are obligations on the sdk.
 dod:
 
 - a sign-in cannot proceed when the transaction secret is the published constant — it fails at
@@ -948,26 +965,64 @@ dod:
 note: the fix is in `@theokit/sdk`, another repository. What belongs here is the measurement, the
 regression test, and a decision on whether these packages may ship against a version that has it.
 
-## B-022 — `assertProductionSecret` warns about a boot refusal nothing implements [ ]
+## B-022 — `assertProductionSecret` warns about a boot refusal nothing implements [x]
 
 domain: auth-provider
 repo: auth-github
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/plans/assert-production-secret-plan.md` — measured 2026-08-24
 why_now: measured 2026-08-23 — `theokit@0.48.8` exports `assertProductionSecret` from
 `theokit/server/auth`, and it has zero callers in this repository. It is also never called by
 `createSessionManager` itself (grepped the bundled chunk: only the definition and the export
 list). What actually runs is `normalizeSecrets`, a 32-character floor applied in every
 environment. So the guard's own message — that a production server will refuse to boot until the
 placeholder is replaced — is not backed by anything these packages wire.
-status: raw
+status: killed
 dod:
 
 - either the packages call it where they claim the guarantee, or the claim is removed from the
   surface that makes it
 - a test asserts the chosen behaviour under `NODE_ENV=production`, since that is the only branch
   where it would bite
+kill_reason: measured 2026-08-24 against `theokit@0.48.8`. The two factual halves of `why_now`
+both hold, and the third — the one that would locate work here — does not.
+
+**What holds.** `assertProductionSecret` occurs 6 times across 160 `.js` files under
+`integration/node_modules/theokit/dist/`, and every occurrence is the definition
+(`dist/chunk-646CA6RV.js:239`) or an export re-listing. There is no call site. Its promise sits
+in the non-production branch at `dist/chunk-646CA6RV.js:262` — *"the production server will
+REFUSE to boot until you replace it"* — which means the sentence announcing the refusal is
+itself inside the function nobody calls, so a developer never even sees the warning. What runs
+instead is `normalizeSecrets` (`:93`), a length floor with no knowledge of `PLACEHOLDER_PATTERN`.
+Measured consequence: `NODE_ENV=production` + a 33-character `CHANGE_ME…` secret →
+`createSessionManager` **accepts it**; a short secret is refused, by the other function, with the
+other message.
+
+**Why the item dies here anyway.** The measurement plan's falsification criterion 3, written
+before measuring, said: if no surface this repository owns leads a reader to expect the boot
+refusal, the defect belongs upstream and there is nothing here to fix. Searched by the CLAIM's
+vocabulary rather than the symbol name (plan EC-2, precisely to avoid killing a promise made in
+prose): `refuses to boot` / `will not boot` / `placeholder` / `NODE_ENV` across every
+`packages/*/README.md` and `src/` — **zero** hits that make the claim. The `placeholder` hits are
+form fields; the `NODE_ENV` hits are `auth-google`'s test-only OIDC escape hatch and
+`plugin-payments`' idempotency-store guard. The two auth READMEs that mention
+`createSessionManagerWeb` do so in a prose aside without a secret argument and without any
+guarantee. `docs/` has nothing.
+
+So the item's `dod` is unexecutable here by construction: neither *"call it where they claim the
+guarantee"* nor *"remove the claim from the surface that makes it"* has a subject in this
+repository. No package constructs a session manager; the consumer does, through theokit.
+
+**Where it went instead:** filed as `usetheokit/theokit#429` with the repro, the 6/160 count, and
+a suggested fix (call it from `createSessionManager` before `normalizeSecrets` returns, or stop
+promising a refusal the framework does not perform). Per
+`rules/knowledge-base-location.md § Autonomy` this registry does not span other repositories, so
+the finding is recorded there rather than kept open here.
+
+Adjacent, and deliberately not folded in: B-021 added a `THEOKIT_OAUTH_TX_SECRET` production note
+to the three auth READMEs. That note instructs; it promises no guard, so it is not the claim this
+item was about. If it ever grows one, this kill should be revisited under a new id.
 
 ## B-023 — the release pipeline cannot open its own Version Packages PR [ ]
 
