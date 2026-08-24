@@ -62,6 +62,22 @@ export interface CredentialVar {
 export interface ServiceSpec {
   /** Stable id; also the directory name under `tests/`. */
   readonly id: string
+  /**
+   * The `integration/package.json` script that runs this service's manual OAuth flow.
+   *
+   * Required for any service whose suite reaches for `describeManualOAuth`, because that helper
+   * skips with "run it locally with the flow:* script for this service" — an instruction that
+   * pointed at nothing for `auth-google` until 2026-08-24, leaving that provider's success path
+   * exercised by neither CI nor a documented procedure.
+   *
+   * DECLARED rather than derived from `id`, because the two do not match: `auth-github` is served
+   * by `flow:github`. A convention nobody wrote down is a convention that drifts, and a check
+   * guessing `flow:<id>` would have failed both services while they were correct.
+   *
+   * Enforced by `tests/manifests/manual-flow-scripts.offline.test.ts`, both ways: a suite using the
+   * helper must declare one, and a declared one must exist.
+   */
+  readonly manualFlowScript?: string
   /** Human label used in test output. */
   readonly label: string
   /** Workspace package under test. */
@@ -247,6 +263,7 @@ export const SERVICES: readonly ServiceSpec[] = [
   },
   {
     id: 'auth-github',
+    manualFlowScript: 'flow:github',
     label: 'Auth (GitHub OAuth)',
     pkg: '@theokit/auth-github',
     provider: 'GitHub OAuth',
@@ -276,6 +293,7 @@ export const SERVICES: readonly ServiceSpec[] = [
   },
   {
     id: 'auth-google',
+    manualFlowScript: 'flow:google',
     label: 'Auth (Google OIDC)',
     pkg: '@theokit/auth-google',
     provider: 'Google OIDC',

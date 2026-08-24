@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- A live-test suite that tells you to run a `flow:*` script now fails when that script does not exist — `auth-google`'s OAuth success path was exercised by neither CI nor a documented procedure, and nothing detected it (B-031)
+
 - `@theokit/plugin-realtime`: a client subscribing to a Yjs room receives the document's current state instead of an empty one — the second person to open a document no longer waits for somebody to type (B-029)
 
 - `pnpm check:lockfile` fails locally when a `package.json` gains a dependency the lockfile does not carry — the same `ERR_PNPM_OUTDATED_LOCKFILE` CI reports, in about a quarter of a second instead of two minutes into a red pull request (B-027)
