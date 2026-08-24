@@ -37,16 +37,14 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-34 items — **Open** 16 · **In flight** 0 · **Closed** 18
+35 items — **Open** 15 · **In flight** 0 · **Closed** 20
 
-### Open (16)
+### Open (15)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-019`](#b-019--four-packages-integrate-through-a-seam-the-current-sdk-major-no-longer-has--) | four packages integrate through a seam the current SDK major no longer has | `triaged` | — |
-| [`B-020`](#b-020--code-quality-was-returning-pass-over-zero-languages--) | /code-quality was returning PASS over zero languages | `raw` | — |
-| [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package--) | the OAuth transaction cookie is encrypted with a constant published in the package | `raw` | — |
+| [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package--) | the OAuth transaction cookie is encrypted with a constant published in the package | `triaged` | — |
 | [`B-022`](#b-022--assertproductionsecret-warns-about-a-boot-refusal-nothing-implements--) | `assertProductionSecret` warns about a boot refusal nothing implements | `raw` | — |
 | [`B-023`](#b-023--the-release-pipeline-cannot-open-its-own-version-packages-pr--) | the release pipeline cannot open its own Version Packages PR | `raw` | — |
 | [`B-024`](#b-024--plugin-payments-claims-ctxstripe-a-vendor-noun-a-consumer-is-likely-to-want--) | `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want | `raw` | — |
@@ -59,12 +57,13 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-032`](#b-032--the-consumer-gate-resolves-peers-from-the-monorepo-so-it-cannot-see-a-missing-one----) | the consumer gate resolves peers from the monorepo, so it cannot see a missing one | `raw` | — |
 | [`B-033`](#b-033--two-kit-skills-ship-the-same-module-name-so-their-suites-cannot-run-together----) | two kit skills ship the same module name, so their suites cannot run together | `raw` | — |
 | [`B-034`](#b-034--the-advisory-gate-is-single-sourced-against-a-rule-that-names-two-scanners----) | the advisory gate is single-sourced, against a rule that names two scanners | `raw` | — |
+| [`B-035`](#b-035--a-pre-code-repo-is-marked-invalid-for-having-no-code----) | a pre-code repo is marked INVALID for having no code | `raw` | — |
 
 ### In flight (0)
 
 _None._
 
-### Closed (18)
+### Closed (20)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -85,6 +84,8 @@ _None._
 | [`B-016`](#b-016--theokitplugin-forms-headless-tier-cannot-be-consumed-without-usetheoui-x) | `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` | `shipped` | — |
 | [`B-017`](#b-017--the-measurement-target-gate-reads-an-npm-subpath-specifier-as-a-missing-file-x) | the measurement-target gate reads an npm subpath specifier as a missing file | `shipped` | — |
 | [`B-018`](#b-018--nineteen-transitive-high-advisories-sit-in-the-workspace-with-nothing-watching-them-x) | nineteen transitive HIGH advisories sit in the workspace with nothing watching them | `shipped` | — |
+| [`B-019`](#b-019--four-packages-integrate-through-a-seam-the-current-sdk-major-no-longer-has-x) | four packages integrate through a seam the current SDK major no longer has | `shipped` | — |
+| [`B-020`](#b-020--code-quality-was-returning-pass-over-zero-languages-x) | /code-quality was returning PASS over zero languages | `shipped` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
@@ -808,7 +809,7 @@ dod:
 note: `repo:` is `plugin-canvas` because that is the only package whose chain reaches a published
 artefact; the fix is repository-wide.
 
-## B-019 — four packages integrate through a seam the current SDK major no longer has [ ]
+## B-019 — four packages integrate through a seam the current SDK major no longer has [x]
 
 > Registered 2026-08-23 while implementing B-001's auth conformance test, which found it.
 
@@ -832,7 +833,11 @@ providers the documented way. This is the #42 defect class exactly: a package ty
 framework API, and the framework moved. It surfaced within minutes of the conformance test
 existing (`integration/tests/seam/auth-orchestrator-conformance.offline.test.ts` failed with
 `TypeError: defineAuth is not a function` while the sdk was briefly resolved at `@latest`).
-status: triaged
+status: shipped
+shipped_by: PR #131, merged 2026-08-24. **The headline was refuted**: no package imports the moved
+  seam, and the types they do import exist in both majors — so no package changed. What shipped is
+  an assertion that reads the declared range and the resolved version from disk and names both,
+  replacing a bare `TypeError` that cost three measurements to explain.
 dod:
 
 - a decision, recorded as an ADR, on whether these packages move to the `Auth` class or stay
@@ -846,7 +851,7 @@ dod:
 note: `repo:` is `auth-google` because that is where the conformance test caught it; the decision
 spans all four packages.
 
-## B-020 — /code-quality was returning PASS over zero languages [ ]
+## B-020 — /code-quality was returning PASS over zero languages [x]
 
 > Registered 2026-08-23 while running the CODE-QUALITY phase on B-001.
 
@@ -854,7 +859,23 @@ domain: dev-tooling
 repo: plugin-db-drizzle
 suggested_mode: bug
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/cq-zero-language-pass-opportunity.md`
+— measured 2026-08-24 in the kit's source. `run_code_quality.py:206` builds `enabled_languages` and
+loops over it; with nothing ENABLED the loop body never executes, `languages_audited` stays empty,
+and the verdict is computed from zero findings. `test_orchestrator.py:77` states the rule as
+`test_verdict_pass_when_no_findings` — correct about the verdict function, blind to WHY there were
+none. The information to tell the two cases apart is already loaded: `defaults/languages.txt` maps
+every language to its manifest marker, and the whole table is in `cfg`. A false PASS here does not
+merely fail to raise a gate — `cycle-implement`'s validation blocks on `FAIL_HARD`, so it CLEARS
+one. **The item splits in two and neither half is quite what it described.** (1) The guard ALREADY
+EXISTS in the kit (`run_code_quality.py:333`, with a test); the copy installed here has none of it,
+so the local `.claude/` is simply stale — the same gap [[B-017]] closed by refreshing files.
+(2) The guard that exists is manifest-BLIND in both directions: it fires on an empty
+`languages_audited` regardless of manifests, so a genuinely pre-code repo is marked INVALID
+(violating the third DoD bullet), and it never fires when SOME language was audited and another's
+manifest was ignored (the second bullet, which the guard's own comment defers). Checked: every
+`/code-quality` run recorded this session reports `Languages audited: typescript`, so none was a
+zero-language pass.
 why_now: measured 2026-08-23 — `.claude/rules/code-quality-languages.txt` contained only comments,
 so `run_code_quality.py` returned `{"verdict": "PASS", "languages_audited": []}`. Every gate in
 `cycle-code-quality.md` (dead code, symbol fabrication, wiring, mutation) was skipped, and the
@@ -862,7 +883,17 @@ cycle reported PASS. This is a TypeScript monorepo of eleven packages; enabling 
 turned the same run into `languages_audited: ["typescript"]`. A PASS over nothing is
 indistinguishable in the report from a PASS over everything, which is the failure mode the whole
 cycle exists to prevent.
-status: raw
+status: shipped
+shipped_by: the kit's repository, commit `a557d20` on `workspace`, pushed 2026-08-24, plus a local
+  refresh of the gitignored install. Half one was a STALE INSTALL, not a missing fix. Half two —
+  `unaudited_manifest_present` — now fails a run that audited one language while another's manifest
+  sat untouched, verified by mutation; 174 kit tests pass.
+not_met: the third DoD bullet ("a genuinely pre-code repo still passes") conflicts with a deliberate
+  kit policy decided the other way with recorded reasoning. Refused rather than overridden: pinned in
+  the kit's suite as a disagreement and filed as [[B-035]]. Reporting this item complete without
+  saying so would be the misreport the item is about.
+residue: the kit's `workspace → develop` PR is unopened — `gh` here authenticates as
+  `usetheodev`/`aquimai`, and the kit is under `paulohenriquevn`. Same constraint as [[B-017]].
 dod:
 
 - a run whose `languages_audited` is empty while manifests exist on disk emits a finding, not
@@ -886,7 +917,15 @@ domain: auth-provider
 repo: auth-google
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/sdk-tx-secret-constant-opportunity.md`
+— both re-measured 2026-08-24 against the installed `@theokit/sdk@2.18.0` and both hold. The
+fallback constant is in the shipped bundle; `SessionManager` declares no `secret`, so the first
+branch is unreachable for a conforming value. And the store reads `__Host-theo_oauth_tx` while the
+writer emits `theo_oauth_tx` — the missing prefix loses the guarantee its own docstring cites, AND
+keeps the secret defect latent, because the callback cannot find what it wrote.
+correction: this item said the flow is unreachable "because [[B-019]]'s cookie-name mismatch".
+B-019 turned out to be about `defineAuth` being absent in sdk 4, which measurement refuted. The
+cookie-name mismatch is its own defect in 2.x, independent of B-019.
 why_now: measured 2026-08-23 in `@theokit/sdk@2.18.0` — `txCookieSecret` (`dist/server/auth/index.js:193`)
 falls back to the literal `DEV_ONLY_INSECURE_OAUTH_TX_SECRET_REPLACE_IN_PROD` when neither
 `opts.session.secret` nor `THEOKIT_OAUTH_TX_SECRET` is set. `DefineAuthOptions.session` is typed
@@ -897,7 +936,7 @@ unreachable for any value satisfying the declared type — confirmed against a r
 (`oauth-transaction-store.d.ts:9`), so a sibling subdomain can set it. `AuthSecretTooShortError`
 does not fire: the constant is 48 chars. Latent today only because [[B-019]]'s cookie-name
 mismatch makes the callback unreachable; it becomes live the moment that is fixed.
-status: raw
+status: triaged
 dod:
 
 - a sign-in cannot proceed when the transaction secret is the published constant — it fails at
@@ -1259,3 +1298,29 @@ dod:
   - `osv-scanner` runs in CI beside `pnpm audit`, its action pinned to a real SHA that was looked up
   - a disagreement between the two scanners is reported, not silently resolved toward either
   - the gate's coverage note stops saying single-sourced, because it stops being true
+
+## B-035 — a pre-code repo is marked INVALID for having no code   [ ]
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: evolve
+source: human
+evidence: measured 2026-08-24 while shipping [[B-020]]'s second half in the kit.
+  [[B-020]]'s third DoD bullet asks that "a genuinely pre-code repo with no manifest still passes".
+  The kit decided the other way, deliberately and with reasoning recorded beside the guard:
+  `cycle-review` admits on PASS, so a run that looked at nothing must not report a clean audit —
+  even when there was nothing to look at. Its test builds a tmp tree with no manifests and asserts
+  `INVALID`.
+  Both positions are defensible and they conflict. Overriding a kit-wide policy on the strength of
+  one consumer's item would be the wrong way to settle it, so the current behaviour is now PINNED in
+  the kit's suite as a disagreement (`test_a_repo_with_no_manifests_at_all_is_still_INVALID_by_deliberate_policy`)
+  rather than silently flipped.
+why_now: [[B-020]] shipped the half that is unambiguously stronger — an unaudited manifest now fails
+  even when another language was audited. The remaining half is a policy question, and it is better
+  asked than assumed.
+status: raw
+dod:
+  - the policy is decided by whoever owns the kit, and the decision is recorded as an ADR there
+  - whichever way it goes, the pinning test in the kit changes deliberately and says why
+  - if pre-code passes, it must still REPORT that it audited nothing — silence would be the defect
+    one layer down
