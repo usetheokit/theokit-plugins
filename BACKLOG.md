@@ -43,7 +43,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
-| [`B-023`](#b-023--the-release-pipeline-cannot-open-its-own-version-packages-pr--) | the release pipeline cannot open its own Version Packages PR | `raw` | — |
+| [`B-023`](#b-023--the-release-pipeline-cannot-open-its-own-version-packages-pr--) | the release pipeline cannot open its own Version Packages PR | `triaged` | — |
 | [`B-024`](#b-024--plugin-payments-claims-ctxstripe-a-vendor-noun-a-consumer-is-likely-to-want--) | `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want | `raw` | — |
 | [`B-025`](#b-025--no-python-runs-in-ci-so-a-consumer-side-kit-invariant-could-not-execute--) | no Python runs in CI, so a consumer-side kit invariant could not execute | `raw` | — |
 | [`B-026`](#b-026--three-gates-in-a-row-shipped-a-summary-line-the-run-had-not-earned--) | three gates in a row shipped a summary line the run had not earned | `raw` | — |
@@ -1030,9 +1030,9 @@ item was about. If it ever grows one, this kill should be revisited under a new 
 
 domain: dev-tooling
 repo: plugin-db-drizzle
-suggested_mode: bug
+suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/release-pr-permission-opportunity.md` — measured 2026-08-24. Mode reclassified `bug` → `review` (nothing reproduces in a test; the subject is a setting and a workflow's ordering).
 why_now: measured 2026-08-23 — merging `develop → main` (#117) started `release.yml`, which ran
 `changeset version`, consumed all 11 changesets, pushed the bumps to `changeset-release/main`, and
 then failed: `HttpError: GitHub Actions is not permitted to create or approve pull requests`
@@ -1042,7 +1042,7 @@ for. Recovering meant opening the PR by hand (#118) and merging it, which then p
 packages successfully (run 32639033942). The workflow has a step literally named "Fail loudly if
 the release PR could not be opened", so the failure mode was anticipated; the permission was not
 granted.
-status: raw
+status: triaged
 dod:
 
 - a release either completes or leaves the changesets intact — the half-applied state above must
