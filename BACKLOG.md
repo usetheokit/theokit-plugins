@@ -37,14 +37,12 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-37 items — **Open** 8 · **In flight** 0 · **Closed** 29
+37 items — **Open** 6 · **In flight** 0 · **Closed** 31
 
-### Open (8)
+### Open (6)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
-| [`B-030`](#b-030--a-multipart-scalar-array-loses-every-element-but-the-last----) | a multipart scalar array loses every element but the last | `raw` | — |
-| [`B-031`](#b-031--the-skip-message-names-a-script-nobody-checks-exists----) | the skip message names a script nobody checks exists | `raw` | — |
 | [`B-032`](#b-032--the-consumer-gate-resolves-peers-from-the-monorepo-so-it-cannot-see-a-missing-one----) | the consumer gate resolves peers from the monorepo, so it cannot see a missing one | `raw` | — |
 | [`B-033`](#b-033--two-kit-skills-ship-the-same-module-name-so-their-suites-cannot-run-together----) | two kit skills ship the same module name, so their suites cannot run together | `raw` | — |
 | [`B-034`](#b-034--the-advisory-gate-is-single-sourced-against-a-rule-that-names-two-scanners----) | the advisory gate is single-sourced, against a rule that names two scanners | `raw` | — |
@@ -56,7 +54,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (29)
+### Closed (31)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -89,6 +87,8 @@ _None._
 | [`B-027`](#b-027--no-local-gate-catches-a-manifest-edited-without-its-lockfile-x) | no local gate catches a manifest edited without its lockfile | `shipped` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 | [`B-029`](#b-029--a-client-joining-a-room-sees-an-empty-document-until-somebody-types---x) | a client joining a room sees an empty document until somebody types | `shipped` | — |
+| [`B-030`](#b-030--a-multipart-scalar-array-loses-every-element-but-the-last---x) | a multipart scalar array loses every element but the last | `shipped` | — |
+| [`B-031`](#b-031--the-skip-message-names-a-script-nobody-checks-exists---x) | the skip message names a script nobody checks exists | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
@@ -1397,7 +1397,7 @@ Review `READY_TO_MERGE`. One HIGH, and it is a disclosure rather than debt: a su
 non-empty room receives one frame more than before, `tsc` cannot surface it, and the changeset says
 so in the words a consumer needs.
 
-## B-030 — a multipart scalar array loses every element but the last   [ ]
+## B-030 — a multipart scalar array loses every element but the last   [x]
 
 domain: plugin-server
 repo: plugin-forms
@@ -1417,7 +1417,7 @@ evidence: measured 2026-08-24 by the round-trip test shipped with [[B-012]]
 why_now: [[B-012]] shipped the client half, so a `<TheoForm encType="multipart/form-data">` is now a
   supported path and a consumer with a multi-select or a tag list will hit this. Before it, nothing
   in this ecosystem produced a multipart body with repeated text parts.
-status: raw
+status: shipped
 dod:
   - the fix is in `theokit`, not here: this item tracks reporting it and re-verifying, since
     `rules/knowledge-base-location.md § Autonomy` forbids an item here from depending on another
@@ -1425,8 +1425,39 @@ dod:
   - the pinning test in this repository flips from asserting `['third']` to asserting all three
     elements, on the day the framework carries them
   - until then, the limitation is documented where a consumer chooses `encType`
+shipped: 2026-08-24 — the `dod` asks for exactly two things, reporting and re-verifying, and both
+are done. **No code changed here**: the collapse happens upstream of any convention this package
+could apply.
 
-## B-031 — the skip message names a script nobody checks exists   [ ]
+**Re-verified** against `theokit@0.48.8`: `packages/plugin-forms/tests/integration/multipart-round-trip.test.ts`
+passes 6/6, which means the DIAGNOSIS case still asserts `['third']` and the contrasting file-array
+case still passes. Both halves of the asymmetry hold.
+
+**Reported** as `usetheokit/theokit#430`, and measuring for the report sharpened the diagnosis. The
+defect and its counter-example sit in ONE loop, in the `multipart/form-data` branch of
+`parseWebRequestBody`:
+
+```js
+if (typeof value === "string") {
+  fields[key] = value;     // repeated names overwrite
+} else {
+  files.push({ fieldName: key, ... });   // repeated names accumulate
+}
+```
+
+`form.entries()` yields one entry per PART, so three parts named `tags` iterate three times and the
+third assignment wins. The Node path repeats it at the busboy `field` handler. The issue carries a
+suggested fix that keeps the single-value case byte-identical, because `fields` is consumed shape and
+turning every scalar into a one-element array would break `fields.name.trim()`.
+
+One thing I got wrong on the way and corrected before reporting: a `fields[key] ?? []` accumulator
+elsewhere in the bundle looked like the framework already having the right implementation. It
+collects Zod validation issues by field path — unrelated. Reporting it would have sent the maintainer
+to the wrong file.
+
+The test now names the issue, so the pin and the report point at each other.
+
+## B-031 — the skip message names a script nobody checks exists   [x]
 
 domain: plugin-server
 repo: plugin-payments
@@ -1443,11 +1474,34 @@ evidence: measured 2026-08-24 while closing [[B-015]].
   there is a place for the assertion to live.
 why_now: [[B-015]] added `flow:google`, so the gap is closed for today's two providers — and closed
   by hand. The next `describeManualOAuth` caller reintroduces it silently.
-status: raw
+status: shipped
 dod:
   - a test that fails when a service uses `describeManualOAuth` and has no matching `flow:*` script
   - it fails for the right reason: deleting the `flow:google` entry turns it red, not the suite
   - the failure message names the service and the script it expected
+shipped: 2026-08-24 — `integration/tests/manifests/manual-flow-scripts.offline.test.ts`, 4 cases, and
+a `manualFlowScript` field on the service registry.
+
+**The item's proposed rule would have failed on correct data.** It asks for "a matching `flow:<id>`",
+and the ids do not match the scripts: `auth-github` is served by `flow:github`. A check guessing
+`flow:<id>` would have gone red on both existing services while they were right. So the link is
+DECLARED on the service instead — a convention nobody wrote down is a convention that drifts, which
+is this item's own thesis applied to its own fix.
+
+All three `dod` bullets measured:
+
+- **fails when a service uses the helper and has no script** — the third case, plus a second one
+  asserting every service using it declares one at all.
+- **fails for the right reason** — deleting `flow:google` turns THIS test red and leaves the suite
+  alone; the check reads files and `package.json` and never runs a suite.
+- **the message names both** — `auth-google declares "flow:google", which is not a script`.
+
+Two things the writing surfaced. The scanner matched **itself**: this test file contains
+`describeManualOAuth(` inside a string literal, so a plain `includes` reported `manifests` as a
+service whose id had drifted. It now requires the harness import too, which is what a real caller has
+and a mention does not. And a vacuity case was added first, because a scanner finding zero suites
+would make every other assertion pass — the failure mode [[B-026]] shipped a helper to stop, one
+level up.
 
 ## B-032 — the consumer gate resolves peers from the monorepo, so it cannot see a missing one   [ ]
 

@@ -195,6 +195,11 @@ describe('what the framework can and cannot carry', () => {
     // There is no client-side fix: the collapse happens upstream of the convention. Pinning it
     // here so the limitation is a checked fact rather than a footnote, and so the day it is fixed
     // this test fails and tells us.
+    //
+    // Reported upstream as usetheokit/theokit#430 (re-verified against theokit@0.48.8 on
+    // 2026-08-24). The exact site is the `multipart/form-data` branch of `parseWebRequestBody`:
+    // `fields[key] = value` for strings, beside `files.push(...)` for files — the asymmetry is in
+    // one loop. The Node path repeats it at the busboy `field` handler.
     const schema = z.object({ tags: z.array(z.string()) })
 
     const { seen } = await roundTrip({ tags: ['first', 'second', 'third'] }, schema)
