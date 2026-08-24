@@ -37,13 +37,12 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-37 items — **Open** 12 · **In flight** 0 · **Closed** 25
+37 items — **Open** 11 · **In flight** 0 · **Closed** 26
 
-### Open (12)
+### Open (11)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
-| [`B-025`](#b-025--no-python-runs-in-ci-so-a-consumer-side-kit-invariant-could-not-execute--) | no Python runs in CI, so a consumer-side kit invariant could not execute | `raw` | — |
 | [`B-026`](#b-026--three-gates-in-a-row-shipped-a-summary-line-the-run-had-not-earned--) | three gates in a row shipped a summary line the run had not earned | `raw` | — |
 | [`B-027`](#b-027--no-local-gate-catches-a-manifest-edited-without-its-lockfile--) | no local gate catches a manifest edited without its lockfile | `raw` | — |
 | [`B-029`](#b-029--a-client-joining-a-room-sees-an-empty-document-until-somebody-types----) | a client joining a room sees an empty document until somebody types | `raw` | — |
@@ -60,7 +59,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (25)
+### Closed (26)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -88,6 +87,7 @@ _None._
 | [`B-022`](#b-022--assertproductionsecret-warns-about-a-boot-refusal-nothing-implements-x) | `assertProductionSecret` warns about a boot refusal nothing implements | `killed` | — |
 | [`B-023`](#b-023--the-release-pipeline-cannot-open-its-own-version-packages-pr-x) | the release pipeline cannot open its own Version Packages PR | `shipped` | — |
 | [`B-024`](#b-024--plugin-payments-claims-ctxstripe-a-vendor-noun-a-consumer-is-likely-to-want-x) | `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want | `shipped` | — |
+| [`B-025`](#b-025--no-python-runs-in-ci-so-a-consumer-side-kit-invariant-could-not-execute-x) | no Python runs in CI, so a consumer-side kit invariant could not execute | `shipped` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
@@ -1135,7 +1135,7 @@ the exported const is reachable from a package entry).
 
 Review `READY_TO_MERGE_WITH_FOLLOWUPS`.
 
-## B-025 — no Python runs in CI, so a consumer-side kit invariant could not execute [ ]
+## B-025 — no Python runs in CI, so a consumer-side kit invariant could not execute [x]
 
 > Registered 2026-08-23 while killing [[B-005]] — the local half of that item.
 
@@ -1143,14 +1143,14 @@ domain: dev-tooling
 repo: plugin-db-drizzle
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/ci-python-gate-opportunity.md` — measured 2026-08-24
 why_now: measured 2026-08-23 — `.claude/scripts/` holds Python that encodes real invariants of
 this project (`route_domain.py` routes all 11 packages across 4 domains; `check_xrefs.py` validates
 every rule cross-reference), and **no workflow in `.github/workflows/` invokes Python at all**. So
 even a correctly-shipped kit test would not execute on a pull request here. The routing table's
 one-package-one-domain invariant holds today, verified by running the parser by hand; nothing keeps
 it holding.
-status: raw
+status: shipped
 dod:
 
 - a CI step runs the project's Python checks on every pull request, and fails when one fails
@@ -1160,6 +1160,34 @@ dod:
 
 note: this is the half of B-005 that is local and measurable. The other half — the kit's test being
 bound to its own routing table — belongs to the kit's backlog.
+shipped: 2026-08-24 — one of three `dod` bullets closed, and the other two are recorded as
+**unclosable here** rather than left open-looking.
+
+**Bullets 1 and 2 cannot close in this repository.** Measured against git rather than the
+filesystem, because the question is what a fresh clone can run: `git ls-files '*.py'` → **0**,
+`git ls-tree HEAD | grep '^.claude/'` → **0**, and no versioned file invokes Python. A CI step
+cannot run a script absent from the checkout, against a rule file also absent from it. Adding the
+step anyway would produce a gate passing over an empty set — reporting the invariant as covered,
+which is the worst available outcome.
+
+**Bullet 3 closed**, which is the branch the bullet itself offered: `CONTRIBUTING.md` now carries a
+section stating that `.claude/` is installed tooling, excluded by `.gitignore`, absent from a fresh
+clone, and covered by no gate here — with a table separating that from the product, which is fully
+gated. It travels in git, which is the requirement.
+
+**A correction to the item's premise, and to my own first measurement.** The item says nothing keeps
+the routing invariant holding. Re-measured without a truncating `head`:
+`tests/test_route_domain.py::test_no_repo_belongs_to_two_domains` **does** exist in the kit — but it
+hard-codes the kit's own rule path and `assert len(table) == 8`, while this table has **4** domains
+over 11 packages, and `install.sh` does not copy `tests/`. So the invariant was tested for the
+author's table and for no consumer's.
+
+**Where the other half went.** Kit commit `c062b82`: the invariant moved into
+`parse_routing_table`, following the precedent its own docstring set for the exit-3 guard — *"the
+check belongs in the tool, which always runs, rather than in a test suite that ships to nowhere."*
+Mutation-verified against THIS repository's table: duplicating `plugin-forms` into `dev-tooling` now
+raises. Recorded here as where it went, never as work this item closed —
+`rules/knowledge-base-location.md § Autonomy` keeps this registry inside this repository.
 
 ## B-026 — three gates in a row shipped a summary line the run had not earned [ ]
 

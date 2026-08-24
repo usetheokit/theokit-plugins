@@ -43,6 +43,34 @@ A plugin earns its place in `@theokit/plugin-*` only when ALL hold:
 
 Plugins not meeting all five live in community space (`@<your-scope>/theokit-plugin-<name>`).
 
+## What CI does not cover: `.claude/`
+
+If you edit anything under `.claude/`, **no gate in this repository will check it**, and that is by
+design rather than by omission.
+
+`.gitignore` excludes `.claude/` because the maintenance tooling installed there is a separate
+product with its own repository — it is a dependency, not source. The consequence is worth stating
+plainly, because it is invisible from a working tree where those files are sitting right in front of
+you:
+
+|                                                   | Present on your disk          | Present in a fresh clone | Checked by this CI |
+| ------------------------------------------------- | ----------------------------- | ------------------------ | ------------------ |
+| `packages/`, `tools/`, `scripts/`, `integration/` | yes                           | yes                      | yes                |
+| `.claude/**`                                      | yes, if you installed the kit | **no**                   | **no**             |
+
+Measured 2026-08-24: `git ls-files '*.py'` returns **0**, and no versioned file in this repository
+invokes Python. So a Python check under `.claude/scripts/` cannot run here — not because a workflow
+step is missing, but because neither the script nor the rule file it reads exists in the checkout a
+runner gets.
+
+**What this means for you.** A change to a rule, a skill or a script under `.claude/` is not
+reviewed, not linted and not tested by opening a pull request here. It affects exactly the machine
+it was typed on. To make it real, it has to reach the kit's own repository, which versions those
+files and runs their tests in its own CI.
+
+**What it does not mean.** The product is fully gated — see the table above and the `pnpm` scripts
+in `package.json`. Nothing about `packages/` is best-effort.
+
 ## Package layout (when populated)
 
 ```
