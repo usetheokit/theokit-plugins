@@ -179,7 +179,7 @@ export function StripeProvider(
         )
       }
 
-      return { id: session.id, url: session.url, provider: PROVIDER, raw: session }
+      return { id: session.id, uiMode: 'hosted', url: session.url, provider: PROVIDER, raw: session }
     },
 
     // `async` is load-bearing, not stylistic. The declared return type is a

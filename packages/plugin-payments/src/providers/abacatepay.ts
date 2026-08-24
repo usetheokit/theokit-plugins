@@ -372,6 +372,7 @@ export function AbacatePayProvider(
       }
       return {
         id: typeof data.id === 'string' ? data.id : '',
+        uiMode: 'hosted' as const,
         url: data.url,
         provider: PROVIDER,
         raw: data,

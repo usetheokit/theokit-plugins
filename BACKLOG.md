@@ -37,14 +37,13 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-30 items — **Open** 19 · **In flight** 0 · **Closed** 11
+30 items — **Open** 18 · **In flight** 0 · **Closed** 12
 
-### Open (19)
+### Open (18)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-012`](#b-012--plugin-forms-cannot-upload-a-file--) | `plugin-forms` cannot upload a file | `triaged` | — |
 | [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout--) | `plugin-payments` ships only hosted checkout | `triaged` | — |
 | [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited--) | three AbacatePay legs are declared uncoverable and never revisited | `raw` | — |
 | [`B-015`](#b-015--the-oauth-consent-round-trip-is-automated-for-nobody--) | the OAuth consent round trip is automated for nobody | `raw` | — |
@@ -67,7 +66,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (11)
+### Closed (12)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -81,6 +80,7 @@ _None._
 | [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish-x) | Nothing compiles the code examples our READMEs publish | `shipped` | — |
 | [`B-010`](#b-010--plugin-realtimes-presence-and-broadcast-never-leave-the-client-x) | `plugin-realtime`'s presence and broadcast never leave the client | `shipped` | — |
 | [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `shipped` | — |
+| [`B-012`](#b-012--plugin-forms-cannot-upload-a-file-x) | `plugin-forms` cannot upload a file | `shipped` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
@@ -521,7 +521,7 @@ dod:
 - ordering against B-010 is decided rather than assumed: if the escape route it documents needs
   B-010, say so in the plan
 
-## B-012 — `plugin-forms` cannot upload a file [ ]
+## B-012 — `plugin-forms` cannot upload a file [x]
 
 > Registered 2026-08-22 by `/backlog-item` (slug: `forms-multipart-upload`).
 
@@ -546,7 +546,11 @@ this package, whose correctness criterion is an exact round trip.
 why_now: measured 2026-08-22 — `README.md:216` states "**No file uploads in v0.1.**
 `multipart/form-data` deferred to v0.2." A form library without file upload is a form library a
 consumer outgrows on their second form. The declaration is honest; the gap is real.
-status: triaged
+status: shipped
+shipped_by: PR #125, merged 2026-08-24. The premise was refuted twice on the way — the file always
+  reached the action, and the framework already did multipart end to end — so the fix was one
+  schema-guided conversion. Surfaced [[B-030]] (a multipart scalar array collapses to its last
+  element, a framework defect upstream of anything this package controls), pinned by a test.
 dod:
 
 - a `<TheoField>` bound to a file input submits through the action as multipart

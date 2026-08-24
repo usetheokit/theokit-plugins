@@ -82,7 +82,11 @@ describe('AbacatePayProvider.createCheckout', () => {
     expect((fetchImpl.mock.calls[0] as [string])[0]).toBe(
       'https://api.abacatepay.com/v2/subscriptions/create',
     )
-    expect(result.url).toBe('https://pay/sub')
+    // Narrowed, not asserted past the union. The result is discriminated by `uiMode` because an
+    // embedded session has no URL at all; reaching for `.url` without narrowing is the compile
+    // error that replaces a runtime `undefined`.
+    expect(result.uiMode).toBe('hosted')
+    expect(result.uiMode === 'hosted' ? result.url : null).toBe('https://pay/sub')
   })
 
   it('refuses a multi-item subscription with the rule, not with a 400 from the API', async () => {

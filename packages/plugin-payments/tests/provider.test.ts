@@ -17,7 +17,13 @@ function minimalProvider(overrides: Partial<PaymentProvider> = {}): PaymentProvi
   return {
     name: 'fake',
     createCheckout: () =>
-      Promise.resolve({ id: 'id', url: 'https://pay.example/1', provider: 'fake', raw: {} }),
+      Promise.resolve({
+        id: 'id',
+        uiMode: 'hosted' as const,
+        url: 'https://pay.example/1',
+        provider: 'fake',
+        raw: {},
+      }),
     verifyWebhook: () =>
       Promise.resolve({
         type: 'unknown' as const,

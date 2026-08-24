@@ -83,8 +83,12 @@ describe('StripeProvider.createCheckout', () => {
       metadata: { orderId: '42' },
     })
 
+    // `uiMode` is part of the envelope now: the result is discriminated because an embedded session
+    // has no URL at all, and this exact `toEqual` is what noticed the field appearing — which is
+    // the point of asserting the whole shape rather than picking fields off it.
     expect(result).toEqual({
       id: 'cs_1',
+      uiMode: 'hosted',
       url: 'https://checkout.stripe.com/x',
       provider: 'stripe',
       raw: { id: 'cs_1', url: 'https://checkout.stripe.com/x' },
