@@ -272,7 +272,7 @@ export const SERVICES: readonly ServiceSpec[] = [
       },
     ],
     caveat:
-      'Only the token exchange is reachable unattended. Measured 2026-08-17: unauthenticated, /login/oauth/authorize answers 302 → /login BEFORE validating anything, so a fabricated client_id — even an empty one — gets the same 302 as the real app. Any "GitHub accepted our authorize URL" assertion therefore passes with no credential at all, and redirect_uri mismatch is enforced only after login. Both were written, measured, and deleted.',
+      'Only the token exchange is reachable unattended. Measured 2026-08-17: unauthenticated, /login/oauth/authorize answers 302 → /login BEFORE validating anything, so a fabricated client_id — even an empty one — gets the same 302 as the real app. Any "GitHub accepted our authorize URL" assertion therefore passes with no credential at all, and redirect_uri mismatch is enforced only after login. Both were written, measured, and deleted. RE-MEASURED 2026-08-24 and unchanged: the authorize endpoint answers 302 -> github.com/login without a session cookie. The blocker is therefore a SESSION CREDENTIAL, not a browser — a headless browser without a session gets the same 302, so automating this means storing a live user account session in CI. That is an account rather than a scope-limited token, and every alternative grant (device flow, App installation token, PAT) exercises a different code path than the one under test. Closed locally by `pnpm flow:github`.',
   },
   {
     id: 'auth-google',
@@ -300,7 +300,7 @@ export const SERVICES: readonly ServiceSpec[] = [
       },
     ],
     caveat:
-      'Same three-legged limit as GitHub. What IS fully testable here is discovery: the plugin fetches Google’s real OIDC document, and that is a live contract with no human in it.',
+      'Same three-legged limit as GitHub. What IS fully testable here is discovery: the plugin fetches Google’s real OIDC document, and that is a live contract with no human in it. RE-MEASURED 2026-08-24: with the real client id and no cookies, the authorize endpoint answers 302 -> accounts.google.com/v3/signin/identifier. Same conclusion as GitHub — the blocker is a SESSION CREDENTIAL, not a browser. Until 2026-08-24 this provider had no `flow:*` script at all, so the skip message telling a reader to run one pointed at nothing and the success path was exercised by neither CI nor a documented procedure. `pnpm flow:google` now exists; its header records which of its branches have actually been run.',
   },
 ]
 
