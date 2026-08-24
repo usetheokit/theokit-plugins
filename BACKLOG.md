@@ -37,15 +37,14 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-26 items — **Open** 18 · **In flight** 0 · **Closed** 8
+29 items — **Open** 19 · **In flight** 0 · **Closed** 10
 
-### Open (18)
+### Open (19)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-010`](#b-010--plugin-realtimes-presence-and-broadcast-never-leave-the-client--) | `plugin-realtime`'s presence and broadcast never leave the client | `raw` | — |
-| [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `raw` | — |
+| [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `triaged` | — |
 | [`B-012`](#b-012--plugin-forms-cannot-upload-a-file--) | `plugin-forms` cannot upload a file | `raw` | — |
 | [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout--) | `plugin-payments` ships only hosted checkout | `raw` | — |
 | [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited--) | three AbacatePay legs are declared uncoverable and never revisited | `raw` | — |
@@ -61,12 +60,14 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-024`](#b-024--plugin-payments-claims-ctxstripe-a-vendor-noun-a-consumer-is-likely-to-want--) | `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want | `raw` | — |
 | [`B-025`](#b-025--no-python-runs-in-ci-so-a-consumer-side-kit-invariant-could-not-execute--) | no Python runs in CI, so a consumer-side kit invariant could not execute | `raw` | — |
 | [`B-026`](#b-026--three-gates-in-a-row-shipped-a-summary-line-the-run-had-not-earned--) | three gates in a row shipped a summary line the run had not earned | `raw` | — |
+| [`B-027`](#b-027--no-local-gate-catches-a-manifest-edited-without-its-lockfile--) | no local gate catches a manifest edited without its lockfile | `raw` | — |
+| [`B-029`](#b-029--a-client-joining-a-room-sees-an-empty-document-until-somebody-types----) | a client joining a room sees an empty document until somebody types | `raw` | — |
 
 ### In flight (0)
 
 _None._
 
-### Closed (8)
+### Closed (10)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -78,6 +79,8 @@ _None._
 | [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams-x) | The `plugin-` prefix names four different integration seams | `shipped` | — |
 | [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it-x) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `shipped` | — |
 | [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish-x) | Nothing compiles the code examples our READMEs publish | `shipped` | — |
+| [`B-010`](#b-010--plugin-realtimes-presence-and-broadcast-never-leave-the-client-x) | `plugin-realtime`'s presence and broadcast never leave the client | `shipped` | — |
+| [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
@@ -438,7 +441,7 @@ the counts moved silently. And `declare module './x.js'` does nothing — TypeSc
 ambient declarations to relative specifiers — so 14 of 64 blocks were skipped while the commit
 claimed the opposite. Counts went 31/18/15 → 40/24/0.
 
-## B-010 — `plugin-realtime`'s presence and broadcast never leave the client [ ]
+## B-010 — `plugin-realtime`'s presence and broadcast never leave the client [x]
 
 > Registered 2026-08-22 by `/backlog-item` (slug: `realtime-outbound-channel`).
 
@@ -446,7 +449,13 @@ domain: plugin-server
 repo: plugin-realtime
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/realtime-outbound-channel-opportunity.md`
+correction: the item frames this as blocked on the SDK. Measured 2026-08-23 — it is not. The
+upstream channel genuinely does not exist (`subscribe` returns `AsyncGenerator<TOutput, void, void>`;
+the `./subscription` subpath exports no outbound verb), **and the server half is complete and
+public**: `runtime.ts:212` fans out a validated broadcast, and `RealtimeRuntime` + `handleConnection`
+are exported from the barrel. What is missing is a send-side port the React hooks never declared.
+Nothing is owed by another repository.
 why_now: measured 2026-08-22 — `emitBroadcast` in `src/react/index.ts` is an EMPTY function body,
 and `emit` only merges into local state. The README says so in bold for both hooks ("**Local-only
 in v0.1** — events are scoped to the current client and do not fan out to other participants
@@ -454,7 +463,7 @@ yet"), so this is a declared limitation rather than a defect. It is the largest 
 repository: a realtime plugin whose outbound channel does not exist. Two people in the same room
 see nothing of each other through these hooks. The inbound half works — the live suite drives
 frames over a real WebSocket and they arrive.
-status: raw
+status: shipped
 dod:
 
 - a presence update from one client is observable by a second client over a real transport
@@ -462,6 +471,21 @@ dod:
 - the README table stops saying "Local-only in v0.1" for whichever hooks now sync
 - the blocking dependency is named: the code cites "G8 `subscribe` upstream `.send()` API" as
   the thing that must stabilise first, and whether that has landed is the first thing to measure
+
+resolution: shipped 2026-08-23 in PR #123. `RoomProvider` takes an optional `sender` port carrying
+the server's own frame union; supply nothing and behaviour is unchanged. Nothing was owed by
+`@theokit/sdk` — the upstream channel genuinely does not exist, and the server half was always
+complete and public.
+
+The review found a BLOCKER the port made reachable: `dispatchFrame` validated the presence PATCH
+against the FULL room schema, so any room with a required presence field rejected every partial
+update — which is the only kind `useUpdateMyPresence` can send. The path was dead for those rooms
+and silent about it. The code's own comment had said "validate the FULL merged shape, not just the
+patch" for as long as both existed.
+
+It was found because the seam test used the one schema shape that passes: all fields optional. The
+suite now carries the shape that disagrees. [[B-027]] records the lockfile slip this slice repeated
+from [[B-008]].
 
 ## B-011 — `useYDoc()` throws instead of wiring the Y.Doc [ ]
 
@@ -471,13 +495,21 @@ domain: plugin-server
 repo: plugin-realtime
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/realtime-ydoc-autowiring-opportunity.md`
+— every piece but the React bridge exists: the Yjs provider (`src/yjs-provider.ts:153`),
+`applyYjsUpdate` (`:305`), the runtime's inbound handling (`internal/runtime.ts:226`), both frame
+kinds in both unions, and a real-WebSocket round trip (`tests/integration/wire-round-trip.test.ts:166`).
+`useYDoc` is `(): never` at `src/react/index.ts:393` and never reads the room, and the React
+reducer drops `yjs-update` frames silently — `RealtimeOutFrame` has no `bytes` field.
+ordering: the item's fourth DoD bullet asked that ordering against [[B-010]] be decided. It is
+decided by fact — B-010 shipped 2026-08-23, so the workaround this item's error message names now
+works, and the same send-side port carries `yjs-update` because it re-exports the full frame union.
 why_now: measured 2026-08-22 — `useYDoc()` in `src/react/index.ts` throws unconditionally, and
 the message names the workaround (use YjsRealtimeProvider server-side, consume updates via
 `useBroadcast`). That workaround depends on B-010, which is itself local-only, so the documented
 escape route does not currently work either. The provider ships and the CRDT round trip is
 covered over a real socket by `wire-round-trip.test.ts`; what is missing is the React wiring.
-status: raw
+status: triaged
 dod:
 
 - `useYDoc()` returns a `Y.Doc` when the room descriptor declares `storage: 'yjs'`
@@ -912,3 +944,91 @@ dod:
 note: the pattern is worth naming because the failure is invisible by construction. A gate that
 misses a defect gets found eventually; a gate that reports success it did not earn teaches everyone
 downstream to trust a line that means nothing.
+
+## B-027 — no local gate catches a manifest edited without its lockfile [ ]
+
+> Registered 2026-08-23 after making the same mistake twice in one day.
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: bug
+source: human
+evidence: none-yet
+why_now: measured 2026-08-23 — twice, in [[B-008]] and [[B-010]], a devDependency was added to
+`integration/package.json` and `pnpm-lock.yaml` was left behind. Both times **all ten local gates
+passed** and CI failed at `pnpm install --frozen-lockfile` with `ERR_PNPM_OUTDATED_LOCKFILE`,
+because no local script passes that flag: `pnpm test`, `pnpm build` and the rest install
+permissively. The feedback arrives ~2 minutes into CI instead of ~1 second locally, and it arrives
+as a red build on a PR rather than as a check the author ran.
+status: raw
+dod:
+
+- a local check fails when `pnpm-lock.yaml` does not satisfy the workspace manifests, runnable in
+  under a second and wired where the other gates are
+- adding a dependency to any `package.json` without updating the lockfile turns it red
+- a fresh clone with an untouched lockfile stays green — the check must not fire on the common case
+
+note: the fix is one command (`pnpm install --frozen-lockfile --lockfile-only --dry-run` or
+equivalent) plus a script entry. It is registered rather than fixed in passing because it belongs
+to whichever gate list it joins, and adding a gate mid-slice is the scope creep the review process
+exists to catch.
+
+## B-028 — the Yjs wire encodes on the way down and hands raw bytes on the way up   [ ]
+
+domain: plugin-server
+repo: plugin-realtime
+suggested_mode: bug
+source: human
+evidence: measured 2026-08-23 while shipping [[B-011]]. `InboundWireFrame`
+  (`packages/plugin-realtime/src/internal/runtime.ts:41-42`) types both Yjs kinds as
+  `bytes: Uint8Array`, and `RealtimeOutboundFrame` — what `RealtimeSendClient.send` accepts — is
+  that union re-exported. So a browser hands its transport a `Uint8Array`, and
+  `JSON.parse(JSON.stringify(...))` turns it into `{"0":1,"1":2,"2":255}`, which `Y.applyUpdate`
+  rejects. Verified in node. The OUTBOUND direction already solves this:
+  `packages/plugin-realtime/src/internal/server-integration.ts:70` base64-encodes, and
+  `packages/plugin-realtime/tests/integration/wire-round-trip.test.ts` exists specifically to prove
+  that encoding is load-bearing. The inbound direction has no equivalent.
+  `dispatchFrame` has **no production caller** in this package (a plugin cannot register a route,
+  per the domain's own seam constraint), so the consumer owns both ends of the serialisation and
+  gets no help on one of them.
+why_now: [[B-011]] shipped the client-side send path, so browser code now produces `yjs-update`
+  frames for the first time. Before it, this type was unreachable from a client and the asymmetry
+  cost nothing.
+status: shipped
+shipped_by: the same slice that surfaced it — an independent review of [[B-011]] called it a
+  BLOCKER rather than a documentation gap, and it was right: the headline claim ("wired both ways")
+  did not hold over the one transport the README teaches. Filing it and shipping the feature with a
+  manual-encoding note would have published a broken path with an apology attached.
+  `InboundWireFrame` now accepts `Uint8Array | string`, the React sender encodes, `dispatchFrame`
+  decodes and rejects undecodable base64 by name. The convergence test round-trips through
+  `JSON.stringify`, and reverting the encode turns it red.
+dod:
+  - a test that fails today by round-tripping an outbound Yjs frame through `JSON.stringify` — done
+  - the two directions agree — done, both carry base64
+  - `wire-round-trip.test.ts`'s inbound twin exists — done
+    (`tests/runtime-yjs-storage.test.ts` § the frame the client actually puts on the wire)
+
+## B-029 — a client joining a room sees an empty document until somebody types   [ ]
+
+domain: plugin-server
+repo: plugin-realtime
+suggested_mode: evolve
+source: human
+evidence: surfaced by an independent review of [[B-011]] and confirmed against the code.
+  `createYjsRealtimeProvider` fans out a `joined` frame carrying presence only
+  (`packages/plugin-realtime/src/yjs-provider.ts:242`), and `applyYjsUpdate` rebroadcasts the delta
+  it received rather than the document's state
+  (`packages/plugin-realtime/src/yjs-provider.ts:332`). The provider's own comment there says a
+  joining client "needs an initial sync, which is a separate concern". So the second person to open
+  a document gets nothing until a live edit arrives. Reproduced by the reviewer with the B-011
+  convergence harness, alice writing before bob connects: bob's document was `""`.
+why_now: [[B-011]] made the client half real. Before it, no React consumer could hold a wired
+  document at all, so "joins and sees nothing" was unreachable. It is now the first thing the
+  second user of a document experiences, and the README documents the feature.
+status: raw
+dod:
+  - a test with two clients where the first edits BEFORE the second connects, and the second ends
+    up with the first's content
+  - the handshake is a protocol decision, recorded: `Y.encodeStateAsUpdate` replay on join is the
+    obvious one, and the reason for choosing it over a state-vector exchange is written down
+  - the README stops describing the workaround and describes the behaviour

@@ -27,6 +27,44 @@ import {
 } from '../types.js'
 
 /**
+ * The payload of a Yjs frame on its way IN, in either shape.
+ *
+ * `Uint8Array` for a caller already holding bytes — an in-process test, or a transport that
+ * carries binary natively. A base64 `string` for everything that crosses JSON, which is what the
+ * documented transport (`socket.send(JSON.stringify(frame))`) does.
+ *
+ * The server→client direction has always encoded (`server-integration.ts`'s `encodeBytes`),
+ * precisely because `JSON.stringify(new Uint8Array([1,2]))` yields `{"0":1,"1":2}` and
+ * `Y.applyUpdate` rejects it. The client→server direction had no equivalent, so the frame a
+ * browser produced could not survive the wire the README documents.
+ *
+ * @public
+ */
+export type YjsWireBytes = Uint8Array | string
+
+/** Encode Yjs bytes for a JSON transport. The client half of the symmetry. */
+export function encodeYjsBytes(bytes: Uint8Array): string {
+  return Buffer.from(bytes).toString('base64')
+}
+
+/**
+ * Accept either shape and hand the provider real bytes.
+ *
+ * Fails by name rather than passing malformed input downstream: `Buffer.from` silently drops
+ * invalid base64 characters, so a corrupt payload would otherwise reach `Y.applyUpdate` as
+ * plausible-looking bytes and fail somewhere less informative.
+ */
+function decodeYjsBytes(bytes: YjsWireBytes, kind: string): Uint8Array {
+  if (typeof bytes !== 'string') return bytes
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(bytes) || bytes.length % 4 !== 0) {
+    throw new RealtimeError(`A ${kind} frame carried bytes that are not valid base64.`, {
+      code: 'yjs_bytes_undecodable',
+    })
+  }
+  return new Uint8Array(Buffer.from(bytes, 'base64'))
+}
+
+/**
  * Incoming wire frame from a client (over G8 subscribe transport).
  *
  * @public
@@ -38,8 +76,8 @@ export type InboundWireFrame =
       readonly event: string
       readonly payload: BroadcastPayload
     }
-  | { readonly kind: 'yjs-update'; readonly bytes: Uint8Array }
-  | { readonly kind: 'yjs-awareness'; readonly bytes: Uint8Array }
+  | { readonly kind: 'yjs-update'; readonly bytes: YjsWireBytes }
+  | { readonly kind: 'yjs-awareness'; readonly bytes: YjsWireBytes }
 
 /**
  * Outgoing wire frame to a client (re-broadcast from {@link RealtimeFrame}).
@@ -224,39 +262,64 @@ export class RealtimeRuntime {
         return
       }
       case 'yjs-update': {
+        this.assertYjsRoom(roomId, room.storage, 'yjs-update')
         if (this.provider.applyYjsUpdate === undefined) {
           // #197 (Rule 8): a room that declares storage:"yjs" but is wired to a
           // provider with no Yjs support is a misconfiguration — fail loudly
           // instead of silently dropping CRDT frames (which loses document state).
-          if (room.storage === 'yjs') {
-            throw new RealtimeError(
-              `Room "${roomId}" declares storage:"yjs" but provider "${this.provider.name}" does not implement applyYjsUpdate. ` +
-                'Use a Yjs-capable provider (createYjsRealtimeProvider) or remove storage:"yjs".',
-              { code: 'yjs_provider_unsupported' },
-            )
-          }
-          // Non-yjs room with no provider support: nothing is expected — drop.
-          return
+          //
+          // B-011: this used to be guarded by `if (room.storage === 'yjs')`, with a bare `return`
+          // otherwise. `assertYjsRoom` above now owns that question, so reaching here means the
+          // room DID declare it and the throw is unconditional. The old `return` was the swallow.
+          throw new RealtimeError(
+            `Room "${roomId}" declares storage:"yjs" but provider "${this.provider.name}" does not implement applyYjsUpdate. ` +
+              'Use a Yjs-capable provider (createYjsRealtimeProvider) or remove storage:"yjs".',
+            { code: 'yjs_provider_unsupported' },
+          )
         }
-        await this.provider.applyYjsUpdate(roomId, connectionId, frame.bytes)
+        await this.provider.applyYjsUpdate(
+          roomId,
+          connectionId,
+          decodeYjsBytes(frame.bytes, 'yjs-update'),
+        )
         return
       }
       case 'yjs-awareness': {
+        this.assertYjsRoom(roomId, room.storage, 'yjs-awareness')
         if (this.provider.applyYjsAwareness === undefined) {
-          // #197: same misconfiguration guard as yjs-update.
-          if (room.storage === 'yjs') {
-            throw new RealtimeError(
-              `Room "${roomId}" declares storage:"yjs" but provider "${this.provider.name}" does not implement applyYjsAwareness. ` +
-                'Use a Yjs-capable provider (createYjsRealtimeProvider) or remove storage:"yjs".',
-              { code: 'yjs_provider_unsupported' },
-            )
-          }
-          return
+          // #197: same misconfiguration guard as yjs-update. B-011 hoisted the storage check,
+          // so this branch is only reachable for a room that declared it.
+          throw new RealtimeError(
+            `Room "${roomId}" declares storage:"yjs" but provider "${this.provider.name}" does not implement applyYjsAwareness. ` +
+              'Use a Yjs-capable provider (createYjsRealtimeProvider) or remove storage:"yjs".',
+            { code: 'yjs_provider_unsupported' },
+          )
         }
-        await this.provider.applyYjsAwareness(roomId, connectionId, frame.bytes)
+        await this.provider.applyYjsAwareness(
+          roomId,
+          connectionId,
+          decodeYjsBytes(frame.bytes, 'yjs-awareness'),
+        )
         return
       }
     }
+  }
+
+  /**
+   * A room only receives CRDT frames if its descriptor asked for them.
+   *
+   * B-011: `room.storage` used to be consulted only when the provider could not handle Yjs, so a
+   * plain room silently dropped the frame on a memory provider and silently ACCEPTED it on a Yjs
+   * one. The declaration is the authority on what a room stores, so it is checked before provider
+   * capability — which answers a different question.
+   */
+  private assertYjsRoom(roomId: string, storage: string | undefined, kind: string): void {
+    if (storage === 'yjs') return
+    throw new RealtimeError(
+      `Room "${roomId}" received a ${kind} frame but its descriptor does not declare storage:"yjs". ` +
+        'Add storage:"yjs" to defineRoom() for this room, or stop sending CRDT frames to it.',
+      { code: 'yjs_storage_not_declared' },
+    )
   }
 
   /** Internal — accessor for connection handles. */

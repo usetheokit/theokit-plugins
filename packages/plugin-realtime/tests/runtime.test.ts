@@ -98,15 +98,22 @@ describe('RealtimeRuntime', () => {
     ).rejects.toThrow(RealtimeRoomNotFoundError)
   })
 
-  it('yjs-update on non-Yjs provider is a no-op', async () => {
+  it('yjs-update on a room that never declared storage:"yjs" is refused, not dropped', async () => {
+    // B-011. This test used to be named "…is a no-op" and asserted `resolves.toBeUndefined()` —
+    // it PINNED the silent drop as intended behaviour. It was the only thing standing behind a
+    // swallow that `rules/error-handling.md § 2` forbids, and it made the drop look deliberate.
+    //
+    // A no-op is the right shape for a frame the system has no opinion about. A CRDT frame sent to
+    // a room whose descriptor never declared CRDT storage is not that: either the client is wrong
+    // about the room or the room is missing a declaration, and both are worth saying out loud.
     const provider = createMemoryRealtimeProvider()
     const rt = new RealtimeRuntime({ provider, rooms: [cursorRoom] })
     await rt.handleConnection('cursor', { connectionId: 'c1' }, undefined, () => {
-      /* intentionally empty — this test asserts the dispatch is a no-op, not frames */
+      /* intentionally empty — this test asserts the refusal, not frames */
     })
     await expect(
       rt.dispatchFrame('cursor', 'c1', { kind: 'yjs-update', bytes: new Uint8Array(0) }),
-    ).resolves.toBeUndefined()
+    ).rejects.toThrow(/does not declare storage/i)
   })
 
   it('test_yjs_room_without_provider_support_errors', async () => {

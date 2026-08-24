@@ -75,6 +75,126 @@ export interface RealtimeSendClient {
 }
 
 /**
+ * Apply one inbound Yjs frame to the document, if there is one to apply it to.
+ *
+ * Awareness frames are accepted and ignored: both kinds are routed so neither reaches the reducer,
+ * but only the document has a destination today. Treating an awareness frame as an error would
+ * make a correctly-behaving server look broken.
+ */
+async function applyYjsFrame(
+  type: 'yjs-update' | 'yjs-awareness',
+  encoded: string | undefined,
+  doc: RealtimeYDoc | undefined,
+): Promise<void> {
+  if (doc === undefined || type === 'yjs-awareness') return
+  if (encoded === undefined) {
+    throw new Error('plugin-realtime: a yjs-update frame arrived with no `bytes`.')
+  }
+  const bytes = decodeBase64(encoded)
+  const yjs = await loadYjs()
+  yjs.applyUpdate(doc, bytes, REMOTE_ORIGIN)
+}
+
+/**
+ * The shape of a Yjs document, described rather than imported.
+ *
+ * `yjs` is an OPTIONAL peer of this package: most consumers use it for presence and broadcast and
+ * never touch a CRDT, and a static import would make a CRDT library mandatory for all of them.
+ * `src/yjs-provider.ts` already solves this server-side with structural types plus a lazy
+ * `import('yjs')`; this is the same technique on the client.
+ *
+ * It is a SEPARATE declaration from the server's `YDocLike`, deliberately. The server needs
+ * `destroy()`; the client needs the update event. One shape covering both would over-demand of
+ * each caller — a document passed here would have to prove it can be destroyed, which this half
+ * never does.
+ *
+ * A real `Y.Doc` satisfies this structurally.
+ *
+ * @public
+ */
+export interface RealtimeYDoc {
+  on(event: 'update', handler: (update: Uint8Array, origin: unknown) => void): void
+  off(event: 'update', handler: (update: Uint8Array, origin: unknown) => void): void
+}
+
+/**
+ * Origin stamped on updates this package applied from the wire.
+ *
+ * Without it the local `update` listener fires for every frame just received and sends it straight
+ * back, so two clients saturate each other.
+ *
+ * `Symbol.for` rather than `Symbol()` deliberately, and NOT for privacy — the global registry is
+ * the opposite of private, and an earlier version of this comment claimed it was. The reason is
+ * that two copies of this module (a duplicated install, a bundler that does not dedupe) must agree
+ * on the sentinel, or one copy's applied update looks local to the other and echoes.
+ */
+const REMOTE_ORIGIN = Symbol.for('@theokit/plugin-realtime#remote')
+
+/**
+ * Encode Yjs bytes for a JSON transport.
+ *
+ * The mirror of `decodeBase64`, and the reason it exists: `RealtimeSendClient.send` used to be
+ * handed a raw `Uint8Array`, and the README's own canonical transport is
+ * `socket.send(JSON.stringify(frame))`. `JSON.stringify(new Uint8Array([1,2]))` yields
+ * `{"0":1,"1":2}`, which `Y.applyUpdate` rejects — so the headline feature did not work over the
+ * one transport the package documents.
+ *
+ * `btoa` in a browser, `Buffer` in Node, same order as the decode.
+ */
+function encodeBase64(bytes: Uint8Array): string {
+  const globals = globalThis as { btoa?: (s: string) => string; Buffer?: typeof Buffer }
+  if (typeof globals.btoa === 'function') {
+    let binary = ''
+    for (const byte of bytes) binary += String.fromCharCode(byte)
+    return globals.btoa(binary)
+  }
+  if (globals.Buffer !== undefined) return globals.Buffer.from(bytes).toString('base64')
+  throw new Error(
+    'plugin-realtime: cannot encode a Yjs frame — this environment provides neither `btoa` nor `Buffer`.',
+  )
+}
+
+/** Decode the base64 the wire carries (`server-integration.ts` encodes with `Buffer`). */
+function decodeBase64(encoded: string): Uint8Array {
+  // `atob` in a browser, `Buffer` in Node. Reusing the server's `Buffer.from` alone would crash on
+  // the one surface this file always runs in.
+  const globals = globalThis as { atob?: (s: string) => string; Buffer?: typeof Buffer }
+  if (typeof globals.atob === 'function') {
+    const binary = globals.atob(encoded)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i)
+    return bytes
+  }
+  if (globals.Buffer !== undefined) {
+    return new Uint8Array(globals.Buffer.from(encoded, 'base64'))
+  }
+  throw new Error(
+    'plugin-realtime: cannot decode a Yjs frame — this environment provides neither `atob` nor `Buffer`.',
+  )
+}
+
+interface YjsApplyModule {
+  applyUpdate(doc: RealtimeYDoc, update: Uint8Array, origin?: unknown): void
+}
+
+let pendingYjs: Promise<YjsApplyModule> | null = null
+
+/** Load the optional peer on first use, and name it when it is not installed. */
+function loadYjs(): Promise<YjsApplyModule> {
+  pendingYjs ??= import('yjs').then(
+    (mod) => mod as unknown as YjsApplyModule,
+    (cause: unknown) => {
+      pendingYjs = null
+      throw new Error(
+        'plugin-realtime: `yjs` is an optional peer dependency and could not be loaded. Install `yjs` to use useYDoc().',
+        { cause },
+      )
+    },
+  )
+  return pendingYjs
+}
+
+/**
  * Room state surface exposed via React Context.
  *
  * @public
@@ -170,6 +290,8 @@ function applyPresenceChangedFrame(
 }
 
 interface RoomContextValue {
+  /** The document this provider was given, if any (B-011). */
+  ydoc?: RealtimeYDoc
   state: InternalRoomState
   emit(out: { kind: 'presence-update'; patch: Partial<Presence> }): void
   emitBroadcast(event: string, payload: BroadcastPayload): void
@@ -198,6 +320,18 @@ export interface RoomProviderProps {
    * by construction rather than by intention.
    */
   sender?: RealtimeSendClient
+  /**
+   * Optional Yjs document to wire to this room.
+   *
+   * The consumer constructs it — anyone who wants a `Y.Doc` already has `yjs` installed, and this
+   * keeps the peer optional for everyone else. Omitted, `useYDoc()` refuses and nothing about the
+   * room changes, so the prop is additive on a published package by construction.
+   *
+   * The room's descriptor must declare `storage: 'yjs'` server-side; the server refuses CRDT
+   * frames for a room that does not, because the descriptor lives there and a client is not a
+   * trust boundary.
+   */
+  ydoc?: RealtimeYDoc
   /** Base URL for the realtime endpoint (defaults to `''` = relative). */
   baseUrl?: string
   /** Optional subscription name override (defaults to `realtime:{roomId}`). */
@@ -211,7 +345,8 @@ export interface RoomProviderProps {
  * @public
  */
 export function RoomProvider(props: RoomProviderProps): React.ReactElement {
-  const { roomId, initialPresence, client, sender, baseUrl, subscriptionName, children } = props
+  const { roomId, initialPresence, client, sender, ydoc, baseUrl, subscriptionName, children } =
+    props
   const [state, setState] = React.useState<InternalRoomState>(() => ({
     others: {},
     myPresence: { ...(initialPresence ?? {}) },
@@ -233,6 +368,15 @@ export function RoomProvider(props: RoomProviderProps): React.ReactElement {
   }, [])
 
   // Subscription lifecycle.
+  // Read through a ref inside the subscription loop. Putting `ydoc` in that effect's dependency
+  // list made DOCUMENT IDENTITY govern the ROOM SUBSCRIPTION lifetime: a consumer who passes an
+  // inline `new Y.Doc()` re-subscribed on every parent render — measured at 6 subscribe() calls
+  // after 5 re-renders — and each re-subscribe is a rejoin with presence churn. The stable-document
+  // guidance belongs in the docs (and now in the hook's error message), but the failure mode
+  // should not be this severe when it is ignored.
+  const ydocRef = React.useRef(ydoc)
+  ydocRef.current = ydoc
+
   React.useEffect(() => {
     let cancelled = false
     const ac = new AbortController()
@@ -248,6 +392,10 @@ export function RoomProvider(props: RoomProviderProps): React.ReactElement {
             presence?: Presence
             event?: string
             payload?: BroadcastPayload
+            // The wire carries the two Yjs kinds' payload as base64, not as bytes — see
+            // `server-integration.ts`'s `encodeBytes`. Omitting this field is why the frames were
+            // unreachable through the type as well as unhandled at runtime.
+            bytes?: string
           }
         >(
           name,
@@ -256,6 +404,20 @@ export function RoomProvider(props: RoomProviderProps): React.ReactElement {
         )
         for await (const out of iter) {
           if (cancelled) return
+          if (out.type === 'yjs-update' || out.type === 'yjs-awareness') {
+            // Its OWN try, deliberately. The outer `catch` below exists to survive a transport
+            // failure and cannot tell one from a bad frame, so letting a decode error reach it
+            // would end presence AND broadcast for the whole room over one corrupt payload.
+            // A bad frame costs one frame.
+            try {
+              await applyYjsFrame(out.type, out.bytes, ydocRef.current)
+            } catch (error) {
+              // Reported, not swallowed. There is no error channel on this API today, so the
+              // console is where a browser-side library says something went wrong.
+              console.error('plugin-realtime: dropping a Yjs frame', error)
+            }
+            continue
+          }
           // #185: per-frame state reduction extracted to keep this effect's
           // cyclomatic complexity low (behavior unchanged).
           applyRealtimeFrame(out, stateRef, setStateAndNotify)
@@ -271,10 +433,29 @@ export function RoomProvider(props: RoomProviderProps): React.ReactElement {
     }
   }, [roomId, baseUrl, subscriptionName, client, setStateAndNotify])
 
+  // The document's send half. Separate from the subscription effect because it has a different
+  // lifetime: the subscription reconnects on a room change, this one detaches whenever the
+  // document or the transport is swapped — and a listener that outlives its document writes the
+  // previous room's edits into the next one.
+  React.useEffect(() => {
+    if (ydoc === undefined || sender === undefined) return
+
+    const onUpdate = (update: Uint8Array, origin: unknown): void => {
+      // The frame we just applied from the wire fires this listener too. Without the origin
+      // check it goes straight back out, and two clients saturate each other.
+      if (origin === REMOTE_ORIGIN) return
+      void sender.send({ kind: 'yjs-update', bytes: encodeBase64(update) })
+    }
+
+    ydoc.on('update', onUpdate)
+    return () => ydoc.off('update', onUpdate)
+  }, [ydoc, sender])
+
   const value = React.useMemo<RoomContextValue>(
     () => ({
       state,
       roomId,
+      ydoc,
       emit(out) {
         // SEND FIRST, then merge. The order matters for a synchronous throw: merging first left
         // the local UI showing an update that was never sent — measured, exactly the "looks
@@ -303,7 +484,7 @@ export function RoomProvider(props: RoomProviderProps): React.ReactElement {
         void sender?.send({ kind: 'broadcast', event, payload })
       },
     }),
-    [state, roomId, sender, setStateAndNotify],
+    [state, roomId, sender, setStateAndNotify, ydoc],
   )
 
   return React.createElement(RoomContext.Provider, { value }, children)
@@ -383,15 +564,32 @@ export function useBroadcast<E extends BroadcastPayload = BroadcastPayload>(): (
 }
 
 /**
- * Yjs `Y.Doc` accessor hook. Throws when YjsRealtimeProvider is not configured
- * server-side (v0.1: doc must be supplied by consumer via dedicated context
- * extension — future iteration will auto-wire when room descriptor declares
- * `storage: "yjs"`).
+ * The room's Yjs document.
+ *
+ * Returns the document passed to `<RoomProvider ydoc={...}>`, wired to the room: inbound
+ * `yjs-update` frames are applied to it, and local changes are sent through the `sender` port —
+ * **when one is supplied**. With `ydoc` and no `sender` the document is receive-only and this hook
+ * still succeeds, which is deliberate (it mirrors the presence and broadcast hooks) and worth
+ * knowing, because a receive-only document looks synced and is not.
+ *
+ * Throws, naming the cause, when the provider was given no document. The other precondition — the
+ * room declaring `storage: 'yjs'` — is enforced server-side, where the descriptor lives; a client
+ * that sends CRDT frames to a room without it gets a typed refusal from the runtime.
  *
  * @public
  */
-export function useYDoc(): never {
-  throw new Error(
-    "useYDoc: Y.Doc auto-wiring requires room descriptor `storage: 'yjs'` + YjsRealtimeProvider server-side. v0.1 ships the provider but auto-wiring through the React Context is deferred to v0.x. Use the YjsRealtimeProvider directly server-side and consume Y.Doc updates via useBroadcast for now.",
-  )
+export function useYDoc(): RealtimeYDoc {
+  const ctx = useRoomContext()
+  if (ctx.ydoc === undefined) {
+    // Names the missing prop, because that is what the caller can act on. The previous message
+    // named a deferral ("auto-wiring is deferred to v0.x"), which told a consumer nothing they
+    // could do — and by then the workaround it recommended was itself broken (see B-010).
+    throw new Error(
+      'useYDoc: this RoomProvider was given no `ydoc`. Pass a STABLE document — ' +
+        '`const [doc] = React.useState(() => new Y.Doc())`, not `ydoc={new Y.Doc()}`, which is a ' +
+        "new document on every render. Also declare `storage: 'yjs'` on the room's " +
+        'defineRoom() server-side.',
+    )
+  }
+  return ctx.ydoc
 }

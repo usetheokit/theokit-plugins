@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `useYDoc()` in `@theokit/plugin-realtime` returns the room's Yjs document instead of throwing. Pass a stable `ydoc` to `<RoomProvider>`; live edits flow both ways. There is no initial sync yet — a client joining an existing document sees it empty until somebody types. `yjs` stays an optional peer (#B-011)
 - `@theokit/plugin-realtime`'s `RoomProvider` takes an optional `sender` port, so presence and broadcasts reach other participants instead of staying local (#B-010)
 - `pnpm quality:doc-api` now type-checks the TypeScript blocks of every published README, not just their import names. A block declares what it assumes with a `doc-example` comment (#B-009)
 - `pnpm quality:changelog` now fails when a package tag is newer than the newest dated section — a release that shipped without being recorded (#B-008)
@@ -105,6 +106,9 @@ Eleven packages cut together: `@theokit/auth-github@0.3.0`, `@theokit/auth-googl
 
 ### Fixed
 
+- Yjs frames now carry base64 in both directions in `@theokit/plugin-realtime`. Only the server-to-client half was encoded, so a frame produced by a browser could not survive `JSON.stringify` — the transport the package's own README documents. `dispatchFrame` still accepts raw bytes (#B-028)
+- A CRDT frame sent to a room whose descriptor never declared `storage: 'yjs'` is now refused by name. It was silently dropped on a provider without Yjs support, and silently _applied_ on one with it — writing document state into a room that never opted in (#B-011)
+- A corrupt Yjs frame no longer ends the whole room subscription in `@theokit/plugin-realtime`'s React provider. One bad payload used to take presence and broadcast down with it, with no error anywhere (#B-011)
 - Three documented examples did not compile: `withAgentContext({ userId })` against an `AgentContext` that has no `userId`, two untyped parameters in `auth-google`'s wrapper example, and a React example calling `useState` without importing it (#B-009)
 - `@theokit/plugin-copilot`'s README and npm description named `defineCopilot` and never the plugin, so a consumer following them never registered it (#B-007)
 - The seam registry is now load-bearing: a package declared as plugging into a seam fails the suite unless a conformance case builds it or names where one lives (#B-001)

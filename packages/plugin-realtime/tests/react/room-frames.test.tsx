@@ -210,9 +210,14 @@ describe('RoomProvider deferred surface', () => {
     expect(() => button.click()).not.toThrow()
   })
 
-  it('useYDoc refuses, and its message says what to do instead', () => {
-    // The honest shape for a deferred feature: it throws rather than returning something that
-    // silently does nothing, and the error names the workaround.
+  it('useYDoc refuses when no document was given, naming the prop', () => {
+    // B-011. This test used to assert the DEFERRAL message — "auto-wiring is deferred to v0.x,
+    // use useBroadcast for now". That message was honest about the feature being absent and
+    // useless as advice: the workaround it named needed a client-side send path that did not
+    // exist either, which is what [[B-010]] shipped.
+    //
+    // The refusal survives, because a provider with no document still has nothing to return. What
+    // changed is the cause: a missing prop, which the caller can act on.
     function Doc(): React.ReactElement {
       useYDoc()
       return <span>unreachable</span>
@@ -224,7 +229,7 @@ describe('RoomProvider deferred surface', () => {
           <Doc />
         </RoomProvider>,
       ),
-    ).toThrow(/useYDoc.*storage: 'yjs'.*useBroadcast/s)
+    ).toThrow(/useYDoc.*ydoc/s)
   })
 })
 
@@ -399,7 +404,15 @@ describe('RoomProvider send-side port', () => {
       </RoomProvider>,
     )
 
-    expect(() => room!.updateMyPresence({ cursor: [9, 9] })).toThrow('transport down')
+    // Inside `act`, deliberately. Without it React never flushes, so `room` still holds the value
+    // captured at the initial render and the assertion below measures "has not re-rendered yet"
+    // rather than "did not merge". Measured: with the order reversed — merge first, then send,
+    // i.e. exactly the behaviour this test is named for — the merge to [9,9] EXECUTED and this
+    // test still passed. The one guard on a corrected ordering could not see the correction being
+    // undone.
+    act(() => {
+      expect(() => room!.updateMyPresence({ cursor: [9, 9] })).toThrow('transport down')
+    })
     expect(room!.myPresence, 'merged locally despite the send throwing').toMatchObject({
       cursor: [0, 0],
     })
@@ -408,29 +421,50 @@ describe('RoomProvider send-side port', () => {
   it('accepts an async sender without swallowing its rejection', async () => {
     // `send` returns `void | Promise<void>`: the README suggests a POST, which is async, and a
     // void-only signature silently dropped its rejection.
+    //
+    // What "not swallowing" means has to be stated precisely, or the test cannot check it. A
+    // consumer's own `.catch` fires either way — they own the promise. The ONLY observable
+    // difference is whether an uncaught rejection reaches the runtime as unhandled. So that is
+    // what is observed here.
+    //
+    // Two earlier versions of this test could not see it. The first had the fixture catch its own
+    // rejection, so `settled` was set by the test rather than by anything the hook did. The second
+    // attached `.finally` in the fixture, which runs regardless. Both passed against a deliberate
+    // `.catch(() => undefined)` inside `emitBroadcast`.
     const { client } = controllable()
-    let settled: 'pending' | 'rejected' = 'pending'
-    const async: RealtimeSendClient = {
-      send: () => Promise.reject(new Error('offline')).catch(() => void (settled = 'rejected')),
+    const unhandled: unknown[] = []
+    const onUnhandled = (reason: unknown): void => void unhandled.push(reason)
+    process.on('unhandledRejection', onUnhandled)
+
+    try {
+      const async: RealtimeSendClient = {
+        send: () => Promise.reject(new Error('offline')),
+      }
+      let room: ReturnType<typeof useRoom> | undefined
+
+      function Probe(): null {
+        room = useRoom()
+        return null
+      }
+      render(
+        <RoomProvider roomId="r" client={client} sender={async}>
+          <Probe />
+        </RoomProvider>,
+      )
+
+      act(() => {
+        room!.broadcast('q', { text: 'hi' })
+      })
+      // Unhandled rejections are reported at the end of a macrotask, not a microtask.
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(
+        unhandled.map(String).join(' '),
+        'the rejection was swallowed instead of surfacing',
+      ).toMatch(/offline/)
+    } finally {
+      process.off('unhandledRejection', onUnhandled)
     }
-    let room: ReturnType<typeof useRoom> | undefined
-
-    function Probe(): null {
-      room = useRoom()
-      return null
-    }
-    render(
-      <RoomProvider roomId="r" client={client} sender={async}>
-        <Probe />
-      </RoomProvider>,
-    )
-
-    act(() => {
-      room!.broadcast('q', { text: 'hi' })
-    })
-    await Promise.resolve()
-
-    expect(settled).toBe('rejected')
   })
 
   it('lets a failing transport surface rather than swallowing it', () => {
