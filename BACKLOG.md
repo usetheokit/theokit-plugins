@@ -44,7 +44,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package--) | the OAuth transaction cookie is encrypted with a constant published in the package | `raw` | — |
+| [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package--) | the OAuth transaction cookie is encrypted with a constant published in the package | `triaged` | — |
 | [`B-022`](#b-022--assertproductionsecret-warns-about-a-boot-refusal-nothing-implements--) | `assertProductionSecret` warns about a boot refusal nothing implements | `raw` | — |
 | [`B-023`](#b-023--the-release-pipeline-cannot-open-its-own-version-packages-pr--) | the release pipeline cannot open its own Version Packages PR | `raw` | — |
 | [`B-024`](#b-024--plugin-payments-claims-ctxstripe-a-vendor-noun-a-consumer-is-likely-to-want--) | `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want | `raw` | — |
@@ -917,7 +917,15 @@ domain: auth-provider
 repo: auth-google
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/sdk-tx-secret-constant-opportunity.md`
+— both re-measured 2026-08-24 against the installed `@theokit/sdk@2.18.0` and both hold. The
+fallback constant is in the shipped bundle; `SessionManager` declares no `secret`, so the first
+branch is unreachable for a conforming value. And the store reads `__Host-theo_oauth_tx` while the
+writer emits `theo_oauth_tx` — the missing prefix loses the guarantee its own docstring cites, AND
+keeps the secret defect latent, because the callback cannot find what it wrote.
+correction: this item said the flow is unreachable "because [[B-019]]'s cookie-name mismatch".
+B-019 turned out to be about `defineAuth` being absent in sdk 4, which measurement refuted. The
+cookie-name mismatch is its own defect in 2.x, independent of B-019.
 why_now: measured 2026-08-23 in `@theokit/sdk@2.18.0` — `txCookieSecret` (`dist/server/auth/index.js:193`)
 falls back to the literal `DEV_ONLY_INSECURE_OAUTH_TX_SECRET_REPLACE_IN_PROD` when neither
 `opts.session.secret` nor `THEOKIT_OAUTH_TX_SECRET` is set. `DefineAuthOptions.session` is typed
@@ -928,7 +936,7 @@ unreachable for any value satisfying the declared type — confirmed against a r
 (`oauth-transaction-store.d.ts:9`), so a sibling subdomain can set it. `AuthSecretTooShortError`
 does not fire: the constant is 48 chars. Latent today only because [[B-019]]'s cookie-name
 mismatch makes the callback unreachable; it becomes live the moment that is fixed.
-status: raw
+status: triaged
 dod:
 
 - a sign-in cannot proceed when the transaction secret is the published constant — it fails at
