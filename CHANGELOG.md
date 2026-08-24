@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- The consumer gate now loads every published entry from a layout holding only that package's declared dependencies, so an entry importing something it never declared fails here instead of in somebody's install — the gate that said it checked peers could not (B-032)
+
 - A live-test suite that tells you to run a `flow:*` script now fails when that script does not exist — `auth-google`'s OAuth success path was exercised by neither CI nor a documented procedure, and nothing detected it (B-031)
 
 - `@theokit/plugin-realtime`: a client subscribing to a Yjs room receives the document's current state instead of an empty one — the second person to open a document no longer waits for somebody to type (B-029)

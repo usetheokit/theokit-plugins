@@ -37,14 +37,12 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-37 items — **Open** 6 · **In flight** 0 · **Closed** 31
+37 items — **Open** 4 · **In flight** 0 · **Closed** 33
 
-### Open (6)
+### Open (4)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
-| [`B-032`](#b-032--the-consumer-gate-resolves-peers-from-the-monorepo-so-it-cannot-see-a-missing-one----) | the consumer gate resolves peers from the monorepo, so it cannot see a missing one | `raw` | — |
-| [`B-033`](#b-033--two-kit-skills-ship-the-same-module-name-so-their-suites-cannot-run-together----) | two kit skills ship the same module name, so their suites cannot run together | `raw` | — |
 | [`B-034`](#b-034--the-advisory-gate-is-single-sourced-against-a-rule-that-names-two-scanners----) | the advisory gate is single-sourced, against a rule that names two scanners | `raw` | — |
 | [`B-035`](#b-035--a-pre-code-repo-is-marked-invalid-for-having-no-code----) | a pre-code repo is marked INVALID for having no code | `raw` | — |
 | [`B-036`](#b-036--the-release-dry-runs-pins-and-gates-can-drift-from-releaseyml-with-nothing-detecting-it--) | the release dry run's pins and gates can drift from `release.yml` with nothing detecting it | `raw` | — |
@@ -54,7 +52,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (31)
+### Closed (33)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -89,6 +87,8 @@ _None._
 | [`B-029`](#b-029--a-client-joining-a-room-sees-an-empty-document-until-somebody-types---x) | a client joining a room sees an empty document until somebody types | `shipped` | — |
 | [`B-030`](#b-030--a-multipart-scalar-array-loses-every-element-but-the-last---x) | a multipart scalar array loses every element but the last | `shipped` | — |
 | [`B-031`](#b-031--the-skip-message-names-a-script-nobody-checks-exists---x) | the skip message names a script nobody checks exists | `shipped` | — |
+| [`B-032`](#b-032--the-consumer-gate-resolves-peers-from-the-monorepo-so-it-cannot-see-a-missing-one---x) | the consumer gate resolves peers from the monorepo, so it cannot see a missing one | `shipped` | — |
+| [`B-033`](#b-033--two-kit-skills-ship-the-same-module-name-so-their-suites-cannot-run-together---x) | two kit skills ship the same module name, so their suites cannot run together | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
@@ -1503,7 +1503,7 @@ and a mention does not. And a vacuity case was added first, because a scanner fi
 would make every other assertion pass — the failure mode [[B-026]] shipped a helper to stop, one
 level up.
 
-## B-032 — the consumer gate resolves peers from the monorepo, so it cannot see a missing one   [ ]
+## B-032 — the consumer gate resolves peers from the monorepo, so it cannot see a missing one   [x]
 
 domain: client-surface
 repo: plugin-forms
@@ -1522,17 +1522,44 @@ why_now: [[B-016]] is a missing-peer defect that survived in a published package
   stated purpose is "if somebody installs this, does it load at all?" reported it green. The gate is
   not wrong about what it checks; it is wrong about what it says it checks, which is the pattern
   this repository keeps finding in its own gates ([[B-026]]).
-status: raw
+status: shipped
 dod:
   - the harness loads each entry from a layout that does NOT resolve peers from the monorepo
   - removing a required peer from that layout turns the assertion red, proving it observes peers
   - the comment claiming peer coverage is either true or removed
+shipped: 2026-08-24 — `integration/tests/consumer/isolated-entries.offline.test.ts`, 19 cases across
+every published entry.
 
-## B-033 — two kit skills ship the same module name, so their suites cannot run together   [ ]
+The machinery already existed in miniature: `missing-peer.offline.test.ts` (from [[B-016]]) staged
+one isolated consumer by hand. This generalises it — copy the package's `dist`, symlink **exactly**
+its declared dependencies and peers, import each `exports` target from there. An entry importing
+something it never declared cannot resolve it in that layout, which is the whole point.
+
+The copy is load-bearing and the trap was already measured in B-016: symlinking the package under
+test passes, because Node resolves a symlink to its real path and walks up into the monorepo — the
+same blindness one layer out. Peers stay symlinked, which is safe: they are real installs whose own
+dependencies resolving from the store is correct.
+
+All three `dod` bullets:
+
+- **a layout that does not resolve peers from the monorepo** — the fixture holds only what the
+  manifest declares.
+- **removing a required peer turns it red** — dropping `react` from the link list turns 5 entries red
+  with `ERR_MODULE_NOT_FOUND Cannot find package 'react' imported from /tmp/isolated-…`. Measured,
+  then reverted.
+- **the overclaiming comment** — `packaged.test.ts` said it exercised "every peer the entry pulls at
+  load time". It now says what it does exercise, why it cannot exercise peers, and which file can.
+
+One design detail worth keeping: a declared dependency absent from the pnpm store is **reported in
+the failure message** rather than skipped silently — otherwise a peer nobody installed would look
+exactly like a peer the entry does not need. Two showed up that way (`mermaid`,
+`@theokit/plugin-realtime`), both lazily imported, both correctly loading without it.
+
+## B-033 — two kit skills ship the same module name, so their suites cannot run together   [x]
 
 domain: dev-tooling
 repo: plugin-db-drizzle
-suggested_mode: bug
+suggested_mode: review
 source: human
 evidence: measured 2026-08-24 while fixing [[B-017]] in the kit's own repository.
   `skills/discover-confidence/scripts/check_corner_coverage.py` and
@@ -1546,13 +1573,39 @@ evidence: measured 2026-08-24 while fixing [[B-017]] in the kit's own repository
 why_now: it is a trap rather than a live failure — a contributor who runs the whole test tree in one
   command sees three errors that have nothing to do with their change, and the natural reading is
   that they broke something. [[B-017]] hit it and had to stash to prove otherwise.
-status: raw
+status: shipped
 dod:
   - one command runs every kit suite and exits 0 (importmode=importlib, or per-skill packages, or
     distinct module names — the mechanism is the decision)
   - the fix is proven by running that one command, not by running the suites separately
   - whichever mechanism is chosen, a NEW skill that reuses an existing script name does not
     reintroduce it silently
+shipped: 2026-08-24 — kit commit `5e61b9a`. Measuring corrected the item's diagnosis twice, and
+both corrections changed what got built.
+
+**The `dod` was already satisfied.** It asks that "one command runs every kit suite and exits 0";
+`bash scripts/run_slice_tests.sh` does exactly that — measured, exit 0 — and its header explains why
+the isolation is deliberate: it mirrors production, where each skill runs alone with only its own
+`scripts/` on `sys.path`.
+
+**The cause is not the import mode.** `why_now` says "under pytest's default import mode the first
+one imported wins". `pyproject.toml` already sets `--import-mode=importlib`, and that governs how
+pytest imports TEST files, not how a test's own `import X` resolves. The real cause is
+`sys.path.insert(0, SCRIPTS_DIR)` in each slice's `conftest.py`: the first slice collected wins
+`sys.modules` for the whole session.
+
+So unifying the namespace — the fix the item's framing implies — would have made the test
+environment differ from production, which is precisely what the isolation exists to prevent. Built
+instead: a root `conftest.py` that refuses a multi-slice invocation and names the command that
+works. The three confusing errors become one sentence.
+
+It fires in `pytest_configure`, not `pytest_collection_modifyitems` — by the time items are
+collected the ImportErrors have already been raised and printed. It reads the command-line
+arguments and expands a bare `skills` or the repo root to every slice on disk; measured, `pytest
+skills` names all 17.
+
+Three tests, and one of them guards the guard: a single slice, and the root suite, must still run
+normally. Kit suite after: `run_slice_tests.sh` exit 0, root 127 passed, `check_xrefs.py` PASS.
 
 ## B-034 — the advisory gate is single-sourced, against a rule that names two scanners   [ ]
 
