@@ -10,6 +10,11 @@ The hooks were never blocked by a missing channel — the server half has always
 `RealtimeRuntime` is public. What was missing was a send-side port, the mirror of the receive-side
 `client` the provider already took.
 
-Note that your own frames come back: the provider notifies every listener in the room including the
-sender, so a presence patch is applied twice. That is safe because a patch is a merge rather than an
-increment — a presence field that accumulated would not be.
+Also fixes a defect the port made reachable: `dispatchFrame` validated a presence **patch** against
+the full room schema, so any room with a required presence field rejected every partial update —
+which is the only kind `useUpdateMyPresence` can send. It now validates the patch merged over the
+connection's current presence, which is what the code's own comment always claimed.
+
+Note that your own frames come back, and the echo is authoritative: it carries the server's full
+presence and replaces your local copy, so a key the room's schema does not declare is stripped when
+it arrives.
