@@ -18,6 +18,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:cycles": "madge --circular --extensions ts,tsx packages/*/src",
+    "check:lockfile": "pnpm install --frozen-lockfile --lockfile-only",
     "check:manifests": "node scripts/validate-manifests.mjs",
     "quality:doc-api": "node tools/check-doc-api-drift.mjs",
     "quality:doc-orphans": "node tools/check-orphan-docblocks.mjs",

@@ -122,6 +122,13 @@ jobs:
         run: pnpm build
 
       - run: pnpm typecheck
+      # Not redundant with the `pnpm install --frozen-lockfile` above, and the difference is
+      # legibility rather than coverage: when the install step rejects a drifted lockfile, the job
+      # fails inside a step named `pnpm install`, and a contributor reads that as "the install
+      # broke". A named gate puts the actual condition in the checks list, which is where they look
+      # first. It costs under a second on a runner that has already resolved (B-027).
+      - name: Lockfile satisfies the workspace manifests
+        run: pnpm check:lockfile
       - name: Check for circular dependencies (regression guard for the M1 canvas cycle fix)
         run: pnpm check:cycles
       # Catches, on every push, what previously surfaced only at a package's first
