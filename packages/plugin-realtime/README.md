@@ -99,14 +99,14 @@ function Cursors() {
 
 Hooks available:
 
-| Hook                       | Returns                                                                   | Notes                                                                                                                                                |
-| -------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `useRoom<P, E>()`          | `{roomId, others, myPresence, connectionId, updateMyPresence, broadcast}` | Throws outside `<RoomProvider>`                                                                                                                      |
-| `useOthers<P>()`           | `Record<connectionId, P>`                                                 | Read-only snapshot of other clients' presence                                                                                                        |
-| `usePresence<P>()`         | `P`                                                                       | Local client's current presence                                                                                                                      |
-| `useUpdateMyPresence<P>()` | `(patch: Partial<P>) => void`                                             | **Local-only unless a `sender` is supplied** — merges locally either way; with a sender, also sends a `presence-update` frame                        |
-| `useBroadcast<E>()`        | `(event: string, payload: E) => void`                                     | **Local-only in v0.1 unless a `sender` is supplied** — with no sender this is a no-op; with one, the server fans out to every participant            |
-| `useYDoc()`                | `Y.Doc`                                                                   | The document passed to `<RoomProvider ydoc={...}>`, wired for live edits. Throws, naming the prop, when none was passed. No initial sync — see below |
+| Hook                       | Returns                                                                   | Notes                                                                                                                                                                         |
+| -------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useRoom<P, E>()`          | `{roomId, others, myPresence, connectionId, updateMyPresence, broadcast}` | Throws outside `<RoomProvider>`                                                                                                                                               |
+| `useOthers<P>()`           | `Record<connectionId, P>`                                                 | Read-only snapshot of other clients' presence                                                                                                                                 |
+| `usePresence<P>()`         | `P`                                                                       | Local client's current presence                                                                                                                                               |
+| `useUpdateMyPresence<P>()` | `(patch: Partial<P>) => void`                                             | **Local-only unless a `sender` is supplied** — merges locally either way; with a sender, also sends a `presence-update` frame                                                 |
+| `useBroadcast<E>()`        | `(event: string, payload: E) => void`                                     | **Local-only in v0.1 unless a `sender` is supplied** — with no sender this is a no-op; with one, the server fans out to every participant                                     |
+| `useYDoc()`                | `Y.Doc`                                                                   | The document passed to `<RoomProvider ydoc={...}>`, wired for live edits and synced with the room's current state on subscribe. Throws, naming the prop, when none was passed |
 
 ### Sending: the `sender` port
 
@@ -251,11 +251,20 @@ Two preconditions, refused in two different places on purpose:
 Without a `sender`, the document still works locally and nothing is transmitted — the same
 additive shape the presence and broadcast hooks have.
 
-**Live edits only — there is no initial sync.** A client that joins a room where a document
-already has content receives nothing until somebody types: `applyYjsUpdate` rebroadcasts the delta
-it received, and no handshake replays existing state. The second person to open a document sees it
-empty. Sending `Y.encodeStateAsUpdate(doc)` to a newly-joined connection from your own route is the
-workaround; a real sync handshake is tracked separately.
+**A client that subscribes receives the document.** Subscribing to a room whose document already has
+content delivers one `yjs-update` frame carrying the full state, to that subscriber only, before any
+live edit arrives. You do not have to replay anything from your own route.
+
+It is an ordinary `yjs-update` frame, so nothing on your side needs to distinguish it: in Yjs a full
+state encoding _is_ an update, and `Y.applyUpdate` consumes both. Its `connectionId` is
+`@theokit/plugin-realtime#server`, because the frame comes from the room rather than from a
+participant — a real id there would be a lie you might act on, since `connectionId` is what lets a
+client skip its own frames.
+
+**What it does not do: persist.** A room with no participants and no subscribers is garbage-collected
+and its document destroyed. Someone arriving after the last person leaves gets an empty document.
+Durable documents are storage, which this package does not provide — keep your own copy if you need
+one to survive an empty room.
 
 **The bytes are encoded for you, in both directions.** A `yjs-update` frame carries base64 on the
 wire — `JSON.stringify(new Uint8Array([1,2]))` yields `{"0":1,"1":2}`, which `Y.applyUpdate`
