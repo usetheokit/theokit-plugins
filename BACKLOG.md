@@ -37,13 +37,12 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-37 items — **Open** 11 · **In flight** 0 · **Closed** 26
+37 items — **Open** 10 · **In flight** 0 · **Closed** 27
 
-### Open (11)
+### Open (10)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
-| [`B-026`](#b-026--three-gates-in-a-row-shipped-a-summary-line-the-run-had-not-earned--) | three gates in a row shipped a summary line the run had not earned | `raw` | — |
 | [`B-027`](#b-027--no-local-gate-catches-a-manifest-edited-without-its-lockfile--) | no local gate catches a manifest edited without its lockfile | `raw` | — |
 | [`B-029`](#b-029--a-client-joining-a-room-sees-an-empty-document-until-somebody-types----) | a client joining a room sees an empty document until somebody types | `raw` | — |
 | [`B-030`](#b-030--a-multipart-scalar-array-loses-every-element-but-the-last----) | a multipart scalar array loses every element but the last | `raw` | — |
@@ -59,7 +58,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (26)
+### Closed (27)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -88,6 +87,7 @@ _None._
 | [`B-023`](#b-023--the-release-pipeline-cannot-open-its-own-version-packages-pr-x) | the release pipeline cannot open its own Version Packages PR | `shipped` | — |
 | [`B-024`](#b-024--plugin-payments-claims-ctxstripe-a-vendor-noun-a-consumer-is-likely-to-want-x) | `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want | `shipped` | — |
 | [`B-025`](#b-025--no-python-runs-in-ci-so-a-consumer-side-kit-invariant-could-not-execute-x) | no Python runs in CI, so a consumer-side kit invariant could not execute | `shipped` | — |
+| [`B-026`](#b-026--three-gates-in-a-row-shipped-a-summary-line-the-run-had-not-earned-x) | three gates in a row shipped a summary line the run had not earned | `shipped` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
@@ -1189,7 +1189,7 @@ Mutation-verified against THIS repository's table: duplicating `plugin-forms` in
 raises. Recorded here as where it went, never as work this item closed —
 `rules/knowledge-base-location.md § Autonomy` keeps this registry inside this repository.
 
-## B-026 — three gates in a row shipped a summary line the run had not earned [ ]
+## B-026 — three gates in a row shipped a summary line the run had not earned [x]
 
 > Registered 2026-08-23 after the third instance, during B-008.
 
@@ -1197,7 +1197,7 @@ domain: dev-tooling
 repo: plugin-db-drizzle
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/gate-summary-earned-opportunity.md` — measured 2026-08-24
 why_now: measured across three consecutive slices in one day. Each new gate printed an
 unconditional success line regardless of whether it had checked anything:
 (1) `check_decoration_keys` printed `✓ no two packages claim the same request-decoration key` after
@@ -1209,7 +1209,7 @@ collision into an unresolved line under that green;
 `the release-drift check did not run` — found during B-008's own integration validation.
 Three different authors' worth of the same defect in one file each. Each was fixed locally, and
 nothing stops the fourth.
-status: raw
+status: shipped
 dod:
 
 - a shared helper, or a lint rule, that makes "report success" and "report what was skipped" one
@@ -1221,6 +1221,35 @@ dod:
 note: the pattern is worth naming because the failure is invisible by construction. A gate that
 misses a defect gets found eventually; a gate that reports success it did not earn teaches everyone
 downstream to trust a line that means nothing.
+shipped: 2026-08-24 — `tools/lib/gate-summary.mjs`, and all six gates routed through it.
+
+**The item understated itself.** It reads as three historical instances with a prediction of a
+fourth; the fourth and fifth were already live and were found by RUNNING the gates rather than
+reading them. `check-orphan-docblocks.mjs` with its file list empty printed
+`PASS — no docblock is stranded above another docblock.` having read zero files.
+`check-doc-coverage.mjs` with no packages printed `overall 0/0 = 0.0% (floor 100%)` and then `PASS`
+on the next line — two adjacent statements contradicting each other, neither wrong on its own terms.
+That contradiction IS `dod` bullet 1 in concrete form: two independent `console.log` calls, made
+separately, free to disagree.
+
+A **sixth** turned up during migration, in a file that had already been repaired once:
+`check-changelog-structure.mjs` guards its drift claim honestly and its structure claim not at all —
+an `[Unreleased]` with zero category headings compares nothing and printed "one section per category,
+in canonical order" anyway. The defect sat one claim over from its own fix, under a comment
+explaining why it must not happen. Nothing carries prose to the next claim.
+
+`dod` bullet 1 closed by the helper: one input decides success AND what was skipped, so there is
+nothing left to disagree. Bullet 2 closed by two tests — behavioural over the helper (`checked: 0`
+cannot pass), and structural over a gate list read **from disk**, because a hand-kept list is
+precisely how the fourth was missed.
+
+Mutation-verified per gate, exit codes read without a pipe after the first attempt read `tail`'s.
+
+**Stated limit, in the helper's own docblock:** it cannot tell whether the count it is handed is
+honest. A gate examining nothing and passing `checked: 12` satisfies it completely. That is
+judgement, and a mechanism claiming otherwise would be the unearned confidence this item is about.
+
+Review `READY_TO_MERGE` — zero BLOCKER, zero HIGH.
 
 ## B-027 — no local gate catches a manifest edited without its lockfile [ ]
 

@@ -46,6 +46,7 @@
 //
 // This reads the PUBLISHED declarations, so `pnpm build` must have run first.
 
+import { reportGate } from './lib/gate-summary.mjs'
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
@@ -603,8 +604,17 @@ function checkExampleBlocks() {
     `[${LABEL}] examples — ${counts.typeChecked} type-checked, ${counts.parseOnly} parsed only (declared partial), ${counts.notSetUp} not set up`,
   )
 
-  return { failed: failures.length > 0 }
+  return { failed: failures.length > 0, checked: counts.typeChecked + counts.parseOnly }
 }
 
 const exampleResult = checkExampleBlocks()
 if (exampleResult.failed) process.exit(1)
+
+// No success line existed here at all, which is the same defect wearing the opposite face: a run
+// that examined nothing exited 0 in silence, and silence reads as a pass just as reliably as a
+// green line does (B-026).
+process.exit(
+  reportGate({ label: LABEL, subject: 'documentation examples', checked: exampleResult.checked })
+    ? 0
+    : 1,
+)

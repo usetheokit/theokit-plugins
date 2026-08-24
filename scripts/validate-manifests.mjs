@@ -50,6 +50,7 @@
  * Exits non-zero listing every violation, so one run tells you everything rather
  * than one thing per run.
  */
+import { reportGate } from '../tools/lib/gate-summary.mjs'
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -695,16 +696,25 @@ if (violations.length > 0) {
   process.exit(1)
 }
 
-console.log(
+// The three claims below were already guarded by their own counts — this file is where the
+// `Never unconditional` reasoning was first written. What it lacked was the count for its OWN
+// subject: with `packages/` empty, every sub-check trivially passes and all three ✓ lines print
+// for a run that opened no manifest at all (B-026).
+const summary =
   '✓ every package manifest is publishable (repository + directory, provenance, no escaping local paths)\n' +
-    '✓ no package re-invents a theokit type, and every `theokit`/`@theokit/*` peer is used or triaged\n' +
-    // Never unconditional. A summary that claims "no two packages claim the same key" after
-    // resolving none of them is a green line the run did not earn — and that is exactly what the
-    // first version printed while an ordinary refactor hid a real collision.
-    (keyReport.unresolved > 0
-      ? `⚠ ${keyReport.compared} request-decoration key(s) compared; ${keyReport.unresolved} could NOT be resolved statically and were not compared (listed above)`
-      : `✓ no two packages claim the same request-decoration key (${keyReport.compared} compared)`) +
-    (docsReport.registry === false
-      ? `\n⚠ no seam registry found — 0 packages checked for documenting their factory`
-      : `\n✓ every package with a seam names its factory in its README (${docsReport.checked} checked)`),
+  '✓ no package re-invents a theokit type, and every `theokit`/`@theokit/*` peer is used or triaged\n' +
+  // Never unconditional. A summary that claims "no two packages claim the same key" after
+  // resolving none of them is a green line the run did not earn — and that is exactly what the
+  // first version printed while an ordinary refactor hid a real collision.
+  (keyReport.unresolved > 0
+    ? `⚠ ${keyReport.compared} request-decoration key(s) compared; ${keyReport.unresolved} could NOT be resolved statically and were not compared (listed above)`
+    : `✓ no two packages claim the same request-decoration key (${keyReport.compared} compared)`) +
+  (docsReport.registry === false
+    ? `\n⚠ no seam registry found — 0 packages checked for documenting their factory`
+    : `\n✓ every package with a seam names its factory in its README (${docsReport.checked} checked)`)
+console.log(summary)
+process.exit(
+  reportGate({ label: 'manifests', subject: 'package manifests', checked: packageDirs.length })
+    ? 0
+    : 1,
 )

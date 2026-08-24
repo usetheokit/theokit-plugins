@@ -20,6 +20,7 @@
 // Released sections are deliberately NOT checked. Unbreakable Rule 6 forbids editing them, so
 // reporting a defect nobody may fix would be noise on every run forever.
 
+import { reportGate } from './lib/gate-summary.mjs'
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -59,10 +60,13 @@ function categoryHeadings(lines, block) {
   return found
 }
 
+/** @returns {{ problems: string[], headings: number }} */
 function check(text) {
   const lines = text.split('\n')
   const block = unreleasedBlock(lines)
-  if (block === undefined) return ['CHANGELOG.md has no `## [Unreleased]` section']
+  if (block === undefined) {
+    return { problems: ['CHANGELOG.md has no `## [Unreleased]` section'], headings: 0 }
+  }
 
   const headings = categoryHeadings(lines, block)
   const problems = []
@@ -99,7 +103,7 @@ function check(text) {
     }
   }
 
-  return problems
+  return { problems, headings: headings.length }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -210,7 +214,6 @@ function checkDrift(text) {
   const tag = newestTag()
   if (tag === null) {
     driftChecked = false
-    driftChecked = false
     // Reported, never passed over quietly. A shallow clone or a tarball has no tags, and failing
     // there would break the gate for a reason unrelated to the CHANGELOG — but claiming a clean
     // check the run did not make is the defect this repository keeps finding in its own gates.
@@ -257,7 +260,7 @@ function checkDrift(text) {
 
 const path = join(ROOT, 'CHANGELOG.md')
 const text = readFileSync(path, 'utf8')
-const problems = check(text)
+const { problems, headings } = check(text)
 const drifts = checkDrift(text)
 
 // Two invariants share this exit code, so each names itself. A failure that says only
@@ -279,9 +282,33 @@ if (problems.length > 0 || drifts.length > 0) process.exit(1)
 // this repository's own gates, after the decoration-key and seam-documentation checks. A summary
 // that claims a comparison the run did not make is worse than no summary: the green line is what
 // a reader trusts.
+// The drift half already reported honestly. The STRUCTURE half did not: an `[Unreleased]` with
+// zero category headings compares nothing and printed "one section per category, in canonical
+// order" anyway — the same defect as the drift line, one claim over, in the file whose comment
+// above records having already fixed it once (B-026).
+console.log('CHANGELOG.md [Unreleased]: one section per category, in canonical order.')
+
+// The DRIFT half was already honest — it is the instance-3 fix, and it says in words whether the
+// comparison ran. Keeping its own line rather than folding it into the helper's phrasing:
+// `PASS — N x checked` cannot express "the newest release is recorded", and flattening it would
+// have deleted a report that works. Two subjects, two claims.
 console.log(
-  'CHANGELOG.md [Unreleased]: one section per category, in canonical order.\n' +
-    (driftChecked
-      ? 'CHANGELOG.md: the newest release is recorded.'
-      : 'CHANGELOG.md: release drift NOT checked — no git tags readable.'),
+  driftChecked
+    ? 'CHANGELOG.md: the newest release is recorded.'
+    : 'CHANGELOG.md: release drift NOT checked — no git tags readable.',
+)
+
+// The two lines above state WHAT was verified; the helper below states whether the run earned the
+// right to say it. That separation is not the "two independent console.log calls" the item warns
+// about — those were two independent DECISIONS that could disagree. Here there is one decision, and
+// the descriptive text has no verdict in it.
+//
+// The STRUCTURE half is what lacked a count: an `[Unreleased]` with zero category headings
+// compares nothing and printed "one section per category, in canonical order" anyway — the same
+// defect as the drift line, one claim over, in the file whose comment above records having
+// already fixed it once (B-026).
+process.exit(
+  reportGate({ label: 'changelog', subject: '[Unreleased] category headings', checked: headings })
+    ? 0
+    : 1,
 )

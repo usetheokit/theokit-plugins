@@ -28,6 +28,7 @@
  * If the audit cannot run, this exits non-zero saying so. A security check that goes green when its
  * input is missing is worse than no check, because the green is read as evidence.
  */
+import { reportGate } from './lib/gate-summary.mjs'
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -139,10 +140,22 @@ if (shipping.length > 0) {
   process.exit(1)
 }
 
+// `contained.length` is a FINDING count, not a checked count: zero HIGH advisories is a perfectly
+// good outcome and says nothing about whether the audit examined anything. The advisory count is
+// what makes the pass earned.
 console.log(
-  `\n[deps-advisories] PASS — ${contained.length} HIGH advisor(y|ies) found, none reaching a runtime chain.`,
+  `\n[deps-advisories] ${contained.length} HIGH advisor(y|ies) found, none reaching a runtime chain.`,
 )
-console.log(
-  '  Coverage note: `osv-scanner` was not run (not installed); the golden rule names it as',
+process.exit(
+  reportGate({
+    label: 'deps-advisories',
+    subject: 'advisories',
+    checked: Object.keys(report.advisories).length,
+    skipped: [
+      '`osv-scanner` was not run (not installed); the golden rule names it as a cross-check for npm,',
+      'so this run is single-sourced on `pnpm audit`.',
+    ],
+  })
+    ? 0
+    : 1,
 )
-console.log('  a cross-check for npm, so this run is single-sourced on `pnpm audit`.')
