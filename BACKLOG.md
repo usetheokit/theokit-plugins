@@ -44,7 +44,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `raw` | — |
+| [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `triaged` | — |
 | [`B-012`](#b-012--plugin-forms-cannot-upload-a-file--) | `plugin-forms` cannot upload a file | `raw` | — |
 | [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout--) | `plugin-payments` ships only hosted checkout | `raw` | — |
 | [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited--) | three AbacatePay legs are declared uncoverable and never revisited | `raw` | — |
@@ -493,13 +493,21 @@ domain: plugin-server
 repo: plugin-realtime
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/realtime-ydoc-autowiring-opportunity.md`
+— every piece but the React bridge exists: the Yjs provider (`src/yjs-provider.ts:153`),
+`applyYjsUpdate` (`:305`), the runtime's inbound handling (`internal/runtime.ts:226`), both frame
+kinds in both unions, and a real-WebSocket round trip (`tests/integration/wire-round-trip.test.ts:166`).
+`useYDoc` is `(): never` at `src/react/index.ts:393` and never reads the room, and the React
+reducer drops `yjs-update` frames silently — `RealtimeOutFrame` has no `bytes` field.
+ordering: the item's fourth DoD bullet asked that ordering against [[B-010]] be decided. It is
+decided by fact — B-010 shipped 2026-08-23, so the workaround this item's error message names now
+works, and the same send-side port carries `yjs-update` because it re-exports the full frame union.
 why_now: measured 2026-08-22 — `useYDoc()` in `src/react/index.ts` throws unconditionally, and
 the message names the workaround (use YjsRealtimeProvider server-side, consume updates via
 `useBroadcast`). That workaround depends on B-010, which is itself local-only, so the documented
 escape route does not currently work either. The provider ships and the CRDT round trip is
 covered over a real socket by `wire-round-trip.test.ts`; what is missing is the React wiring.
-status: raw
+status: triaged
 dod:
 
 - `useYDoc()` returns a `Y.Doc` when the room descriptor declares `storage: 'yjs'`
