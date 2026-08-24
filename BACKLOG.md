@@ -37,20 +37,19 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-37 items — **Open** 2 · **In flight** 0 · **Closed** 35
+37 items — **Open** 1 · **In flight** 0 · **Closed** 36
 
-### Open (2)
+### Open (1)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
-| [`B-035`](#b-035--a-pre-code-repo-is-marked-invalid-for-having-no-code----) | a pre-code repo is marked INVALID for having no code | `raw` | — |
 | [`B-037`](#b-037--ctxstripe-is-a-vendor-noun-on-published-surface-and-renaming-it-is-a-breaking-change--) | `ctx.stripe` is a vendor noun on published surface, and renaming it is a breaking change | `raw` | — |
 
 ### In flight (0)
 
 _None._
 
-### Closed (35)
+### Closed (36)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -88,6 +87,7 @@ _None._
 | [`B-032`](#b-032--the-consumer-gate-resolves-peers-from-the-monorepo-so-it-cannot-see-a-missing-one---x) | the consumer gate resolves peers from the monorepo, so it cannot see a missing one | `shipped` | — |
 | [`B-033`](#b-033--two-kit-skills-ship-the-same-module-name-so-their-suites-cannot-run-together---x) | two kit skills ship the same module name, so their suites cannot run together | `shipped` | — |
 | [`B-034`](#b-034--the-advisory-gate-is-single-sourced-against-a-rule-that-names-two-scanners---x) | the advisory gate is single-sourced, against a rule that names two scanners | `shipped` | — |
+| [`B-035`](#b-035--a-pre-code-repo-is-marked-invalid-for-having-no-code---x) | a pre-code repo is marked INVALID for having no code | `shipped` | — |
 | [`B-036`](#b-036--the-release-dry-runs-pins-and-gates-can-drift-from-releaseyml-with-nothing-detecting-it-x) | the release dry run's pins and gates can drift from `release.yml` with nothing detecting it | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
@@ -1658,7 +1658,7 @@ OSV file — `only \`osv-scanner\` sees GHSA-0000-0000-0000 (ghost-pkg)`.
 when the file is present, and single-sourced when it is absent — which keeps the gate working on a
 machine without the scanner instead of failing there.
 
-## B-035 — a pre-code repo is marked INVALID for having no code   [ ]
+## B-035 — a pre-code repo is marked INVALID for having no code   [x]
 
 domain: dev-tooling
 repo: plugin-db-drizzle
@@ -1677,13 +1677,37 @@ evidence: measured 2026-08-24 while shipping [[B-020]]'s second half in the kit.
 why_now: [[B-020]] shipped the half that is unambiguously stronger — an unaudited manifest now fails
   even when another language was audited. The remaining half is a policy question, and it is better
   asked than assumed.
-status: raw
+status: shipped
 dod:
   - the policy is decided by whoever owns the kit, and the decision is recorded as an ADR there
   - whichever way it goes, the pinning test in the kit changes deliberately and says why
   - if pre-code passes, it must still REPORT that it audited nothing — silence would be the defect
     one layer down
 
+shipped: 2026-08-24 — the `dod` asks for exactly one thing, a decision by the kit's owner recorded
+as an ADR there, and that is what happened. **No code changed, in either repository.**
+
+Decided: **`INVALID` stays.** Recorded as `knowledge-base/adrs/ADR-0013-an-audit-that-looked-at-nothing-is-not-a-pass.md`
+in the kit.
+
+The deciding argument turned out not to be about pre-code repositories at all — it is about what a
+PASS is allowed to mean, and the evidence came from this repository. One maintenance run found
+**six** gates reporting success for work they had not done ([[B-026]]): two live, three already
+repaired one at a time by three different reviewers, and a sixth in a file that had already been
+fixed once. Returning PASS for zero manifests would be the kit committing the defect its own
+consumers keep finding in themselves — and unlike ours, it would propagate to every install.
+
+[[B-020]]'s third `dod` bullet is therefore recorded as **decided against**, not as unmet. The cost
+is one `INVALID` on the first run of a repository with no code, with the reason named, gone the
+moment a manifest exists.
+
+A third verdict (`NOOP`) is the most honest shape and was rejected on cost: a new token needs an
+entry in `cycle-rule-schema.md § Canonical verdict vocabularies` and an update to every consumer that
+reads the verdict. The ADR records it as worth revisiting if pre-code friction ever turns out to
+matter; nobody has reported it.
+
+The kit test that pinned this as an open disagreement now cites the ADR and pins it as a decision, so
+the day it changes, something says it changed on purpose.
 
 ## B-036 — the release dry run's pins and gates can drift from `release.yml` with nothing detecting it [x]
 
@@ -1754,6 +1778,13 @@ dod:
   precisely so the change is one line for them rather than a search-and-replace
 - `.claude/rules/decoration-keys.md § 2` stops recording the vendor-noun objection, because it no
   longer applies
+
+owner_decision: 2026-08-24 — reviewed with the kit owner and deliberately LEFT OPEN. [[B-024]]
+already shipped the urgent half: `STRIPE_DECORATION_KEY` is exported, so the eventual migration is
+one line for a consumer rather than a search-and-replace. The remaining risk is a collision inside a
+consumer's app, which this repository cannot observe, against the cost of a major release. The
+vendor-noun objection stays recorded in `.claude/rules/decoration-keys.md § 2` so it is not lost.
+
 
 note: the name is not simply "the plugin noun" — `payments` is already claimed by the other plugin
 object in the SAME package. Choosing it is part of the work, not a detail.
