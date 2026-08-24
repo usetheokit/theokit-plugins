@@ -1,6 +1,6 @@
 {
   "name": "@theokit/auth-github",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "GitHub OAuth 2.0 provider for @theokit/sdk/server/auth. Plugs into defineAuth({ providers: [github({...})] }).",
   "type": "module",
   "main": "./dist/index.js",
@@ -24,11 +24,11 @@
   },
   "peerDependencies": {
     "@theokit/sdk": ">=2.18.0",
-    "theokit": ">=0.48.7"
+    "theokit": ">=0.50.1"
   },
   "devDependencies": {
     "@theokit/sdk": "^2.18.0",
-    "theokit": "^0.48.7",
+    "theokit": ">=0.50.1",
     "tsup": "^8.5.0",
     "typescript": "^5.8.0",
     "vitest": "^4.1.8"

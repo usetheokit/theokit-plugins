@@ -51,6 +51,10 @@ import { route } from 'theokit/server'
 import { provider, saveTransaction } from '../../../auth/index.js'
 
 export const GET = route()
+  // Public because the visitor arrives WITHOUT a session — starting or finishing a
+  // sign-in is what gives them one. Writing it is a decision, not a formality: it is
+  // what tells a reader this route is open on purpose rather than by omission.
+  .policy('public')
   .handler(async () => {
     // No PKCE: GitHub's OAuth 2.0 endpoint ignores it (RFC 7636 is not implemented),
     // so `state` is the whole CSRF defence and it must survive the round-trip.
@@ -75,6 +79,10 @@ import { route } from 'theokit/server'
 import { provider, sessions, loadTransaction } from '../../../auth/index.js'
 
 export const GET = route()
+  // Public because the visitor arrives WITHOUT a session — starting or finishing a
+  // sign-in is what gives them one. Writing it is a decision, not a formality: it is
+  // what tells a reader this route is open on purpose rather than by omission.
+  .policy('public')
   .handler(async ({ request }) => {
     const { profile } = await provider.handleCallback(request, loadTransaction(request))
     const headers = new Headers()

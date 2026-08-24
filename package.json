@@ -23,7 +23,7 @@
     "quality:doc-api": "node tools/check-doc-api-drift.mjs",
     "quality:doc-orphans": "node tools/check-orphan-docblocks.mjs",
     "quality:doc-coverage": "node tools/check-doc-coverage.mjs",
-    "quality:docs": "pnpm quality:doc-orphans && pnpm quality:doc-api && pnpm quality:doc-coverage",
+    "quality:docs": "pnpm quality:doc-orphans && pnpm quality:doc-api && pnpm quality:doc-coverage && pnpm quality:route-examples",
     "quality:changelog": "node tools/check-changelog-structure.mjs",
     "quality:deps": "node tools/check-deps-advisories.mjs",
     "integration": "pnpm --filter @theokit/plugins-integration integration",
@@ -33,7 +33,8 @@
     "changeset": "changeset",
     "version:packages": "changeset version",
     "release": "pnpm build && changeset publish",
-    "prepare": "[ -n \"$CI\" ] || git config core.hooksPath .githooks 2>/dev/null || true"
+    "prepare": "[ -n \"$CI\" ] || git config core.hooksPath .githooks 2>/dev/null || true",
+    "quality:route-examples": "node tools/check-route-examples.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",

@@ -315,14 +315,19 @@ them without importing and wiring the plugin a second time:
 <!-- doc-example: partial -->
 
 ```ts
-export const POST = route().handler(async ({ ctx, request, params }) => {
-  const result = await ctx.payments.handleWebhook(params.gateway, {
-    rawBody: await request.text(),
-    headers: Object.fromEntries(request.headers),
-    url: request.url,
+export const POST = route()
+  // The gateway holds no session of ours, so nothing here can be authenticated by
+  // subject. The webhook SIGNATURE is the authentication, and `handleWebhook` verifies
+  // it — declaring the route public is what makes that division visible.
+  .policy('public')
+  .handler(async ({ ctx, request, params }) => {
+    const result = await ctx.payments.handleWebhook(params.gateway, {
+      rawBody: await request.text(),
+      headers: Object.fromEntries(request.headers),
+      url: request.url,
+    })
+    // … your own handling …
   })
-  // … your own handling …
-})
 ```
 
 `ctx.payments` is deliberately narrower than the plugin: `providers`,

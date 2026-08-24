@@ -1,6 +1,6 @@
 {
   "name": "@theokit/auth-magic-link",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Email magic-link provider for @theokit/sdk/server/auth. Pluggable MagicLinkStore + email-callback for any transport (Resend/SendGrid/SMTP).",
   "type": "module",
   "main": "./dist/index.js",
@@ -24,13 +24,13 @@
   },
   "peerDependencies": {
     "@theokit/sdk": ">=2.18.0",
-    "theokit": ">=0.48.7"
+    "theokit": ">=0.50.1"
   },
   "devDependencies": {
     "@theokit/sdk": "^2.18.0",
     "@types/better-sqlite3": "^9.6.0",
     "better-sqlite3": "^11.10.0",
-    "theokit": "^0.48.7",
+    "theokit": ">=0.50.1",
     "tsup": "^8.5.0",
     "typescript": "^5.8.0",
     "vitest": "^4.1.8"
