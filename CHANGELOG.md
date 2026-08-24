@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `pnpm check:manifests` now refuses a framework peer range whose ceiling nobody typed — a `^` on a `0.x` version, which pins the MINOR rather than admitting the next release (#151).
+
+
 ## 2026-08-24 (second cut)
 
 Four packages: `@theokit/auth-github@0.3.1`, `@theokit/auth-google@0.3.1`,
