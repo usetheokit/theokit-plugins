@@ -23,7 +23,7 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@theokit/sdk": "^2.18.0",
+    "@theokit/sdk": ">=2.18.0",
     "theokit": ">=0.48.7"
   },
   "devDependencies": {

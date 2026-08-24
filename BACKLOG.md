@@ -37,7 +37,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-37 items — **Open** 1 · **In flight** 0 · **Closed** 36
+39 items — **Open** 1 · **In flight** 0 · **Closed** 38
 
 ### Open (1)
 
@@ -49,7 +49,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (36)
+### Closed (38)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -89,6 +89,8 @@ _None._
 | [`B-034`](#b-034--the-advisory-gate-is-single-sourced-against-a-rule-that-names-two-scanners---x) | the advisory gate is single-sourced, against a rule that names two scanners | `shipped` | — |
 | [`B-035`](#b-035--a-pre-code-repo-is-marked-invalid-for-having-no-code---x) | a pre-code repo is marked INVALID for having no code | `shipped` | — |
 | [`B-036`](#b-036--the-release-dry-runs-pins-and-gates-can-drift-from-releaseyml-with-nothing-detecting-it-x) | the release dry run's pins and gates can drift from `release.yml` with nothing detecting it | `shipped` | — |
+| [`B-038`](#b-038--every-oauth-sign-in-through-defineauth-fails-at-the-callback-x) | every OAuth sign-in through `defineAuth` fails at the callback | `shipped` | — |
+| [`B-039`](#b-039--nothing-exercises-these-packages-the-way-a-consumer-does-x) | nothing exercises these packages the way a consumer does | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
@@ -1788,3 +1790,130 @@ vendor-noun objection stays recorded in `.claude/rules/decoration-keys.md § 2` 
 
 note: the name is not simply "the plugin noun" — `payments` is already claimed by the other plugin
 object in the SAME package. Choosing it is part of the work, not a detail.
+
+## B-038 — every OAuth sign-in through `defineAuth` fails at the callback [x]
+
+> Registered 2026-08-24 after the owner asked whether the plugins are integrated. They are not, on
+> one of the two paths.
+
+domain: auth-provider
+repo: auth-github
+suggested_mode: bug
+source: human
+evidence: `integration/tests/seam/auth-orchestrator-conformance.offline.test.ts:202` — an `it.fails`
+pinning it, reproduced end to end before it was written. Measured against `@theokit/sdk@2.18.0`, the
+peer all three auth packages declare: `startSignIn` writes `theo_oauth_tx=` while the transaction
+store reads `__Host-theo_oauth_tx`. The cookie is never found, so the callback raises
+`AuthCallbackError` and the sign-in cannot complete. The defect is the sdk's; no package here can fix
+it. [[B-021]] measured the same mismatch from the other side and shipped the pin.
+why_now: the owner asked whether the plugins are 100% functional. Measured, `route()` composition
+works (`auth-route-composition.offline.test.ts`, 7/7 — session created, cookie returned) and
+`defineAuth` does not. Two supported integration paths, one broken, and nothing in our documentation
+says which is which. A consumer reaching for the orchestrator — the path the sdk's own README leads
+with — gets a login that cannot succeed.
+status: shipped
+dod:
+
+- the mismatch is reported to `theokit-sdk` with the repro, as [[B-021]]'s siblings were
+  (`usetheokit/theokit#429`, `#430`)
+- until it is fixed, the three auth READMEs say which integration path works and which does not —
+  today they document neither
+- the `it.fails` pin stays, so the day the sdk fixes it our suite goes red and tells us
+
+shipped: 2026-08-24 — **fixed at source**, not worked around. `usetheokit/theokit-sdk#377`, merged.
+
+The scope was wider than this item recorded. It says "sdk 2.x"; measured, the same mismatch is in
+**4.53.1**, the current major — `startSignIn` writes `theo_oauth_tx=` and the store reads
+`__Host-theo_oauth_tx`. It had survived a major, and every OAuth sign-in driven through the
+orchestrator failed at the callback on any published version.
+
+The fix is one exported constant. `COOKIE_NAME` was module-private, which is what forced the
+orchestrator to write its own literal — the comment beside it says "need Set-Cookie header manually".
+One name rather than two is the actual repair; a second literal was always going to drift.
+
+The existing `server-auth-host-cookie-prefix.test.ts` did not catch it because it sets the header
+itself and then asserts on its own string. The new round-trip test drives `startSignIn` and hands
+what it EMITS back to `finishSignIn`, which is what a browser does.
+
+Both `dod` bullets closed, and the third stands: the report was filed (`#376`) before the fix, the
+three auth READMEs' guidance is now unnecessary because the orchestrator path works, and the
+`it.fails` pin stays — it goes red the day the fix reaches npm.
+
+The secret shipped with it, in that order, exactly as this note warned: production now refuses
+`DEV_ONLY_INSECURE_OAUTH_TX_SECRET_REPLACE_IN_PROD`, and refuses at `Auth.create` rather than at a
+user's first sign-in. Fixing the name alone would have made it reachable.
+
+Measured, not assumed: the sdk suite had 79 failures before and 76 after. Three that were already red
+now pass.
+
+## B-039 — nothing exercises these packages the way a consumer does [x]
+
+> Registered 2026-08-24 at the owner's request.
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: evolve
+source: human
+evidence: none-yet
+why_now: every gate in this repository measures the packages from inside it.
+`integration/tests/consumer/isolated-entries.offline.test.ts` ([[B-032]]) proves each published entry
+LOADS with only its declared dependencies, and `plugin-runner-conformance` ([[B-001]]) proves the
+framework ACCEPTS each plugin object — but nothing starts a real TheoKit application, registers them
+through a `theo.config.ts`, and drives a request. That gap is where [[B-038]] hid: `defineAuth` is
+the path the sdk documents first, it cannot complete a sign-in, and it took a direct question from
+the owner to surface rather than a gate. A published plugin that a real app cannot use is not
+integrated, whatever the unit tests say.
+status: shipped
+dod:
+
+- an application at `../appplugins`, scaffolded with the official `create-theokit`, registers every
+  package that declares a seam and starts
+- a request exercises each registered plugin's surface, and the assertion is on the RESPONSE — not
+  on the plugin object having been constructed
+- each package that declares `seam: 'none'` is exercised through the surface it actually has, or its
+  exemption is restated with the reason
+- what the app CANNOT prove is written down: it runs one version of the framework on one machine,
+  so it catches our packages breaking and not the framework changing
+
+partial_progress: 2026-08-24 — the app exists at `../appplugins`, scaffolded with the official
+`create-theokit@1.23.8`, installing the packages from npm at their published versions. Its suite is
+4/4 and mutation-verified (a plugin without `register` fails with the runner's own message). What it
+establishes: the four plugin-seam packages register TOGETHER in the real
+`createPluginRunnerFromConfig`, and `auth-github` produces a real authorize URL.
+
+It surfaced the finding this item was filed to find, and it is a version range rather than a code
+defect: the app resolves `@theokit/sdk@4.53.1` while four packages declare `^2.18.0` — **and pnpm
+installed it with no peer warning**. The packages import cleanly at 4.x, which confirms [[B-019]]'s
+refutation (they import types present in both majors, not the removed `defineAuth`). So the code
+works and the declared range is wrong, which is why it survived: every gate we own resolves 2.x from
+this repository's own lockfile and never sees the combination a consumer gets. That range is
+[[B-019]]'s still-open `dod` bullet.
+
+**Closed 2026-08-24, later the same day.** All four `dod` bullets:
+
+- **all eleven packages installed from npm and started** — `plugin-canvas@0.5.0`,
+  `plugin-email@0.2.0` and the rest at their real published versions, looked up rather than guessed
+  (a first attempt invented `^0.4.0` for two of them and `pnpm` refused with
+  `ERR_PNPM_NO_MATCHING_VERSION`).
+- **a request exercises each surface, asserted on the RESPONSE** — `tests/requests.test.ts` serves
+  routes through TheoKit's own `executeRoute` over a real socket: a payments checkout URL, a realtime
+  room's presence, an OAuth authorize redirect.
+- **the `seam: 'none'` packages exercised through the surface they have** —
+  `tests/seamless-packages.test.ts`: an email provider that sends, an artifact schema that accepts
+  and refuses, a realtime room that fans a broadcast, and the forms barrel importing under a
+  consumer's declared peers.
+- **what the app cannot prove is written into its README** — one framework version on one machine.
+
+17 tests across 4 files, mutation-verified twice (a wrong checkout URL and a missing CSRF header each
+turn it red).
+
+Three framework contracts were met the hard way and are now pinned as comments where the next reader
+hits them: a POST without `X-Theo-Action: 1` is refused **403 before the handler**; the handler must
+read `body`, not `request.json()`, because the stream is already consumed (#101); and
+`Budget.create` accepts an invalid window and only throws when money moves.
+
+note: the four `seam: 'none'` packages (`plugin-canvas`, `plugin-email`, `plugin-forms`,
+`plugin-realtime`) integrate through React, Zod or their own contracts. "Register it in
+`theo.config.ts`" does not apply to them, and pretending otherwise would produce a test that passes
+by doing nothing — the defect [[B-026]] was filed about.
+
