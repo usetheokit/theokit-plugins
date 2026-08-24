@@ -52,12 +52,23 @@ type AwarenessConstructor = new (doc: YDocLike) => AwarenessLike
 interface YjsModule {
   readonly Doc: YDocConstructor
   applyUpdate(doc: YDocLike, update: Uint8Array, origin?: unknown): void
+  /** Full state, encoded as an update. Yjs makes the two indistinguishable to a receiver. */
+  encodeStateAsUpdate(doc: YDocLike): Uint8Array
 }
 
 interface YAwarenessModule {
   readonly Awareness: AwarenessConstructor
   applyAwarenessUpdate(awareness: AwarenessLike, update: Uint8Array, origin?: unknown): void
 }
+
+/**
+ * The `connectionId` on a server-originated frame.
+ *
+ * Initial sync comes from the room itself, not from a participant. A real participant's id would be
+ * a lie a consumer could act on — the React surface carries `connectionId` precisely so a client can
+ * skip its own frames, and attributing the document to somebody would make them skip it.
+ */
+const SERVER_CONNECTION_ID = '@theokit/plugin-realtime#server'
 
 let pendingYjs: Promise<{ yjs: YjsModule; awareness: YAwarenessModule }> | null = null
 
@@ -296,6 +307,61 @@ export function createYjsRealtimeProvider(opts: YjsRealtimeProviderOptions = {})
     subscribeRoom(roomId, listener): RealtimeUnsubscribe {
       const state = ensureRoom(roomId)
       state.listeners.add(listener)
+
+      // Initial sync (B-029). Before this, the second person to open a document saw nothing until
+      // somebody typed: `applyYjsUpdate` rebroadcasts the delta it received, which is right for a
+      // live edit and carries no history.
+      //
+      // It fires HERE and not in `joinRoom` because this is the only point in the contract that
+      // holds one client's identity. `fanout` iterates listeners with no identity, and `joinRoom`
+      // receives a `ConnectionInfo` with no channel back — so the state goes to `listener`
+      // directly, never through `fanout`. Through `fanout`, every existing client would be re-sent
+      // the whole document on each arrival — O(document × participants) — and it would LOOK correct,
+      // because Yjs is idempotent.
+      //
+      // A full state, not a state-vector exchange: the joining client has no state to diff against,
+      // and a vector exchange needs a client→server frame that does not exist. `applyYjsUpdate` is
+      // the only inbound path and it APPLIES bytes to the doc, so a vector sent through it would
+      // corrupt the document. For reconnection the trade reverses; that is additive later.
+      //
+      // The guard is deliberately on the room having a doc ALREADY, not on creating one: a
+      // subscribe must not force `import('yjs')` on a room nobody has written to, or every
+      // non-Yjs room pays for the optional peer.
+      if (state.resolved !== undefined || state.docInit !== undefined) {
+        // The #194 invariant: hold an inflight refcount across `ensureYjs`, or the room can be
+        // evicted mid-init and the doc orphaned.
+        state.inflight += 1
+        void (async () => {
+          try {
+            const { doc, yjs } = await ensureYjs(roomId, state)
+            // The room may have been evicted while yjs loaded — the same post-await membership
+            // check every other caller makes.
+            if (rooms.get(roomId) !== state) return
+            // An EMPTY doc still encodes to a non-empty byte string, so emptiness is decided by
+            // comparing against a fresh doc's encoding rather than by the length of this one.
+            // Otherwise every subscriber to every room receives a frame carrying nothing.
+            const bytes = yjs.encodeStateAsUpdate(doc)
+            const empty = new yjs.Doc({ gc: true })
+            const emptyBytes = yjs.encodeStateAsUpdate(empty)
+            empty.destroy()
+            if (bytes.length === emptyBytes.length && bytes.every((b, i) => b === emptyBytes[i])) {
+              return
+            }
+            // The listener may have unsubscribed while the doc was loading — `import('yjs')` is
+            // dynamic. Delivering into a torn-down listener is what this guards.
+            if (!state.listeners.has(listener)) return
+            listener({ type: 'yjs-update', connectionId: SERVER_CONNECTION_ID, bytes })
+          } catch (err) {
+            // Never rethrown into the subscriber. A failed sync leaves the client exactly where it
+            // already was — holding an empty document — and the next live edit still reaches it.
+            console.error('[plugin-realtime] initial sync failed:', { roomId, error: err })
+          } finally {
+            state.inflight -= 1
+            gcIfEmpty(roomId, state)
+          }
+        })()
+      }
+
       return () => {
         state.listeners.delete(listener)
         gcIfEmpty(roomId, state)

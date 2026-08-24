@@ -37,13 +37,12 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-37 items — **Open** 9 · **In flight** 0 · **Closed** 28
+37 items — **Open** 8 · **In flight** 0 · **Closed** 29
 
-### Open (9)
+### Open (8)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
-| [`B-029`](#b-029--a-client-joining-a-room-sees-an-empty-document-until-somebody-types----) | a client joining a room sees an empty document until somebody types | `raw` | — |
 | [`B-030`](#b-030--a-multipart-scalar-array-loses-every-element-but-the-last----) | a multipart scalar array loses every element but the last | `raw` | — |
 | [`B-031`](#b-031--the-skip-message-names-a-script-nobody-checks-exists----) | the skip message names a script nobody checks exists | `raw` | — |
 | [`B-032`](#b-032--the-consumer-gate-resolves-peers-from-the-monorepo-so-it-cannot-see-a-missing-one----) | the consumer gate resolves peers from the monorepo, so it cannot see a missing one | `raw` | — |
@@ -57,7 +56,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (28)
+### Closed (29)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -89,6 +88,7 @@ _None._
 | [`B-026`](#b-026--three-gates-in-a-row-shipped-a-summary-line-the-run-had-not-earned-x) | three gates in a row shipped a summary line the run had not earned | `shipped` | — |
 | [`B-027`](#b-027--no-local-gate-catches-a-manifest-edited-without-its-lockfile-x) | no local gate catches a manifest edited without its lockfile | `shipped` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
+| [`B-029`](#b-029--a-client-joining-a-room-sees-an-empty-document-until-somebody-types---x) | a client joining a room sees an empty document until somebody types | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
@@ -1342,7 +1342,7 @@ dod:
   - `wire-round-trip.test.ts`'s inbound twin exists — done
     (`tests/runtime-yjs-storage.test.ts` § the frame the client actually puts on the wire)
 
-## B-029 — a client joining a room sees an empty document until somebody types   [ ]
+## B-029 — a client joining a room sees an empty document until somebody types   [x]
 
 domain: plugin-server
 repo: plugin-realtime
@@ -1359,13 +1359,43 @@ evidence: surfaced by an independent review of [[B-011]] and confirmed against t
 why_now: [[B-011]] made the client half real. Before it, no React consumer could hold a wired
   document at all, so "joins and sees nothing" was unreachable. It is now the first thing the
   second user of a document experiences, and the README documents the feature.
-status: raw
+status: shipped
 dod:
   - a test with two clients where the first edits BEFORE the second connects, and the second ends
     up with the first's content
   - the handshake is a protocol decision, recorded: `Y.encodeStateAsUpdate` replay on join is the
     obvious one, and the reason for choosing it over a state-vector exchange is written down
   - the README stops describing the workaround and describes the behaviour
+shipped: 2026-08-24 — the sync fires in `subscribeRoom`, and where it fires IS the finding.
+
+Reproduced by running it: `FRAMES BOB RECEIVED: [ 'joined' ]`, `BOB DOC CONTENT: ""`. The server held
+the full document the whole time (`packages/plugin-realtime/src/yjs-provider.ts:14`); what it lacked
+was a way to address ONE client. `fanout` iterates listeners with no identity — its own comment says
+so — and `joinRoom` receives a `ConnectionInfo` with no channel back. `subscribeRoom` has both, and
+the provider's comment deferring initial sync as "a separate concern" is what had kept the search at
+`joinRoom`, where it cannot be written.
+
+All three `dod` bullets closed:
+
+- **the test** — 6 cases, including the item's exact scenario (first client edits before the second
+  connects). Mutation-verified: disabling the sync turns 3 red.
+- **the protocol decision, recorded** — `docs/adr/0003-initial-sync-replays-full-state.md`, with the
+  rejected alternative costed. The decisive constraint is not bytes: a state-vector exchange needs a
+  client→server frame that does not exist, and `applyYjsUpdate` cannot serve as one because it
+  APPLIES bytes to the doc — a vector sent through it would corrupt the document. A's O(document)
+  cost is stated with its threshold explicitly **unmeasured** rather than guessed.
+- **the README** — the workaround paragraph replaced by the behaviour, plus what it still does not
+  do: nothing is persisted, so a room garbage-collected after the last participant leaves gives the
+  next arrival an empty document.
+
+Two of my tests failed after the code was already correct, both with an empty document — with no
+presence and no listener, `gcIfEmpty` destroys the room's doc. They had encoded a lifetime assumption
+this package deliberately does not hold. That assumption is now pinned by its own case so it is not
+rediscovered as a bug.
+
+Review `READY_TO_MERGE`. One HIGH, and it is a disclosure rather than debt: a subscriber to a
+non-empty room receives one frame more than before, `tsc` cannot surface it, and the changeset says
+so in the words a consumer needs.
 
 ## B-030 — a multipart scalar array loses every element but the last   [ ]
 
