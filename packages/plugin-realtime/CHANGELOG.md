@@ -1,5 +1,63 @@
 # @theokit/plugin-realtime
 
+## 0.2.0
+
+### Minor Changes
+
+- 564b8eb: A client subscribing to a Yjs room now receives the document's current state, instead of an empty one until somebody types. The second person to open a document sees what the first wrote.
+
+  It arrives as one ordinary `yjs-update` frame delivered to that subscriber alone, so nothing on your side needs to distinguish it — in Yjs a full state encoding _is_ an update. Its `connectionId` is `@theokit/plugin-realtime#server`, because the frame comes from the room rather than from a participant.
+
+  **Behaviour change worth checking:** a subscriber to a non-empty room receives one frame it did not receive before. If you have a test asserting an exact frame count on join, it will need updating — types are unchanged, so `tsc` will not tell you.
+
+  Still not persisted: a room with no participants and no subscribers is garbage-collected and its document destroyed, so someone arriving after the last person leaves gets an empty document.
+
+- 0747544: `RoomProvider` takes an optional `sender` port, so presence updates and broadcasts can leave the
+  client. Supply nothing and behaviour is unchanged; supply a transport and `useUpdateMyPresence` and
+  `useBroadcast` reach the server, which fans out to every participant.
+
+  The hooks were never blocked by a missing channel — the server half has always fanned out, and
+  `RealtimeRuntime` is public. What was missing was a send-side port, the mirror of the receive-side
+  `client` the provider already took.
+
+  Also fixes a defect the port made reachable: `dispatchFrame` validated a presence **patch** against
+  the full room schema, so any room with a required presence field rejected every partial update —
+  which is the only kind `useUpdateMyPresence` can send. It now validates the patch merged over the
+  connection's current presence, which is what the code's own comment always claimed.
+
+  Note that your own frames come back, and the echo is authoritative: it carries the server's full
+  presence and replaces your local copy, so a key the room's schema does not declare is stripped when
+  it arrives.
+
+- 20bf284: `useYDoc()` returns the room's document instead of throwing.
+
+  Every other piece of the Yjs path already existed and was proven — the provider, the runtime's
+  inbound handling, both frame kinds in both wire unions, and a real-WebSocket round trip. The React
+  half was the gap: the hook threw unconditionally, and the reducer dropped `yjs-update` frames
+  because its frame type had no `bytes` field and its switch had no arm for them.
+
+  Pass `ydoc` to `<RoomProvider>` and live edits flow both ways. You construct the document — anyone
+  who wants a `Y.Doc` already has `yjs` installed, and this keeps the peer optional for the majority
+  who use this package for presence and broadcast only. Nothing is imported eagerly. **Keep the
+  document stable** (`useState(() => new Y.Doc())`); a fresh one each render replaces the document.
+
+  **Live edits only.** A client joining a room where a document already has content receives nothing
+  until somebody types — there is no initial-sync handshake, and the README says so rather than
+  implying the wiring is complete.
+
+  Three fixes ship with it:
+  - **A Yjs frame now carries base64 in BOTH directions.** The server→client half always encoded,
+    because `JSON.stringify(new Uint8Array([1,2]))` yields `{"0":1,"1":2}` and `Y.applyUpdate`
+    rejects it. The client→server half had no encoder, so the frame a browser produced could not
+    survive the transport this package's own README documents. `dispatchFrame` still accepts a
+    `Uint8Array`, so an in-process caller is unaffected.
+  - **A room that never declared `storage: 'yjs'` refuses CRDT frames by name.** Such a frame used to
+    be dropped in silence on a provider without Yjs support, and _applied_ on one with it — writing
+    document state into a room whose descriptor never opted in. Note that any client can now trigger
+    this rejection on any room: catch on your `dispatchFrame` route, as the README's snippet does.
+  - **A corrupt frame no longer ends the whole subscription.** One bad payload used to take presence
+    and broadcast down with it.
+
 ## 0.1.4
 
 ### Patch Changes

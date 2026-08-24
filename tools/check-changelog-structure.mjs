@@ -286,7 +286,11 @@ if (problems.length > 0 || drifts.length > 0) process.exit(1)
 // zero category headings compares nothing and printed "one section per category, in canonical
 // order" anyway — the same defect as the drift line, one claim over, in the file whose comment
 // above records having already fixed it once (B-026).
-console.log('CHANGELOG.md [Unreleased]: one section per category, in canonical order.')
+console.log(
+  headings === 0
+    ? 'CHANGELOG.md [Unreleased]: empty — nothing pending since the last release.'
+    : `CHANGELOG.md [Unreleased]: ${headings} category heading(s), one per category, in canonical order.`,
+)
 
 // The DRIFT half was already honest — it is the instance-3 fix, and it says in words whether the
 // comparison ran. Keeping its own line rather than folding it into the helper's phrasing:
@@ -303,12 +307,26 @@ console.log(
 // about — those were two independent DECISIONS that could disagree. Here there is one decision, and
 // the descriptive text has no verdict in it.
 //
-// The STRUCTURE half is what lacked a count: an `[Unreleased]` with zero category headings
-// compares nothing and printed "one section per category, in canonical order" anyway — the same
-// defect as the drift line, one claim over, in the file whose comment above records having
-// already fixed it once (B-026).
+// The counted subject is the `[Unreleased]` BLOCK, not its category headings — and the difference
+// was found by this gate firing on a legitimate change.
+//
+// `checked: headings` was the first shape, and it failed the commit that emptied `[Unreleased]` for
+// a release. That state is normal and recurring: the block is empty after every release until the
+// next change lands, so failing there would leave `main` red after each one, for a reason nobody can
+// fix except by inventing an entry. That is the "gate people route around" failure.
+//
+// The distinction that resolves it: the block WAS found and parsed. Zero headings is its content,
+// not an absence of measurement — `check()` already returns a problem when the block itself is
+// missing, which is the case where nothing was examined. So the count is whether the subject was
+// reached, and the heading count travels in the descriptive line above, where it informs without
+// deciding.
+const unreleasedFound = problems[0] !== 'CHANGELOG.md has no `## [Unreleased]` section' ? 1 : 0
 process.exit(
-  reportGate({ label: 'changelog', subject: '[Unreleased] category headings', checked: headings })
+  reportGate({
+    label: 'changelog',
+    subject: '`[Unreleased]` block',
+    checked: unreleasedFound,
+  })
     ? 0
     : 1,
 )
