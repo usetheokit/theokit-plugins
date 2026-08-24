@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- The Google OAuth success leg — code exchange, PKCE form body, bearer credential, claims mapping — now runs end-to-end across a real socket against a loopback OIDC sidecar, instead of being exercised only by a script nobody can run unattended (B-035 follow-up)
+
 - The dependency-advisory gate is cross-checked against `osv-scanner`, as the deps-audit golden rule always required — a disagreement between the two scanners is reported rather than resolved toward either, and the coverage note stops saying single-sourced (B-034)
 
 - The consumer gate now loads every published entry from a layout holding only that package's declared dependencies, so an entry importing something it never declared fails here instead of in somebody's install — the gate that said it checked peers could not (B-032)

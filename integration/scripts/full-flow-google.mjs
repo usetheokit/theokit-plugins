@@ -51,10 +51,21 @@
  *     "Google returned access_denied — User denied" instead of hanging until the 120s timer.
  *   - the output carries no email address.
  *
- * NOT verified, and it is the point of the script: **the exchange has never completed here.** That
- * needs a real Google account consenting to this app, which is a person's decision about their own
- * identity and not something a tool should make for them. Whoever runs it first should replace this
- * paragraph with the date and what the shape report said.
+ * NOT verified here, and it is the point of the script: **the exchange has never completed against
+ * Google.** That needs a real Google account consenting to this app, which is a person's decision
+ * about their own identity and not something a tool should make for them. Whoever runs it first
+ * should replace this paragraph with the date and what the shape report said.
+ *
+ * NARROWED 2026-08-24. The success leg itself is no longer unexercised:
+ * `integration/tests/seam/google-success-leg.offline.test.ts` drives `handleCallback` end-to-end
+ * across a real socket against a loopback OIDC sidecar — discovery, the PKCE form body as a server
+ * actually decodes it, the bearer credential on `/userinfo`, and the claims mapping. It is
+ * mutation-verified: emptying `code_verifier` in the provider turns it red.
+ *
+ * So what remains unproven is narrower than it was, and is exactly the part a machine cannot reach:
+ * **Google's real response shapes and its consent screen.** A sidecar answers what we told it to
+ * answer, so that suite catches our code breaking and cannot catch Google changing. That is what
+ * this script is still for.
  *
  * Shipping it un-completed is deliberate and is still an improvement: before it existed, the skip
  * message in `src/harness.ts` told Google users to run "the flow:* script for this service" and
