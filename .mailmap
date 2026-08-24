@@ -1,0 +1,19 @@
+# Canonical author identity.
+#
+# Commits in this repository were authored with the name `paulohenriquevn` and the email
+# `paulohenrique.java@gmail.com`. The name has always been right; the email belongs to a second
+# GitHub account (`paulohenriquejava`), and GitHub attributes a commit by its EMAIL and ignores the
+# name string — so 359 commits display under the wrong account there while being correct in git.
+#
+# This file fixes it for every git tool (`log`, `shortlog`, `blame`, `annotate`) without touching a
+# single commit. Rewriting history to change the email was considered and rejected: every package
+# here publishes with `provenance: true`, and those attestations bind a published tarball to a
+# repository and a commit SHA. A rewrite changes every SHA, orphaning the attestation of everything
+# already on npm — plus 59 tags — and would need `push --force` on `main`, which
+# `rules/git-safety.md § 2` forbids by name.
+#
+# GitHub does NOT read this file. To fix its attribution, add `paulohenrique.java@gmail.com` as a
+# secondary email on the `paulohenriquevn` account (it must be removed from the other account
+# first — an email belongs to one account). GitHub then re-attributes all 359 commits
+# retroactively, again without changing history.
+paulohenriquevn <paulohenriquevn@gmail.com> <paulohenrique.java@gmail.com>

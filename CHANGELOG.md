@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- A `.mailmap` canonicalises author identity, so `git log`, `git blame` and `git shortlog` show one author for commits made under two of the maintainer's email addresses — no commit is rewritten, so tags and published provenance attestations stay valid
+
 ## 2026-08-24
 
 Four packages cut together: `@theokit/plugin-realtime@0.2.0`, `@theokit/plugin-forms@0.4.0`,
