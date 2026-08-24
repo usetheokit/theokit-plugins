@@ -31,7 +31,7 @@
     "@theokit/sdk": ">=2.18.0",
     "@types/react": ">=18 || >=19",
     "react": ">=18 || >=19",
-    "theokit": ">=0.48.7",
+    "theokit": ">=0.50.1",
     "zod": "^3.25.0 || ^4.0.0"
   },
   "peerDependenciesMeta": {
@@ -54,7 +54,7 @@
     "jsdom": "^25.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "theokit": "^0.48.7",
+    "theokit": ">=0.50.1",
     "tsup": "^8.5.0",
     "typescript": "^5.7.0",
     "vitest": "^4.0.0",

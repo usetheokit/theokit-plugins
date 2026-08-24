@@ -57,6 +57,10 @@ import { route } from 'theokit/server'
 import { provider, saveTransaction } from '../../../auth/index.js'
 
 export const GET = route()
+  // Public because the visitor arrives WITHOUT a session — starting or finishing a
+  // sign-in is what gives them one. Writing it is a decision, not a formality: it is
+  // what tells a reader this route is open on purpose rather than by omission.
+  .policy('public')
   .handler(async () => {
     const pkce = await generatePkceChallenge()
     const tx = {
@@ -81,6 +85,10 @@ import { route } from 'theokit/server'
 import { provider, sessions, loadTransaction } from '../../../auth/index.js'
 
 export const GET = route()
+  // Public because the visitor arrives WITHOUT a session — starting or finishing a
+  // sign-in is what gives them one. Writing it is a decision, not a formality: it is
+  // what tells a reader this route is open on purpose rather than by omission.
+  .policy('public')
   .handler(async ({ request }) => {
     const { profile } = await provider.handleCallback(request, loadTransaction(request))
     const headers = new Headers()

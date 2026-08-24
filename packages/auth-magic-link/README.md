@@ -89,6 +89,10 @@ import { route } from 'theokit/server'
 import { magicLinkProvider } from '../../../auth/providers.js' // your magicLink() instance
 
 export const POST = route()
+  // Public because the visitor arrives WITHOUT a session — starting or finishing a
+  // sign-in is what gives them one. Writing it is a decision, not a formality: it is
+  // what tells a reader this route is open on purpose rather than by omission.
+  .policy('public')
   .handler(async ({ request, body }) => {
     // Pass `body` through. TheoKit parses the request body and hands the handler a `Request`
     // built WITHOUT one, so `startSignIn(request)` alone finds nothing to read and throws
@@ -110,6 +114,10 @@ import { magicLinkProvider, sessions } from '../../../auth/providers.js'
 const IGNORED_TX = { state: '', createdAt: 0, expiresAt: 0 }
 
 export const GET = route()
+  // Public because the visitor arrives WITHOUT a session — starting or finishing a
+  // sign-in is what gives them one. Writing it is a decision, not a formality: it is
+  // what tells a reader this route is open on purpose rather than by omission.
+  .policy('public')
   .handler(async ({ request }) => {
     // The transaction argument exists to satisfy the AuthProvider interface and is
     // ignored: a magic link is cross-device by design, so there is no initiating-browser
