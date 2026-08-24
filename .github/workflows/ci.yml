@@ -179,6 +179,22 @@ jobs:
       - name: CHANGELOG structure gate ([Unreleased] categories)
         run: pnpm quality:changelog
 
+      # Fails only when a HIGH advisory reaches a package's RUNTIME chain. All nineteen in this
+      # workspace enter through a devDependency — measured from the manifests, not assumed — so this
+      # is green today. Deliberately: a gate red on arrival over findings nobody can act on gets
+      # allowlisted wholesale or deleted, and then the real one is invisible too.
+      #
+      # It lives in this job rather than in `test` so a registry outage does not read as a test
+      # failure.
+      #
+      # `osv-scanner` is NOT installed here, and the gate's own output says so. The golden rule
+      # names it as the cross-check for npm, and adding it means an action reference pinned to a
+      # SHA — every other `uses:` in this file is, and zizmor enforces it. A SHA written from
+      # memory is a fabrication with a plausible shape, so the cross-check is filed as its own
+      # item rather than guessed at here. The run reports its coverage as single-sourced.
+      - name: Dependency advisories gate (runtime chains only)
+        run: pnpm quality:deps
+
   test:
     name: Unit tests
     runs-on: ubuntu-latest

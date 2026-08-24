@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `pnpm quality:deps` — a dependency-advisory gate that fails only when a HIGH advisory reaches a package's **runtime** chain, and reports the ones contained in dev chains. Wired into CI, where no audit ran at all before. All nineteen HIGH advisories in this workspace enter through a devDependency, so it is green today — deliberately, because a gate red on arrival gets deleted and then the real one is invisible too (#B-018)
 - `pnpm flow:google` in the integration suite — the manual OAuth round trip script `auth-github` already had. The skip message told Google users to run "the flow:\* script for this service"; there was none, so `auth-google`'s success path was exercised by neither CI nor a documented procedure (#B-015)
 - Embedded checkout in `@theokit/plugin-payments`: `createCheckout({ uiMode: 'embedded', returnUrl })` returns a `clientSecret` to mount the payment form inside your own page. Proven against real Stripe, not only typed (#B-013)
 - `<TheoForm encType="multipart/form-data">` in `@theokit/plugin-forms` converts values to the multipart shape the framework reconstructs, so file uploads work. The README said "No file uploads in v0.1"; the file always reached the action, and what was missing was one schema-guided conversion (#B-012)
