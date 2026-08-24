@@ -130,7 +130,7 @@ importers:
         version: 2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
       theokit:
         specifier: ^0.48.7
-        version: 0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+        version: 0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.26)(tsx@4.23.12)(typescript@5.9.3)
@@ -148,7 +148,7 @@ importers:
         version: 2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
       theokit:
         specifier: ^0.48.7
-        version: 0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+        version: 0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.26)(tsx@4.23.12)(typescript@5.9.3)
@@ -172,7 +172,7 @@ importers:
         version: 11.10.0
       theokit:
         specifier: ^0.48.7
-        version: 0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(better-sqlite3@11.10.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+        version: 0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(better-sqlite3@11.10.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.26)(tsx@4.23.12)(typescript@5.9.3)
@@ -230,13 +230,13 @@ importers:
         version: 19.2.6(react@19.2.6)
       theokit:
         specifier: ^0.48.7
-        version: 0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@3.25.76))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(better-sqlite3@11.10.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
+        version: 0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@3.25.76))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(better-sqlite3@11.10.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
       vite:
         specifier: ^7.3.5
         version: 7.3.5(@types/node@25.9.1)(tsx@4.23.12)
       vitest:
         specifier: ^4.1.8
-        version: 4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12)
+        version: 4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12)
 
   packages/plugin-copilot:
     devDependencies:
@@ -266,7 +266,7 @@ importers:
         version: 19.2.6(react@19.2.6)
       theokit:
         specifier: ^0.48.7
-        version: 0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+        version: 0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.26)(tsx@4.23.12)(typescript@5.9.3)
@@ -275,7 +275,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.0
-        version: 4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12)
+        version: 4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12)
       zod:
         specifier: ^4.0.0
         version: 4.4.3
@@ -305,7 +305,7 @@ importers:
         version: 0.2.2
       theokit:
         specifier: ^0.48.7
-        version: 0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(better-sqlite3@11.10.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+        version: 0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(better-sqlite3@11.10.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.26)(tsx@4.23.12)(typescript@5.9.3)
@@ -314,7 +314,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.8
-        version: 4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12)
+        version: 4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12)
 
   packages/plugin-email:
     devDependencies:
@@ -329,7 +329,7 @@ importers:
         version: 4.8.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       theokit:
         specifier: ^0.48.7
-        version: 0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+        version: 0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.26)(tsx@4.23.12)(typescript@5.9.3)
@@ -338,7 +338,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.8
-        version: 4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12)
+        version: 4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12)
 
   packages/plugin-forms:
     dependencies:
@@ -374,8 +374,8 @@ importers:
         specifier: ^7.50.0
         version: 7.77.0(react@19.2.6)
       theokit:
-        specifier: ^0.48.7
-        version: 0.48.8(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+        specifier: '>=0.50.1'
+        version: 0.50.1(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.26)(tsx@4.23.12)(typescript@5.9.3)
@@ -396,7 +396,7 @@ importers:
         version: 14.25.0
       theokit:
         specifier: ^0.48.7
-        version: 0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+        version: 0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.26)(tsx@4.23.12)(typescript@5.9.3)
@@ -405,7 +405,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.8
-        version: 4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12)
+        version: 4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12)
 
   packages/plugin-realtime:
     devDependencies:
@@ -447,7 +447,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.0
-        version: 4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12)
+        version: 4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12)
       ws:
         specifier: ^8.18.0
         version: 8.21.0
@@ -499,13 +499,13 @@ importers:
         version: 19.2.6(react@19.2.6)
       theokit:
         specifier: ^0.48.7
-        version: 0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
+        version: 0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
       vite:
         specifier: ^7.3.5
         version: 7.3.5(@types/node@25.9.1)(tsx@4.23.12)
       vitest:
         specifier: ^4.1.8
-        version: 4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12)
+        version: 4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12)
 
 packages:
 
@@ -2529,8 +2529,36 @@ packages:
       react:
         optional: true
 
+  '@theokit/agents@11.0.0':
+    resolution: {integrity: sha512-Xr+uy1E8uQRcqzaiN6GxTJhSYktRUjh/E8CD8N8QggmUKKz0BD8ZZyK7xR9KIIe9/c71CWYcO06IkYB3+RHn9Q==}
+    engines: {node: '>=22.12.0'}
+    peerDependencies:
+      '@theokit/http': '>=0.1.0-alpha.0'
+      react: '>=18'
+      zod: ^4.0.0
+    peerDependenciesMeta:
+      react:
+        optional: true
+
   '@theokit/http@1.1.0':
     resolution: {integrity: sha512-FNDYlivrU7MCcfJsPNAxLaBKnj5pOq+xZFvq3nMkybKGVQf//Ot4UJmzjFAf3z+SAmn29wN2whc4RiAZlNoXGQ==}
+    engines: {node: '>=22.12.0'}
+    peerDependencies:
+      '@swc/core': '>=1.3.0'
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
+      reflect-metadata: ^0.2.2
+      zod: ^4.0.0
+    peerDependenciesMeta:
+      '@swc/core':
+        optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
+
+  '@theokit/http@1.1.1':
+    resolution: {integrity: sha512-A7vDTDPyo4XyaFdbTNaTkmFPBsG4lLcSbNf7lDnnMb67ZmIyLtPe2ORMJ+70aPtBTF+uIskzpddThuBE5JHDTg==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
       '@swc/core': '>=1.3.0'
@@ -2560,6 +2588,13 @@ packages:
 
   '@theokit/presenter@0.7.0':
     resolution: {integrity: sha512-w+r8GoLbiUjLe89/DMJb/Qw//J2IUGIsoh61u+exA0z/4+Es0j+BdFDPAbzwKAHOWjrCAVgAliSTrwIJfNYXqg==}
+    engines: {node: '>=22.12.0'}
+    peerDependencies:
+      '@theokit/sdk': ^4.49.0
+      zod: ^4.0.0
+
+  '@theokit/presenter@0.8.0':
+    resolution: {integrity: sha512-L3MSD/X4oZ4XJAZfLCSuO83SPH47jId/gtIIpx51Swgx8lpYJrZBEREbIGuUeMUhYVs6EYofxi1fcs+xNMmYgw==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
       '@theokit/sdk': ^4.49.0
@@ -4805,6 +4840,35 @@ packages:
       ws:
         optional: true
 
+  theokit@0.50.1:
+    resolution: {integrity: sha512-g1LfdlHDPxeJUj5BZj5L/892bucQsdONP0JlNCBjAVHLFY23mXynWRqM/4BFX2IqnM7738gYWcflx+nJpzd42A==}
+    engines: {node: '>=22.12.0'}
+    hasBin: true
+    peerDependencies:
+      '@theokit/sdk': ^4.52.1
+      '@theokit/studio': ^0.2.0
+      '@theokit/ui': ^1.1.0
+      db0: ^0.3.0
+      react: ^19.0.0
+      react-dom: ^19.0.0
+      react-router: ^7.0.0
+      unstorage: ^1.10.0
+      ws: ^8.20.1
+      zod: ^4.0.0
+    peerDependenciesMeta:
+      '@theokit/sdk':
+        optional: true
+      '@theokit/studio':
+        optional: true
+      '@theokit/ui':
+        optional: true
+      db0:
+        optional: true
+      unstorage:
+        optional: true
+      ws:
+        optional: true
+
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
 
@@ -6902,13 +6966,13 @@ snapshots:
     dependencies:
       '@testing-library/dom': 10.4.1
 
-  '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)':
+  '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)':
     dependencies:
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76)
       '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(zod@3.25.76)
       '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@3.25.76)
       '@theokit/sdk-pty': 0.3.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))
-      '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(zod@3.25.76)
+      '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(zod@3.25.76)
       zod: 3.25.76
     optionalDependencies:
       react: 19.2.6
@@ -6922,13 +6986,13 @@ snapshots:
       - vitest
       - ws
 
-  '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)':
+  '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)':
     dependencies:
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76)
       '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(zod@3.25.76)
       '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@3.25.76)
       '@theokit/sdk-pty': 0.3.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))
-      '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(zod@3.25.76)
+      '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(zod@3.25.76)
       zod: 3.25.76
     optionalDependencies:
       react: 19.2.6
@@ -6942,13 +7006,13 @@ snapshots:
       - vitest
       - ws
 
-  '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)':
+  '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)':
     dependencies:
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
+      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
       '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
       '@theokit/sdk-pty': 0.3.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))
-      '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(zod@4.4.3)
+      '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(zod@4.4.3)
       zod: 4.4.3
     optionalDependencies:
       react: 19.2.6
@@ -6962,10 +7026,10 @@ snapshots:
       - vitest
       - ws
 
-  '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)':
+  '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)':
     dependencies:
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
+      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
       '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
       '@theokit/sdk-pty': 0.3.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))
       '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(zod@4.4.3)
@@ -6982,13 +7046,13 @@ snapshots:
       - vitest
       - ws
 
-  '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)':
+  '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)':
     dependencies:
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
       '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
       '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
       '@theokit/sdk-pty': 0.3.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))
-      '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(zod@4.4.3)
+      '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(zod@4.4.3)
       zod: 4.4.3
     optionalDependencies:
       react: 19.2.6
@@ -7002,33 +7066,13 @@ snapshots:
       - vitest
       - ws
 
-  '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)':
+  '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)':
     dependencies:
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
       '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
       '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
       '@theokit/sdk-pty': 0.3.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))
-      '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(zod@4.4.3)
-      zod: 4.4.3
-    optionalDependencies:
-      react: 19.2.6
-    transitivePeerDependencies:
-      - '@lancedb/lancedb'
-      - '@types/ws'
-      - better-sqlite3
-      - proper-lockfile
-      - simple-git
-      - sqlite-vec
-      - vitest
-      - ws
-
-  '@theokit/agents@10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)':
-    dependencies:
-      '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
-      '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
-      '@theokit/sdk-pty': 0.3.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))
-      '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(zod@4.4.3)
+      '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(zod@4.4.3)
       zod: 4.4.3
     optionalDependencies:
       react: 19.2.6
@@ -7062,6 +7106,26 @@ snapshots:
       - vitest
       - ws
 
+  '@theokit/agents@11.0.0(@theokit/http@1.1.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)':
+    dependencies:
+      '@theokit/http': 1.1.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
+      '@theokit/presenter': 0.8.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
+      '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
+      '@theokit/sdk-pty': 0.3.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))
+      '@theokit/sdk-tools': 0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(zod@4.4.3)
+      zod: 4.4.3
+    optionalDependencies:
+      react: 19.2.6
+    transitivePeerDependencies:
+      - '@lancedb/lancedb'
+      - '@types/ws'
+      - better-sqlite3
+      - proper-lockfile
+      - simple-git
+      - sqlite-vec
+      - vitest
+      - ws
+
   '@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76)':
     dependencies:
       reflect-metadata: 0.2.2
@@ -7078,6 +7142,14 @@ snapshots:
       react: 19.2.6
       react-dom: 19.2.6(react@19.2.6)
 
+  '@theokit/http@1.1.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)':
+    dependencies:
+      reflect-metadata: 0.2.2
+      zod: 4.4.3
+    optionalDependencies:
+      react: 19.2.6
+      react-dom: 19.2.6(react@19.2.6)
+
   '@theokit/orm@0.1.0-next.1(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@types/better-sqlite3@9.6.0)(better-sqlite3@11.10.0))(reflect-metadata@0.2.2)':
     dependencies:
       drizzle-orm: 0.45.2(@types/better-sqlite3@9.6.0)(better-sqlite3@11.10.0)
@@ -7085,14 +7157,9 @@ snapshots:
     optionalDependencies:
       drizzle-kit: 0.31.10
 
-  '@theokit/presenter@0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)':
+  '@theokit/presenter@0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)':
     dependencies:
       '@theokit/sdk': 2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
-      zod: 4.4.3
-
-  '@theokit/presenter@0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)':
-    dependencies:
-      '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
       zod: 4.4.3
 
   '@theokit/presenter@0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(zod@3.25.76)':
@@ -7101,6 +7168,11 @@ snapshots:
       zod: 3.25.76
 
   '@theokit/presenter@0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)':
+    dependencies:
+      '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
+      zod: 4.4.3
+
+  '@theokit/presenter@0.8.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)':
     dependencies:
       '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
       zod: 4.4.3
@@ -7123,26 +7195,26 @@ snapshots:
     optionalDependencies:
       node-pty: 1.1.0
 
-  '@theokit/sdk-tools@0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(zod@3.25.76)':
+  '@theokit/sdk-tools@0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(zod@3.25.76)':
     dependencies:
       '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@3.25.76)
       zod: 3.25.76
     optionalDependencies:
-      vitest: 4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12)
+      vitest: 4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12)
 
-  '@theokit/sdk-tools@0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(zod@4.4.3)':
+  '@theokit/sdk-tools@0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(zod@4.4.3)':
     dependencies:
       '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
       zod: 4.4.3
     optionalDependencies:
-      vitest: 4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12)
+      vitest: 4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12)
 
-  '@theokit/sdk-tools@0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(zod@4.4.3)':
+  '@theokit/sdk-tools@0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(zod@4.4.3)':
     dependencies:
       '@theokit/sdk': 4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
       zod: 4.4.3
     optionalDependencies:
-      vitest: 4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12)
+      vitest: 4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12)
 
   '@theokit/sdk-tools@0.26.3(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(zod@4.4.3)':
     dependencies:
@@ -7464,6 +7536,18 @@ snapshots:
       '@types/babel__core': 7.20.5
       react-refresh: 0.17.0
       vite: 6.4.3(@types/node@25.9.1)(tsx@4.23.12)
+    transitivePeerDependencies:
+      - supports-color
+
+  '@vitejs/plugin-react@4.7.0(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12))':
+    dependencies:
+      '@babel/core': 7.29.7
+      '@babel/plugin-transform-react-jsx-self': 7.29.7(@babel/core@7.29.7)
+      '@babel/plugin-transform-react-jsx-source': 7.29.7(@babel/core@7.29.7)
+      '@rolldown/pluginutils': 1.0.0-beta.27
+      '@types/babel__core': 7.20.5
+      react-refresh: 0.17.0
+      vite: 7.3.5(@types/node@25.9.1)(tsx@4.23.12)
     transitivePeerDependencies:
       - supports-color
 
@@ -9461,11 +9545,11 @@ snapshots:
     dependencies:
       any-promise: 1.3.0
 
-  theokit@0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(better-sqlite3@11.10.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
+  theokit@0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(better-sqlite3@11.10.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
     dependencies:
-      '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+      '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
+      '@theokit/presenter': 0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
       '@vitejs/plugin-react': 4.7.0(vite@6.4.3(@types/node@25.9.1)(tsx@4.23.12))
       busboy: 1.6.0
       cac: 6.7.14
@@ -9509,11 +9593,11 @@ snapshots:
       - vitest
       - yaml
 
-  theokit@0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
+  theokit@0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
     dependencies:
-      '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+      '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
+      '@theokit/presenter': 0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
       '@vitejs/plugin-react': 4.7.0(vite@6.4.3(@types/node@22.19.19)(tsx@4.23.12))
       busboy: 1.6.0
       cac: 6.7.14
@@ -9534,54 +9618,6 @@ snapshots:
     optionalDependencies:
       '@theokit/sdk': 2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
       '@theokit/ui': 1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12))
-      ws: 8.21.0
-    transitivePeerDependencies:
-      - '@lancedb/lancedb'
-      - '@swc/core'
-      - '@types/node'
-      - '@types/ws'
-      - better-sqlite3
-      - csstype
-      - jiti
-      - less
-      - lightningcss
-      - proper-lockfile
-      - sass
-      - sass-embedded
-      - simple-git
-      - sqlite-vec
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-      - vitest
-      - yaml
-
-  theokit@0.48.8(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
-    dependencies:
-      '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
-      '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
-      '@vitejs/plugin-react': 4.7.0(vite@6.4.3(@types/node@25.9.1)(tsx@4.23.12))
-      busboy: 1.6.0
-      cac: 6.7.14
-      cron-parser: 5.10.0
-      devalue: 5.9.0
-      dotenv: 16.6.1
-      dotenv-expand: 11.0.7
-      goober: 2.1.19(csstype@3.2.3)
-      picomatch: 4.0.4
-      react: 19.2.6
-      react-dom: 19.2.6(react@19.2.6)
-      reflect-metadata: 0.2.2
-      superjson: 2.2.6
-      tsx: 4.23.12
-      typescript: 5.9.3
-      vite: 6.4.3(@types/node@25.9.1)(tsx@4.23.12)
-      zod: 4.4.3
-    optionalDependencies:
-      '@theokit/sdk': 2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
-      '@theokit/ui': 1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12))
       ws: 8.21.0
     transitivePeerDependencies:
       - '@lancedb/lancedb'
@@ -9609,7 +9645,7 @@ snapshots:
     dependencies:
       '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
+      '@theokit/presenter': 0.7.0(@theokit/sdk@2.18.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
       '@vitejs/plugin-react': 4.7.0(vite@6.4.3(@types/node@25.9.1)(tsx@4.23.12))
       busboy: 1.6.0
       cac: 6.7.14
@@ -9653,9 +9689,9 @@ snapshots:
       - vitest
       - yaml
 
-  theokit@0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@3.25.76))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(better-sqlite3@11.10.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76):
+  theokit@0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@3.25.76))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(better-sqlite3@11.10.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76):
     dependencies:
-      '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
+      '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76)
       '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(zod@3.25.76)
       '@vitejs/plugin-react': 4.7.0(vite@6.4.3(@types/node@25.9.1)(tsx@4.23.12))
@@ -9701,11 +9737,11 @@ snapshots:
       - vitest
       - yaml
 
-  theokit@0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(better-sqlite3@11.10.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
+  theokit@0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(better-sqlite3@11.10.0)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
     dependencies:
-      '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+      '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(better-sqlite3@11.10.0)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
+      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
       '@vitejs/plugin-react': 4.7.0(vite@6.4.3(@types/node@22.19.19)(tsx@4.23.12))
       busboy: 1.6.0
       cac: 6.7.14
@@ -9749,9 +9785,9 @@ snapshots:
       - vitest
       - yaml
 
-  theokit@0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76):
+  theokit@0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76):
     dependencies:
-      '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
+      '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12))(ws@8.21.0)(zod@3.25.76)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@3.25.76)
       '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@3.25.76))(zod@3.25.76)
       '@vitejs/plugin-react': 4.7.0(vite@6.4.3(@types/node@25.9.1)(tsx@4.23.12))
@@ -9797,9 +9833,9 @@ snapshots:
       - vitest
       - yaml
 
-  theokit@0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
+  theokit@0.48.8(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12)))(@types/node@22.19.19)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
     dependencies:
-      '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+      '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
       '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
       '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
       '@vitejs/plugin-react': 4.7.0(vite@6.4.3(@types/node@22.19.19)(tsx@4.23.12))
@@ -9845,12 +9881,12 @@ snapshots:
       - vitest
       - yaml
 
-  theokit@0.48.8(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
+  theokit@0.50.1(@theokit/ui@1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12)))(@types/node@25.9.1)(@types/ws@8.18.1)(csstype@3.2.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3):
     dependencies:
-      '@theokit/agents': 10.1.0(@theokit/http@1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
-      '@theokit/http': 1.1.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
-      '@theokit/presenter': 0.7.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
-      '@vitejs/plugin-react': 4.7.0(vite@6.4.3(@types/node@25.9.1)(tsx@4.23.12))
+      '@theokit/agents': 11.0.0(@theokit/http@1.1.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3))(@types/ws@8.18.1)(react@19.2.6)(vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12))(ws@8.21.0)(zod@4.4.3)
+      '@theokit/http': 1.1.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(reflect-metadata@0.2.2)(zod@4.4.3)
+      '@theokit/presenter': 0.8.0(@theokit/sdk@4.53.1(@types/ws@8.18.1)(ws@8.21.0)(zod@4.4.3))(zod@4.4.3)
+      '@vitejs/plugin-react': 4.7.0(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12))
       busboy: 1.6.0
       cac: 6.7.14
       cron-parser: 5.10.0
@@ -9865,7 +9901,7 @@ snapshots:
       superjson: 2.2.6
       tsx: 4.23.12
       typescript: 5.9.3
-      vite: 6.4.3(@types/node@25.9.1)(tsx@4.23.12)
+      vite: 7.3.5(@types/node@25.9.1)(tsx@4.23.12)
       zod: 4.4.3
     optionalDependencies:
       '@theokit/ui': 1.3.2(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(@usetheo/ui@0.35.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12))
@@ -10117,7 +10153,7 @@ snapshots:
       fsevents: 2.3.3
       tsx: 4.23.12
 
-  vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12):
+  vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12):
     dependencies:
       '@vitest/expect': 4.1.8
       '@vitest/mocker': 4.1.8(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12))
@@ -10157,7 +10193,7 @@ snapshots:
       - tsx
       - yaml
 
-  vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12):
+  vitest@4.1.8(@types/node@22.19.19)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1)(tsx@4.23.12):
     dependencies:
       '@vitest/expect': 4.1.8
       '@vitest/mocker': 4.1.8(vite@7.3.5(@types/node@22.19.19)(tsx@4.23.12))
@@ -10197,7 +10233,7 @@ snapshots:
       - tsx
       - yaml
 
-  vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11(vitest@4.1.8))(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12):
+  vitest@4.1.8(@types/node@25.9.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@25.0.1)(tsx@4.23.12):
     dependencies:
       '@vitest/expect': 4.1.8
       '@vitest/mocker': 4.1.8(vite@7.3.5(@types/node@25.9.1)(tsx@4.23.12))
