@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## 2026-08-24 (third cut)
+
+Nine packages: `@theokit/auth-github@0.4.0`, `@theokit/auth-google@0.4.0`,
+`@theokit/auth-magic-link@0.5.0`, `@theokit/plugin-canvas@0.6.0`,
+`@theokit/plugin-copilot@0.4.0`, `@theokit/plugin-db-drizzle@0.5.0`,
+`@theokit/plugin-email@0.3.0`, `@theokit/plugin-payments@0.6.0`,
+`@theokit/plugin-voice@0.9.0`.
+
+The `route()` examples in four READMEs declared no policy. `theokit@0.50.0` made
+`.policy()` mandatory on every route, so a reader copying one of our examples got a build
+failure produced by our own documentation. Every example now declares its policy and says
+why that policy is the right one.
+
+The peer floor moves to `theokit@>=0.50.1` for the same reason it moved in the tests: these
+packages are built, tested and documented against it and against nothing older. A consumer
+on `theokit@0.48.x` can still install the previous release.
+
 ### Added
 
 - `pnpm check:manifests` now refuses a framework peer range whose ceiling nobody typed — a `^` on a `0.x` version, which pins the MINOR rather than admitting the next release (#151).
