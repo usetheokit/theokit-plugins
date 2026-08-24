@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## 2026-08-24
+
+Four packages cut together: `@theokit/plugin-realtime@0.2.0`, `@theokit/plugin-forms@0.4.0`,
+`@theokit/plugin-payments@0.5.0`, `@theokit/plugin-copilot@0.3.1`.
+
+The release a maintenance run produced: 36 of 37 registry items closed, two of them by measurement
+refuting the hypothesis rather than by shipping code. Two defects were reported upstream instead of
+worked around (`usetheokit/theokit#429`, `#430`), and the run's own tooling gained seven gates — each
+one seen failing before it was trusted.
+
+The versions were cut on `workspace` and promoted through the normal review path rather than by a
+"Version Packages" pull request. That is not a shortcut: `release.yml` cannot open that pull request
+in this organisation, so leaving the changesets for it would have stopped the release at exactly the
+step B-023 documented. Consuming them here means the same bumps get MORE review, not less — two pull
+requests instead of one.
+
 ### Added
 
 - The Google OAuth success leg — code exchange, PKCE form body, bearer credential, claims mapping — now runs end-to-end across a real socket against a loopback OIDC sidecar, instead of being exercised only by a script nobody can run unattended (B-035 follow-up)

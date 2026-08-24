@@ -1,6 +1,6 @@
 {
   "name": "@theokit/plugin-copilot",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "AI Copilot plugin for TheoKit — the copilot() TheoPlugin plus the defineCopilot factory, AgentRoomMember and budget enforcement.",
   "type": "module",
   "main": "./dist/index.js",

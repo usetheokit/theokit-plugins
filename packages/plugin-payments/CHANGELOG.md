@@ -1,5 +1,44 @@
 # @theokit/plugin-payments
 
+## 0.5.0
+
+### Minor Changes
+
+- 0a812be: Embedded checkout, and a contract that can express it.
+
+  `createCheckout({ uiMode: 'embedded', returnUrl })` returns a `clientSecret` you hand to the
+  provider's client-side SDK to mount the payment form inside your own page. Proven against real
+  Stripe, not only typed.
+
+  The feature was **unexposed, not unavailable**. Measured live: Stripe accepts `ui_mode: 'embedded'`
+  and returns a `client_secret` with `url: null` — and the old contract threw on that null URL before
+  reaching the response. It also could not express the request: Stripe answers
+  `` `success_url` is not supported with `ui_mode: embedded` `` to the parameters this package sent.
+
+  **Breaking, deliberately.** `CheckoutResult` is discriminated by `uiMode`. Narrow on it to read
+  `url` (hosted) or `clientSecret` (embedded):
+
+  ```ts
+  const result = await provider.createCheckout({ items, successUrl, cancelUrl })
+  if (result.uiMode === 'hosted') redirect(result.url)
+  ```
+
+  `url` could have become optional instead. That would have moved a compile-time guarantee into a
+  runtime check for every caller who never uses embedded; narrowing keeps the promise where it was.
+  Hosted calls written before `uiMode` existed still type-check and still mean the same thing —
+  `ui_mode` is not even sent for them, so the request is byte-identical.
+
+  `CheckoutInput` makes the invalid combination unrepresentable: embedded takes `returnUrl`, hosted
+  takes `successUrl`/`cancelUrl`, and mixing them does not compile.
+
+  **AbacatePay:** this adapter does not implement embedded checkout and refuses such a request by
+  name. Whether the provider offers one is **unverified** — nobody has asked its API, and the
+  measurement behind this feature was run against Stripe.
+
+- bf8afd3: Export `STRIPE_DECORATION_KEY` from `@theokit/plugin-payments/stripe`, so the key `ctx.stripe` is published under can be imported instead of retyped. The key's value is unchanged — `ctx.stripe` still works exactly as before, and nothing breaks.
+
+  Retyping it is what this removes: a mistyped key is not an error, it is `undefined` at request time, in a handler that reads correctly. It also makes a future rename a one-line change for you rather than a search-and-replace — the name is a vendor noun, which a plugin key should not be, and changing it will be a breaking release of its own.
+
 ## 0.4.0
 
 ### Minor Changes
