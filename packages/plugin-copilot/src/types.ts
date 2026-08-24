@@ -77,7 +77,12 @@ export type CopilotTrigger =
     }
 
 /**
- * Frame shape received from P#9 (structural mirror of RealtimeFrame).
+ * Frame shape received from P#9 — a structural mirror of `RealtimeFrame` in
+ * `@theokit/plugin-realtime`, kept as a mirror rather than an import so this package does
+ * not take a hard dependency on it (ADR D4).
+ *
+ * A mirror only works while it is complete, and nothing made it so until
+ * `tests/composes-with-realtime.test.ts` existed. Add a variant upstream, add it here.
  *
  * @public
  */
@@ -99,6 +104,16 @@ export type CopilotFrame =
       readonly event: string
       readonly payload: Record<string, unknown>
     }
+  // The Yjs pair arrived in `plugin-realtime` with collaborative editing and was never copied
+  // here. A mirror missing a variant the original can emit is not a mirror: listeners are
+  // contravariant, so a `RealtimeProvider` stopped being assignable to `CopilotRealtimeProvider`
+  // and a consumer wiring the two — which this package's peer dependency invites — got a `tsc`
+  // error about `subscribeRoom`, several layers from the cause.
+  //
+  // `tests/composes-with-realtime.test.ts` performs that assignment, so the next variant added
+  // upstream fails here instead of in an app.
+  | { readonly type: 'yjs-update'; readonly connectionId: string; readonly bytes: Uint8Array }
+  | { readonly type: 'yjs-awareness'; readonly connectionId: string; readonly bytes: Uint8Array }
 
 /**
  * P#9 RoomDescriptor structural mirror. Copilot binds to one room descriptor.
