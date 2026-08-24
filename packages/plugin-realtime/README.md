@@ -99,14 +99,14 @@ function Cursors() {
 
 Hooks available:
 
-| Hook                       | Returns                                                                   | Notes                                                                                                                                     |
-| -------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `useRoom<P, E>()`          | `{roomId, others, myPresence, connectionId, updateMyPresence, broadcast}` | Throws outside `<RoomProvider>`                                                                                                           |
-| `useOthers<P>()`           | `Record<connectionId, P>`                                                 | Read-only snapshot of other clients' presence                                                                                             |
-| `usePresence<P>()`         | `P`                                                                       | Local client's current presence                                                                                                           |
-| `useUpdateMyPresence<P>()` | `(patch: Partial<P>) => void`                                             | **Local-only unless a `sender` is supplied** — merges locally either way; with a sender, also sends a `presence-update` frame             |
-| `useBroadcast<E>()`        | `(event: string, payload: E) => void`                                     | **Local-only in v0.1 unless a `sender` is supplied** — with no sender this is a no-op; with one, the server fans out to every participant |
-| `useYDoc()`                | `Y.Doc`                                                                   | The document passed to `<RoomProvider ydoc={...}>`, wired both ways. Throws, naming the prop, when none was passed                        |
+| Hook                       | Returns                                                                   | Notes                                                                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useRoom<P, E>()`          | `{roomId, others, myPresence, connectionId, updateMyPresence, broadcast}` | Throws outside `<RoomProvider>`                                                                                                                      |
+| `useOthers<P>()`           | `Record<connectionId, P>`                                                 | Read-only snapshot of other clients' presence                                                                                                        |
+| `usePresence<P>()`         | `P`                                                                       | Local client's current presence                                                                                                                      |
+| `useUpdateMyPresence<P>()` | `(patch: Partial<P>) => void`                                             | **Local-only unless a `sender` is supplied** — merges locally either way; with a sender, also sends a `presence-update` frame                        |
+| `useBroadcast<E>()`        | `(event: string, payload: E) => void`                                     | **Local-only in v0.1 unless a `sender` is supplied** — with no sender this is a no-op; with one, the server fans out to every participant            |
+| `useYDoc()`                | `Y.Doc`                                                                   | The document passed to `<RoomProvider ydoc={...}>`, wired for live edits. Throws, naming the prop, when none was passed. No initial sync — see below |
 
 ### Sending: the `sender` port
 
@@ -161,7 +161,13 @@ declare const roomId: string
 declare const connectionId: string
 
 socket.on('message', (raw: string) => {
-  void runtime.dispatchFrame(roomId, connectionId, JSON.parse(raw))
+  // Always catch. `dispatchFrame` rejects on anything a client can get wrong — an invalid presence
+  // patch, a CRDT frame to a room without `storage: 'yjs'`, undecodable bytes — and a floating
+  // promise turns a stranger's malformed message into an unhandled rejection, which Node treats as
+  // fatal by default.
+  runtime.dispatchFrame(roomId, connectionId, JSON.parse(raw)).catch((error: unknown) => {
+    console.error('rejected realtime frame', error)
+  })
 })
 ```
 
@@ -244,6 +250,23 @@ Two preconditions, refused in two different places on purpose:
 
 Without a `sender`, the document still works locally and nothing is transmitted — the same
 additive shape the presence and broadcast hooks have.
+
+**Live edits only — there is no initial sync.** A client that joins a room where a document
+already has content receives nothing until somebody types: `applyYjsUpdate` rebroadcasts the delta
+it received, and no handshake replays existing state. The second person to open a document sees it
+empty. Sending `Y.encodeStateAsUpdate(doc)` to a newly-joined connection from your own route is the
+workaround; a real sync handshake is tracked separately.
+
+**The bytes are encoded for you, in both directions.** A `yjs-update` frame carries base64 on the
+wire — `JSON.stringify(new Uint8Array([1,2]))` yields `{"0":1,"1":2}`, which `Y.applyUpdate`
+rejects, so neither direction can carry raw bytes over a JSON transport. `dispatchFrame` also still
+accepts a `Uint8Array` for a caller that already holds bytes.
+
+**Handle the rejection on your route.** `dispatchFrame` rejects on an invalid presence patch, on a
+Yjs frame sent to a room without `storage: 'yjs'`, and on undecodable bytes. Any client can send
+any of those, so a floating `void dispatchFrame(...)` turns a malformed message from a stranger
+into an unhandled rejection — which in Node terminates the process by default. The server snippet
+above catches; keep that `.catch` in yours.
 
 ## Custom provider (Liveblocks / PartyKit / Redis / CF DO)
 

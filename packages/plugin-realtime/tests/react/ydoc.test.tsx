@@ -102,7 +102,10 @@ describe('useYDoc', () => {
       </RoomProvider>,
     )
 
-    expect(getByTestId('err').textContent).toMatch(/ydoc/i)
+    // Not `/ydoc/i` — the message begins "useYDoc:", so that regex is satisfied by the hook's own
+    // name and cannot see whether the prop is named at all. Measured: stripping the message down
+    // to "useYDoc: unavailable." passed it.
+    expect(getByTestId('err').textContent).toMatch(/`ydoc`/)
   })
 })
 
@@ -157,8 +160,17 @@ describe('inbound Yjs frames', () => {
     reported.mockRestore()
   })
 
-  it('ignores an awareness frame rather than treating it as fatal', async () => {
-    // EC-4. Both kinds are routed, but only the document has a destination today.
+  it('ignores an awareness frame rather than applying it to the document', async () => {
+    // EC-4. An earlier version of this test pushed a junk awareness payload and then asserted a
+    // LATER update still landed — which proves "not fatal" and cannot see "ignored". Measured:
+    // deleting the `type === 'yjs-awareness'` guard, so awareness payloads were fed straight to
+    // `Y.applyUpdate`, left the whole 98-test package green.
+    //
+    // The payload here is therefore a WELL-FORMED document update wearing the awareness type. If
+    // the guard goes, the document changes, and this test says so.
+    const disguised = new Y.Doc()
+    disguised.getText('t').insert(0, 'should never appear')
+
     const target = new Y.Doc()
     const { client, push } = controllable()
 
@@ -168,8 +180,14 @@ describe('inbound Yjs frames', () => {
       </RoomProvider>,
     )
 
-    await push({ type: 'yjs-awareness', connectionId: 'other', bytes: b64(new Uint8Array([1])) })
+    await push({
+      type: 'yjs-awareness',
+      connectionId: 'other',
+      bytes: b64(Y.encodeStateAsUpdate(disguised)),
+    })
 
+    // A real update afterwards, so the assertion below cannot pass merely because nothing is
+    // flowing at all.
     const source = new Y.Doc()
     source.getText('t').insert(0, 'after')
     await push({
@@ -179,6 +197,10 @@ describe('inbound Yjs frames', () => {
     })
 
     await waitFor(() => expect(target.getText('t').toJSON()).toBe('after'))
+    expect(
+      target.getText('t').toJSON(),
+      'an awareness frame was applied to the document',
+    ).not.toContain('should never appear')
   })
 
   it('decodes the bytes without Buffer, which a browser does not have', async () => {
@@ -297,7 +319,7 @@ describe('outbound document updates', () => {
     ).toHaveLength(0)
   })
 
-  it('does not throw on a local change when no sender is wired', async () => {
+  it('does not throw on a local change when no sender is wired', () => {
     // Additive on a published package: a consumer who passes `ydoc` and no `sender` must see the
     // document work locally and nothing blow up.
     const doc = new Y.Doc()
@@ -309,10 +331,15 @@ describe('outbound document updates', () => {
       </RoomProvider>,
     )
 
-    await act(async () => {
-      doc.getText('t').insert(0, 'local only')
-      await Promise.resolve()
-    })
+    // The real assertion is the ABSENCE of a throw: without the `sender === undefined` guard the
+    // effect calls `sender.send` on undefined and the error propagates through `act`. Stating it
+    // explicitly, because the state assertion below re-reads a value this test just set and would
+    // pass on its own — measured, it survives a fully dead bridge.
+    expect(() => {
+      act(() => {
+        doc.getText('t').insert(0, 'local only')
+      })
+    }).not.toThrow()
 
     expect(doc.getText('t').toJSON()).toBe('local only')
   })

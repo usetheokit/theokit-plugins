@@ -27,6 +27,44 @@ import {
 } from '../types.js'
 
 /**
+ * The payload of a Yjs frame on its way IN, in either shape.
+ *
+ * `Uint8Array` for a caller already holding bytes — an in-process test, or a transport that
+ * carries binary natively. A base64 `string` for everything that crosses JSON, which is what the
+ * documented transport (`socket.send(JSON.stringify(frame))`) does.
+ *
+ * The server→client direction has always encoded (`server-integration.ts`'s `encodeBytes`),
+ * precisely because `JSON.stringify(new Uint8Array([1,2]))` yields `{"0":1,"1":2}` and
+ * `Y.applyUpdate` rejects it. The client→server direction had no equivalent, so the frame a
+ * browser produced could not survive the wire the README documents.
+ *
+ * @public
+ */
+export type YjsWireBytes = Uint8Array | string
+
+/** Encode Yjs bytes for a JSON transport. The client half of the symmetry. */
+export function encodeYjsBytes(bytes: Uint8Array): string {
+  return Buffer.from(bytes).toString('base64')
+}
+
+/**
+ * Accept either shape and hand the provider real bytes.
+ *
+ * Fails by name rather than passing malformed input downstream: `Buffer.from` silently drops
+ * invalid base64 characters, so a corrupt payload would otherwise reach `Y.applyUpdate` as
+ * plausible-looking bytes and fail somewhere less informative.
+ */
+function decodeYjsBytes(bytes: YjsWireBytes, kind: string): Uint8Array {
+  if (typeof bytes !== 'string') return bytes
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(bytes) || bytes.length % 4 !== 0) {
+    throw new RealtimeError(`A ${kind} frame carried bytes that are not valid base64.`, {
+      code: 'yjs_bytes_undecodable',
+    })
+  }
+  return new Uint8Array(Buffer.from(bytes, 'base64'))
+}
+
+/**
  * Incoming wire frame from a client (over G8 subscribe transport).
  *
  * @public
@@ -38,8 +76,8 @@ export type InboundWireFrame =
       readonly event: string
       readonly payload: BroadcastPayload
     }
-  | { readonly kind: 'yjs-update'; readonly bytes: Uint8Array }
-  | { readonly kind: 'yjs-awareness'; readonly bytes: Uint8Array }
+  | { readonly kind: 'yjs-update'; readonly bytes: YjsWireBytes }
+  | { readonly kind: 'yjs-awareness'; readonly bytes: YjsWireBytes }
 
 /**
  * Outgoing wire frame to a client (re-broadcast from {@link RealtimeFrame}).
@@ -239,7 +277,11 @@ export class RealtimeRuntime {
             { code: 'yjs_provider_unsupported' },
           )
         }
-        await this.provider.applyYjsUpdate(roomId, connectionId, frame.bytes)
+        await this.provider.applyYjsUpdate(
+          roomId,
+          connectionId,
+          decodeYjsBytes(frame.bytes, 'yjs-update'),
+        )
         return
       }
       case 'yjs-awareness': {
@@ -253,7 +295,11 @@ export class RealtimeRuntime {
             { code: 'yjs_provider_unsupported' },
           )
         }
-        await this.provider.applyYjsAwareness(roomId, connectionId, frame.bytes)
+        await this.provider.applyYjsAwareness(
+          roomId,
+          connectionId,
+          decodeYjsBytes(frame.bytes, 'yjs-awareness'),
+        )
         return
       }
     }

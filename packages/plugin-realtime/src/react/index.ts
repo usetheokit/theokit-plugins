@@ -121,10 +121,38 @@ export interface RealtimeYDoc {
  * Origin stamped on updates this package applied from the wire.
  *
  * Without it the local `update` listener fires for every frame just received and sends it straight
- * back, so two clients saturate each other. A module-private object is used rather than a string
- * so a consumer cannot collide with it by accident.
+ * back, so two clients saturate each other.
+ *
+ * `Symbol.for` rather than `Symbol()` deliberately, and NOT for privacy — the global registry is
+ * the opposite of private, and an earlier version of this comment claimed it was. The reason is
+ * that two copies of this module (a duplicated install, a bundler that does not dedupe) must agree
+ * on the sentinel, or one copy's applied update looks local to the other and echoes.
  */
 const REMOTE_ORIGIN = Symbol.for('@theokit/plugin-realtime#remote')
+
+/**
+ * Encode Yjs bytes for a JSON transport.
+ *
+ * The mirror of `decodeBase64`, and the reason it exists: `RealtimeSendClient.send` used to be
+ * handed a raw `Uint8Array`, and the README's own canonical transport is
+ * `socket.send(JSON.stringify(frame))`. `JSON.stringify(new Uint8Array([1,2]))` yields
+ * `{"0":1,"1":2}`, which `Y.applyUpdate` rejects — so the headline feature did not work over the
+ * one transport the package documents.
+ *
+ * `btoa` in a browser, `Buffer` in Node, same order as the decode.
+ */
+function encodeBase64(bytes: Uint8Array): string {
+  const globals = globalThis as { btoa?: (s: string) => string; Buffer?: typeof Buffer }
+  if (typeof globals.btoa === 'function') {
+    let binary = ''
+    for (const byte of bytes) binary += String.fromCharCode(byte)
+    return globals.btoa(binary)
+  }
+  if (globals.Buffer !== undefined) return globals.Buffer.from(bytes).toString('base64')
+  throw new Error(
+    'plugin-realtime: cannot encode a Yjs frame — this environment provides neither `btoa` nor `Buffer`.',
+  )
+}
 
 /** Decode the base64 the wire carries (`server-integration.ts` encodes with `Buffer`). */
 function decodeBase64(encoded: string): Uint8Array {
@@ -340,6 +368,15 @@ export function RoomProvider(props: RoomProviderProps): React.ReactElement {
   }, [])
 
   // Subscription lifecycle.
+  // Read through a ref inside the subscription loop. Putting `ydoc` in that effect's dependency
+  // list made DOCUMENT IDENTITY govern the ROOM SUBSCRIPTION lifetime: a consumer who passes an
+  // inline `new Y.Doc()` re-subscribed on every parent render — measured at 6 subscribe() calls
+  // after 5 re-renders — and each re-subscribe is a rejoin with presence churn. The stable-document
+  // guidance belongs in the docs (and now in the hook's error message), but the failure mode
+  // should not be this severe when it is ignored.
+  const ydocRef = React.useRef(ydoc)
+  ydocRef.current = ydoc
+
   React.useEffect(() => {
     let cancelled = false
     const ac = new AbortController()
@@ -373,7 +410,7 @@ export function RoomProvider(props: RoomProviderProps): React.ReactElement {
             // would end presence AND broadcast for the whole room over one corrupt payload.
             // A bad frame costs one frame.
             try {
-              await applyYjsFrame(out.type, out.bytes, ydoc)
+              await applyYjsFrame(out.type, out.bytes, ydocRef.current)
             } catch (error) {
               // Reported, not swallowed. There is no error channel on this API today, so the
               // console is where a browser-side library says something went wrong.
@@ -394,7 +431,7 @@ export function RoomProvider(props: RoomProviderProps): React.ReactElement {
       cancelled = true
       ac.abort()
     }
-  }, [roomId, baseUrl, subscriptionName, client, ydoc, setStateAndNotify])
+  }, [roomId, baseUrl, subscriptionName, client, setStateAndNotify])
 
   // The document's send half. Separate from the subscription effect because it has a different
   // lifetime: the subscription reconnects on a room change, this one detaches whenever the
@@ -407,7 +444,7 @@ export function RoomProvider(props: RoomProviderProps): React.ReactElement {
       // The frame we just applied from the wire fires this listener too. Without the origin
       // check it goes straight back out, and two clients saturate each other.
       if (origin === REMOTE_ORIGIN) return
-      void sender.send({ kind: 'yjs-update', bytes: update })
+      void sender.send({ kind: 'yjs-update', bytes: encodeBase64(update) })
     }
 
     ydoc.on('update', onUpdate)
@@ -530,7 +567,10 @@ export function useBroadcast<E extends BroadcastPayload = BroadcastPayload>(): (
  * The room's Yjs document.
  *
  * Returns the document passed to `<RoomProvider ydoc={...}>`, wired to the room: inbound
- * `yjs-update` frames are applied to it, and local changes are sent through the `sender` port.
+ * `yjs-update` frames are applied to it, and local changes are sent through the `sender` port —
+ * **when one is supplied**. With `ydoc` and no `sender` the document is receive-only and this hook
+ * still succeeds, which is deliberate (it mirrors the presence and broadcast hooks) and worth
+ * knowing, because a receive-only document looks synced and is not.
  *
  * Throws, naming the cause, when the provider was given no document. The other precondition — the
  * room declaring `storage: 'yjs'` — is enforced server-side, where the descriptor lives; a client
@@ -545,8 +585,10 @@ export function useYDoc(): RealtimeYDoc {
     // named a deferral ("auto-wiring is deferred to v0.x"), which told a consumer nothing they
     // could do — and by then the workaround it recommended was itself broken (see B-010).
     throw new Error(
-      'useYDoc: this RoomProvider was given no `ydoc`. Pass `ydoc={new Y.Doc()}` to <RoomProvider>, ' +
-        "and declare `storage: 'yjs'` on the room's defineRoom() server-side.",
+      'useYDoc: this RoomProvider was given no `ydoc`. Pass a STABLE document — ' +
+        '`const [doc] = React.useState(() => new Y.Doc())`, not `ydoc={new Y.Doc()}`, which is a ' +
+        "new document on every render. Also declare `storage: 'yjs'` on the room's " +
+        'defineRoom() server-side.',
     )
   }
   return ctx.ydoc

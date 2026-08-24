@@ -16,10 +16,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
+import * as Y from 'yjs'
+
 import { defineRoom } from '../src/define-room.js'
 import { createMemoryRealtimeProvider } from '../src/memory-provider.js'
 import { createYjsRealtimeProvider } from '../src/yjs-provider.js'
-import { RealtimeRuntime } from '../src/internal/runtime.js'
+import { encodeYjsBytes, type InboundWireFrame, RealtimeRuntime } from '../src/internal/runtime.js'
 
 const PLAIN = defineRoom({
   id: 'plain',
@@ -42,17 +44,38 @@ describe('a room without storage:"yjs"', () => {
     // Before: `return` at runtime.ts:239 — the frame disappeared and the sender learned nothing.
     const rt = new RealtimeRuntime({ provider: createMemoryRealtimeProvider(), rooms: [PLAIN] })
 
+    // The assertion must DISCRIMINATE. `/plain.*storage.*yjs/` also matches the pre-existing
+    // capability error — "Room plain DECLARES storage:\"yjs\" but provider memory does not…" —
+    // whose text asserts the opposite fact. Measured: with `assertYjsRoom` made a no-op, this test
+    // passed on that message. An assertion satisfied by the negation of its own title is not one.
     await expect(rt.dispatchFrame(PLAIN.id, 'alice', UPDATE)).rejects.toThrow(
-      /plain.*storage.*yjs/is,
+      /does not declare storage/i,
     )
   })
 
   it('refuses a yjs awareness frame by name instead of dropping it', async () => {
+    // Its own test, and its own discriminating regex. Deleting ONLY the awareness call to
+    // `assertYjsRoom` left the whole 98-test package green before this — the awareness half of
+    // the fix was guarded by nothing.
     const rt = new RealtimeRuntime({ provider: createMemoryRealtimeProvider(), rooms: [PLAIN] })
 
     await expect(rt.dispatchFrame(PLAIN.id, 'alice', AWARENESS)).rejects.toThrow(
-      /plain.*storage.*yjs/is,
+      /does not declare storage/i,
     )
+  })
+
+  it('does not apply the awareness frame even when the provider is Yjs-capable', async () => {
+    const provider = createYjsRealtimeProvider()
+    const apply = vi.spyOn(provider, 'applyYjsAwareness')
+    const rt = new RealtimeRuntime({ provider, rooms: [PLAIN] })
+
+    await expect(rt.dispatchFrame(PLAIN.id, 'alice', AWARENESS)).rejects.toThrow(
+      /does not declare storage/i,
+    )
+    expect(
+      apply,
+      'awareness state was written into a room that never declared it',
+    ).not.toHaveBeenCalled()
   })
 
   it('does not apply the update even when the provider is Yjs-capable', async () => {
@@ -89,5 +112,60 @@ describe('a room that does declare storage:"yjs"', () => {
     await rt.dispatchFrame(CRDT.id, 'alice', UPDATE)
 
     expect(apply).toHaveBeenCalledWith(CRDT.id, 'alice', UPDATE.bytes)
+  })
+})
+
+describe('the frame the client actually puts on the wire', () => {
+  it('survives JSON and still applies', async () => {
+    // The defect this pins: `RealtimeSendClient.send` was handed a raw `Uint8Array`, and the
+    // README's own canonical transport is `socket.send(JSON.stringify(frame))`. Composed, the
+    // server receives `{"0":1,"1":1,…}` and `Y.applyUpdate` throws "Unexpected end of array".
+    //
+    // The server→client direction already solved this: `server-integration.ts` base64-encodes
+    // because binary does not cross JSON. This is the same fix on the other half, which had none.
+    const provider = createYjsRealtimeProvider()
+    const apply = vi.spyOn(provider, 'applyYjsUpdate')
+    const rt = new RealtimeRuntime({ provider, rooms: [CRDT] })
+
+    const authored = new Y.Doc()
+    authored.getText('body').insert(0, 'across the wire')
+    const bytes = Y.encodeStateAsUpdate(authored)
+
+    // Exactly what a consumer's transport does on each side of the socket.
+    const onTheWire = JSON.stringify({ kind: 'yjs-update', bytes: encodeYjsBytes(bytes) })
+    const received = JSON.parse(onTheWire) as InboundWireFrame
+
+    await rt.dispatchFrame(CRDT.id, 'alice', received)
+
+    expect(apply).toHaveBeenCalledTimes(1)
+    const delivered = apply.mock.calls[0]![2]
+    expect(delivered, 'the provider was handed something that is not bytes').toBeInstanceOf(
+      Uint8Array,
+    )
+
+    // And the bytes still mean what they meant: they apply to a fresh document.
+    const target = new Y.Doc()
+    Y.applyUpdate(target, delivered)
+    expect(target.getText('body').toJSON()).toBe('across the wire')
+  })
+
+  it('still accepts raw bytes, so an in-process caller is unaffected', async () => {
+    // Additive on a published type: `dispatchFrame` is public and consumers already call it with
+    // a `Uint8Array` from their own decoding.
+    const provider = createYjsRealtimeProvider()
+    const apply = vi.spyOn(provider, 'applyYjsUpdate')
+    const rt = new RealtimeRuntime({ provider, rooms: [CRDT] })
+
+    await rt.dispatchFrame(CRDT.id, 'alice', UPDATE)
+
+    expect(apply).toHaveBeenCalledWith(CRDT.id, 'alice', UPDATE.bytes)
+  })
+
+  it('names the frame when the base64 is not decodable', async () => {
+    const rt = new RealtimeRuntime({ provider: createYjsRealtimeProvider(), rooms: [CRDT] })
+
+    await expect(
+      rt.dispatchFrame(CRDT.id, 'alice', { kind: 'yjs-update', bytes: '!!!not base64!!!' }),
+    ).rejects.toThrow(/base64|decode/i)
   })
 })

@@ -166,8 +166,14 @@ async function connect(roomId: string, id: string, rt: RealtimeRuntime): Promise
     socket.once('error', reject)
   })
 
+  // The frame goes through JSON on the way up, exactly as the README's canonical transport does
+  // (`socket.send(JSON.stringify(frame))`). This is not decoration: the send half used to hand the
+  // transport a raw `Uint8Array`, which `JSON.stringify` turns into `{"0":1,"1":2}` — so the
+  // feature did not work over the one transport the package documents, and a test that dispatched
+  // in-process could not see it.
   const sender: RealtimeSendClient = {
-    send: (frame) => rt.dispatchFrame(roomId, id, frame),
+    send: (frame) =>
+      rt.dispatchFrame(roomId, id, JSON.parse(JSON.stringify(frame)) as typeof frame),
   }
 
   function Probe(): React.ReactElement {
@@ -237,7 +243,11 @@ describe('two clients over a real WebSocket', () => {
 
     const alice = await connect(PLAIN_ROOM.id, 'alice', rt)
 
-    // The provider's own send path is what carries it, so the refusal is the one a consumer meets.
+    // Honest scope, corrected after review: this dispatches DIRECTLY, so the mounted provider and
+    // socket above are not what carry the frame — the refusal observed is the runtime's, and
+    // `runtime-yjs-storage.test.ts` covers the same ground more cheaply. What this adds is that
+    // the refusal holds with a real subscription open against a real socket, which is the state a
+    // consumer is actually in. It is deliberately NOT a claim that the client bridge carried it.
     await expect(
       rt.dispatchFrame(PLAIN_ROOM.id, 'alice', {
         kind: 'yjs-update',

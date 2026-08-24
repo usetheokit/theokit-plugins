@@ -37,9 +37,9 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-27 items — **Open** 18 · **In flight** 0 · **Closed** 9
+29 items — **Open** 19 · **In flight** 0 · **Closed** 10
 
-### Open (18)
+### Open (19)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -61,12 +61,13 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-025`](#b-025--no-python-runs-in-ci-so-a-consumer-side-kit-invariant-could-not-execute--) | no Python runs in CI, so a consumer-side kit invariant could not execute | `raw` | — |
 | [`B-026`](#b-026--three-gates-in-a-row-shipped-a-summary-line-the-run-had-not-earned--) | three gates in a row shipped a summary line the run had not earned | `raw` | — |
 | [`B-027`](#b-027--no-local-gate-catches-a-manifest-edited-without-its-lockfile--) | no local gate catches a manifest edited without its lockfile | `raw` | — |
+| [`B-029`](#b-029--a-client-joining-a-room-sees-an-empty-document-until-somebody-types----) | a client joining a room sees an empty document until somebody types | `raw` | — |
 
 ### In flight (0)
 
 _None._
 
-### Closed (9)
+### Closed (10)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -79,6 +80,7 @@ _None._
 | [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it-x) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `shipped` | — |
 | [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish-x) | Nothing compiles the code examples our READMEs publish | `shipped` | — |
 | [`B-010`](#b-010--plugin-realtimes-presence-and-broadcast-never-leave-the-client-x) | `plugin-realtime`'s presence and broadcast never leave the client | `shipped` | — |
+| [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
@@ -970,3 +972,63 @@ note: the fix is one command (`pnpm install --frozen-lockfile --lockfile-only --
 equivalent) plus a script entry. It is registered rather than fixed in passing because it belongs
 to whichever gate list it joins, and adding a gate mid-slice is the scope creep the review process
 exists to catch.
+
+## B-028 — the Yjs wire encodes on the way down and hands raw bytes on the way up   [ ]
+
+domain: plugin-server
+repo: plugin-realtime
+suggested_mode: bug
+source: human
+evidence: measured 2026-08-23 while shipping [[B-011]]. `InboundWireFrame`
+  (`packages/plugin-realtime/src/internal/runtime.ts:41-42`) types both Yjs kinds as
+  `bytes: Uint8Array`, and `RealtimeOutboundFrame` — what `RealtimeSendClient.send` accepts — is
+  that union re-exported. So a browser hands its transport a `Uint8Array`, and
+  `JSON.parse(JSON.stringify(...))` turns it into `{"0":1,"1":2,"2":255}`, which `Y.applyUpdate`
+  rejects. Verified in node. The OUTBOUND direction already solves this:
+  `packages/plugin-realtime/src/internal/server-integration.ts:70` base64-encodes, and
+  `packages/plugin-realtime/tests/integration/wire-round-trip.test.ts` exists specifically to prove
+  that encoding is load-bearing. The inbound direction has no equivalent.
+  `dispatchFrame` has **no production caller** in this package (a plugin cannot register a route,
+  per the domain's own seam constraint), so the consumer owns both ends of the serialisation and
+  gets no help on one of them.
+why_now: [[B-011]] shipped the client-side send path, so browser code now produces `yjs-update`
+  frames for the first time. Before it, this type was unreachable from a client and the asymmetry
+  cost nothing.
+status: shipped
+shipped_by: the same slice that surfaced it — an independent review of [[B-011]] called it a
+  BLOCKER rather than a documentation gap, and it was right: the headline claim ("wired both ways")
+  did not hold over the one transport the README teaches. Filing it and shipping the feature with a
+  manual-encoding note would have published a broken path with an apology attached.
+  `InboundWireFrame` now accepts `Uint8Array | string`, the React sender encodes, `dispatchFrame`
+  decodes and rejects undecodable base64 by name. The convergence test round-trips through
+  `JSON.stringify`, and reverting the encode turns it red.
+dod:
+  - a test that fails today by round-tripping an outbound Yjs frame through `JSON.stringify` — done
+  - the two directions agree — done, both carry base64
+  - `wire-round-trip.test.ts`'s inbound twin exists — done
+    (`tests/runtime-yjs-storage.test.ts` § the frame the client actually puts on the wire)
+
+## B-029 — a client joining a room sees an empty document until somebody types   [ ]
+
+domain: plugin-server
+repo: plugin-realtime
+suggested_mode: evolve
+source: human
+evidence: surfaced by an independent review of [[B-011]] and confirmed against the code.
+  `createYjsRealtimeProvider` fans out a `joined` frame carrying presence only
+  (`packages/plugin-realtime/src/yjs-provider.ts:242`), and `applyYjsUpdate` rebroadcasts the delta
+  it received rather than the document's state
+  (`packages/plugin-realtime/src/yjs-provider.ts:332`). The provider's own comment there says a
+  joining client "needs an initial sync, which is a separate concern". So the second person to open
+  a document gets nothing until a live edit arrives. Reproduced by the reviewer with the B-011
+  convergence harness, alice writing before bob connects: bob's document was `""`.
+why_now: [[B-011]] made the client half real. Before it, no React consumer could hold a wired
+  document at all, so "joins and sees nothing" was unreachable. It is now the first thing the
+  second user of a document experiences, and the README documents the feature.
+status: raw
+dod:
+  - a test with two clients where the first edits BEFORE the second connects, and the second ends
+    up with the first's content
+  - the handshake is a protocol decision, recorded: `Y.encodeStateAsUpdate` replay on join is the
+    obvious one, and the reason for choosing it over a state-vector exchange is written down
+  - the README stops describing the workaround and describes the behaviour
