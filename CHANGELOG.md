@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## 2026-08-24 (second cut)
+
+Four packages: `@theokit/auth-github@0.3.1`, `@theokit/auth-google@0.3.1`,
+`@theokit/auth-magic-link@0.4.1`, `@theokit/plugin-copilot@0.3.2`.
+
+A patch release carrying one change to what these packages declare, and no change to what they do.
+
+The versions were cut here rather than left for the release workflow, for the reason the earlier
+section on this date records: `release.yml` cannot open the "Version Packages" pull request in this
+organisation. The previous PR forgot that and shipped its changeset to `main`, where the release run
+duly failed at exactly that step — nothing was published and the changeset survived, which is the
+recoverable half of the defect B-023 measured.
+
 ### Added
 
 - The `@theokit/sdk` peer range on the three auth packages and `plugin-copilot` widened to `>=2.18.0`: they work with the current sdk major, and the old `^2.18.0` produced a peer mismatch pnpm did not warn about in any app scaffolded by `create-theokit` (B-019)

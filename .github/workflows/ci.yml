@@ -121,6 +121,48 @@ jobs:
       - name: Build all packages (types the other gates resolve against)
         run: pnpm build
 
+      # A changeset reaching `main` makes the next release run FAIL, every time: `release.yml`
+      # responds to a push on `main` by running `changeset version` and opening a "Version Packages"
+      # pull request, and this organisation does not permit Actions to open one — measured,
+      # `actions/secrets` is empty and `can_approve_pull_request_reviews` is false (B-023).
+      #
+      # The workaround is to cut the versions on `workspace` before promoting, so `hasChangesets` is
+      # false when the release runs and the action publishes directly. It was documented in the
+      # CHANGELOG and then not applied by the very pull request that documented it, which is how a
+      # release run failed on 2026-08-24. A paragraph is not a check.
+      #
+      # Scoped to promotions: a changeset on a `develop` PR is exactly right and must not be
+      # blocked. Only `main` cannot consume one.
+      #
+      # Delete this step the day `RELEASE_PAT` exists — then a changeset on `main` is fine, and this
+      # would be a gate enforcing a constraint that no longer applies.
+      - name: A promotion to main carries no unconsumed changeset
+        if: github.base_ref == 'main'
+        run: |
+          pending="$(find .changeset -name '*.md' ! -name 'README.md' -printf '%f\n' 2>/dev/null || true)"
+          if [ -n "$pending" ]; then
+            echo "::error title=Changeset would reach main::$pending"
+            cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
+          ## A changeset would reach `main`
+
+          `release.yml` cannot open the "Version Packages" pull request in this organisation, so the
+          release run that follows this merge would fail at exactly that step. Nothing is published
+          and the changesets survive, but the failure is avoidable.
+
+          Cut the versions first, on `workspace`:
+
+          ```
+          pnpm run version:packages
+          # add the dated section to CHANGELOG.md (rules/release-record.md § 3)
+          # then promote: workspace -> develop -> main
+          ```
+
+          With no changesets pending, `changesets/action` publishes directly. Tracked in B-023.
+          SUMMARY
+            exit 1
+          fi
+          echo "no pending changesets — the release will publish directly"
+
       - run: pnpm typecheck
       # Not redundant with the `pnpm install --frozen-lockfile` above, and the difference is
       # legibility rather than coverage: when the install step rejects a drifted lockfile, the job
