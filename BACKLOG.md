@@ -37,9 +37,9 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-29 items — **Open** 18 · **In flight** 0 · **Closed** 11
+30 items — **Open** 19 · **In flight** 0 · **Closed** 11
 
-### Open (18)
+### Open (19)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -61,6 +61,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-026`](#b-026--three-gates-in-a-row-shipped-a-summary-line-the-run-had-not-earned--) | three gates in a row shipped a summary line the run had not earned | `raw` | — |
 | [`B-027`](#b-027--no-local-gate-catches-a-manifest-edited-without-its-lockfile--) | no local gate catches a manifest edited without its lockfile | `raw` | — |
 | [`B-029`](#b-029--a-client-joining-a-room-sees-an-empty-document-until-somebody-types----) | a client joining a room sees an empty document until somebody types | `raw` | — |
+| [`B-030`](#b-030--a-multipart-scalar-array-loses-every-element-but-the-last----) | a multipart scalar array loses every element but the last | `raw` | — |
 
 ### In flight (0)
 
@@ -1047,3 +1048,32 @@ dod:
   - the handshake is a protocol decision, recorded: `Y.encodeStateAsUpdate` replay on join is the
     obvious one, and the reason for choosing it over a state-vector exchange is written down
   - the README stops describing the workaround and describes the behaviour
+
+## B-030 — a multipart scalar array loses every element but the last   [ ]
+
+domain: plugin-server
+repo: plugin-forms
+suggested_mode: bug
+source: human
+evidence: measured 2026-08-24 by the round-trip test shipped with [[B-012]]
+  (`packages/plugin-forms/tests/integration/multipart-round-trip.test.ts`), which drives a real
+  action through `theokit`'s own `executeAction` over a real multipart request.
+  `{ tags: ['first','second','third'] }` comes back as `['third']`.
+  The cause is upstream of the convention, in the framework rather than in this package:
+  `parseWebRequestBody` collects text parts into a **plain object** (`fields[key] = value`), so two
+  parts named `tags` overwrite each other. `synthesizeFormData` then rebuilds a `FormData` from that
+  object, and by the time `formDataToObject` calls `getAll('tags')` there is only ever one value to
+  get. **File** arrays are unaffected — the same parser keeps files in an array
+  (`files.push({fieldName, …})`) — which is why [[B-012]]'s feature works and this does not.
+  There is no client-side fix: the collapse happens before any convention is applied.
+why_now: [[B-012]] shipped the client half, so a `<TheoForm encType="multipart/form-data">` is now a
+  supported path and a consumer with a multi-select or a tag list will hit this. Before it, nothing
+  in this ecosystem produced a multipart body with repeated text parts.
+status: raw
+dod:
+  - the fix is in `theokit`, not here: this item tracks reporting it and re-verifying, since
+    `rules/knowledge-base-location.md § Autonomy` forbids an item here from depending on another
+    repository's state
+  - the pinning test in this repository flips from asserting `['third']` to asserting all three
+    elements, on the day the framework carries them
+  - until then, the limitation is documented where a consumer chooses `encType`

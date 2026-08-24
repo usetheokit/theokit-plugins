@@ -22,9 +22,9 @@ function Control({ type }: { type: string }): React.JSX.Element {
 
 function mount(schema: z.ZodTypeAny, type: string, onCall: (v: unknown) => void) {
   const action = Object.assign(
-    async (input: unknown) => {
+    (input: unknown) => {
       onCall(input)
-      return { data: 'ok', error: undefined }
+      return Promise.resolve({ data: 'ok', error: undefined })
     },
     { __zodSchema: schema },
   )

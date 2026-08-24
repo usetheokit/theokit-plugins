@@ -31,6 +31,7 @@ import {
   useForm,
 } from 'react-hook-form'
 import { applyActionErrorsToForm } from '../adapter/applyActionErrorsToForm.js'
+import { valuesToFormData } from '../adapter/valuesToFormData.js'
 import {
   TheoFormContext,
   type TheoFormContextValue,
@@ -54,14 +55,6 @@ export interface TheoFormAction<TInput extends FieldValues = FieldValues, TData 
   }
 }
 
-/**
- * Props for `<TheoForm>`.
- *
- * Only `action` and `children` are required: the schema normally travels on the action itself
- * (`action.__zodSchema`), which is what keeps client and server validating the same shape. Passing
- * `schema` is the escape hatch for an action that does not carry one; with neither, the form still
- * submits and still shows server-side field errors — it just does no client-side validation first.
- */
 /**
  * A `FileList` becomes a `File[]`; everything else is returned as it came.
  *
@@ -98,7 +91,7 @@ function normaliseValue(value: unknown): unknown {
  * normalising here fixes validation and the payload in one move.
  */
 function normaliseFileFields(inner: Resolver<never>): Resolver<never> {
-  return (async (values: Record<string, unknown>, context: unknown, options: unknown) => {
+  return ((values: Record<string, unknown>, context: unknown, options: unknown) => {
     const normalised: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(values ?? {})) normalised[key] = normaliseValue(value)
     return (inner as unknown as (v: unknown, c: unknown, o: unknown) => unknown)(
@@ -109,6 +102,14 @@ function normaliseFileFields(inner: Resolver<never>): Resolver<never> {
   }) as unknown as Resolver<never>
 }
 
+/**
+ * Props for `<TheoForm>`.
+ *
+ * Only `action` and `children` are required: the schema normally travels on the action itself
+ * (`action.__zodSchema`), which is what keeps client and server validating the same shape. Passing
+ * `schema` is the escape hatch for an action that does not carry one; with neither, the form still
+ * submits and still shows server-side field errors — it just does no client-side validation first.
+ */
 export interface TheoFormProps<TInput extends FieldValues = FieldValues, TData = unknown> {
   action: TheoFormAction<TInput, TData>
   /**
@@ -123,6 +124,22 @@ export interface TheoFormProps<TInput extends FieldValues = FieldValues, TData =
    * server-side ActionInputError still hydrates via the adapter).
    */
   schema?: TheoFormAction<TInput, TData>['__zodSchema']
+  /**
+   * How the body is encoded.
+   *
+   * `multipart/form-data` converts the values to a `FormData` before invoking the action, shaped by
+   * the schema so the server's own reconstruction reads it back. The action must declare
+   * `accept: 'form'` server-side — that is where parsing happens, and this package cannot see it.
+   *
+   * Conversion is opt-in rather than inferred from the values: an action whose input is an object
+   * on one submit and a `FormData` on the next cannot be typed, and nothing at the call site would
+   * say why the body changed.
+   *
+   * Defaults to `application/x-www-form-urlencoded`, which is what every form rendered before this
+   * prop existed. That value was hardcoded — the attribute a reader inspects to answer exactly this
+   * question, answering it wrongly.
+   */
+  encType?: 'application/x-www-form-urlencoded' | 'multipart/form-data'
   /**
    * Optional callback fired AFTER successful submit (post-mutate). Useful for
    * navigation, toast, etc. Receives the server response data.
@@ -146,10 +163,20 @@ function TheoFormRootInner<TInput extends FieldValues, TData>(
   props: TheoFormProps<TInput, TData>,
   ref: React.ForwardedRef<HTMLFormElement>,
 ): React.JSX.Element {
-  const { action, defaultValues, schema, onSuccess, children, className } = props
+  const { action, defaultValues, schema, encType, onSuccess, children, className } = props
   const action_ = useAction<TInput, TData>(action)
   // Schema priority: explicit prop > convention-attached __zodSchema > none
   const resolvedSchema = schema ?? action.__zodSchema
+  const isMultipart = encType === 'multipart/form-data'
+  if (isMultipart && resolvedSchema === undefined) {
+    // At render, not at submit: the condition is decided by props alone, so waiting would delay a
+    // developer error until a user triggers it (`rules/error-handling.md` § 3).
+    throw new Error(
+      'TheoForm: encType="multipart/form-data" needs a schema to convert with. Pass `schema`, or ' +
+        'attach `__zodSchema` to the action — the conversion follows the same schema the server ' +
+        'reconstructs the body with.',
+    )
+  }
   const resolver = resolvedSchema?.parse
     ? (normaliseFileFields(zodResolver(resolvedSchema as never)) as unknown as Resolver<TInput>)
     : undefined
@@ -161,7 +188,10 @@ function TheoFormRootInner<TInput extends FieldValues, TData>(
   const handleValid = useCallback(
     async (values: TInput) => {
       try {
-        const data = await action_.mutateAsync(values)
+        const payload = isMultipart
+          ? (valuesToFormData(values, resolvedSchema as object) as never)
+          : values
+        const data = await action_.mutateAsync(payload)
         onSuccess?.(data)
       } catch (err) {
         // #227: route via the shared `routeActionError` (single source the unit
@@ -174,7 +204,7 @@ function TheoFormRootInner<TInput extends FieldValues, TData>(
         )
       }
     },
-    [action_, form.setError, onSuccess],
+    [action_, form.setError, onSuccess, isMultipart, resolvedSchema],
   )
 
   const ctxValue: TheoFormContextValue = {
@@ -196,7 +226,7 @@ function TheoFormRootInner<TInput extends FieldValues, TData>(
           ref={ref}
           onSubmit={(event) => void form.handleSubmit(handleValid)(event)}
           method="post"
-          encType="application/x-www-form-urlencoded"
+          encType={encType ?? 'application/x-www-form-urlencoded'}
           {...(className !== undefined ? { className } : {})}
         >
           {children}

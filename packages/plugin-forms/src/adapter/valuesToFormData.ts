@@ -25,7 +25,11 @@
 
 /** The minimum of a Zod schema this needs, described rather than imported. */
 interface ZodLike {
-  readonly def?: { readonly type?: unknown; readonly element?: unknown; readonly innerType?: unknown }
+  readonly def?: {
+    readonly type?: unknown
+    readonly element?: unknown
+    readonly innerType?: unknown
+  }
   readonly _def?: { readonly innerType?: unknown }
   readonly shape?: Record<string, ZodLike>
 }
@@ -130,11 +134,11 @@ function appendValue(form: FormData, key: string, value: unknown, validator: Zod
  */
 export function valuesToFormData(values: Record<string, unknown>, schema: object): FormData {
   const form = new FormData()
-  const shape = unwrapWrappers(schema as ZodLike).shape
+  const shape = unwrapWrappers(schema).shape
   if (shape === undefined) {
     throw new Error(
       'valuesToFormData: the schema has no object shape to walk. ' +
-        'multipart/form-data conversion needs the action\'s Zod object schema — the same one the ' +
+        "multipart/form-data conversion needs the action's Zod object schema — the same one the " +
         'server reconstructs with.',
     )
   }

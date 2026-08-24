@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `<TheoForm encType="multipart/form-data">` in `@theokit/plugin-forms` converts values to the multipart shape the framework reconstructs, so file uploads work. The README said "No file uploads in v0.1"; the file always reached the action, and what was missing was one schema-guided conversion (#B-012)
 - `useYDoc()` in `@theokit/plugin-realtime` returns the room's Yjs document instead of throwing. Pass a stable `ydoc` to `<RoomProvider>`; live edits flow both ways. There is no initial sync yet — a client joining an existing document sees it empty until somebody types. `yjs` stays an optional peer (#B-011)
 - `@theokit/plugin-realtime`'s `RoomProvider` takes an optional `sender` port, so presence and broadcasts reach other participants instead of staying local (#B-010)
 - `pnpm quality:doc-api` now type-checks the TypeScript blocks of every published README, not just their import names. A block declares what it assumes with a `doc-example` comment (#B-009)
