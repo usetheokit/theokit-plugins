@@ -37,15 +37,14 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-30 items — **Open** 18 · **In flight** 0 · **Closed** 12
+30 items — **Open** 17 · **In flight** 0 · **Closed** 13
 
-### Open (18)
+### Open (17)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout--) | `plugin-payments` ships only hosted checkout | `triaged` | — |
-| [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited--) | three AbacatePay legs are declared uncoverable and never revisited | `raw` | — |
+| [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited--) | three AbacatePay legs are declared uncoverable and never revisited | `triaged` | — |
 | [`B-015`](#b-015--the-oauth-consent-round-trip-is-automated-for-nobody--) | the OAuth consent round trip is automated for nobody | `raw` | — |
 | [`B-016`](#b-016--theokitplugin-forms-headless-tier-cannot-be-consumed-without-usetheoui--) | `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` | `raw` | — |
 | [`B-017`](#b-017--the-measurement-target-gate-reads-an-npm-subpath-specifier-as-a-missing-file--) | the measurement-target gate reads an npm subpath specifier as a missing file | `raw` | — |
@@ -66,7 +65,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (12)
+### Closed (13)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -81,6 +80,7 @@ _None._
 | [`B-010`](#b-010--plugin-realtimes-presence-and-broadcast-never-leave-the-client-x) | `plugin-realtime`'s presence and broadcast never leave the client | `shipped` | — |
 | [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `shipped` | — |
 | [`B-012`](#b-012--plugin-forms-cannot-upload-a-file-x) | `plugin-forms` cannot upload a file | `shipped` | — |
+| [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout-x) | `plugin-payments` ships only hosted checkout | `shipped` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
@@ -559,7 +559,7 @@ dod:
 - the accessible wiring holds for the file control, asserted the way #105 taught: the label
   resolves to the control and the error is announced
 
-## B-013 — `plugin-payments` ships only hosted checkout [ ]
+## B-013 — `plugin-payments` ships only hosted checkout [x]
 
 > Registered 2026-08-22 by `/backlog-item` (slug: `payments-embedded-checkout`).
 
@@ -582,7 +582,12 @@ URL and that "Elements/embedded deferred to v0.x". A consumer who wants the paym
 their own page cannot have it. The hosted path is well covered: the live suite creates real
 Stripe sessions and reconciles them, and the idempotency round trip is asserted against the real
 API.
-status: triaged
+status: shipped
+shipped_by: PR #126, merged 2026-08-24. The item said the RESULT could not be returned; measurement
+  found the REQUEST could not be made either — Stripe refuses `success_url` with `ui_mode: embedded`.
+  Both halves fixed by discriminating input and result on `uiMode`, with `url` kept required on the
+  hosted branch so no existing caller loses a guarantee. AbacatePay's position is stated as
+  unverified, which is what the evidence supports.
 dod:
 
 - the contract expresses an embedded/Elements session without breaking the hosted one
@@ -598,14 +603,22 @@ domain: plugin-server
 repo: plugin-payments
 suggested_mode: live-test
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/abacatepay-uncovered-legs-opportunity.md`
+— re-measured live 2026-08-24, and the item's thesis is demonstrated. **Leg 2 (refund happy path)
+is NO LONGER BLOCKED**: a simulated payment now produces refundable balance and
+`/transparents/refund` answers `200 {"status":"COMPLETE"}`. The recorded reason ("Saldo insuficiente
+… a devMode simulated payment adds no balance") was true when written and is false now, and nothing
+would have noticed. Leg 1 (subscriptions) is still blocked with the exact recorded message, now
+re-verified — but that message is the LAST gate, and three earlier attempts got three different
+errors, so a casual re-check would have wrongly concluded it changed. Leg 3 (`verifyWebhook`) is
+structurally blocked: nothing here can receive a request AbacatePay actually transmitted.
 why_now: measured 2026-08-22 — the service registry records three legs as NOT covered, each with
 a measured reason: subscriptions (`/subscriptions/create` answers "PIX Automático is not
 available for this store"), the refund happy path (a devMode payment adds no balance, so only the
 refusal is verifiable), and `verifyWebhook` (delivery needs a public HTTPS endpoint). The full
 live run on 2026-08-22 passed 179 tests with none of these among them. Each reason may have
 changed on the provider's side since it was written, and nothing re-checks.
-status: raw
+status: triaged
 dod:
 
 - each of the three is re-measured against the current provider, and the result recorded — a

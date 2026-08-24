@@ -110,6 +110,7 @@ Eleven packages cut together: `@theokit/auth-github@0.3.0`, `@theokit/auth-googl
 
 ### Fixed
 
+- The AbacatePay readiness caveat listed the refund happy path as uncovered. It was covered by a test in the same commit that added the caveat, so the claim was false from the day it was written — not stale. The remaining two entries now carry the kind of block (provider capability vs structural) and the date last measured (#B-014)
 - Yjs frames now carry base64 in both directions in `@theokit/plugin-realtime`. Only the server-to-client half was encoded, so a frame produced by a browser could not survive `JSON.stringify` — the transport the package's own README documents. `dispatchFrame` still accepts raw bytes (#B-028)
 - A CRDT frame sent to a room whose descriptor never declared `storage: 'yjs'` is now refused by name. It was silently dropped on a provider without Yjs support, and silently _applied_ on one with it — writing document state into a room that never opted in (#B-011)
 - A corrupt Yjs frame no longer ends the whole room subscription in `@theokit/plugin-realtime`'s React provider. One bad payload used to take presence and broadcast down with it, with no error anywhere (#B-011)
