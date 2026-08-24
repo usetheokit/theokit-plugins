@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- The `@theokit/sdk` peer range on the three auth packages and `plugin-copilot` widened to `>=2.18.0`: they work with the current sdk major, and the old `^2.18.0` produced a peer mismatch pnpm did not warn about in any app scaffolded by `create-theokit` (B-019)
+
 - A `.mailmap` canonicalises author identity, so `git log`, `git blame` and `git shortlog` show one author for commits made under two of the maintainer's email addresses — no commit is rewritten, so tags and published provenance attestations stay valid
 
 ## 2026-08-24
