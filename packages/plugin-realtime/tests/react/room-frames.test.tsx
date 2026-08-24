@@ -372,6 +372,67 @@ describe('RoomProvider send-side port', () => {
     expect(room!.myPresence).toMatchObject({ cursor: [5, 6] })
   })
 
+  it('does not merge locally when a synchronous send throws', () => {
+    // The order the review corrected. Merging first left the UI showing an update that was never
+    // sent — the exact "looks synced and is not" the design cites as its reason for not
+    // swallowing. Sending first means a transport that refuses loudly prevents the false merge.
+    const { client } = controllable()
+    const failing: RealtimeSendClient = {
+      send: () => {
+        throw new Error('transport down')
+      },
+    }
+    let room: ReturnType<typeof useRoom> | undefined
+
+    function Probe(): null {
+      room = useRoom()
+      return null
+    }
+    render(
+      <RoomProvider
+        roomId="r"
+        client={client}
+        initialPresence={{ cursor: [0, 0] }}
+        sender={failing}
+      >
+        <Probe />
+      </RoomProvider>,
+    )
+
+    expect(() => room!.updateMyPresence({ cursor: [9, 9] })).toThrow('transport down')
+    expect(room!.myPresence, 'merged locally despite the send throwing').toMatchObject({
+      cursor: [0, 0],
+    })
+  })
+
+  it('accepts an async sender without swallowing its rejection', async () => {
+    // `send` returns `void | Promise<void>`: the README suggests a POST, which is async, and a
+    // void-only signature silently dropped its rejection.
+    const { client } = controllable()
+    let settled: 'pending' | 'rejected' = 'pending'
+    const async: RealtimeSendClient = {
+      send: () => Promise.reject(new Error('offline')).catch(() => void (settled = 'rejected')),
+    }
+    let room: ReturnType<typeof useRoom> | undefined
+
+    function Probe(): null {
+      room = useRoom()
+      return null
+    }
+    render(
+      <RoomProvider roomId="r" client={client} sender={async}>
+        <Probe />
+      </RoomProvider>,
+    )
+
+    act(() => {
+      room!.broadcast('q', { text: 'hi' })
+    })
+    await Promise.resolve()
+
+    expect(settled).toBe('rejected')
+  })
+
   it('lets a failing transport surface rather than swallowing it', () => {
     // rules/error-handling.md § 2: a transport that is down is the consumer's to handle, and a
     // hook that swallowed it would leave them with a UI that looks synced and is not.

@@ -144,14 +144,45 @@ export function Room({ children }: { children: React.ReactNode }) {
 }
 ```
 
-Frames arrive at `RealtimeRuntime.dispatchFrame`, which validates them against the room's schema
-before the provider fans them out — so an invalid patch fails with a named error rather than
-reaching other clients.
+**You wire both ends.** Nothing in this package calls `dispatchFrame` — a plugin cannot register a
+route, so the inbound handler is yours. A `sender` that writes to a socket nobody reads sends into
+nothing: on the server, hand what arrives to the runtime.
+
+<!-- doc-example: needs="./my-server-socket.js" -->
+
+```ts
+import type { RealtimeRuntime } from '@theokit/plugin-realtime'
+
+import { socket } from './my-server-socket.js'
+
+// Yours: the runtime you constructed, and the ids this connection belongs to.
+declare const runtime: RealtimeRuntime
+declare const roomId: string
+declare const connectionId: string
+
+socket.on('message', (raw: string) => {
+  void runtime.dispatchFrame(roomId, connectionId, JSON.parse(raw))
+})
+```
+
+`dispatchFrame` validates against the room's schema before the provider fans out, so an invalid
+patch fails with a named error rather than reaching other clients. A patch is merged over the
+connection's current presence **before** validation, so a partial update is valid in a room whose
+presence has required fields.
+
+**Memoise the sender.** It is a dependency of the room context, so an inline
+`sender={{ send: … }}` is a new identity on every parent render and re-renders every `useRoom`,
+`useOthers` and `usePresence` consumer with it — measured at 6 consumer renders across 5 parent
+renders, against 1 for a stable reference. Define it outside the component or wrap it in
+`useMemo`.
 
 **Your own frames come back.** The provider notifies every listener in the room, including the
-sender, so `useUpdateMyPresence` applies its patch twice: once optimistically, once on the echo.
-That is safe because a presence patch is a merge rather than an increment. A presence field that
-accumulated — a counter — would not be, and that is your schema's choice to make knowingly.
+sender. The echo is not a second application of your patch: it carries the server's **full**
+presence and replaces your local copy with it.
+
+So the server is authoritative, and that has a consequence worth knowing — a key you set that the
+room's presence schema does not declare survives locally until the echo arrives, and is stripped
+when it does. Declare every field you rely on.
 
 ## Yjs CRDT provider (opt-in)
 

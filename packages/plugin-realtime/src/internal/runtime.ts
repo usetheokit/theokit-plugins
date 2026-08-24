@@ -190,16 +190,27 @@ export class RealtimeRuntime {
     }
     switch (frame.kind) {
       case 'presence-update': {
-        // Validate the FULL merged shape, not just the patch — we treat patches
-        // as partial overlays; consumers can opt for strict validation via
-        // schema design (e.g., z.object({}).partial()).
-        const parsed = room.presence.safeParse(frame.patch)
+        // Validate the FULL MERGED shape, which is what this comment always claimed and what the
+        // code did not do: it parsed the PATCH, so a room with any required presence field
+        // rejected every partial update. `useUpdateMyPresence(patch)` can only ever send a patch,
+        // so the advertised presence path was dead for those rooms — and silently, because the
+        // rejection surfaces as a rejected promise inside a React callback while the local merge
+        // has already happened. A UI that looks synced and is not.
+        //
+        // Found because the seam test used the one schema shape that passes: all fields optional.
+        // A fake agrees with whoever wrote it.
+        const current = (await this.provider.getPresence(roomId))[connectionId] ?? {}
+        const merged = { ...current, ...frame.patch }
+        const parsed = room.presence.safeParse(merged)
         if (!parsed.success) {
-          throw new RealtimePresenceError(`Invalid presence patch for room ${roomId}`, {
-            issues: parsed.error,
-          })
+          throw new RealtimePresenceError(
+            `Invalid presence for room ${roomId}: the patch does not merge into a valid presence`,
+            { issues: parsed.error },
+          )
         }
-        await this.provider.updatePresence(roomId, connectionId, parsed.data)
+        // The provider merges again over its own copy, which is idempotent for a fixed patch and
+        // keeps the provider authoritative about state it may have changed concurrently.
+        await this.provider.updatePresence(roomId, connectionId, frame.patch)
         return
       }
       case 'broadcast': {

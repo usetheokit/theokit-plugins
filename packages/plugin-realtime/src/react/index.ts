@@ -13,6 +13,7 @@
  */
 
 import * as React from 'react'
+import type { InboundWireFrame } from '../internal/runtime.js'
 import type { BroadcastPayload, Presence } from '../types.js'
 
 /**
@@ -31,16 +32,17 @@ export interface RealtimeSubscribeClient {
 /**
  * A frame a client sends the server.
  *
- * This is the server's own union, not a new one: `internal/runtime.ts` already parses exactly
- * these shapes and validates their payloads against the room's Zod schema. Declaring a second
- * vocabulary here would mean a consumer's adapter had to translate, in a place where the room's
- * schema is not available.
+ * This IS the server's own union — `InboundWireFrame` from `internal/runtime.ts`, re-exported
+ * rather than restated. The first version hand-rolled a narrower copy carrying only
+ * `presence-update` and `broadcast`, which meant two things: the duplicate had to be kept in step
+ * by hand, and `yjs-update` / `yjs-awareness` could not travel the port at all — so a consumer
+ * driving the shipped Yjs provider had no send side.
+ *
+ * `rules/parsimony-ladder.md` rung 4: the type was already declared and already public.
  *
  * @public
  */
-export type RealtimeOutboundFrame =
-  | { kind: 'presence-update'; patch: Partial<Presence> }
-  | { kind: 'broadcast'; event: string; payload: BroadcastPayload }
+export type RealtimeOutboundFrame = InboundWireFrame
 
 /**
  * The send-side port — the mirror of {@link RealtimeSubscribeClient}.
@@ -58,7 +60,18 @@ export type RealtimeOutboundFrame =
  * @public
  */
 export interface RealtimeSendClient {
-  send(frame: RealtimeOutboundFrame): void
+  /**
+   * Hand a frame to the transport.
+   *
+   * May return a promise. The README's own suggestion — "a POST to your own route" — is async, and
+   * a `void` return silently swallowed its rejection: measured, an async sender produced one
+   * unhandled rejection and nothing else while the local UI showed the update as applied.
+   *
+   * A rejection is the consumer's to handle. `useUpdateMyPresence` awaits nothing, so attach your
+   * own `.catch` if a failed send should surface — the hook will not invent a retry or a rollback
+   * policy for you.
+   */
+  send(frame: RealtimeOutboundFrame): void | Promise<void>
 }
 
 /**
@@ -263,25 +276,31 @@ export function RoomProvider(props: RoomProviderProps): React.ReactElement {
       state,
       roomId,
       emit(out) {
-        // Merged optimistically FIRST, and still merged when a sender is present: waiting for the
-        // round trip would make the local UI lag its own input.
+        // SEND FIRST, then merge. The order matters for a synchronous throw: merging first left
+        // the local UI showing an update that was never sent — measured, exactly the "looks
+        // synced and is not" this design cites as its reason. Sending first means a transport
+        // that refuses loudly also prevents the false merge.
         //
-        // The server DOES echo — `fanout` notifies every listener in the room including the
-        // sender — so this patch is applied twice. That is safe because a presence patch is a
-        // merge rather than an increment, and re-applying lands on the same state. A room whose
-        // presence carried a counter would not be safe, which is the consumer's schema choice;
-        // `integration/tests/seam/realtime-two-clients.offline.test.ts` pins the idempotence.
+        // Not wrapped in try/catch: a transport that is down is the consumer's to handle
+        // (`rules/error-handling.md` § 2). An ASYNC rejection is a different case that no order
+        // fixes — the merge has already happened when it arrives — and `RealtimeSendClient.send`
+        // documents that as the consumer's to catch.
+        void sender?.send({ kind: 'presence-update', patch: out.patch })
+        // Optimistic, so the local UI does not lag its own input.
+        //
+        // The server echoes: `fanout` notifies every listener in the room including the sender.
+        // But the echo is not a re-application of this patch — it carries the server's FULL
+        // presence, and `applyPresenceChangedFrame` REPLACES `myPresence` with it. So the server
+        // is authoritative, and a key this client set that the room's schema does not declare is
+        // stripped when the echo lands. That is worth knowing and is not idempotence; an earlier
+        // version of this comment claimed the patch was applied twice, and it is not.
         const merged = { ...state.myPresence, ...out.patch } as Presence
         setStateAndNotify({ ...state, myPresence: merged })
-        // Not wrapped in try/catch: a transport that is down is the consumer's to handle, and
-        // swallowing it here would leave them with a UI that looks synced and is not
-        // (`rules/error-handling.md` § 2).
-        sender?.send({ kind: 'presence-update', patch: out.patch })
       },
       emitBroadcast(event, payload) {
         // Nothing local to do: a broadcast is other participants' state, not this client's. With
         // no sender this stays the no-op the README documents.
-        sender?.send({ kind: 'broadcast', event, payload })
+        void sender?.send({ kind: 'broadcast', event, payload })
       },
     }),
     [state, roomId, sender, setStateAndNotify],

@@ -22,6 +22,7 @@
 import { type RealtimeSendClient } from '@theokit/plugin-realtime/react'
 import {
   createMemoryRealtimeProvider,
+  type Presence,
   type OutboundWireFrame,
   defineRoom,
   RealtimeRuntime,
@@ -33,6 +34,25 @@ import { z } from 'zod'
 const ROOM = defineRoom({
   id: 'cursor',
   presence: z.object({ cursor: z.tuple([z.number(), z.number()]).optional() }),
+  broadcast: z.object({ text: z.string() }),
+})
+
+/**
+ * A room with a REQUIRED presence field.
+ *
+ * The suite originally had only the all-optional shape above, and that is the one schema for which
+ * a broken presence path passes: `dispatchFrame` used to validate the PATCH against the full
+ * schema, so any required field rejected every partial update — and `useUpdateMyPresence(patch)`
+ * can only ever send a patch. The advertised presence path was dead for those rooms, silently.
+ *
+ * A fake agrees with whoever wrote it. This is the shape that disagrees.
+ */
+const ROOM_REQUIRED = defineRoom({
+  id: 'named',
+  presence: z.object({
+    name: z.string(),
+    cursor: z.tuple([z.number(), z.number()]).optional(),
+  }),
   broadcast: z.object({ text: z.string() }),
 })
 
@@ -85,8 +105,16 @@ async function connect(runtime: RealtimeRuntime, id: string): Promise<Client> {
       new Promise((resolve, reject) => {
         const already = received.find((f) => predicate(f))
         if (already !== undefined) return resolve(already)
-        waiters.push({ predicate, resolve })
-        setTimeout(() => reject(new Error('no matching frame arrived')), 5_000)
+        // Cleared on settle: an uncleared 5s timer outlives the test and shows up as a pending
+        // handle at suite end.
+        const timer = setTimeout(() => reject(new Error('no matching frame arrived')), 5_000)
+        waiters.push({
+          predicate,
+          resolve: (frame) => {
+            clearTimeout(timer)
+            resolve(frame)
+          },
+        })
       }),
   }
 }
@@ -132,7 +160,7 @@ describe('the send-side port reaches the other client', () => {
     }
 
     // What `useUpdateMyPresence` hands the port.
-    sender.send({ kind: 'presence-update', patch: { cursor: [4, 2] } })
+    void sender.send({ kind: 'presence-update', patch: { cursor: [4, 2] } })
 
     const frame = await bob.waitFor(
       (f) => f.type === 'presence-changed' && f.connectionId === 'alice',
@@ -150,7 +178,7 @@ describe('the send-side port reaches the other client', () => {
     }
 
     // What `useBroadcast` hands the port.
-    sender.send({ kind: 'broadcast', event: 'question', payload: { text: 'over the port' } })
+    void sender.send({ kind: 'broadcast', event: 'question', payload: { text: 'over the port' } })
 
     const frame = await bob.waitFor((f) => f.type === 'broadcast')
     expect(asBroadcast(frame).payload).toMatchObject({ text: 'over the port' })
@@ -166,6 +194,58 @@ describe('the send-side port reaches the other client', () => {
     await new Promise((resolve) => setTimeout(resolve, 50))
 
     expect(bob.received.filter((f) => f.type === 'broadcast')).toHaveLength(0)
+  })
+})
+
+describe('a room whose presence has a required field', () => {
+  async function connectTo(
+    rt: RealtimeRuntime,
+    roomId: string,
+    id: string,
+    initial: Presence,
+  ): Promise<{ received: OutboundWireFrame[] }> {
+    const received: OutboundWireFrame[] = []
+    const handle = await rt.handleConnection(roomId, { connectionId: id }, initial, (f) =>
+      received.push(f),
+    )
+    open.push(handle)
+    return { received }
+  }
+
+  it('accepts a partial patch and shows the other client the merged presence', async () => {
+    const rt = new RealtimeRuntime({
+      provider: createMemoryRealtimeProvider(),
+      rooms: [ROOM_REQUIRED],
+    })
+    await connectTo(rt, ROOM_REQUIRED.id, 'alice', { name: 'Alice' })
+    const bob = await connectTo(rt, ROOM_REQUIRED.id, 'bob', { name: 'Bob' })
+
+    await rt.dispatchFrame(ROOM_REQUIRED.id, 'alice', {
+      kind: 'presence-update',
+      patch: { cursor: [4, 2] },
+    })
+
+    const frame = bob.received.find(
+      (f) => f.type === 'presence-changed' && f.connectionId === 'alice',
+    )
+    expect(frame, 'a partial patch never reached the other client').toBeDefined()
+    expect(asPresence(frame!).presence).toMatchObject({ name: 'Alice', cursor: [4, 2] })
+  })
+
+  it('still refuses a patch that merges into an invalid presence', async () => {
+    // The merge must not become a way to smuggle a bad value past the schema.
+    const rt = new RealtimeRuntime({
+      provider: createMemoryRealtimeProvider(),
+      rooms: [ROOM_REQUIRED],
+    })
+    await connectTo(rt, ROOM_REQUIRED.id, 'alice', { name: 'Alice' })
+
+    await expect(
+      rt.dispatchFrame(ROOM_REQUIRED.id, 'alice', {
+        kind: 'presence-update',
+        patch: { name: 123 },
+      }),
+    ).rejects.toThrow(/presence/i)
   })
 })
 
@@ -202,10 +282,17 @@ describe('two clients in one room', () => {
     expect(asBroadcast(frame).connectionId).toBe('alice')
   })
 
-  it('delivers each frame exactly once when both clients send at the same time', async () => {
-    // The concurrent case. Two sends interleave through one runtime, and the assertion is an
-    // atomic count over what each connection received — a double-delivery or a dropped frame under
-    // interleaving fails here, where an ordering-only test would pass by luck.
+  it('delivers each frame exactly once to each listener', async () => {
+    // A duplicate-delivery check, not a concurrency one — the claim was corrected by measurement.
+    // The memory provider's `fanout` is fully synchronous, so `dispatchFrame` completes its whole
+    // fan-out before its promise resolves and the two sends are strictly serialised:
+    //
+    //   ["call-alice", "alice-recv:from-alice", "bob-recv:from-alice",
+    //    "call-bob",   "alice-recv:from-bob",   "bob-recv:from-bob"]
+    //
+    // `Promise.all` is decorative here. What the counted assertion below DOES prove is that each
+    // frame is delivered exactly once to each listener, which is worth having under its own name.
+    // A real interleaving test needs an asynchronous provider, which this tier does not run.
     const rt = runtime()
     const alice = await connect(rt, 'alice')
     const bob = await connect(rt, 'bob')
