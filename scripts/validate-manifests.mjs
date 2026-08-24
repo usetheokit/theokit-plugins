@@ -50,8 +50,13 @@
  * Exits non-zero listing every violation, so one run tells you everything rather
  * than one thing per run.
  */
+import { reportGate } from '../tools/lib/gate-summary.mjs'
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
+
+import ts from 'typescript'
+
+import { splitFences } from '../tools/lib/markdown-fences.mjs'
 
 const EXPECTED_REPO_URL = 'git+https://github.com/usetheokit/theokit-plugins.git'
 const PACKAGES_DIR = 'packages'
@@ -311,7 +316,378 @@ function checkFrameworkContract(dir, pkg, where) {
   }
 }
 
-for (const dir of readdirSync(PACKAGES_DIR).sort()) check(dir)
+/**
+ * Request-decoration keys, and why a duplicate is a build failure.
+ *
+ * Measured against theokit 0.48.8: two plugins with distinct names claiming one key are BOTH
+ * registered without error, and `applyDecorations` does `ctx[key] = value` across scopes in
+ * registration order — so a handler reads whatever the last-registered plugin wrote, and the
+ * first plugin's decoration is gone. `DuplicateDecorationError` is exported but constructed
+ * nowhere; the runner's comment records the permissiveness as deliberate. Nothing else in this
+ * repository reads decoration keys, so this is the only place a collision is catchable before it
+ * reaches a consumer's app — where the symptom moves when they reorder their own config.
+ *
+ * Parsed with the TypeScript compiler rather than matched with a regex. That is not taste: a
+ * regex here matched a comment (#99) and `Buffer.from('crypto')` (#84) in this repository, and
+ * both were replaced with the compiler. The file's own framework-contract rule carries the same
+ * lesson a few lines up — prose is not code.
+ */
+const DECORATION_METHOD = 'decorateRequest'
+
+/** Every `.ts`-family source under a package. */
+function sourceFiles(dir) {
+  const srcDir = join(PACKAGES_DIR, dir, 'src')
+  if (!existsSync(srcDir)) return []
+  const out = []
+  const walk = (d) => {
+    for (const entry of readdirSync(d, { withFileTypes: true })) {
+      const full = join(d, entry.name)
+      if (entry.isDirectory()) walk(full)
+      // Test and fixture files are excluded: a colocated fake app calling its own
+      // `decorateRequest` is not a claim on the shared namespace, and counting it would fail a
+      // repository with no real collision. `rules/testing.md § 5.1` puts unit tests in
+      // `packages/*/tests`, so today this excludes nothing — it is the guard for the first
+      // package that colocates one.
+      else if (/\.(test|spec|fixture|mock)\.(ts|tsx|mts|cts)$/.test(entry.name)) continue
+      else if (/\.(ts|tsx|mts|cts)$/.test(entry.name)) out.push(full)
+    }
+  }
+  walk(srcDir)
+  return out
+}
+
+/**
+ * Resolve a node to the string it will be at runtime, or `null`.
+ *
+ * Handles the forms that actually occur: a literal, a template with no substitutions, a
+ * concatenation of resolvable parts, an `as const` assertion, and an identifier declared anywhere
+ * in the same package. Everything else — a property access, a call, a template with holes — is
+ * `null`, which is REPORTED rather than dropped, and which makes the summary line say so.
+ */
+function resolveString(node, source, literals) {
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text
+  // `'payments' as const` is idiomatic TypeScript and wraps the literal in an AsExpression.
+  if (ts.isAsExpression(node) || ts.isTypeAssertionExpression?.(node))
+    return resolveString(node.expression, source, literals)
+  if (ts.isParenthesizedExpression(node)) return resolveString(node.expression, source, literals)
+  if (ts.isIdentifier(node)) return literals.has(node.text) ? literals.get(node.text) : null
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
+    const left = resolveString(node.left, source, literals)
+    const right = resolveString(node.right, source, literals)
+    return left !== null && right !== null ? left + right : null
+  }
+  return null
+}
+
+/**
+ * Keys claimed by one package.
+ *
+ * Resolution follows the CALL SITE, not the exported const name: what matters is the value handed
+ * to the framework, so a package declaring one name and passing another is measured by what it
+ * passes.
+ *
+ * Identifiers resolve against a map built from the WHOLE package, not from the calling file. That
+ * distinction is the difference between a gate and a decoration: with same-file-only resolution,
+ * moving `PAYMENTS_DECORATION_KEY` into its own module — an ordinary refactor — silently turned a
+ * real collision into an unresolved line and the run still printed a green summary.
+ */
+function decorationKeys(dir) {
+  const files = sourceFiles(dir)
+  const parsed = files.map((file) => ({
+    file,
+    source: ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true),
+  }))
+
+  // Pass 1: every `const NAME = <resolvable>` in the package. Comments are not nodes, so a name
+  // that appears only in prose never lands here.
+  //
+  // `exported` is tracked separately from `literals` rather than folded into it. The convention has
+  // two halves — the key is an identifier, AND that identifier is importable — and a check that
+  // collapsed them would accept a module-local const: an identifier at the call site, and still a
+  // key no consumer can import, which is the whole thing the convention is for.
+  //
+  // The `export` modifier sits on the VariableStatement, two levels above the declaration, so it is
+  // read from the declaration list's parent rather than from the declaration itself.
+  const literals = new Map()
+  const exported = new Set()
+  for (const { source } of parsed) {
+    const collect = (node) => {
+      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
+        const value = resolveString(node.initializer, source, literals)
+        if (value !== null) {
+          literals.set(node.name.text, value)
+          const statement = node.parent?.parent
+          const isExported =
+            statement !== undefined &&
+            ts.isVariableStatement(statement) &&
+            (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export) !== 0
+          if (isExported) exported.add(node.name.text)
+        }
+      }
+      ts.forEachChild(node, collect)
+    }
+    collect(source)
+  }
+
+  // Pass 2: the call sites.
+  const resolved = []
+  const unresolved = []
+  for (const { file, source } of parsed) {
+    const visit = (node) => {
+      if (ts.isCallExpression(node) && node.arguments.length > 0) {
+        const callee = node.expression
+        const isDecorate =
+          (ts.isPropertyAccessExpression(callee) && callee.name.text === DECORATION_METHOD) ||
+          // `app['decorateRequest'](…)` is the one bypass that would otherwise leave no trace:
+          // element access is not a PropertyAccessExpression, so it was neither counted nor
+          // reported.
+          (ts.isElementAccessExpression(callee) &&
+            callee.argumentExpression &&
+            ts.isStringLiteral(callee.argumentExpression) &&
+            callee.argumentExpression.text === DECORATION_METHOD)
+
+        if (isDecorate) {
+          const arg = node.arguments[0]
+          const line = source.getLineAndCharacterOfPosition(arg.getStart(source)).line + 1
+          const value = resolveString(arg, source, literals)
+          if (value !== null) {
+            // The FORM is read from the AST node, before resolution. After resolution `'stripe'`
+            // and `STRIPE_DECORATION_KEY` are the same string — which is correct for collision
+            // detection and blind to the thing this rule is about.
+            const form = ts.isIdentifier(arg)
+              ? exported.has(arg.text)
+                ? 'exported-const'
+                : 'local-const'
+              : 'literal'
+            resolved.push({ key: value, at: `${file}:${line}`, form, text: arg.getText(source) })
+          } else unresolved.push({ at: `${file}:${line}`, text: arg.getText(source) })
+        }
+      }
+      ts.forEachChild(node, visit)
+    }
+    visit(source)
+  }
+
+  return { resolved, unresolved }
+}
+
+function checkDecorationKeys(dirs) {
+  const claims = new Map()
+  const unresolvedKeys = new Set()
+
+  for (const dir of dirs) {
+    const { resolved, unresolved } = decorationKeys(dir)
+    for (const { key, at } of resolved) {
+      if (!claims.has(key)) claims.set(key, new Map())
+      // Keyed by package, so the same key claimed twice INSIDE one package is not a collision.
+      // Deriving the package from `dir` rather than re-parsing the path also keeps this correct
+      // on Windows, where `join()` emits `\\` and splitting on `/` collapsed every site to
+      // `undefined` — making the check silently unable to fire.
+      if (!claims.get(key).has(dir)) claims.get(key).set(dir, at)
+    }
+    // Reported, never dropped — and de-duplicated, because one unresolved identifier used three
+    // times produced three byte-identical lines.
+    for (const { at, text } of unresolved) unresolvedKeys.add(`${at}: \`${text}\``)
+
+    // The form rule fires only on keys the parser FULLY resolved. An unresolvable key keeps the
+    // `ℹ` channel above, which is an honest report of a blind spot; a literal is not a blind spot,
+    // the parser knows exactly what it is. Failing both the same way would blur the two, and the
+    // blind-spot channel is the one that has to stay readable.
+    for (const { key, at, form, text } of resolved) {
+      if (form === 'literal') {
+        violations.push(
+          `decoration key \`${key}\` is passed as a string literal at ${at} — declare it as an ` +
+            `exported const beside the plugin so a consumer can import it instead of retyping it. ` +
+            `A retyped key that is mistyped reads as \`undefined\` at request time, silently. ` +
+            `See rules/decoration-keys.md § 2.`,
+        )
+      } else if (form === 'local-const') {
+        violations.push(
+          `decoration key \`${key}\` is passed as \`${text}\` at ${at}, which is a const that is ` +
+            `not exported — a consumer still cannot import it. Add \`export\`. ` +
+            `See rules/decoration-keys.md § 2.`,
+        )
+      }
+    }
+  }
+
+  for (const line of [...unresolvedKeys].sort()) {
+    console.error(`  \u2139 unresolved decoration key at ${line} — not compared for duplicates`)
+  }
+
+  for (const [key, byPackage] of claims) {
+    if (byPackage.size > 1) {
+      violations.push(
+        `decoration key \`${key}\` is claimed by ${byPackage.size} packages: ${[...byPackage.values()].join(', ')} — ` +
+          `the framework does not refuse this, it silently keeps the last one registered. ` +
+          `See rules/decoration-keys.md.`,
+      )
+    }
+  }
+
+  return { compared: claims.size, unresolved: unresolvedKeys.size }
+}
+
+/**
+ * A package that declares a seam must name that seam's factory in its README.
+ *
+ * Measured on `plugin-copilot`: it is declared `seam: 'plugin'`, its `register()` decorates the
+ * request, and the conformance suite proves the real runner accepts it — while `copilot(`,
+ * `plugins:` and `theo.config` appeared ZERO times in its README, and its npm description named
+ * `defineCopilot` instead. A developer following that documentation exports a `defineCopilot` and
+ * stops: the plugin is never registered, and nothing fails, because an unregistered plugin is
+ * indistinguishable from one nobody wrote.
+ *
+ * This asserts PRESENCE, not correctness. A README naming the factory once in passing satisfies
+ * it. That false negative is deliberate: encoding one documentation shape would fail packages that
+ * legitimately document differently, and a gate people work around is worse than a floor.
+ */
+const SEAM_REGISTRY = join('integration', 'src', 'integrating-packages.ts')
+
+/** `{ pkg, seam, factory }` rows read from the registry's AST. */
+function parseSeamRegistry() {
+  if (!existsSync(SEAM_REGISTRY)) return null
+  const source = ts.createSourceFile(
+    SEAM_REGISTRY,
+    readFileSync(SEAM_REGISTRY, 'utf8'),
+    ts.ScriptTarget.Latest,
+    true,
+  )
+  // Anchored to the INTEGRATING_PACKAGES declaration, not to "any object literal with pkg and
+  // seam". The unanchored walk harvested example objects from helpers and JSDoc, which either
+  // invented a violation naming a package that does not exist, or — with `seam: 'none'` —
+  // silently inflated the row count that the vacuous-pass guard trusts.
+  let elements = null
+  const findDeclaration = (node) => {
+    if (
+      elements === null &&
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === 'INTEGRATING_PACKAGES' &&
+      node.initializer
+    ) {
+      // `Object.freeze([...])` or a bare array literal.
+      const init = node.initializer
+      const array = ts.isArrayLiteralExpression(init)
+        ? init
+        : ts.isCallExpression(init) &&
+            init.arguments.length &&
+            ts.isArrayLiteralExpression(init.arguments[0])
+          ? init.arguments[0]
+          : null
+      if (array) elements = array.elements
+    }
+    ts.forEachChild(node, findDeclaration)
+  }
+  findDeclaration(source)
+  if (elements === null) return null
+
+  const rows = []
+  for (const element of elements) {
+    if (!ts.isObjectLiteralExpression(element)) continue
+    const row = {}
+    for (const prop of element.properties) {
+      if (!ts.isPropertyAssignment(prop) || !ts.isIdentifier(prop.name)) continue
+      if (ts.isStringLiteral(prop.initializer)) row[prop.name.text] = prop.initializer.text
+      else row[prop.name.text] = { unresolved: prop.initializer.getText(source) }
+    }
+    rows.push(row)
+  }
+  return rows
+}
+
+function checkSeamDocumentation(dirs) {
+  const rows = parseSeamRegistry()
+  if (rows === null) {
+    // Absence is not corruption. A repository with no seam registry has not declared any seams —
+    // a fresh checkout, or a fixture testing a different invariant — and failing it would couple
+    // this check to every other check's fixtures. It is REPORTED rather than passed over: the
+    // summary says `0 checked`, so a registry that disappeared from THIS repository shows up as
+    // the count dropping from 7, not as silence.
+    console.error(
+      `  \u2139 no seam registry at ${SEAM_REGISTRY} — no package documents a declared seam`,
+    )
+    return { checked: 0, registry: false }
+  }
+
+  // An empty or partial parse must FAIL, not pass quietly. The sibling decoration-key check
+  // shipped printing a green summary having resolved nothing, and that is the defect being
+  // deliberately not repeated: a parse that finds fewer rows than there are packages means the
+  // registry's shape moved, and every assertion below would then be vacuous.
+  const onDisk = new Set(dirs.filter((d) => existsSync(join(PACKAGES_DIR, d, 'package.json'))))
+  const registered = new Set(rows.map((r) => r.pkg).filter((p) => typeof p === 'string'))
+  const unregistered = [...onDisk].filter((d) => !registered.has(d))
+  if (unregistered.length > 0) {
+    // Compared as SETS, not counts. A stale row for a deleted package used to pay for a live
+    // package with no row at all — the counts matched, the guard stayed quiet, and the live
+    // package was never checked. The number reported is the one actually compared.
+    violations.push(
+      `${SEAM_REGISTRY} has no row for ${unregistered.length} package(s) with a manifest: ` +
+        `${unregistered.join(', ')} — every seam-documentation assertion for them would be vacuous.`,
+    )
+    return { checked: 0, registry: true }
+  }
+
+  let checked = 0
+  for (const row of rows) {
+    // A field the AST could not resolve to a literal (`seam: PLUGIN`) is a row this check cannot
+    // reason about. Reported, never skipped: a dropped row is an unchecked package.
+    for (const [field, value] of Object.entries(row)) {
+      if (value && typeof value === 'object' && 'unresolved' in value) {
+        violations.push(
+          `${SEAM_REGISTRY}: a row's \`${field}\` is \`${value.unresolved}\`, not a string literal — ` +
+            `this check reads literals, so that row would go unexamined.`,
+        )
+      }
+    }
+    if (row.seam === 'none') continue
+    if (!row.factory) {
+      violations.push(
+        `${row.pkg}: declares seam \`${row.seam}\` but the registry names no factory for it — ` +
+          `there is nothing to look for in its README.`,
+      )
+      continue
+    }
+    const readme = join(PACKAGES_DIR, row.pkg, 'README.md')
+    if (!existsSync(readme)) {
+      violations.push(`${row.pkg}: declares seam \`${row.seam}\` and has no README.`)
+      continue
+    }
+    checked += 1
+    if (!readmeCode(readme).includes(`${row.factory}(`)) {
+      violations.push(
+        `${row.pkg}: no code block in the README calls \`${row.factory}()\`, the factory whose ` +
+          `result goes into the \`${row.seam}\` seam — a consumer following it gets an integration ` +
+          `that looks wired and is not. A prose mention does not count: it satisfies a search and ` +
+          `shows the reader nothing to copy. (Presence in code is the floor, not proof the docs ` +
+          `are good.)`,
+      )
+    }
+  }
+  return { checked, registry: true }
+}
+
+/**
+ * The fenced code blocks of a README, concatenated.
+ *
+ * Prose is excluded deliberately. A sentence saying "`copilot()` returns a TheoPlugin" satisfies a
+ * substring search while showing a reader nothing they can copy — measured: deleting the wiring
+ * example from `plugin-copilot`'s README left exactly that sentence behind, and a
+ * presence-anywhere check stayed green.
+ *
+ * The scanner itself lives in `tools/lib/markdown-fences.mjs`, shared with the CHANGELOG
+ * release-drift gate, which needs the other half of the same split — is this `## 2026-08-23` a
+ * real heading, or an example inside a fence? Two implementations of one parser is how one of
+ * them ends up being the buggy one nobody noticed.
+ */
+function readmeCode(path) {
+  return splitFences(readFileSync(path, 'utf8')).code.join('\n')
+}
+
+const packageDirs = readdirSync(PACKAGES_DIR).sort()
+for (const dir of packageDirs) check(dir)
+const keyReport = checkDecorationKeys(packageDirs)
+const docsReport = checkSeamDocumentation(packageDirs)
 
 if (violations.length > 0) {
   console.error(`✗ ${violations.length} manifest violation(s):\n`)
@@ -320,7 +696,25 @@ if (violations.length > 0) {
   process.exit(1)
 }
 
-console.log(
+// The three claims below were already guarded by their own counts — this file is where the
+// `Never unconditional` reasoning was first written. What it lacked was the count for its OWN
+// subject: with `packages/` empty, every sub-check trivially passes and all three ✓ lines print
+// for a run that opened no manifest at all (B-026).
+const summary =
   '✓ every package manifest is publishable (repository + directory, provenance, no escaping local paths)\n' +
-    '✓ no package re-invents a theokit type, and every `theokit`/`@theokit/*` peer is used or triaged',
+  '✓ no package re-invents a theokit type, and every `theokit`/`@theokit/*` peer is used or triaged\n' +
+  // Never unconditional. A summary that claims "no two packages claim the same key" after
+  // resolving none of them is a green line the run did not earn — and that is exactly what the
+  // first version printed while an ordinary refactor hid a real collision.
+  (keyReport.unresolved > 0
+    ? `⚠ ${keyReport.compared} request-decoration key(s) compared; ${keyReport.unresolved} could NOT be resolved statically and were not compared (listed above)`
+    : `✓ no two packages claim the same request-decoration key (${keyReport.compared} compared)`) +
+  (docsReport.registry === false
+    ? `\n⚠ no seam registry found — 0 packages checked for documenting their factory`
+    : `\n✓ every package with a seam names its factory in its README (${docsReport.checked} checked)`)
+console.log(summary)
+process.exit(
+  reportGate({ label: 'manifests', subject: 'package manifests', checked: packageDirs.length })
+    ? 0
+    : 1,
 )

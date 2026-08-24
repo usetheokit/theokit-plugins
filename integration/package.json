@@ -14,7 +14,8 @@
     "flow:github": "node scripts/full-flow-github.mjs",
     "flow:stripe-webhook": "node scripts/full-flow-stripe-webhook.mjs",
     "readiness": "vitest run tests/readiness.offline.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "flow:google": "node scripts/full-flow-google.mjs"
   },
   "devDependencies": {
     "@theokit/auth-github": "workspace:*",
@@ -24,6 +25,7 @@
     "@theokit/plugin-db-drizzle": "workspace:^",
     "@theokit/plugin-email": "workspace:*",
     "@theokit/plugin-payments": "workspace:*",
+    "@theokit/plugin-realtime": "workspace:^",
     "@theokit/plugin-voice": "workspace:*",
     "@theokit/sdk": ">=2.18.0 <3.0.0",
     "@types/mailparser": "^3.4.6",
@@ -37,6 +39,7 @@
     "theokit": "^0.48.7",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "zod": "^4.4.3"
   }
 }

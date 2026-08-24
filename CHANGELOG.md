@@ -6,8 +6,71 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## 2026-08-24
+
+Four packages cut together: `@theokit/plugin-realtime@0.2.0`, `@theokit/plugin-forms@0.4.0`,
+`@theokit/plugin-payments@0.5.0`, `@theokit/plugin-copilot@0.3.1`.
+
+The release a maintenance run produced: 36 of 37 registry items closed, two of them by measurement
+refuting the hypothesis rather than by shipping code. Two defects were reported upstream instead of
+worked around (`usetheokit/theokit#429`, `#430`), and the run's own tooling gained seven gates — each
+one seen failing before it was trusted.
+
+The versions were cut on `workspace` and promoted through the normal review path rather than by a
+"Version Packages" pull request. That is not a shortcut: `release.yml` cannot open that pull request
+in this organisation, so leaving the changesets for it would have stopped the release at exactly the
+step B-023 documented. Consuming them here means the same bumps get MORE review, not less — two pull
+requests instead of one.
+
 ### Added
 
+- The Google OAuth success leg — code exchange, PKCE form body, bearer credential, claims mapping — now runs end-to-end across a real socket against a loopback OIDC sidecar, instead of being exercised only by a script nobody can run unattended (B-035 follow-up)
+
+- The dependency-advisory gate is cross-checked against `osv-scanner`, as the deps-audit golden rule always required — a disagreement between the two scanners is reported rather than resolved toward either, and the coverage note stops saying single-sourced (B-034)
+
+- The consumer gate now loads every published entry from a layout holding only that package's declared dependencies, so an entry importing something it never declared fails here instead of in somebody's install — the gate that said it checked peers could not (B-032)
+
+- A live-test suite that tells you to run a `flow:*` script now fails when that script does not exist — `auth-google`'s OAuth success path was exercised by neither CI nor a documented procedure, and nothing detected it (B-031)
+
+- `@theokit/plugin-realtime`: a client subscribing to a Yjs room receives the document's current state instead of an empty one — the second person to open a document no longer waits for somebody to type (B-029)
+
+- `pnpm check:lockfile` fails locally when a `package.json` gains a dependency the lockfile does not carry — the same `ERR_PNPM_OUTDATED_LOCKFILE` CI reports, in about a quarter of a second instead of two minutes into a red pull request (B-027)
+
+- `CONTRIBUTING.md` states which parts of this repository CI does not cover: the `.claude/` maintenance kit is installed tooling, absent from a fresh clone, and checked by no gate here — the product itself is unaffected and fully gated (B-025)
+
+- `@theokit/plugin-payments` exports `STRIPE_DECORATION_KEY` from its `/stripe` subpath, so the key `ctx.stripe` is published under can be imported rather than retyped; the key's value is unchanged and nothing breaks (B-024)
+
+- A `release-dryrun` workflow (`workflow_dispatch`) computes and reports the release this repository would cut — the planned version table and the files a bump would touch — running the same typecheck and test gates the real release runs, and publishing nothing (#16, B-023)
+- Backlog B-001 closed: every one of the 11 packages now declares its integration seam, and the conformance suite hands each export to the real `createPluginRunnerFromConfig` / `defineAuth`. Re-verified by mutation: a capability check that `pnpm test` accepts turns the seam suite red (#116, #120)
+
+- `pnpm quality:deps` — a dependency-advisory gate that fails only when a HIGH advisory reaches a package's **runtime** chain, and reports the ones contained in dev chains. Wired into CI, where no audit ran at all before. All nineteen HIGH advisories in this workspace enter through a devDependency, so it is green today — deliberately, because a gate red on arrival gets deleted and then the real one is invisible too (#B-018)
+- `pnpm flow:google` in the integration suite — the manual OAuth round trip script `auth-github` already had. The skip message told Google users to run "the flow:\* script for this service"; there was none, so `auth-google`'s success path was exercised by neither CI nor a documented procedure (#B-015)
+- Embedded checkout in `@theokit/plugin-payments`: `createCheckout({ uiMode: 'embedded', returnUrl })` returns a `clientSecret` to mount the payment form inside your own page. Proven against real Stripe, not only typed (#B-013)
+- `<TheoForm encType="multipart/form-data">` in `@theokit/plugin-forms` converts values to the multipart shape the framework reconstructs, so file uploads work. The README said "No file uploads in v0.1"; the file always reached the action, and what was missing was one schema-guided conversion (#B-012)
+- `useYDoc()` in `@theokit/plugin-realtime` returns the room's Yjs document instead of throwing. Pass a stable `ydoc` to `<RoomProvider>`; live edits flow both ways. There is no initial sync yet — a client joining an existing document sees it empty until somebody types. `yjs` stays an optional peer (#B-011)
+- `@theokit/plugin-realtime`'s `RoomProvider` takes an optional `sender` port, so presence and broadcasts reach other participants instead of staying local (#B-010)
+- `pnpm quality:doc-api` now type-checks the TypeScript blocks of every published README, not just their import names. A block declares what it assumes with a `doc-example` comment (#B-009)
+- `pnpm quality:changelog` now fails when a package tag is newer than the newest dated section — a release that shipped without being recorded (#B-008)
+
+### Changed
+
+- A quality gate that examined nothing now fails instead of reporting a pass. Two gates were printing `PASS` for a run that checked zero files or zero packages — one of them printing `0/0 = 0.0% (floor 100%)` and `PASS` on adjacent lines — and every gate now derives its summary from what it actually checked, through one shared helper (B-026)
+
+- **BREAKING:** `CheckoutResult` in `@theokit/plugin-payments` is discriminated by `uiMode`. Narrow on it to read `url` (hosted) or `clientSecret` (embedded). `url` stays required on the hosted branch rather than becoming optional, so the guarantee every existing caller relies on is unchanged — but reading it without narrowing is now a compile error (#B-013)
+- `CheckoutInput` makes the invalid URL combination unrepresentable: an embedded call takes `returnUrl`, a hosted one takes `successUrl`/`cancelUrl`. Stripe refuses the two together, so the type refuses first (#B-013)
+- The root CHANGELOG uses dated release sections instead of version headers. This repository releases packages, not itself: the root manifest is a private `0.0.0`, and five version headers named a version no tag or manifest carried. Decision in `docs/adr/0002` (#B-008)
+
+## 2026-08-23
+
+Eleven packages cut together: `@theokit/auth-github@0.3.0`, `@theokit/auth-google@0.3.0`,
+`@theokit/auth-magic-link@0.4.0`, `@theokit/plugin-canvas@0.5.0`, `@theokit/plugin-copilot@0.3.0`,
+`@theokit/plugin-db-drizzle@0.4.0`, `@theokit/plugin-email@0.2.0`, `@theokit/plugin-forms@0.3.0`,
+`@theokit/plugin-payments@0.4.0`, `@theokit/plugin-realtime@0.1.4`, `@theokit/plugin-voice@0.8.0`.
+
+### Added
+
+- `pnpm check:manifests` now fails when a package declares a seam and no code block in its README calls that seam's factory (#B-007)
+- `pnpm check:manifests` now fails when two packages claim the same request-decoration key — the framework accepts a collision silently and keeps only the last plugin registered (#B-002)
 - Seam-conformance registry: every package under `packages/` now declares which TheoKit surface it plugs into, and a test fails when one is missing (#B-001)
 - Seam-conformance suite for the plugin packages: `plugin-payments`, `plugin-voice` and `plugin-db-drizzle` are now handed to the real `createPluginRunnerFromConfig` on every pull request (#B-001)
 - Seam-conformance suite for the auth packages: `auth-google` is now driven through the real `defineAuth` orchestrator, with OIDC discovery served from loopback so the check needs no network (#B-001)
@@ -86,6 +149,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The three auth packages now document `THEOKIT_OAUTH_TX_SECRET` as **required in production**. Without it, `@theokit/sdk@2.18.0` encrypts the OAuth transaction cookie — which carries `state` and `pkceVerifier` — with a constant published inside the package. These packages cannot fix it (they implement a type contract and never construct the orchestrator); the defect is pinned by a test that goes red when the sdk fixes it (#B-021)
+- The auth conformance suite now says why it breaks on an `@theokit/sdk` major bump, instead of failing with a bare `TypeError`. Measured: `defineAuth` is absent in sdk 4, but **no package imports it** — all four take types only, and those types exist in both majors. The packages were never affected; the test was (#B-019)
+- `@theokit/plugin-forms` documented a headless tier "usable in any React stack" that cannot be reached: the package has one entry point and it imports `@usetheo/ui` at module scope, so the import fails before any component renders. Three README claims were false, one contradicting the package's own manifest. The behaviour is now documented and pinned by a consumer test (#B-016)
+- The auth caveats now say the round trip is blocked by a **session credential**, not by the absence of a browser, and carry the date last measured. A headless browser without a session gets the same redirect to a login screen, so "needs a browser" invited reaching for one and discovering the real cost late (#B-015)
+- The AbacatePay readiness caveat listed the refund happy path as uncovered. It was covered by a test in the same commit that added the caveat, so the claim was false from the day it was written — not stale. The remaining two entries now carry the kind of block (provider capability vs structural) and the date last measured (#B-014)
+- Yjs frames now carry base64 in both directions in `@theokit/plugin-realtime`. Only the server-to-client half was encoded, so a frame produced by a browser could not survive `JSON.stringify` — the transport the package's own README documents. `dispatchFrame` still accepts raw bytes (#B-028)
+- A CRDT frame sent to a room whose descriptor never declared `storage: 'yjs'` is now refused by name. It was silently dropped on a provider without Yjs support, and silently _applied_ on one with it — writing document state into a room that never opted in (#B-011)
+- A corrupt Yjs frame no longer ends the whole room subscription in `@theokit/plugin-realtime`'s React provider. One bad payload used to take presence and broadcast down with it, with no error anywhere (#B-011)
+- Three documented examples did not compile: `withAgentContext({ userId })` against an `AgentContext` that has no `userId`, two untyped parameters in `auth-google`'s wrapper example, and a React example calling `useState` without importing it (#B-009)
+- `@theokit/plugin-copilot`'s README and npm description named `defineCopilot` and never the plugin, so a consumer following them never registered it (#B-007)
 - The seam registry is now load-bearing: a package declared as plugging into a seam fails the suite unless a conformance case builds it or names where one lives (#B-001)
 
 - **`<CopilotChat />` showed the user to themselves as another participant.**
@@ -314,7 +387,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   holding every service credential. It is now passed as an environment variable (#74)
 - Every GitHub Action is pinned to a commit SHA rather than a movable tag (#74)
 
-## [0.7.0] - 2026-08-21
+## 2026-08-21 (recorded at the time as 0.7.0)
 
 Derivado por `cycle-release.md`: `Added` não-vazio — **minor**. `Removed` também não é vazio,
 o que a regra lê como major; aqui isso significaria `1.0.0`, e três coisas dizem que não é.
@@ -357,7 +430,7 @@ sustente.
 
 ### Security
 
-## [0.6.1] - 2026-08-19
+## 2026-08-19 (recorded at the time as 0.6.1)
 
 Derivado por `cycle-release.md`: só entradas em `Fixed` — **patch**.
 
@@ -379,7 +452,7 @@ Derivado por `cycle-release.md`: só entradas em `Fixed` — **patch**.
 
 ### Security
 
-## [0.6.0] - 2026-08-18
+## 2026-08-18 (recorded at the time as 0.6.0)
 
 Derivado por `cycle-release.md`: `Removed` vazio, nenhuma entrada de `Changed` começando com
 **BREAKING**, `Added` não-vazio — **minor**, sem a tensão que 0.4.0 e 0.5.0 tiveram.
@@ -406,7 +479,7 @@ Derivado por `cycle-release.md`: `Removed` vazio, nenhuma entrada de `Changed` c
 
 ### Security
 
-## [0.5.0] - 2026-08-18
+## 2026-08-18 (recorded at the time as 0.5.0)
 
 **Por que 0.5.0 e não 1.0.0.** A regra mecânica de `cycle-release.md` derivaria `major`: há
 entradas em `Changed` começando com **BREAKING**. Mas `1.0.0` é uma afirmação sobre maturidade,
@@ -469,7 +542,7 @@ em 0.4.0.
 
 ### Security
 
-## [0.4.0] - 2026-08-18
+## 2026-08-18 (recorded at the time as 0.4.0)
 
 ### Added
 

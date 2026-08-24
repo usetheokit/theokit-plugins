@@ -14,6 +14,8 @@ Peer dependencies: `@theokit/sdk >= 1.5.0`, `theokit >= 0.2.4`. Zero runtime dep
 
 ## Quick start (dev)
 
+<!-- doc-example: needs="./session.js" -->
+
 ```ts
 // server/auth/index.ts
 import { defineAuth } from '@theokit/sdk/server/auth'
@@ -31,9 +33,46 @@ export const auth = defineAuth({
       },
     }),
   ],
-  onSignIn: async ({ profile }) => ({ userId: profile.email, email: profile.email }),
+  onSignIn: async ({ profile }) => {
+    // `onSignIn` is typed `<TProfile>(args: { profile: TProfile; … })` — TProfile is unbound, so
+    // the callback cannot annotate it. The magic-link profile is `{ email }`.
+    const { email } = profile as { email: string }
+    return { userId: email, email }
+  },
 })
 ```
+
+## Required in production: `THEOKIT_OAUTH_TX_SECRET`
+
+**Set this, or the OAuth transaction cookie is encrypted with a constant published inside
+`@theokit/sdk`.**
+
+That cookie carries `state` and `pkceVerifier` — the two values that make an authorization-code flow
+safe against CSRF and against an intercepted code. Measured 2026-08-24 in `@theokit/sdk@2.18.0`, its
+encryption key is resolved as:
+
+1. `opts.session.secret` — **unreachable**: `DefineAuthOptions.session` is typed
+   `SessionManager<TSession>`, which declares four methods and no `secret`.
+2. `process.env.THEOKIT_OAUTH_TX_SECRET`
+3. a literal that ships in the package.
+
+So without the environment variable, step 3 is what you get. The length guard does not help: the
+constant is 48 characters, and the check is on length rather than provenance.
+
+```bash
+# 32 random bytes, base64url. Rotate it like any other signing key.
+export THEOKIT_OAUTH_TX_SECRET="$(node -e 'console.log(require("node:crypto").randomBytes(32).toString("base64url"))')"
+```
+
+This package cannot fix it: it implements a type contract and never constructs the orchestrator, so
+there is no seam here to guard. The defect is tracked against `@theokit/sdk` and pinned by
+`integration/tests/seam/sdk-tx-cookie-defects.offline.test.ts`, which goes red when it is fixed.
+
+**Related, and worth knowing:** in that same version the transaction cookie is written as
+`theo_oauth_tx` while its store reads `__Host-theo_oauth_tx`. The missing prefix drops the
+`__Host-` guarantee — a sibling subdomain can set the cookie — and it is also why the callback
+currently cannot complete. Fixing the name makes the secret defect reachable, so the two want fixing
+in that order.
 
 ## Wiring
 
@@ -41,6 +80,8 @@ Magic-link does NOT use the OAuth authorization flow — call `provider.startSig
 
 Both methods accept a Web `Request` as well as Node's `IncomingMessage`, so they drop
 straight into a TheoKit route:
+
+<!-- doc-example: needs="../../../auth/providers.js" -->
 
 ```ts
 // server/routes/api/auth/magic-link/start.ts
@@ -58,6 +99,8 @@ export const POST = route()
   })
   .build()
 ```
+
+<!-- doc-example: needs="../../../auth/providers.js" -->
 
 ```ts
 // server/routes/api/auth/magic-link/callback.ts
@@ -91,6 +134,8 @@ The default `resolveEmail` reads `?email=` from the URL OR the `email` field fro
 ## Production stores
 
 ### `@theokit/orm` adapter
+
+<!-- doc-example: needs="@theokit/orm" partial -->
 
 ```ts
 import { defineEntity, BaseEntity } from '@theokit/orm'
@@ -141,6 +186,8 @@ The `sendEmail` callback is intentionally unopinionated. Examples for popular tr
 
 ### Resend
 
+<!-- doc-example: needs="resend" partial -->
+
 ```ts
 import { Resend } from 'resend'
 
@@ -159,6 +206,8 @@ sendEmail: async ({ to, magicLinkUrl, expiresAt }) => {
 
 ### SendGrid
 
+<!-- doc-example: needs="@sendgrid/mail" partial -->
+
 ```ts
 import sgMail from '@sendgrid/mail'
 
@@ -175,6 +224,8 @@ sendEmail: async ({ to, magicLinkUrl, expiresAt }) => {
 ```
 
 ### Nodemailer (SMTP)
+
+<!-- doc-example: needs="nodemailer" partial -->
 
 ```ts
 import nodemailer from 'nodemailer'

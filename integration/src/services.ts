@@ -62,6 +62,22 @@ export interface CredentialVar {
 export interface ServiceSpec {
   /** Stable id; also the directory name under `tests/`. */
   readonly id: string
+  /**
+   * The `integration/package.json` script that runs this service's manual OAuth flow.
+   *
+   * Required for any service whose suite reaches for `describeManualOAuth`, because that helper
+   * skips with "run it locally with the flow:* script for this service" — an instruction that
+   * pointed at nothing for `auth-google` until 2026-08-24, leaving that provider's success path
+   * exercised by neither CI nor a documented procedure.
+   *
+   * DECLARED rather than derived from `id`, because the two do not match: `auth-github` is served
+   * by `flow:github`. A convention nobody wrote down is a convention that drifts, and a check
+   * guessing `flow:<id>` would have failed both services while they were correct.
+   *
+   * Enforced by `tests/manifests/manual-flow-scripts.offline.test.ts`, both ways: a suite using the
+   * helper must declare one, and a declared one must exist.
+   */
+  readonly manualFlowScript?: string
   /** Human label used in test output. */
   readonly label: string
   /** Workspace package under test. */
@@ -186,7 +202,7 @@ export const SERVICES: readonly ServiceSpec[] = [
       },
     ],
     caveat:
-      'Sandbox only — the readiness report refuses a key that does not start with abc_dev_, and every resource created comes back devMode:true. Nothing is cleaned up; the products and charges stay in the sandbox dashboard. THREE THINGS ARE NOT COVERED, measured rather than assumed: (1) subscriptions — AbacatePay commented the whole section out of its docs, and /subscriptions/create answers "PIX Automático is not available for this store"; (2) the refund happy path — /transparents/refund accepts the call and answers "Saldo insuficiente para realizar o reembolso", because a devMode simulated payment adds no balance, so only the routing and the refusal are verifiable; (3) verifyWebhook — delivery needs a public HTTPS endpoint, and signing a payload ourselves would only prove our HMAC agrees with our HMAC.',
+      'Sandbox only — the readiness report refuses a key that does not start with abc_dev_, and every resource created comes back devMode:true. Nothing is cleaned up; the products and charges stay in the sandbox dashboard. NOT COVERED, with the KIND of block and the date it was last measured, because the three are not alike: (1) subscriptions — PROVIDER CAPABILITY, so it may lift without warning. /subscriptions/create answers "PIX Automático is not available for this store". Re-measured 2026-08-24 and unchanged. Note when re-checking that this message is the LAST gate: a wrong API version answers "Not found", a wrong payload answers "Property \'items\' is missing", and a product without a cycle answers "No subscription product with cycle found for billing" — stopping at any of those would wrongly read as the block having lifted. (2) verifyWebhook — STRUCTURAL, and cannot lift from here: delivery needs a public HTTPS endpoint, and signing a payload ourselves would only prove our HMAC agrees with our HMAC. A tunnel closes it, as pnpm flow:stripe-webhook does for Stripe. Unchanged 2026-08-24. The refund happy path was listed here until 2026-08-24 and never belonged: tests/payments-abacatepay/live.test.ts covers it, and did so in the same commit that added this caveat (97aaf84) — the claim was false on the day it was written, not stale, which is why the entries above now carry dates.',
   },
   {
     id: 'copilot',
@@ -247,6 +263,7 @@ export const SERVICES: readonly ServiceSpec[] = [
   },
   {
     id: 'auth-github',
+    manualFlowScript: 'flow:github',
     label: 'Auth (GitHub OAuth)',
     pkg: '@theokit/auth-github',
     provider: 'GitHub OAuth',
@@ -272,10 +289,11 @@ export const SERVICES: readonly ServiceSpec[] = [
       },
     ],
     caveat:
-      'Only the token exchange is reachable unattended. Measured 2026-08-17: unauthenticated, /login/oauth/authorize answers 302 → /login BEFORE validating anything, so a fabricated client_id — even an empty one — gets the same 302 as the real app. Any "GitHub accepted our authorize URL" assertion therefore passes with no credential at all, and redirect_uri mismatch is enforced only after login. Both were written, measured, and deleted.',
+      'Only the token exchange is reachable unattended. Measured 2026-08-17: unauthenticated, /login/oauth/authorize answers 302 → /login BEFORE validating anything, so a fabricated client_id — even an empty one — gets the same 302 as the real app. Any "GitHub accepted our authorize URL" assertion therefore passes with no credential at all, and redirect_uri mismatch is enforced only after login. Both were written, measured, and deleted. RE-MEASURED 2026-08-24 and unchanged: the authorize endpoint answers 302 -> github.com/login without a session cookie. The blocker is therefore a SESSION CREDENTIAL, not a browser — a headless browser without a session gets the same 302, so automating this means storing a live user account session in CI. That is an account rather than a scope-limited token, and every alternative grant (device flow, App installation token, PAT) exercises a different code path than the one under test. Closed locally by `pnpm flow:github`.',
   },
   {
     id: 'auth-google',
+    manualFlowScript: 'flow:google',
     label: 'Auth (Google OIDC)',
     pkg: '@theokit/auth-google',
     provider: 'Google OIDC',
@@ -300,7 +318,7 @@ export const SERVICES: readonly ServiceSpec[] = [
       },
     ],
     caveat:
-      'Same three-legged limit as GitHub. What IS fully testable here is discovery: the plugin fetches Google’s real OIDC document, and that is a live contract with no human in it.',
+      'Same three-legged limit as GitHub. What IS fully testable here is discovery: the plugin fetches Google’s real OIDC document, and that is a live contract with no human in it. RE-MEASURED 2026-08-24: with the real client id and no cookies, the authorize endpoint answers 302 -> accounts.google.com/v3/signin/identifier. Same conclusion as GitHub — the blocker is a SESSION CREDENTIAL, not a browser. Until 2026-08-24 this provider had no `flow:*` script at all, so the skip message telling a reader to run one pointed at nothing and the success path was exercised by neither CI nor a documented procedure. `pnpm flow:google` now exists; its header records which of its branches have actually been run.',
   },
 ]
 

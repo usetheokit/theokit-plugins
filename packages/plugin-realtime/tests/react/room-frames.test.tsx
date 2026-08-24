@@ -15,6 +15,8 @@ import * as React from 'react'
 import { describe, expect, it } from 'vitest'
 
 import {
+  type RealtimeOutboundFrame,
+  type RealtimeSendClient,
   type RealtimeSubscribeClient,
   RoomProvider,
   useBroadcast,
@@ -208,9 +210,14 @@ describe('RoomProvider deferred surface', () => {
     expect(() => button.click()).not.toThrow()
   })
 
-  it('useYDoc refuses, and its message says what to do instead', () => {
-    // The honest shape for a deferred feature: it throws rather than returning something that
-    // silently does nothing, and the error names the workaround.
+  it('useYDoc refuses when no document was given, naming the prop', () => {
+    // B-011. This test used to assert the DEFERRAL message — "auto-wiring is deferred to v0.x,
+    // use useBroadcast for now". That message was honest about the feature being absent and
+    // useless as advice: the workaround it named needed a client-side send path that did not
+    // exist either, which is what [[B-010]] shipped.
+    //
+    // The refusal survives, because a provider with no document still has nothing to return. What
+    // changed is the cause: a missing prop, which the caller can act on.
     function Doc(): React.ReactElement {
       useYDoc()
       return <span>unreachable</span>
@@ -222,7 +229,7 @@ describe('RoomProvider deferred surface', () => {
           <Doc />
         </RoomProvider>,
       ),
-    ).toThrow(/useYDoc.*storage: 'yjs'.*useBroadcast/s)
+    ).toThrow(/useYDoc.*ydoc/s)
   })
 })
 
@@ -267,5 +274,220 @@ describe('useRoom() object surface', () => {
     expect(() =>
       (document.querySelector('[data-testid="cast"]') as HTMLButtonElement).click(),
     ).not.toThrow()
+  })
+})
+
+describe('RoomProvider send-side port', () => {
+  /** A sender that records what the hooks hand it. */
+  function recording(): { sender: RealtimeSendClient; sent: RealtimeOutboundFrame[] } {
+    const sent: RealtimeOutboundFrame[] = []
+    return { sender: { send: (frame) => void sent.push(frame) }, sent }
+  }
+
+  it('sends a presence-update frame when a sender is supplied', () => {
+    const { client } = controllable()
+    const { sender, sent } = recording()
+    let room: ReturnType<typeof useRoom> | undefined
+
+    function Probe(): null {
+      room = useRoom()
+      return null
+    }
+    render(
+      <RoomProvider roomId="r" client={client} sender={sender}>
+        <Probe />
+      </RoomProvider>,
+    )
+
+    act(() => {
+      room!.updateMyPresence({ cursor: [1, 2] })
+    })
+
+    expect(sent).toHaveLength(1)
+    expect(sent[0]).toEqual({ kind: 'presence-update', patch: { cursor: [1, 2] } })
+  })
+
+  it('sends a broadcast frame when a sender is supplied', () => {
+    const { client } = controllable()
+    const { sender, sent } = recording()
+    let room: ReturnType<typeof useRoom> | undefined
+
+    function Probe(): null {
+      room = useRoom()
+      return null
+    }
+    render(
+      <RoomProvider roomId="r" client={client} sender={sender}>
+        <Probe />
+      </RoomProvider>,
+    )
+
+    act(() => {
+      room!.broadcast('question', { text: 'hi' })
+    })
+
+    expect(sent).toEqual([{ kind: 'broadcast', event: 'question', payload: { text: 'hi' } }])
+  })
+
+  it('still merges presence optimistically when a sender is supplied', () => {
+    // The local update is not traded for the remote one: the server does not echo the sender's own
+    // frame back, so waiting for it would mean the update never arrives.
+    const { client } = controllable()
+    const { sender } = recording()
+    let room: ReturnType<typeof useRoom> | undefined
+
+    function Probe(): null {
+      room = useRoom()
+      return null
+    }
+    render(
+      <RoomProvider roomId="r" client={client} sender={sender}>
+        <Probe />
+      </RoomProvider>,
+    )
+
+    act(() => {
+      room!.updateMyPresence({ cursor: [3, 4] })
+    })
+
+    expect(room!.myPresence).toMatchObject({ cursor: [3, 4] })
+  })
+
+  it('sends nothing and still merges locally when no sender is supplied', () => {
+    // The behaviour every current consumer has, pinned — the port is additive on a published
+    // package, and this is what makes that claim checkable rather than asserted.
+    const { client } = controllable()
+    let room: ReturnType<typeof useRoom> | undefined
+
+    function Probe(): null {
+      room = useRoom()
+      return null
+    }
+    render(
+      <RoomProvider roomId="r" client={client}>
+        <Probe />
+      </RoomProvider>,
+    )
+
+    act(() => {
+      room!.updateMyPresence({ cursor: [5, 6] })
+      room!.broadcast('question', { text: 'ignored' })
+    })
+
+    expect(room!.myPresence).toMatchObject({ cursor: [5, 6] })
+  })
+
+  it('does not merge locally when a synchronous send throws', () => {
+    // The order the review corrected. Merging first left the UI showing an update that was never
+    // sent — the exact "looks synced and is not" the design cites as its reason for not
+    // swallowing. Sending first means a transport that refuses loudly prevents the false merge.
+    const { client } = controllable()
+    const failing: RealtimeSendClient = {
+      send: () => {
+        throw new Error('transport down')
+      },
+    }
+    let room: ReturnType<typeof useRoom> | undefined
+
+    function Probe(): null {
+      room = useRoom()
+      return null
+    }
+    render(
+      <RoomProvider
+        roomId="r"
+        client={client}
+        initialPresence={{ cursor: [0, 0] }}
+        sender={failing}
+      >
+        <Probe />
+      </RoomProvider>,
+    )
+
+    // Inside `act`, deliberately. Without it React never flushes, so `room` still holds the value
+    // captured at the initial render and the assertion below measures "has not re-rendered yet"
+    // rather than "did not merge". Measured: with the order reversed — merge first, then send,
+    // i.e. exactly the behaviour this test is named for — the merge to [9,9] EXECUTED and this
+    // test still passed. The one guard on a corrected ordering could not see the correction being
+    // undone.
+    act(() => {
+      expect(() => room!.updateMyPresence({ cursor: [9, 9] })).toThrow('transport down')
+    })
+    expect(room!.myPresence, 'merged locally despite the send throwing').toMatchObject({
+      cursor: [0, 0],
+    })
+  })
+
+  it('accepts an async sender without swallowing its rejection', async () => {
+    // `send` returns `void | Promise<void>`: the README suggests a POST, which is async, and a
+    // void-only signature silently dropped its rejection.
+    //
+    // What "not swallowing" means has to be stated precisely, or the test cannot check it. A
+    // consumer's own `.catch` fires either way — they own the promise. The ONLY observable
+    // difference is whether an uncaught rejection reaches the runtime as unhandled. So that is
+    // what is observed here.
+    //
+    // Two earlier versions of this test could not see it. The first had the fixture catch its own
+    // rejection, so `settled` was set by the test rather than by anything the hook did. The second
+    // attached `.finally` in the fixture, which runs regardless. Both passed against a deliberate
+    // `.catch(() => undefined)` inside `emitBroadcast`.
+    const { client } = controllable()
+    const unhandled: unknown[] = []
+    const onUnhandled = (reason: unknown): void => void unhandled.push(reason)
+    process.on('unhandledRejection', onUnhandled)
+
+    try {
+      const async: RealtimeSendClient = {
+        send: () => Promise.reject(new Error('offline')),
+      }
+      let room: ReturnType<typeof useRoom> | undefined
+
+      function Probe(): null {
+        room = useRoom()
+        return null
+      }
+      render(
+        <RoomProvider roomId="r" client={client} sender={async}>
+          <Probe />
+        </RoomProvider>,
+      )
+
+      act(() => {
+        room!.broadcast('q', { text: 'hi' })
+      })
+      // Unhandled rejections are reported at the end of a macrotask, not a microtask.
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(
+        unhandled.map(String).join(' '),
+        'the rejection was swallowed instead of surfacing',
+      ).toMatch(/offline/)
+    } finally {
+      process.off('unhandledRejection', onUnhandled)
+    }
+  })
+
+  it('lets a failing transport surface rather than swallowing it', () => {
+    // rules/error-handling.md § 2: a transport that is down is the consumer's to handle, and a
+    // hook that swallowed it would leave them with a UI that looks synced and is not.
+    const { client } = controllable()
+    const failing: RealtimeSendClient = {
+      send: () => {
+        throw new Error('transport down')
+      },
+    }
+    let room: ReturnType<typeof useRoom> | undefined
+
+    function Probe(): null {
+      room = useRoom()
+      return null
+    }
+    render(
+      <RoomProvider roomId="r" client={client} sender={failing}>
+        <Probe />
+      </RoomProvider>,
+    )
+
+    expect(() => room!.broadcast('question', { text: 'hi' })).toThrow('transport down')
   })
 })

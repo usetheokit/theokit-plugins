@@ -1,7 +1,7 @@
 {
   "name": "@theokit/plugin-copilot",
-  "version": "0.3.0",
-  "description": "AI Copilot pattern for TheoKit — defineCopilot factory + AgentRoomMember (P#9 RoomMember) + CopilotRuntime + React hooks family + <CopilotChat /> composição theo-ui composites. Differentiator: copilot is presence-visible to other users (multi-user awareness — CopilotKit doesn't have this). Form 4 Hybrid per plan p11-plugin-copilot v1.0.",
+  "version": "0.3.1",
+  "description": "AI Copilot plugin for TheoKit — the copilot() TheoPlugin plus the defineCopilot factory, AgentRoomMember and budget enforcement.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

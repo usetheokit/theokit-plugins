@@ -88,7 +88,10 @@ describeLive(ABACATEPAY, 'checkout', () => {
     // Shape, not truthiness: `bill_` is the hosted-checkout prefix, and the
     // provider's own retrieve/refund routing keys off exactly that.
     expect(result.id).toMatch(/^bill_[A-Za-z0-9]+$/)
-    expect(result.url).toMatch(/^https:\/\/app\.abacatepay\.com\/pay\/bill_/)
+    expect(result.uiMode).toBe('hosted')
+    expect(result.uiMode === 'hosted' ? result.url : null).toMatch(
+      /^https:\/\/app\.abacatepay\.com\/pay\/bill_/,
+    )
   }, 60_000)
 
   it('refuses a non-BRL charge without spending a round trip', async () => {

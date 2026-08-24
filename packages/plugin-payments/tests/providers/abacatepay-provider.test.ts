@@ -82,7 +82,40 @@ describe('AbacatePayProvider.createCheckout', () => {
     expect((fetchImpl.mock.calls[0] as [string])[0]).toBe(
       'https://api.abacatepay.com/v2/subscriptions/create',
     )
-    expect(result.url).toBe('https://pay/sub')
+    // Narrowed, not asserted past the union. The result is discriminated by `uiMode` because an
+    // embedded session has no URL at all; reaching for `.url` without narrowing is the compile
+    // error that replaces a runtime `undefined`.
+    expect(result.uiMode).toBe('hosted')
+    expect(result.uiMode === 'hosted' ? result.url : null).toBe('https://pay/sub')
+  })
+
+  it('refuses an embedded request by naming the mode, not the missing url', async () => {
+    // Without this the request falls through to the url check and fails with a message about a
+    // URL — for a caller whose actual problem is a mode this adapter does not implement.
+    const provider = AbacatePayProvider({ apiKey: 'abc_dev_x' })
+
+    await expect(
+      provider.createCheckout({
+        items: [{ ref: 'prod_1', quantity: 1 }],
+        uiMode: 'embedded',
+        returnUrl: 'https://shop.example/return',
+      }),
+    ).rejects.toThrow(/embedded/i)
+  })
+
+  it('says the provider capability is UNVERIFIED, not that it does not exist', async () => {
+    // The honest claim. Nobody here has called AbacatePay's API about embedded checkout — we probed
+    // Stripe. "AbacatePay does not support embedded" would be an assumption dressed as a fact, and
+    // this item exists partly because that assumption was easy to make.
+    const provider = AbacatePayProvider({ apiKey: 'abc_dev_x' })
+
+    await expect(
+      provider.createCheckout({
+        items: [{ ref: 'prod_1', quantity: 1 }],
+        uiMode: 'embedded',
+        returnUrl: 'https://shop.example/return',
+      }),
+    ).rejects.toThrow(/unverified|not been measured|not measured/i)
   })
 
   it('refuses a multi-item subscription with the rule, not with a 400 from the API', async () => {

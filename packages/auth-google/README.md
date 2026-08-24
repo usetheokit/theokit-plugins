@@ -14,10 +14,12 @@ Peer dependencies: `@theokit/sdk >= 1.5.0`, `theokit >= 0.2.4`.
 
 ## Usage
 
+<!-- doc-example: needs="./session.js" -->
+
 ```ts
 // server/auth/index.ts
 import { defineAuth } from '@theokit/sdk/server/auth'
-import { google } from '@theokit/auth-google'
+import { google, type GoogleProfile } from '@theokit/auth-google'
 import { sessionManager } from './session.js'
 
 export const auth = defineAuth({
@@ -30,8 +32,10 @@ export const auth = defineAuth({
     }),
   ],
   onSignIn: async ({ profile }) => {
-    // profile is GoogleProfile { sub, email, email_verified, name?, picture?, locale? }
-    return { userId: profile.sub, email: profile.email }
+    // `onSignIn` is typed `<TProfile>(args: { profile: TProfile; … })` — TProfile is unbound, so
+    // the callback cannot annotate it and the cast is what a consumer actually writes.
+    const p = profile as GoogleProfile // { sub, email, email_verified, name?, picture?, locale? }
+    return { userId: p.sub, email: p.email }
   },
 })
 ```
@@ -43,6 +47,8 @@ Wire into your routes:
 > needs a Node server. The provider itself also accepts a Web `Request`, which is what
 > TheoKit's `route()` handler hands you — so inside TheoKit you drive the provider directly
 > and own the session, as below.
+
+<!-- doc-example: needs="../../../auth/index.js" -->
 
 ```ts
 // server/routes/api/auth/google/start.ts
@@ -67,6 +73,8 @@ export const GET = route()
   .build()
 ```
 
+<!-- doc-example: needs="../../../auth/index.js" -->
+
 ```ts
 // server/routes/api/auth/google/callback.ts
 import { route } from 'theokit/server'
@@ -87,6 +95,38 @@ export const GET = route()
 session cookie into a `Headers` you own, which is what lets the whole flow stay on the Web
 shapes TheoKit gives you. The transaction (state + PKCE verifier) is yours to carry across
 the redirect; `handleCallback` rejects a callback whose `state` does not match it.
+
+## Required in production: `THEOKIT_OAUTH_TX_SECRET`
+
+**Set this, or the OAuth transaction cookie is encrypted with a constant published inside
+`@theokit/sdk`.**
+
+That cookie carries `state` and `pkceVerifier` — the two values that make an authorization-code flow
+safe against CSRF and against an intercepted code. Measured 2026-08-24 in `@theokit/sdk@2.18.0`, its
+encryption key is resolved as:
+
+1. `opts.session.secret` — **unreachable**: `DefineAuthOptions.session` is typed
+   `SessionManager<TSession>`, which declares four methods and no `secret`.
+2. `process.env.THEOKIT_OAUTH_TX_SECRET`
+3. a literal that ships in the package.
+
+So without the environment variable, step 3 is what you get. The length guard does not help: the
+constant is 48 characters, and the check is on length rather than provenance.
+
+```bash
+# 32 random bytes, base64url. Rotate it like any other signing key.
+export THEOKIT_OAUTH_TX_SECRET="$(node -e 'console.log(require("node:crypto").randomBytes(32).toString("base64url"))')"
+```
+
+This package cannot fix it: it implements a type contract and never constructs the orchestrator, so
+there is no seam here to guard. The defect is tracked against `@theokit/sdk` and pinned by
+`integration/tests/seam/sdk-tx-cookie-defects.offline.test.ts`, which goes red when it is fixed.
+
+**Related, and worth knowing:** in that same version the transaction cookie is written as
+`theo_oauth_tx` while its store reads `__Host-theo_oauth_tx`. The missing prefix drops the
+`__Host-` guarantee — a sibling subdomain can set the cookie — and it is also why the callback
+currently cannot complete. Fixing the name makes the secret defect reachable, so the two want fixing
+in that order.
 
 ## Google Cloud Console setup
 
@@ -123,13 +163,15 @@ Per plan v1.1 EC-13 (Accepted Risk): the `email_verified` boolean comes directly
 The `google()` factory ships with `openid profile email`. If you need additional scopes (Drive, Gmail, Calendar, etc.), wrap the provider and post-process the URL:
 
 ```ts
-import { google as baseGoogle } from '@theokit/auth-google'
+import type { OAuthTransaction } from '@theokit/sdk/server/auth'
 
-function googleWithDriveScope(opts) {
+import { google as baseGoogle, type GoogleProviderOptions } from '@theokit/auth-google'
+
+function googleWithDriveScope(opts: GoogleProviderOptions) {
   const base = baseGoogle(opts)
   return {
     ...base,
-    async createAuthorizationURL(tx) {
+    async createAuthorizationURL(tx: OAuthTransaction) {
       const url = await base.createAuthorizationURL(tx)
       url.searchParams.set(
         'scope',

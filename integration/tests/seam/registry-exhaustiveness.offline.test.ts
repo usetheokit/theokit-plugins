@@ -88,6 +88,27 @@ describe('the seam registry covers every package on disk', () => {
     }
   })
 
+  it('names the factory for every package that has a seam', () => {
+    // The check that reads this registry looks for the factory's name in the package's README, so
+    // a row without one gives it nothing to look for — and a check with nothing to look for passes
+    // silently, which is the failure mode two of this repository's gates already shipped with.
+    for (const entry of INTEGRATING_PACKAGES) {
+      if (entry.seam === 'none') continue
+      expect(
+        entry.factory,
+        `${entry.pkg} declares seam '${entry.seam}' but names no factory`,
+      ).toBeTruthy()
+    }
+  })
+
+  it('names no factory for a package that plugs into nothing', () => {
+    // A `seam: 'none'` row with a factory is a contradiction: it says the package plugs into
+    // nothing, via a specific function.
+    for (const entry of INTEGRATING_PACKAGES.filter((e) => e.seam === 'none')) {
+      expect(entry.factory, `${entry.pkg} is seamless but names ${entry.factory}`).toBeUndefined()
+    }
+  })
+
   it('skips a directory that has no manifest, and says which one', () => {
     // `plugin-mdx` holds only `.gitkeep` (rules/cycle-backlog.md § Packages that exist and take
     // no items). Asserting the skip keeps it a measured fact rather than a filter nobody reviewed

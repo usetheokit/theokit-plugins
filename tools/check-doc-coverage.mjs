@@ -37,6 +37,7 @@
 //
 // Usage: node tools/check-doc-coverage.mjs [--list <package-or-specifier>]
 
+import { reportGate } from './lib/gate-summary.mjs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { publishedPackages, ROOT } from './lib/published-entries.mjs'
@@ -252,4 +253,12 @@ if (below.length > 0) {
 }
 
 if (below.length > 0 || swallowedRows.length > 0) process.exit(1)
-console.log(`[${LABEL}] PASS — every published entry is at or above the ${FLOOR_PERCENT}% floor.`)
+
+// Was an unconditional `console.log('PASS — every published entry is at or above the floor')`
+// guarded only by `below.length === 0`. With no packages it printed
+// `overall 0/0 = 0.0% (floor 100%)` and then `PASS` on the next line — two statements that
+// contradict each other, neither wrong on its own terms (B-026, measured 2026-08-24). The count
+// decides now, so an empty run cannot claim a floor it never compared anything against.
+process.exit(
+  reportGate({ label: LABEL, subject: 'published entries', checked: rows.length }) ? 0 : 1,
+)

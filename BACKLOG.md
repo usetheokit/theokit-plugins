@@ -37,49 +37,64 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-22 items — **Open** 19 · **In flight** 0 · **Closed** 3
+37 items — **Open** 1 · **In flight** 0 · **Closed** 36
 
-### Open (19)
+### Open (1)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
-| [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention--) | The request-decoration namespace is global and has no convention | `raw` | — |
-| [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain--) | No test asserts that a package belongs to exactly one domain | `raw` | — |
-| [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams--) | The `plugin-` prefix names four different integration seams | `raw` | — |
-| [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it--) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `raw` | — |
-| [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish--) | Nothing compiles the code examples our READMEs publish | `raw` | — |
-| [`B-010`](#b-010--plugin-realtimes-presence-and-broadcast-never-leave-the-client--) | `plugin-realtime`'s presence and broadcast never leave the client | `raw` | — |
-| [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `raw` | — |
-| [`B-012`](#b-012--plugin-forms-cannot-upload-a-file--) | `plugin-forms` cannot upload a file | `raw` | — |
-| [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout--) | `plugin-payments` ships only hosted checkout | `raw` | — |
-| [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited--) | three AbacatePay legs are declared uncoverable and never revisited | `raw` | — |
-| [`B-015`](#b-015--the-oauth-consent-round-trip-is-automated-for-nobody--) | the OAuth consent round trip is automated for nobody | `raw` | — |
-| [`B-016`](#b-016--theokitplugin-forms-headless-tier-cannot-be-consumed-without-usetheoui--) | `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` | `raw` | — |
-| [`B-017`](#b-017--the-measurement-target-gate-reads-an-npm-subpath-specifier-as-a-missing-file--) | the measurement-target gate reads an npm subpath specifier as a missing file | `raw` | — |
-| [`B-018`](#b-018--nineteen-transitive-high-advisories-sit-in-the-workspace-with-nothing-watching-them--) | nineteen transitive HIGH advisories sit in the workspace with nothing watching them | `raw` | — |
-| [`B-019`](#b-019--four-packages-integrate-through-a-seam-the-current-sdk-major-no-longer-has--) | four packages integrate through a seam the current SDK major no longer has | `raw` | — |
-| [`B-020`](#b-020--code-quality-was-returning-pass-over-zero-languages--) | /code-quality was returning PASS over zero languages | `raw` | — |
-| [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package--) | the OAuth transaction cookie is encrypted with a constant published in the package | `raw` | — |
-| [`B-022`](#b-022--assertproductionsecret-warns-about-a-boot-refusal-nothing-implements--) | `assertProductionSecret` warns about a boot refusal nothing implements | `raw` | — |
+| [`B-037`](#b-037--ctxstripe-is-a-vendor-noun-on-published-surface-and-renaming-it-is-a-breaking-change--) | `ctx.stripe` is a vendor noun on published surface, and renaming it is a breaking change | `raw` | — |
 
 ### In flight (0)
 
 _None._
 
-### Closed (3)
+### Closed (36)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
+| [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims-x) | Nothing verifies that what a package exports is accepted by the seam it claims | `shipped` | — |
+| [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention-x) | The request-decoration namespace is global and has no convention | `shipped` | — |
 | [`B-003`](#b-003--plugin-realtimes-integration-tests-never-open-a-websocket-x) | `plugin-realtime`'s integration tests never open a WebSocket | `shipped` | — |
 | [`B-004`](#b-004--auth-magic-link-has-no-live-suite-while-the-other-two-auth-providers-do-x) | `auth-magic-link` has no live suite while the other two auth providers do | `shipped` | — |
+| [`B-005`](#b-005--no-test-asserts-that-a-package-belongs-to-exactly-one-domain-x) | No test asserts that a package belongs to exactly one domain | `killed` | — |
 | [`B-006`](#b-006--backlog-init-assumed-an-umbrella-and-would-have-refused-to-run-here-x) | `/backlog-init` assumed an umbrella and would have refused to run here | `shipped` | — |
+| [`B-007`](#b-007--the-plugin--prefix-names-four-different-integration-seams-x) | The `plugin-` prefix names four different integration seams | `shipped` | — |
+| [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it-x) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `shipped` | — |
+| [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish-x) | Nothing compiles the code examples our READMEs publish | `shipped` | — |
+| [`B-010`](#b-010--plugin-realtimes-presence-and-broadcast-never-leave-the-client-x) | `plugin-realtime`'s presence and broadcast never leave the client | `shipped` | — |
+| [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `shipped` | — |
+| [`B-012`](#b-012--plugin-forms-cannot-upload-a-file-x) | `plugin-forms` cannot upload a file | `shipped` | — |
+| [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout-x) | `plugin-payments` ships only hosted checkout | `shipped` | — |
+| [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited-x) | three AbacatePay legs are declared uncoverable and never revisited | `shipped` | — |
+| [`B-015`](#b-015--the-oauth-consent-round-trip-is-automated-for-nobody-x) | the OAuth consent round trip is automated for nobody | `shipped` | — |
+| [`B-016`](#b-016--theokitplugin-forms-headless-tier-cannot-be-consumed-without-usetheoui-x) | `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` | `shipped` | — |
+| [`B-017`](#b-017--the-measurement-target-gate-reads-an-npm-subpath-specifier-as-a-missing-file-x) | the measurement-target gate reads an npm subpath specifier as a missing file | `shipped` | — |
+| [`B-018`](#b-018--nineteen-transitive-high-advisories-sit-in-the-workspace-with-nothing-watching-them-x) | nineteen transitive HIGH advisories sit in the workspace with nothing watching them | `shipped` | — |
+| [`B-019`](#b-019--four-packages-integrate-through-a-seam-the-current-sdk-major-no-longer-has-x) | four packages integrate through a seam the current SDK major no longer has | `shipped` | — |
+| [`B-020`](#b-020--code-quality-was-returning-pass-over-zero-languages-x) | /code-quality was returning PASS over zero languages | `shipped` | — |
+| [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package-x) | the OAuth transaction cookie is encrypted with a constant published in the package | `shipped` | — |
+| [`B-022`](#b-022--assertproductionsecret-warns-about-a-boot-refusal-nothing-implements-x) | `assertProductionSecret` warns about a boot refusal nothing implements | `killed` | — |
+| [`B-023`](#b-023--the-release-pipeline-cannot-open-its-own-version-packages-pr-x) | the release pipeline cannot open its own Version Packages PR | `shipped` | — |
+| [`B-024`](#b-024--plugin-payments-claims-ctxstripe-a-vendor-noun-a-consumer-is-likely-to-want-x) | `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want | `shipped` | — |
+| [`B-025`](#b-025--no-python-runs-in-ci-so-a-consumer-side-kit-invariant-could-not-execute-x) | no Python runs in CI, so a consumer-side kit invariant could not execute | `shipped` | — |
+| [`B-026`](#b-026--three-gates-in-a-row-shipped-a-summary-line-the-run-had-not-earned-x) | three gates in a row shipped a summary line the run had not earned | `shipped` | — |
+| [`B-027`](#b-027--no-local-gate-catches-a-manifest-edited-without-its-lockfile-x) | no local gate catches a manifest edited without its lockfile | `shipped` | — |
+| [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
+| [`B-029`](#b-029--a-client-joining-a-room-sees-an-empty-document-until-somebody-types---x) | a client joining a room sees an empty document until somebody types | `shipped` | — |
+| [`B-030`](#b-030--a-multipart-scalar-array-loses-every-element-but-the-last---x) | a multipart scalar array loses every element but the last | `shipped` | — |
+| [`B-031`](#b-031--the-skip-message-names-a-script-nobody-checks-exists---x) | the skip message names a script nobody checks exists | `shipped` | — |
+| [`B-032`](#b-032--the-consumer-gate-resolves-peers-from-the-monorepo-so-it-cannot-see-a-missing-one---x) | the consumer gate resolves peers from the monorepo, so it cannot see a missing one | `shipped` | — |
+| [`B-033`](#b-033--two-kit-skills-ship-the-same-module-name-so-their-suites-cannot-run-together---x) | two kit skills ship the same module name, so their suites cannot run together | `shipped` | — |
+| [`B-034`](#b-034--the-advisory-gate-is-single-sourced-against-a-rule-that-names-two-scanners---x) | the advisory gate is single-sourced, against a rule that names two scanners | `shipped` | — |
+| [`B-035`](#b-035--a-pre-code-repo-is-marked-invalid-for-having-no-code---x) | a pre-code repo is marked INVALID for having no code | `shipped` | — |
+| [`B-036`](#b-036--the-release-dry-runs-pins-and-gates-can-drift-from-releaseyml-with-nothing-detecting-it-x) | the release dry run's pins and gates can drift from `release.yml` with nothing detecting it | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
 ## Items
 
-## B-001 — Nothing verifies that what a package exports is accepted by the seam it claims [ ]
+## B-001 — Nothing verifies that what a package exports is accepted by the seam it claims [x]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `seam-conformance-tests`).
 
@@ -93,7 +108,7 @@ via `PAYMENTS_DECORATION_KEY`); `plugin-db-drizzle` has a `register(_app)` that 
 nothing; a grep hit in `plugin-canvas` was `DOMPurify.addHook`, unrelated. #42 shipped because a
 package typed against a framework API that did not exist, and nothing in CI would catch the same
 class of defect today.
-status: triaged
+status: shipped
 dod:
 
 - a test per integrating package that hands its export to the real framework surface it claims —
@@ -111,8 +126,24 @@ remaining nine packages have no such test, `auth-google` is covered only at comp
 suite's measured blind spot is written into its own header — deleting the Web branch of the OAuth
 providers' URL parsing leaves it green, because those providers read nothing but `searchParams`.
 For them the guard is `pnpm typecheck`, which is a different mechanism than this item asks for.
+shipped: 2026-08-24 — the plan's three phases landed in `d79d48e`, `2d7dbf3` and `8f2475d`; the
+review (`seam-conformance-tests-review-2026-08-23.md`) returned `READY_TO_MERGE_WITH_FOLLOWUPS`
+with every HIGH registered (B-019, B-021, B-022). The block was never flipped, so the three DoD
+bullets were re-measured on 2026-08-24 rather than read off the report:
 
-## B-002 — The request-decoration namespace is global and has no convention [ ]
+1. `integration/src/integrating-packages.ts` registers all 11 packages; conformance runs through
+   the real `createPluginRunnerFromConfig` and the real `defineAuth` orchestrator.
+2. Re-applying the Q3 mutation (an enumerable-shape capability check in
+   `packages/plugin-payments/src/plugin.ts`, rebuilt) leaves `pnpm test` GREEN and turns
+   `plugin-runner-conformance.offline.test.ts` RED — 2 failed of 9. Reverted; tree clean.
+3. `registry-exhaustiveness.offline.test.ts` reads `packages/` from disk and fails on any
+   directory the registry does not name, so a seamless package is exempt by a written reason and
+   never by silence.
+
+Suites at closure: 20 passed | 1 expected fail — the `it.fails` round trip that goes red the day
+the upstream sdk cookie-name defect is fixed.
+
+## B-002 — The request-decoration namespace is global and has no convention [x]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `decoration-key-convention`).
 
@@ -120,19 +151,34 @@ domain: plugin-server
 repo: plugin-payments
 suggested_mode: review
 source: human
-evidence: none-yet
-why_now: `theokit/server/plugins` exports `DuplicateDecorationError` (measured in
+evidence: `.claude/knowledge-base/discoveries/opportunities/decoration-key-convention-opportunity.md`
+why_now: **corrected 2026-08-23 — the original justification was stale and is kept below for the
+record.** Measured against theokit 0.48.8: two plugins with distinct names claiming one key are
+BOTH registered without error, and `applyDecorations` overwrites last-writer-wins, so a request
+context holds `{"payments":"FROM-SECOND"}` and the first plugin's decoration is simply gone.
+`DuplicateDecorationError` is constructed in 0 of 160 `.js` files under `theokit/dist` — a dead
+export — and `PluginRunner.register`'s own comment says the change was deliberate: "Cross-plugin
+decoration-key collisions are PERMITTED (per blueprint D1)". No gate in this repository reads
+decoration keys at all. Two keys now exist, not one: `copilot`
+(`packages/plugin-copilot/src/plugin.ts:53`) and `payments`
+(`packages/plugin-payments/src/plugin.ts:62`).
+why_now_original: `theokit/server/plugins` exports `DuplicateDecorationError` (measured in
 `dist/server/plugins/index.d.ts`, theokit@0.48.7). Two packages claiming one key fail at runtime in
-the consumer's app, for a reason neither package's own tests can see. Today only one key exists
-(`payments`), so the collision is latent rather than observed — and every package added to this
-domain increases the chance nobody notices until a consumer installs two of them.
-status: raw
+the consumer's app... Today only one key exists (`payments`). — Both halves are now false: the
+error is never thrown, and there are two keys. The risk did not go away; it got quieter.
+status: shipped
 dod:
 
 - a documented naming rule for decoration keys, in a rule file rather than in prose in one package
 - a monorepo-wide check that fails when two packages declare the same key
 - the check covers keys declared as string literals, since that is how the one existing key is
   written
+
+resolution: shipped 2026-08-23 in PR #119. `pnpm check:manifests` fails when two packages claim
+one key, parsed with the TypeScript compiler and resolving identifiers across the whole package.
+The convention lives in `.claude/rules/decoration-keys.md`. Keys that cannot be resolved
+statically are reported and the summary degrades rather than claiming a clean comparison. One
+known exception recorded rather than fixed in passing: [[B-024]].
 
 ## B-003 — `plugin-realtime`'s integration tests never open a WebSocket [x]
 
@@ -217,7 +263,7 @@ dod:
   (honoured: the send-only file states in full what it does not prove, and a second suite was
   written to cover the leg it could not.)
 
-## B-005 — No test asserts that a package belongs to exactly one domain [ ]
+## B-005 — No test asserts that a package belongs to exactly one domain [x]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `route-domain-uniqueness-test`).
 
@@ -225,13 +271,13 @@ domain: dev-tooling
 repo: plugin-db-drizzle
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/route-domain-uniqueness-test-opportunity.md`
 why_now: `.claude/rules/cycle-backlog.md § Domain routing` claimed the invariant was covered by
 `tests/test_route_domain.py::test_no_repo_belongs_to_two_domains`. Verified 2026-08-18: no such file
 exists anywhere in this repository, and `.claude/tests/` does not exist either. The citation was
 removed rather than restated. A package listed under two domains would make routing depend on dict
 iteration order — the same item routing differently on different runs, with nothing failing.
-status: raw
+status: killed
 dod:
 
 - a test that fails when one package name appears in two rows of the routing table
@@ -239,6 +285,25 @@ dod:
   because `tests/` was not copied into consumer repos
 - `python3 .claude/scripts/route_domain.py` keeps exiting 3 on a domain whose specialist file is
   absent
+
+kill_reason: measured 2026-08-23 — the item is half refuted and its remainder routes outside this
+registry. `test_no_repo_belongs_to_two_domains` DOES exist, at line 60 of `tests/test_route_domain.py`
+in the kit repository (`git@github.com:paulohenriquevn/squad.git`), with the reasoning this item
+repeats almost word for word. What is real is narrower: line 16 of that file binds it to the kit's
+OWN `rules/cycle-backlog.md` (line 25 asserts 8 domains), so no consumer's routing table is covered
+by anything — including this one, which has 4 domains and 11 packages and whose invariant currently
+holds, unverified.
+
+Killed here rather than planned because every durable fix is in another repository: the test's
+binding, and the shipping mechanism the item's own second DoD bullet names (there is no
+`install.sh` in this repository's `.claude/`, nor at the kit's root). Writing the test into
+`.claude/tests/` here would satisfy DoD bullet 1 and violate bullet 2 in the same commit —
+`.gitignore:50` excludes `.claude/`, so it would protect one machine and vanish on the next clone,
+which is how the original invariant was lost. Per `rules/knowledge-base-location.md § Autonomy`
+this registry may not make its progress depend on the kit's state.
+
+The measurement is attached so the work is not re-derived when it is filed in the kit's own
+backlog. The local, ours-to-fix half is split out as [[B-025]].
 
 ## B-006 — `/backlog-init` assumed an umbrella and would have refused to run here [x]
 
@@ -273,7 +338,7 @@ dod:
 - the routing table it writes goes only into `rules/cycle-backlog.md`, never a second copy in
   `BACKLOG.md` [x]
 
-## B-007 — The `plugin-` prefix names four different integration seams [ ]
+## B-007 — The `plugin-` prefix names four different integration seams [x]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `plugin-prefix-overloaded`).
 
@@ -281,13 +346,13 @@ domain: plugin-server
 repo: plugin-forms
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/plugin-prefix-overloaded-opportunity.md` — `plugin-copilot` is a TheoPlugin whose README never contains `copilot(`, `plugins:` or `theo.config`, and whose npm description names `defineCopilot` instead; a consumer following it never registers the plugin
 why_now: measured 2026-08-18 — `plugin-payments` is a `TheoPlugin`, `plugin-forms` is React and Zod
 with no server seam, `plugin-db-drizzle` is a set of CLI descriptors, and `plugin-email` is a
 function library. Four consumption models behind one prefix: what a developer learns from one
 package transfers to none of the others. This is a naming and API-surface decision on already
 published packages, so it is registered rather than acted on.
-status: raw
+status: shipped
 dod:
 
 - each package's README opens with the export going into the exact config field that consumes it
@@ -296,7 +361,20 @@ dod:
 - no package is renamed before B-001 exists, so the conformance test proves the move did not break
   integration
 
-## B-008 — The root `v*` tag convention is dead and the CHANGELOG still implies it [ ]
+resolution: shipped 2026-08-23 in PR #120. The decision recorded (ADR D1) is **keep the prefix,
+document the seam** — eleven published packages make a rename breaking for all of them, and the
+measured cost does not reach that price. `pnpm check:manifests` now fails when a package declares a
+seam and no code block in its README calls that seam's factory (7 checked). `plugin-copilot`'s
+README and npm description were the one measured defect and are fixed.
+
+Two things the cycle produced that are worth more than the gate: the check was tightened from
+"factory appears anywhere" to "factory appears in a code block" because integration validation
+showed a prose mention kept it green; and the review then showed the fence regex implementing that
+could classify prose AS code, which would have carried the stricter message while behaving like the
+looser one. Both are covered by tests. A `.gitattributes` was added as the root-cause half of the
+CRLF finding.
+
+## B-008 — The root `v*` tag convention is dead and the CHANGELOG still implies it [x]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `root-tag-convention-dead`).
 
@@ -304,14 +382,14 @@ domain: dev-tooling
 repo: plugin-db-drizzle
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/root-tag-convention-dead-opportunity.md` — five versions exist only in prose, the root manifest is a private `0.0.0`, and `changeset version` cannot update the root CHANGELOG at all: 61 entries sit under `[Unreleased]` after this morning's 11-package release shipped them
 why_now: measured 2026-08-18 while cutting 0.5.0 — `git tag` holds `v0.1.0`, `v0.2.0` and
 `v0.3.0` and then stops, while `CHANGELOG.md` records `## [0.4.0] - 2026-08-18` as released.
 `changesets/action` tags per package (`@theokit/plugin-email@0.1.3` and so on) and never
 tagged the root, so the root convention ended without anyone deciding it should. A reader
 who trusts the CHANGELOG headers looks for a tag that does not exist, and `git describe`
 answers with a package tag instead of a release.
-status: raw
+status: shipped
 dod:
 
 - a decision recorded as an ADR: either the release flow creates the root tag again, or the
@@ -321,7 +399,18 @@ dod:
 - if the root tag is revived, something fails when a release lands without it — the
   convention died silently precisely because nothing checked
 
-## B-009 — Nothing compiles the code examples our READMEs publish [ ]
+resolution: shipped 2026-08-23 in PR #121. Decision in `docs/adr/0002-the-repository-releases-packages-not-itself.md`
+(versioned, not in `.claude/`, because the failure message cites it): the repository releases
+packages, not itself. Dated sections replace version headers; the root tag is not revived. Five
+prose-only versions reconciled with zero entry text changed. `pnpm quality:changelog` fails when a
+package tag is newer than the newest dated section.
+
+The finding worth keeping: the gate was **inert in CI**. `actions/checkout` defaults to
+`fetch-depth: 1` with `--no-tags`, so the check that exists to stop silent drift took its no-tags
+branch on every run — honest on stdout, invisible under a green check mark. Verified after the fix
+that CI now prints `the newest release is recorded`, where it would have printed `did not run`.
+
+## B-009 — Nothing compiles the code examples our READMEs publish [x]
 
 > Registered 2026-08-20 by `/backlog-item` (slug: `readme-examples-compile-gate`).
 
@@ -329,7 +418,17 @@ domain: dev-tooling
 repo: plugin-db-drizzle
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/readme-examples-compile-gate-opportunity.md`
+— three real defects across eleven published READMEs, none visible to the name-resolution gate:
+`withAgentContext({ userId })` against an `AgentContext` that has no `userId`, two untyped
+parameters in `auth-google`'s wrapper example, and `useState` called without being imported. Three
+attempts to count failures produced 2, 49 and 23, all wrong for one reason — nothing declared which
+references were deliberate.
+correction: the item was first evidenced by the `export default { plugins: [...] }` example from
+[[B-007]], called "not the real config API" in a commit, a PR and this block. **Measured, it
+works**: `loadConfig` refuses only `null` or a non-object, and `.build()` returns
+`Partial<TheoConfig>`, which a bare `{ plugins }` satisfies. It diverged from the convention three
+sibling packages use — not a defect. The claim is corrected rather than removed.
 why_now: measured 2026-08-20 while closing #67 — ten names the READMEs told a reader to import
 existed in none of `theokit@0.48.8`'s 24 export subpaths, and eight READMEs shipped that way. The
 gate added in the same pass (`tools/check-doc-api-drift.mjs`) asks the compiler whether the imported
@@ -338,7 +437,7 @@ method that moved. Both defects fixed under #67 that a careful reading would sti
 found by compiling the block instead — `provider.startSignIn(req)` resolves to a `URL` rather than a
 string, and `payments` never moved to the `/stripe` subpath the migration guide pointed at. That
 verification happened once, by hand, in a scratch directory that no longer exists.
-status: raw
+status: shipped
 dod:
 
 - a gate that compiles the `ts / `tsx blocks of the versioned Markdown, not just their import
@@ -351,7 +450,22 @@ dod:
 - it runs in `ci.yml` alongside `quality:docs`, and the run says how many blocks it compiled — a
   number nobody can read is how the previous gate's blind spot stayed invisible
 
-## B-010 — `plugin-realtime`'s presence and broadcast never leave the client [ ]
+resolution: shipped 2026-08-23 in PR #122. `pnpm quality:doc-api` now type-checks each block as its
+own program, with what the block assumes declared in a `doc-example` comment. Mechanism and
+reasoning in `docs/adr/0003-documented-examples-declare-what-they-assume.md`.
+
+Five real defects found, four of them by the gate on its first runs — including `onSignIn`
+published in a non-compiling form in **all three** auth READMEs, and `defineConfig` published by
+three blocks while exported by nothing.
+
+Two things worth keeping from the review. The first version compiled a package's blocks as one
+program, and that single choice produced three failures at once: a syntax error suppressed every
+semantic diagnostic in the package, a `needs=` stub in one section downgraded unrelated blocks, and
+the counts moved silently. And `declare module './x.js'` does nothing — TypeScript does not apply
+ambient declarations to relative specifiers — so 14 of 64 blocks were skipped while the commit
+claimed the opposite. Counts went 31/18/15 → 40/24/0.
+
+## B-010 — `plugin-realtime`'s presence and broadcast never leave the client [x]
 
 > Registered 2026-08-22 by `/backlog-item` (slug: `realtime-outbound-channel`).
 
@@ -359,7 +473,13 @@ domain: plugin-server
 repo: plugin-realtime
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/realtime-outbound-channel-opportunity.md`
+correction: the item frames this as blocked on the SDK. Measured 2026-08-23 — it is not. The
+upstream channel genuinely does not exist (`subscribe` returns `AsyncGenerator<TOutput, void, void>`;
+the `./subscription` subpath exports no outbound verb), **and the server half is complete and
+public**: `runtime.ts:212` fans out a validated broadcast, and `RealtimeRuntime` + `handleConnection`
+are exported from the barrel. What is missing is a send-side port the React hooks never declared.
+Nothing is owed by another repository.
 why_now: measured 2026-08-22 — `emitBroadcast` in `src/react/index.ts` is an EMPTY function body,
 and `emit` only merges into local state. The README says so in bold for both hooks ("**Local-only
 in v0.1** — events are scoped to the current client and do not fan out to other participants
@@ -367,7 +487,7 @@ yet"), so this is a declared limitation rather than a defect. It is the largest 
 repository: a realtime plugin whose outbound channel does not exist. Two people in the same room
 see nothing of each other through these hooks. The inbound half works — the live suite drives
 frames over a real WebSocket and they arrive.
-status: raw
+status: shipped
 dod:
 
 - a presence update from one client is observable by a second client over a real transport
@@ -375,6 +495,21 @@ dod:
 - the README table stops saying "Local-only in v0.1" for whichever hooks now sync
 - the blocking dependency is named: the code cites "G8 `subscribe` upstream `.send()` API" as
   the thing that must stabilise first, and whether that has landed is the first thing to measure
+
+resolution: shipped 2026-08-23 in PR #123. `RoomProvider` takes an optional `sender` port carrying
+the server's own frame union; supply nothing and behaviour is unchanged. Nothing was owed by
+`@theokit/sdk` — the upstream channel genuinely does not exist, and the server half was always
+complete and public.
+
+The review found a BLOCKER the port made reachable: `dispatchFrame` validated the presence PATCH
+against the FULL room schema, so any room with a required presence field rejected every partial
+update — which is the only kind `useUpdateMyPresence` can send. The path was dead for those rooms
+and silent about it. The code's own comment had said "validate the FULL merged shape, not just the
+patch" for as long as both existed.
+
+It was found because the seam test used the one schema shape that passes: all fields optional. The
+suite now carries the shape that disagrees. [[B-027]] records the lockfile slip this slice repeated
+from [[B-008]].
 
 ## B-011 — `useYDoc()` throws instead of wiring the Y.Doc [ ]
 
@@ -384,13 +519,23 @@ domain: plugin-server
 repo: plugin-realtime
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/realtime-ydoc-autowiring-opportunity.md`
+— every piece but the React bridge exists: the Yjs provider (`src/yjs-provider.ts:153`),
+`applyYjsUpdate` (`:305`), the runtime's inbound handling (`internal/runtime.ts:226`), both frame
+kinds in both unions, and a real-WebSocket round trip (`tests/integration/wire-round-trip.test.ts:166`).
+`useYDoc` is `(): never` at `src/react/index.ts:393` and never reads the room, and the React
+reducer drops `yjs-update` frames silently — `RealtimeOutFrame` has no `bytes` field.
+ordering: the item's fourth DoD bullet asked that ordering against [[B-010]] be decided. It is
+decided by fact — B-010 shipped 2026-08-23, so the workaround this item's error message names now
+works, and the same send-side port carries `yjs-update` because it re-exports the full frame union.
 why_now: measured 2026-08-22 — `useYDoc()` in `src/react/index.ts` throws unconditionally, and
 the message names the workaround (use YjsRealtimeProvider server-side, consume updates via
 `useBroadcast`). That workaround depends on B-010, which is itself local-only, so the documented
 escape route does not currently work either. The provider ships and the CRDT round trip is
 covered over a real socket by `wire-round-trip.test.ts`; what is missing is the React wiring.
-status: raw
+status: shipped
+shipped_by: PR #124, merged 2026-08-23. Also closed [[B-028]] (the wire encoded only downward) and
+  surfaced [[B-029]] (no initial-sync handshake), which is filed rather than implemented.
 dod:
 
 - `useYDoc()` returns a `Y.Doc` when the room descriptor declares `storage: 'yjs'`
@@ -399,7 +544,7 @@ dod:
 - ordering against B-010 is decided rather than assumed: if the escape route it documents needs
   B-010, say so in the plan
 
-## B-012 — `plugin-forms` cannot upload a file [ ]
+## B-012 — `plugin-forms` cannot upload a file [x]
 
 > Registered 2026-08-22 by `/backlog-item` (slug: `forms-multipart-upload`).
 
@@ -407,11 +552,28 @@ domain: client-surface
 repo: plugin-forms
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/forms-multipart-upload-opportunity.md`
+— **the item's premise is partially refuted, and the refutation is the finding.** A probe rendered
+a real `<TheoForm>` with a registered `<input type="file">` and the File REACHED the action: RHF
+delivers an array of `File`, and `useAction` does not serialise (`ActionInvoker` is a function the
+consumer supplies). What costs the consumer is everything after: `z.instanceof(File)` rejects what
+RHF actually hands over; `JSON.stringify` keeps the metadata and drops the bytes, so a server
+stores an empty file with no error anywhere; the multipart walk is ~15 identical lines plus a key
+convention nobody can infer; and `encType` is hardcoded `application/x-www-form-urlencoded`
+(`packages/plugin-forms/src/components/TheoForm.tsx:152`). **And the rest of the stack already does multipart end to end**: `theokit`'s client invoker sends a
+`FormData` body as-is, and an action declaring `accept: 'form'` reconstructs an object from it
+guided by the Zod schema. The convention is already fixed and is NOT the obvious one — dot notation
+for nesting, REPEATED keys for arrays (`getAll`), so a hand-rolled `tags[0]`/`tags[1]` walk yields
+an empty array with no error. The item is smaller than it looked: one schema-guided conversion in
+this package, whose correctness criterion is an exact round trip.
 why_now: measured 2026-08-22 — `README.md:216` states "**No file uploads in v0.1.**
 `multipart/form-data` deferred to v0.2." A form library without file upload is a form library a
 consumer outgrows on their second form. The declaration is honest; the gap is real.
-status: raw
+status: shipped
+shipped_by: PR #125, merged 2026-08-24. The premise was refuted twice on the way — the file always
+  reached the action, and the framework already did multipart end to end — so the fix was one
+  schema-guided conversion. Surfaced [[B-030]] (a multipart scalar array collapses to its last
+  element, a framework defect upstream of anything this package controls), pinned by a test.
 dod:
 
 - a `<TheoField>` bound to a file input submits through the action as multipart
@@ -420,7 +582,7 @@ dod:
 - the accessible wiring holds for the file control, asserted the way #105 taught: the label
   resolves to the control and the error is announced
 
-## B-013 — `plugin-payments` ships only hosted checkout [ ]
+## B-013 — `plugin-payments` ships only hosted checkout [x]
 
 > Registered 2026-08-22 by `/backlog-item` (slug: `payments-embedded-checkout`).
 
@@ -428,13 +590,27 @@ domain: plugin-server
 repo: plugin-payments
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/payments-embedded-checkout-opportunity.md`
+— measured LIVE against real Stripe. The hypothesis holds and **understates** the problem. Stripe
+accepts `ui_mode: 'embedded'` and returns `client_secret` with `url: null`, so the feature is
+unexposed rather than unavailable. The result is unreachable — the null-URL throw
+(`packages/plugin-payments/src/providers/stripe.ts:171`) precedes the return that carries `raw`
+(`:182`). And the REQUEST cannot be expressed either: Stripe refused the contract's own parameters
+with "`success_url` is not supported with `ui_mode: embedded`", and `CheckoutInput` has no
+`returnUrl` and no way to ask for the mode. AbacatePay's capability is **unmeasured** — our adapter
+requires a URL (`providers/abacatepay.ts:366`), which is evidence about our adapter, not the
+provider.
 why_now: measured 2026-08-22 — `src/checkout.ts:7` records that the contract returns a redirect
 URL and that "Elements/embedded deferred to v0.x". A consumer who wants the payment form inside
 their own page cannot have it. The hosted path is well covered: the live suite creates real
 Stripe sessions and reconciles them, and the idempotency round trip is asserted against the real
 API.
-status: raw
+status: shipped
+shipped_by: PR #126, merged 2026-08-24. The item said the RESULT could not be returned; measurement
+  found the REQUEST could not be made either — Stripe refuses `success_url` with `ui_mode: embedded`.
+  Both halves fixed by discriminating input and result on `uiMode`, with `url` kept required on the
+  hosted branch so no existing caller loses a guarantee. AbacatePay's position is stated as
+  unverified, which is what the evidence supports.
 dod:
 
 - the contract expresses an embedded/Elements session without breaking the hosted one
@@ -442,7 +618,7 @@ dod:
 - AbacatePay's position is stated rather than assumed — it may have no analogue, and saying so
   is a result
 
-## B-014 — three AbacatePay legs are declared uncoverable and never revisited [ ]
+## B-014 — three AbacatePay legs are declared uncoverable and never revisited [x]
 
 > Registered 2026-08-22 by `/backlog-item` (slug: `abacatepay-uncovered-legs`).
 
@@ -450,14 +626,26 @@ domain: plugin-server
 repo: plugin-payments
 suggested_mode: live-test
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/abacatepay-uncovered-legs-opportunity.md`
+— re-measured live 2026-08-24, and the item's thesis is demonstrated. **Leg 2 (refund happy path)
+is NO LONGER BLOCKED**: a simulated payment now produces refundable balance and
+`/transparents/refund` answers `200 {"status":"COMPLETE"}`. The recorded reason ("Saldo insuficiente
+… a devMode simulated payment adds no balance") was true when written and is false now, and nothing
+would have noticed. Leg 1 (subscriptions) is still blocked with the exact recorded message, now
+re-verified — but that message is the LAST gate, and three earlier attempts got three different
+errors, so a casual re-check would have wrongly concluded it changed. Leg 3 (`verifyWebhook`) is
+structurally blocked: nothing here can receive a request AbacatePay actually transmitted.
 why_now: measured 2026-08-22 — the service registry records three legs as NOT covered, each with
 a measured reason: subscriptions (`/subscriptions/create` answers "PIX Automático is not
 available for this store"), the refund happy path (a devMode payment adds no balance, so only the
 refusal is verifiable), and `verifyWebhook` (delivery needs a public HTTPS endpoint). The full
 live run on 2026-08-22 passed 179 tests with none of these among them. Each reason may have
 changed on the provider's side since it was written, and nothing re-checks.
-status: raw
+status: shipped
+shipped_by: PR #127, merged 2026-08-24. The item assumed the recorded reasons might have CHANGED;
+  one was NEVER TRUE — the refund happy path was covered by a test in the same commit that declared
+  it uncovered. The other two are re-verified and now carry the kind of block and the date. No test
+  was added: the planned one would have duplicated a better existing one.
 dod:
 
 - each of the three is re-measured against the current provider, and the result recorded — a
@@ -466,7 +654,7 @@ dod:
 - the caveat text in `integration/src/services.ts` is updated to match what was measured, with
   the date
 
-## B-015 — the OAuth consent round trip is automated for nobody [ ]
+## B-015 — the OAuth consent round trip is automated for nobody [x]
 
 > Registered 2026-08-22 by `/backlog-item` (slug: `oauth-roundtrip-unattended`).
 
@@ -474,14 +662,27 @@ domain: auth-provider
 repo: auth-github
 suggested_mode: live-test
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/oauth-roundtrip-unattended-opportunity.md`
+— measured 2026-08-24, and the reason is sharper than the item states. **The blocker is a session
+credential, not a browser.** Both providers 302 an unauthenticated authorize request to a login
+screen (`github.com/login`, `accounts.google.com/v3/signin/identifier` — the Google probe re-run with
+the real client id after a fake one answered about the id rather than the session). A headless
+browser without a session gets the same 302, so automating means storing a live USER SESSION in CI —
+an account, not a scope-limited token. Every alternative grant (device flow, App installation token,
+PAT) exercises a different code path than the one under test. **The actionable finding is parity**:
+`auth-github` has `flow:github`; `auth-google` has no equivalent script, so its success path is
+exercised by nothing — not CI, not a human procedure.
 why_now: measured 2026-08-22 — the full live run skipped exactly two behaviours, both the same:
 "full consent round trip [skipped: needs a browser session, so it cannot run in CI]", for
 `auth-github` and `auth-google`. The server half is covered live; the leg where a human clicks
 "allow" is exercised only by hand, through `pnpm flow:github`. So the single most important thing
 these packages do — turn a real consent into a session — is verified by somebody remembering to
 run a script.
-status: raw
+status: shipped
+shipped_by: PR #128, merged 2026-08-24. The blocker is a SESSION CREDENTIAL, not a browser —
+  re-measured and dated in both caveats. `flow:google` now exists; the harness had been telling
+  Google users to run a script that did not exist. Its header records which branches actually ran:
+  the exchange has never completed here, and that needs a human consent. Surfaced [[B-031]].
 dod:
 
 - the round trip runs unattended against the real provider, or the reason it cannot is
@@ -490,7 +691,7 @@ dod:
   its own failure modes, and this decision is made deliberately
 - `auth-google` is covered by the same mechanism or explicitly excluded with a reason
 
-## B-016 — `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` [ ]
+## B-016 — `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` [x]
 
 > Registered 2026-08-22 by `/backlog-item` (slug: `forms-headless-entrypoint`).
 
@@ -498,7 +699,15 @@ domain: client-surface
 repo: plugin-forms
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/forms-headless-entrypoint-opportunity.md`
+— measured 2026-08-24 against a REAL consumer layout (the dist copied, `@usetheo/ui` absent), and it
+is worse than the item recorded. The barrel does not merely drag the peer in: it **fails at module
+import** with `ERR_MODULE_NOT_FOUND`, and `package.json` declares exactly one export, so the
+headless tier has no reachable entry point at all. Three README claims are false as measured —
+":278 throws at first render, not at module import", ":195 the headless tier has no `@usetheo/ui`
+dependency", ":25 optional" (the manifest declares it a REQUIRED peer, and measurement says required
+is honest). A first probe symlinked the package and reported a clean pass, because Node resolves a
+symlink to its real path and walked up into the monorepo — recorded so the mistake is not repeated.
 why_now: measured 2026-08-22 while closing #103 — the barrel re-exports `TheoField`, which
 imports `@usetheo/ui` at module scope, so `import { useTheoField } from '@theokit/plugin-forms'`
 drags the UI package in. Splitting the entry point was attempted and reverted, because
@@ -506,7 +715,12 @@ drags the UI package in. Splitting the entry point was attempted and reverted, b
 in Cookbook 1 — so the barrel reaches it either way, and `splitting: false` would duplicate
 `TheoFormContext` and give a consumer two React contexts. Filed as #104 and closed not-planned:
 the fix requires removing a published API, which is a product decision.
-status: raw
+status: shipped
+shipped_by: PR #129, merged 2026-08-24. Worse than the item recorded: the barrel does not merely
+  drag the peer in, it fails at module import, and there is no second entry point to reach. Four
+  README claims corrected (one contradicting the manifest on the version range too), pinned by a
+  consumer test. No entry point added — that decision is recorded with the constraint that reverted
+  the earlier attempt. Surfaced [[B-032]].
 dod:
 
 - a decision recorded as an ADR: `TheoForm.Field` is removed and the styled tier moves to
@@ -515,7 +729,7 @@ dod:
   does not need it
 - the packaging gate already loads every subpath (#83), so a new entry is covered on arrival
 
-## B-017 — the measurement-target gate reads an npm subpath specifier as a missing file [ ]
+## B-017 — the measurement-target gate reads an npm subpath specifier as a missing file [x]
 
 > Registered 2026-08-23 while running `/discover-plan-confidence` on B-001.
 
@@ -523,7 +737,13 @@ domain: dev-tooling
 repo: plugin-db-drizzle
 suggested_mode: bug
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/kit-pointer-regex-opportunity.md`
+— all four shapes reproduced 2026-08-24 by running the shipped regexes. **The gate then fired on the
+opportunity reporting it, twice**: first on the truncated strings quoted as evidence OF the
+truncation, then on the citations of the buggy files themselves (`.claude/...` loses its dot). The
+document cannot cite its own subject with line precision, so it scores 89 with
+`soft_floor_evidence_density_low` — and the caveat is the finding, not a gap. Also measured: the
+scoped-specifier case passing is not the gate handling scopes, it is the gate never seeing them.
 why_now: measured 2026-08-23 — `skills/discover-plan-confidence/scripts/check_measurement_targets.py`
 matches any backticked token containing a slash (`PATH_TARGET_RE`) and resolves it against the
 repo root. A plan naming `theokit/server/plugins` — a real npm module specifier with a subpath,
@@ -538,12 +758,25 @@ Measured the same day in the sibling script `skills/discover-confidence/scripts/
 after the scope as `theokit/sdk/dist/server/auth/index.d.ts:14`, resolves nowhere, and fires
 `fabricated_evidence` — a HARD CAP. Any opportunity citing a file inside a scoped npm package is
 INVALID by construction. Same root cause, two scripts.
-status: raw
+status: shipped
+shipped_by: the kit's own repository (`git@github.com:paulohenriquevn/squad.git`), commit `973d8cc`
+  on `workspace`, pushed 2026-08-24. Both patterns capture the token whole; classification is by
+  module resolution (walking the pnpm store, which nests packages two levels down), never by a name
+  list. The cap stays armed — verified by mutation in both directions. The installed copies here are
+  refreshed and byte-identical, and the B-017 opportunity now scores 98.7 with the line-precise
+  citations it previously could not carry.
+residue: the `workspace → develop` PR in the kit is UNOPENED — `gh` in this session authenticates as
+  `usetheodev`/`aquimai`, and the kit is under `paulohenriquevn`. Pushing straight to `develop` would
+  break the rule the kit itself enforces, so it is left for Paulo. Surfaced [[B-033]].
 dod:
 
 - a plan citing an unscoped npm subpath specifier scores it as a module, not as a missing file
 - an opportunity citing `path/to/@scope/pkg/file.ts:12` resolves it, instead of truncating at
   the `@` into a path that exists nowhere
+- an opportunity citing a dotted directory resolves it too: measured 2026-08-23 on B-002's
+  opportunity, `.github/workflows/ci.yml:120` is truncated by the same `\b` to
+  `github/workflows/ci.yml:120` and fires `fabricated_evidence`. One regex, three shapes it
+  cannot express: npm subpath specifiers, `@scope` packages, and dotfile directories
 - the fix distinguishes specifier from path by resolution, not by a denylist of known package names
 - a genuinely fabricated path still trips `fabricated_target` — a regression test covers both
 
@@ -554,7 +787,7 @@ not a fix, and it will not occur to the next author.
 note: `.claude/` is not versioned here. Per the personal-environment rule, this item's fix belongs
 in the kit's own repository; registering it here records the finding so it is not lost.
 
-## B-018 — nineteen transitive HIGH advisories sit in the workspace with nothing watching them [ ]
+## B-018 — nineteen transitive HIGH advisories sit in the workspace with nothing watching them [x]
 
 > Registered 2026-08-23 by `/deps-audit` while auditing B-001's plan.
 
@@ -562,7 +795,14 @@ domain: dev-tooling
 repo: plugin-canvas
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/deps-audit-runtime-gate-opportunity.md`
+— measured 2026-08-24 by splitting each advisory path at its first edge and looking that edge up in
+the ORIGIN package's own manifest. **All 19 HIGH enter through a devDependency; none reaches a
+runtime chain**, so none ships. 17 of 19 originate at the workspace root, which publishes nothing.
+That is a calmer picture than the count reads as, and it relocates the exposure: the problem is that
+nothing tells the nineteen apart from a twentieth that WOULD ship. No workflow runs an audit, and
+`osv-scanner` — the second scanner `rules/deps-audit-golden-rule.md § 5` requires for npm — is not
+installed, so even a manual audit is single-sourced against a rule saying it must not be.
 why_now: measured 2026-08-23 — `pnpm audit --json` reports
 `{"low":4,"moderate":12,"high":19,"critical":0}`. Every HIGH is transitive (none declared in any
 manifest here): `brace-expansion` (6), `undici` (4), `js-yaml` (4), `nanoid` (2), `form-data` (1),
@@ -570,7 +810,12 @@ manifest here): `brace-expansion` (6), `undici` (4), `js-yaml` (4), `nanoid` (2)
 `packages/plugin-canvas > jsdom > form-data` — but through a devDependency, so it does not ship to
 consumers. Nothing in CI runs `pnpm audit`, so this count is invisible between manual audits, and
 a future advisory on a runtime path would be equally invisible.
-status: raw
+status: shipped
+shipped_by: PR #130, merged 2026-08-24. `pnpm quality:deps` fails only on a runtime chain and
+  reports dev chains, with the distinction read from the manifests — a test runs the same advisory
+  against two manifests differing only in the section and asserts opposite verdicts. Green today, on
+  purpose. Surfaced [[B-034]]: I wrote an osv-scanner action reference from memory and removed it,
+  because 9 of 10 `uses:` here are SHA-pinned and a SHA from memory is a fabrication.
 dod:
 
 - a gate that fails when a HIGH advisory reaches a package's **runtime** dependency chain, and
@@ -582,7 +827,7 @@ dod:
 note: `repo:` is `plugin-canvas` because that is the only package whose chain reaches a published
 artefact; the fix is repository-wide.
 
-## B-019 — four packages integrate through a seam the current SDK major no longer has [ ]
+## B-019 — four packages integrate through a seam the current SDK major no longer has [x]
 
 > Registered 2026-08-23 while implementing B-001's auth conformance test, which found it.
 
@@ -606,7 +851,11 @@ providers the documented way. This is the #42 defect class exactly: a package ty
 framework API, and the framework moved. It surfaced within minutes of the conformance test
 existing (`integration/tests/seam/auth-orchestrator-conformance.offline.test.ts` failed with
 `TypeError: defineAuth is not a function` while the sdk was briefly resolved at `@latest`).
-status: raw
+status: shipped
+shipped_by: PR #131, merged 2026-08-24. **The headline was refuted**: no package imports the moved
+  seam, and the types they do import exist in both majors — so no package changed. What shipped is
+  an assertion that reads the declared range and the resolved version from disk and names both,
+  replacing a bare `TypeError` that cost three measurements to explain.
 dod:
 
 - a decision, recorded as an ADR, on whether these packages move to the `Auth` class or stay
@@ -620,7 +869,7 @@ dod:
 note: `repo:` is `auth-google` because that is where the conformance test caught it; the decision
 spans all four packages.
 
-## B-020 — /code-quality was returning PASS over zero languages [ ]
+## B-020 — /code-quality was returning PASS over zero languages [x]
 
 > Registered 2026-08-23 while running the CODE-QUALITY phase on B-001.
 
@@ -628,7 +877,23 @@ domain: dev-tooling
 repo: plugin-db-drizzle
 suggested_mode: bug
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/cq-zero-language-pass-opportunity.md`
+— measured 2026-08-24 in the kit's source. `run_code_quality.py:206` builds `enabled_languages` and
+loops over it; with nothing ENABLED the loop body never executes, `languages_audited` stays empty,
+and the verdict is computed from zero findings. `test_orchestrator.py:77` states the rule as
+`test_verdict_pass_when_no_findings` — correct about the verdict function, blind to WHY there were
+none. The information to tell the two cases apart is already loaded: `defaults/languages.txt` maps
+every language to its manifest marker, and the whole table is in `cfg`. A false PASS here does not
+merely fail to raise a gate — `cycle-implement`'s validation blocks on `FAIL_HARD`, so it CLEARS
+one. **The item splits in two and neither half is quite what it described.** (1) The guard ALREADY
+EXISTS in the kit (`run_code_quality.py:333`, with a test); the copy installed here has none of it,
+so the local `.claude/` is simply stale — the same gap [[B-017]] closed by refreshing files.
+(2) The guard that exists is manifest-BLIND in both directions: it fires on an empty
+`languages_audited` regardless of manifests, so a genuinely pre-code repo is marked INVALID
+(violating the third DoD bullet), and it never fires when SOME language was audited and another's
+manifest was ignored (the second bullet, which the guard's own comment defers). Checked: every
+`/code-quality` run recorded this session reports `Languages audited: typescript`, so none was a
+zero-language pass.
 why_now: measured 2026-08-23 — `.claude/rules/code-quality-languages.txt` contained only comments,
 so `run_code_quality.py` returned `{"verdict": "PASS", "languages_audited": []}`. Every gate in
 `cycle-code-quality.md` (dead code, symbol fabrication, wiring, mutation) was skipped, and the
@@ -636,7 +901,17 @@ cycle reported PASS. This is a TypeScript monorepo of eleven packages; enabling 
 turned the same run into `languages_audited: ["typescript"]`. A PASS over nothing is
 indistinguishable in the report from a PASS over everything, which is the failure mode the whole
 cycle exists to prevent.
-status: raw
+status: shipped
+shipped_by: the kit's repository, commit `a557d20` on `workspace`, pushed 2026-08-24, plus a local
+  refresh of the gitignored install. Half one was a STALE INSTALL, not a missing fix. Half two —
+  `unaudited_manifest_present` — now fails a run that audited one language while another's manifest
+  sat untouched, verified by mutation; 174 kit tests pass.
+not_met: the third DoD bullet ("a genuinely pre-code repo still passes") conflicts with a deliberate
+  kit policy decided the other way with recorded reasoning. Refused rather than overridden: pinned in
+  the kit's suite as a disagreement and filed as [[B-035]]. Reporting this item complete without
+  saying so would be the misreport the item is about.
+residue: the kit's `workspace → develop` PR is unopened — `gh` here authenticates as
+  `usetheodev`/`aquimai`, and the kit is under `paulohenriquevn`. Same constraint as [[B-017]].
 dod:
 
 - a run whose `languages_audited` is empty while manifests exist on disk emits a finding, not
@@ -652,7 +927,7 @@ checkout starts unaudited again. That is the second half of this item, and it is
 fix belongs in the kit — a default that audits what it finds — rather than in a config file this
 repo cannot version.
 
-## B-021 — the OAuth transaction cookie is encrypted with a constant published in the package [ ]
+## B-021 — the OAuth transaction cookie is encrypted with a constant published in the package [x]
 
 > Registered 2026-08-23 by the auth-provider reviewer during B-001's REVIEW phase.
 
@@ -660,7 +935,15 @@ domain: auth-provider
 repo: auth-google
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/sdk-tx-secret-constant-opportunity.md`
+— both re-measured 2026-08-24 against the installed `@theokit/sdk@2.18.0` and both hold. The
+fallback constant is in the shipped bundle; `SessionManager` declares no `secret`, so the first
+branch is unreachable for a conforming value. And the store reads `__Host-theo_oauth_tx` while the
+writer emits `theo_oauth_tx` — the missing prefix loses the guarantee its own docstring cites, AND
+keeps the secret defect latent, because the callback cannot find what it wrote.
+correction: this item said the flow is unreachable "because [[B-019]]'s cookie-name mismatch".
+B-019 turned out to be about `defineAuth` being absent in sdk 4, which measurement refuted. The
+cookie-name mismatch is its own defect in 2.x, independent of B-019.
 why_now: measured 2026-08-23 in `@theokit/sdk@2.18.0` — `txCookieSecret` (`dist/server/auth/index.js:193`)
 falls back to the literal `DEV_ONLY_INSECURE_OAUTH_TX_SECRET_REPLACE_IN_PROD` when neither
 `opts.session.secret` nor `THEOKIT_OAUTH_TX_SECRET` is set. `DefineAuthOptions.session` is typed
@@ -671,7 +954,8 @@ unreachable for any value satisfying the declared type — confirmed against a r
 (`oauth-transaction-store.d.ts:9`), so a sibling subdomain can set it. `AuthSecretTooShortError`
 does not fire: the constant is 48 chars. Latent today only because [[B-019]]'s cookie-name
 mismatch makes the callback unreachable; it becomes live the moment that is fixed.
-status: raw
+status: shipped
+shipped: 2026-08-24 — PR #132. No code changed: both defects are in `@theokit/sdk@2.18.0`, a peer this repository never builds, and the three auth packages implement a type contract without constructing the orchestrator. Shipped instead: `integration/tests/seam/sdk-tx-cookie-defects.offline.test.ts` (asserts both defects are PRESENT, so it goes red the day either is fixed) and a `THEOKIT_OAUTH_TX_SECRET` production note in all three auth READMEs. The `dod` bullets above are NOT met and cannot be met here — they are obligations on the sdk.
 dod:
 
 - a sign-in cannot proceed when the transaction secret is the published constant — it fails at
@@ -683,23 +967,824 @@ dod:
 note: the fix is in `@theokit/sdk`, another repository. What belongs here is the measurement, the
 regression test, and a decision on whether these packages may ship against a version that has it.
 
-## B-022 — `assertProductionSecret` warns about a boot refusal nothing implements [ ]
+## B-022 — `assertProductionSecret` warns about a boot refusal nothing implements [x]
 
 domain: auth-provider
 repo: auth-github
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/plans/assert-production-secret-plan.md` — measured 2026-08-24
 why_now: measured 2026-08-23 — `theokit@0.48.8` exports `assertProductionSecret` from
 `theokit/server/auth`, and it has zero callers in this repository. It is also never called by
 `createSessionManager` itself (grepped the bundled chunk: only the definition and the export
 list). What actually runs is `normalizeSecrets`, a 32-character floor applied in every
 environment. So the guard's own message — that a production server will refuse to boot until the
 placeholder is replaced — is not backed by anything these packages wire.
-status: raw
+status: killed
 dod:
 
 - either the packages call it where they claim the guarantee, or the claim is removed from the
   surface that makes it
 - a test asserts the chosen behaviour under `NODE_ENV=production`, since that is the only branch
   where it would bite
+kill_reason: measured 2026-08-24 against `theokit@0.48.8`. The two factual halves of `why_now`
+both hold, and the third — the one that would locate work here — does not.
+
+**What holds.** `assertProductionSecret` occurs 6 times across 160 `.js` files under
+`integration/node_modules/theokit/dist/`, and every occurrence is the definition
+(`dist/chunk-646CA6RV.js:239`) or an export re-listing. There is no call site. Its promise sits
+in the non-production branch at `dist/chunk-646CA6RV.js:262` — *"the production server will
+REFUSE to boot until you replace it"* — which means the sentence announcing the refusal is
+itself inside the function nobody calls, so a developer never even sees the warning. What runs
+instead is `normalizeSecrets` (`:93`), a length floor with no knowledge of `PLACEHOLDER_PATTERN`.
+Measured consequence: `NODE_ENV=production` + a 33-character `CHANGE_ME…` secret →
+`createSessionManager` **accepts it**; a short secret is refused, by the other function, with the
+other message.
+
+**Why the item dies here anyway.** The measurement plan's falsification criterion 3, written
+before measuring, said: if no surface this repository owns leads a reader to expect the boot
+refusal, the defect belongs upstream and there is nothing here to fix. Searched by the CLAIM's
+vocabulary rather than the symbol name (plan EC-2, precisely to avoid killing a promise made in
+prose): `refuses to boot` / `will not boot` / `placeholder` / `NODE_ENV` across every
+`packages/*/README.md` and `src/` — **zero** hits that make the claim. The `placeholder` hits are
+form fields; the `NODE_ENV` hits are `auth-google`'s test-only OIDC escape hatch and
+`plugin-payments`' idempotency-store guard. The two auth READMEs that mention
+`createSessionManagerWeb` do so in a prose aside without a secret argument and without any
+guarantee. `docs/` has nothing.
+
+So the item's `dod` is unexecutable here by construction: neither *"call it where they claim the
+guarantee"* nor *"remove the claim from the surface that makes it"* has a subject in this
+repository. No package constructs a session manager; the consumer does, through theokit.
+
+**Where it went instead:** filed as `usetheokit/theokit#429` with the repro, the 6/160 count, and
+a suggested fix (call it from `createSessionManager` before `normalizeSecrets` returns, or stop
+promising a refusal the framework does not perform). Per
+`rules/knowledge-base-location.md § Autonomy` this registry does not span other repositories, so
+the finding is recorded there rather than kept open here.
+
+Adjacent, and deliberately not folded in: B-021 added a `THEOKIT_OAUTH_TX_SECRET` production note
+to the three auth READMEs. That note instructs; it promises no guard, so it is not the claim this
+item was about. If it ever grows one, this kill should be revisited under a new id.
+
+## B-023 — the release pipeline cannot open its own Version Packages PR [x]
+
+> Registered 2026-08-23 during B-001's RELEASE phase, which hit it.
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: review
+source: human
+evidence: `.claude/knowledge-base/discoveries/opportunities/release-pr-permission-opportunity.md` — measured 2026-08-24. Mode reclassified `bug` → `review` (nothing reproduces in a test; the subject is a setting and a workflow's ordering).
+why_now: measured 2026-08-23 — merging `develop → main` (#117) started `release.yml`, which ran
+`changeset version`, consumed all 11 changesets, pushed the bumps to `changeset-release/main`, and
+then failed: `HttpError: GitHub Actions is not permitted to create or approve pull requests`
+(run 32638787879). The versioning half had already run, so the changesets were gone and **nothing
+was published** — the repository was left mid-release, with the bumps on a branch nobody had asked
+for. Recovering meant opening the PR by hand (#118) and merging it, which then published all 11
+packages successfully (run 32639033942). The workflow has a step literally named "Fail loudly if
+the release PR could not be opened", so the failure mode was anticipated; the permission was not
+granted.
+status: shipped
+dod:
+
+- a release either completes or leaves the changesets intact — the half-applied state above must
+  not be reachable
+- the fix is a permission or a token, not a documented manual step: "open the PR by hand" makes
+  every release depend on someone knowing that
+- a dry-run path exists so the next change to `release.yml` is verifiable without publishing
+
+note: the pipeline is otherwise correct — versions, tags and GitHub releases were all right once
+the PR existed. This is one missing setting ("Allow GitHub Actions to create and approve pull
+requests"), not a broken design.
+shipped: 2026-08-24 — `.github/workflows/release-dryrun.yml`, a `workflow_dispatch` dry run that
+runs the release's own typecheck and test gates, renders the planned version table, shows what the
+bump would touch, and publishes nothing (`permissions: contents: read` is what makes that a property
+of the job rather than a promise). Its summary renderer lives in `tools/` and is unit tested — the
+case worth getting right is the empty one, and an empty markdown table is exactly what a step that
+never ran also produces.
+
+Two of the three `dod` bullets closed differently and both are recorded rather than quietly ticked:
+
+- Bullet 1 was **already satisfied before this item was written**. Measured: 11 changesets present
+  at `d17a4a4` (main, during the failed window) and 0 at `44b7792` (after the hand-opened PR
+  merged). `changesets/action` versions on a side branch, so a failed run cannot consume `main`'s
+  changesets. The state was incomplete, not half-applied — `why_now`'s "the changesets were gone"
+  is wrong.
+- Bullet 2 is **not closed and is not this repository's to close**. `RELEASE_PAT` is unset
+  (`total_count: 0`) and the organisation's `can_approve_pull_request_reviews` is `false`, so the
+  next release still fails the same way. Both remedies need a human with org rights: minting a
+  credential, or flipping a flag that also grants Actions the ability to APPROVE pull requests in
+  every repository of the org. The dry run reports the observable half and explicitly says it
+  cannot read the other.
+
+Review `READY_TO_MERGE_WITH_FOLLOWUPS`; the one HIGH is registered as [[B-036]].
+
+## B-024 — `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want [x]
+
+> Registered 2026-08-23 by the plugin-server reviewer during B-002's REVIEW phase.
+
+domain: plugin-server
+repo: plugin-payments
+suggested_mode: review
+source: human
+evidence: `.claude/knowledge-base/discoveries/opportunities/stripe-decoration-key-opportunity.md` — measured 2026-08-24
+why_now: found 2026-08-23 while writing the decoration-key rule, which claimed "both existing keys"
+follow the exported-const form. There are **three** keys, and `stripe`
+(`packages/plugin-payments/src/stripe.ts:123`) follows neither half of the convention: it is an
+inline literal with no exported const, so a consumer retypes it instead of importing it; and it is
+a vendor noun rather than a plugin noun. A consumer using the Stripe SDK is a plausible claimant of
+`ctx.stripe`, and per the measurement in [[B-002]] the framework resolves that collision silently,
+last-writer-wins — in their app, moving when they reorder their own config. `pnpm check:manifests`
+cannot see it: the check compares keys across OUR packages, and a consumer's key is outside this
+repository by construction.
+status: shipped
+dod:
+
+- the key is namespaced by the plugin rather than by the vendor, and exported as a const so it can
+  be imported
+- the rename is shipped as a breaking change with a migration note, since `ctx.stripe` is public
+  surface as much as an exported function — `@theokit/plugin-payments` is published at 0.4.0
+- `rules/decoration-keys.md`'s table is updated in the same change, so the rule stops recording a
+  known exception
+shipped: 2026-08-24 — measurement split this item in two, and only one half shipped.
+
+**Shipped (additive).** `export const STRIPE_DECORATION_KEY` at
+`packages/plugin-payments/src/stripe.ts:85`, used at the call site. The key's VALUE is unchanged, so
+nothing breaks — `packages/plugin-payments/tests/factory.test.ts:142` reads `decorations.get('stripe')`
+and passes **unmodified**, which is the evidence. More durable than the fix itself:
+`pnpm check:manifests` now fails on a key passed as a string literal OR as a non-exported const, so
+the next key cannot regress. Mutation-verified — reverting the call site to `'stripe'` turns the
+gate red.
+
+The non-exported-const half came from the edge-case review (EC-1) and is the half that mattered: a
+check asking only "identifier or literal?" accepts a module-local const — an identifier at the call
+site, and still a key no consumer can import.
+
+**Not shipped, and registered rather than mentioned.** The rename. `dod` bullets 1b and 2 ask for the
+key to be namespaced by the plugin and shipped as a breaking change; `ctx.stripe` is published
+surface on `@theokit/plugin-payments@0.4.0`, documented at `packages/plugin-payments/src/types.ts:34`
+and reachable through the `./stripe` subpath. Bundling a major into a slice whose other parts are
+additive would force consumers to take a breaking change to receive a gate fix. → [[B-037]].
+
+The ordering was the point: exporting the const is what makes the later rename a one-line change for
+a consumer instead of a search-and-replace.
+
+`dod` bullet 3 is closed — `.claude/rules/decoration-keys.md § 2` no longer records a live
+exception, and § 3 gains the new mechanical row plus its stated limit (the gate cannot see whether
+the exported const is reachable from a package entry).
+
+Review `READY_TO_MERGE_WITH_FOLLOWUPS`.
+
+## B-025 — no Python runs in CI, so a consumer-side kit invariant could not execute [x]
+
+> Registered 2026-08-23 while killing [[B-005]] — the local half of that item.
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: review
+source: human
+evidence: `.claude/knowledge-base/discoveries/opportunities/ci-python-gate-opportunity.md` — measured 2026-08-24
+why_now: measured 2026-08-23 — `.claude/scripts/` holds Python that encodes real invariants of
+this project (`route_domain.py` routes all 11 packages across 4 domains; `check_xrefs.py` validates
+every rule cross-reference), and **no workflow in `.github/workflows/` invokes Python at all**. So
+even a correctly-shipped kit test would not execute on a pull request here. The routing table's
+one-package-one-domain invariant holds today, verified by running the parser by hand; nothing keeps
+it holding.
+status: shipped
+dod:
+
+- a CI step runs the project's Python checks on every pull request, and fails when one fails
+- adding a package name to a second domain row of `rules/cycle-backlog.md` turns that step red
+- the step does not depend on `.claude/` being versioned, since `.gitignore:50` excludes it — so
+  the fix either ships the checks elsewhere or states plainly why the gate is best-effort
+
+note: this is the half of B-005 that is local and measurable. The other half — the kit's test being
+bound to its own routing table — belongs to the kit's backlog.
+shipped: 2026-08-24 — one of three `dod` bullets closed, and the other two are recorded as
+**unclosable here** rather than left open-looking.
+
+**Bullets 1 and 2 cannot close in this repository.** Measured against git rather than the
+filesystem, because the question is what a fresh clone can run: `git ls-files '*.py'` → **0**,
+`git ls-tree HEAD | grep '^.claude/'` → **0**, and no versioned file invokes Python. A CI step
+cannot run a script absent from the checkout, against a rule file also absent from it. Adding the
+step anyway would produce a gate passing over an empty set — reporting the invariant as covered,
+which is the worst available outcome.
+
+**Bullet 3 closed**, which is the branch the bullet itself offered: `CONTRIBUTING.md` now carries a
+section stating that `.claude/` is installed tooling, excluded by `.gitignore`, absent from a fresh
+clone, and covered by no gate here — with a table separating that from the product, which is fully
+gated. It travels in git, which is the requirement.
+
+**A correction to the item's premise, and to my own first measurement.** The item says nothing keeps
+the routing invariant holding. Re-measured without a truncating `head`:
+`tests/test_route_domain.py::test_no_repo_belongs_to_two_domains` **does** exist in the kit — but it
+hard-codes the kit's own rule path and `assert len(table) == 8`, while this table has **4** domains
+over 11 packages, and `install.sh` does not copy `tests/`. So the invariant was tested for the
+author's table and for no consumer's.
+
+**Where the other half went.** Kit commit `c062b82`: the invariant moved into
+`parse_routing_table`, following the precedent its own docstring set for the exit-3 guard — *"the
+check belongs in the tool, which always runs, rather than in a test suite that ships to nowhere."*
+Mutation-verified against THIS repository's table: duplicating `plugin-forms` into `dev-tooling` now
+raises. Recorded here as where it went, never as work this item closed —
+`rules/knowledge-base-location.md § Autonomy` keeps this registry inside this repository.
+
+## B-026 — three gates in a row shipped a summary line the run had not earned [x]
+
+> Registered 2026-08-23 after the third instance, during B-008.
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: review
+source: human
+evidence: `.claude/knowledge-base/discoveries/opportunities/gate-summary-earned-opportunity.md` — measured 2026-08-24
+why_now: measured across three consecutive slices in one day. Each new gate printed an
+unconditional success line regardless of whether it had checked anything:
+(1) `check_decoration_keys` printed `✓ no two packages claim the same request-decoration key` after
+resolving zero keys — found by the [[B-002]] reviewer, who showed an ordinary refactor turned a real
+collision into an unresolved line under that green;
+(2) `checkSeamDocumentation` printed `✓ every package with a seam names its factory in its README
+(0 checked)` when the registry was missing — found by the [[B-007]] reviewer;
+(3) `checkDrift` printed `CHANGELOG.md: the newest release is recorded.` while also printing
+`the release-drift check did not run` — found during B-008's own integration validation.
+Three different authors' worth of the same defect in one file each. Each was fixed locally, and
+nothing stops the fourth.
+status: shipped
+dod:
+
+- a shared helper, or a lint rule, that makes "report success" and "report what was skipped" one
+  decision instead of two independent `console.log` calls
+- a test that fails when a gate's success line can be reached without the corresponding check
+  having run — the property, not three instances of it
+- the existing three are migrated to it, so the rule has users and not only a README
+
+note: the pattern is worth naming because the failure is invisible by construction. A gate that
+misses a defect gets found eventually; a gate that reports success it did not earn teaches everyone
+downstream to trust a line that means nothing.
+shipped: 2026-08-24 — `tools/lib/gate-summary.mjs`, and all six gates routed through it.
+
+**The item understated itself.** It reads as three historical instances with a prediction of a
+fourth; the fourth and fifth were already live and were found by RUNNING the gates rather than
+reading them. `check-orphan-docblocks.mjs` with its file list empty printed
+`PASS — no docblock is stranded above another docblock.` having read zero files.
+`check-doc-coverage.mjs` with no packages printed `overall 0/0 = 0.0% (floor 100%)` and then `PASS`
+on the next line — two adjacent statements contradicting each other, neither wrong on its own terms.
+That contradiction IS `dod` bullet 1 in concrete form: two independent `console.log` calls, made
+separately, free to disagree.
+
+A **sixth** turned up during migration, in a file that had already been repaired once:
+`check-changelog-structure.mjs` guards its drift claim honestly and its structure claim not at all —
+an `[Unreleased]` with zero category headings compares nothing and printed "one section per category,
+in canonical order" anyway. The defect sat one claim over from its own fix, under a comment
+explaining why it must not happen. Nothing carries prose to the next claim.
+
+`dod` bullet 1 closed by the helper: one input decides success AND what was skipped, so there is
+nothing left to disagree. Bullet 2 closed by two tests — behavioural over the helper (`checked: 0`
+cannot pass), and structural over a gate list read **from disk**, because a hand-kept list is
+precisely how the fourth was missed.
+
+Mutation-verified per gate, exit codes read without a pipe after the first attempt read `tail`'s.
+
+**Stated limit, in the helper's own docblock:** it cannot tell whether the count it is handed is
+honest. A gate examining nothing and passing `checked: 12` satisfies it completely. That is
+judgement, and a mechanism claiming otherwise would be the unearned confidence this item is about.
+
+Review `READY_TO_MERGE` — zero BLOCKER, zero HIGH.
+
+## B-027 — no local gate catches a manifest edited without its lockfile [x]
+
+> Registered 2026-08-23 after making the same mistake twice in one day.
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: review
+source: human
+evidence: `.claude/knowledge-base/discoveries/opportunities/lockfile-drift-gate-opportunity.md` — measured 2026-08-24
+why_now: measured 2026-08-23 — twice, in [[B-008]] and [[B-010]], a devDependency was added to
+`integration/package.json` and `pnpm-lock.yaml` was left behind. Both times **all ten local gates
+passed** and CI failed at `pnpm install --frozen-lockfile` with `ERR_PNPM_OUTDATED_LOCKFILE`,
+because no local script passes that flag: `pnpm test`, `pnpm build` and the rest install
+permissively. The feedback arrives ~2 minutes into CI instead of ~1 second locally, and it arrives
+as a red build on a PR rather than as a check the author ran.
+status: shipped
+dod:
+
+- a local check fails when `pnpm-lock.yaml` does not satisfy the workspace manifests, runnable in
+  under a second and wired where the other gates are
+- adding a dependency to any `package.json` without updating the lockfile turns it red
+- a fresh clone with an untouched lockfile stays green — the check must not fire on the common case
+
+note: the fix is one command (`pnpm install --frozen-lockfile --lockfile-only --dry-run` or
+equivalent) plus a script entry. It is registered rather than fixed in passing because it belongs
+to whichever gate list it joins, and adding a gate mid-slice is the scope creep the review process
+exists to catch.
+shipped: 2026-08-24 — `pnpm check:lockfile`, wired into `package.json` and named as its own step in
+`ci.yml`. Mode reclassified `bug` → `review`: there was no failing test and the subject is a gate
+that does not exist, not a defect in product behaviour.
+
+**The note's proposed command does not run.** `why_now` says the fix is
+`pnpm install --frozen-lockfile --lockfile-only --dry-run`; measured, that answers
+`ERROR Unknown option: 'dry-run'`. `--dry-run` is not a pnpm option. The framing was load-bearing —
+it is what made this look like a five-minute task — and the working command had to be found by
+running candidates.
+
+All three `dod` bullets measured on the real repository, not on a fixture:
+
+- **under a second, wired with the other gates** — `Done in 285ms using pnpm v10.34.1`, exit 0.
+  Stated caveat: that is a warm-store figure.
+- **adding a dependency without updating the lockfile turns it red** — `left-pad` into
+  `integration/package.json` → exit 1 with `ERR_PNPM_OUTDATED_LOCKFILE`, the same string CI prints,
+  so nobody learns a second vocabulary for one condition.
+- **a clean checkout stays green** — exit 0, and `git diff pnpm-lock.yaml` empty after both runs.
+
+No wrapper under `tools/`, deliberately: the whole behaviour is pnpm's, and a wrapper would be one
+more place to report a pass it had not earned — which [[B-026]] shipped a helper to stop, one item
+earlier. Parsimony rung 5.
+
+**Stated limit:** it detects that the lockfile does not SATISFY the manifests, which is exactly
+pnpm's claim and no wider. A lockfile that satisfies them and is wrong some other way is invisible
+to it.
+
+Review `READY_TO_MERGE` — zero BLOCKER, zero HIGH.
+
+## B-028 — the Yjs wire encodes on the way down and hands raw bytes on the way up   [ ]
+
+domain: plugin-server
+repo: plugin-realtime
+suggested_mode: bug
+source: human
+evidence: measured 2026-08-23 while shipping [[B-011]]. `InboundWireFrame`
+  (`packages/plugin-realtime/src/internal/runtime.ts:41-42`) types both Yjs kinds as
+  `bytes: Uint8Array`, and `RealtimeOutboundFrame` — what `RealtimeSendClient.send` accepts — is
+  that union re-exported. So a browser hands its transport a `Uint8Array`, and
+  `JSON.parse(JSON.stringify(...))` turns it into `{"0":1,"1":2,"2":255}`, which `Y.applyUpdate`
+  rejects. Verified in node. The OUTBOUND direction already solves this:
+  `packages/plugin-realtime/src/internal/server-integration.ts:70` base64-encodes, and
+  `packages/plugin-realtime/tests/integration/wire-round-trip.test.ts` exists specifically to prove
+  that encoding is load-bearing. The inbound direction has no equivalent.
+  `dispatchFrame` has **no production caller** in this package (a plugin cannot register a route,
+  per the domain's own seam constraint), so the consumer owns both ends of the serialisation and
+  gets no help on one of them.
+why_now: [[B-011]] shipped the client-side send path, so browser code now produces `yjs-update`
+  frames for the first time. Before it, this type was unreachable from a client and the asymmetry
+  cost nothing.
+status: shipped
+shipped_by: the same slice that surfaced it — an independent review of [[B-011]] called it a
+  BLOCKER rather than a documentation gap, and it was right: the headline claim ("wired both ways")
+  did not hold over the one transport the README teaches. Filing it and shipping the feature with a
+  manual-encoding note would have published a broken path with an apology attached.
+  `InboundWireFrame` now accepts `Uint8Array | string`, the React sender encodes, `dispatchFrame`
+  decodes and rejects undecodable base64 by name. The convergence test round-trips through
+  `JSON.stringify`, and reverting the encode turns it red.
+dod:
+  - a test that fails today by round-tripping an outbound Yjs frame through `JSON.stringify` — done
+  - the two directions agree — done, both carry base64
+  - `wire-round-trip.test.ts`'s inbound twin exists — done
+    (`tests/runtime-yjs-storage.test.ts` § the frame the client actually puts on the wire)
+
+## B-029 — a client joining a room sees an empty document until somebody types   [x]
+
+domain: plugin-server
+repo: plugin-realtime
+suggested_mode: evolve
+source: human
+evidence: surfaced by an independent review of [[B-011]] and confirmed against the code.
+  `createYjsRealtimeProvider` fans out a `joined` frame carrying presence only
+  (`packages/plugin-realtime/src/yjs-provider.ts:242`), and `applyYjsUpdate` rebroadcasts the delta
+  it received rather than the document's state
+  (`packages/plugin-realtime/src/yjs-provider.ts:332`). The provider's own comment there says a
+  joining client "needs an initial sync, which is a separate concern". So the second person to open
+  a document gets nothing until a live edit arrives. Reproduced by the reviewer with the B-011
+  convergence harness, alice writing before bob connects: bob's document was `""`.
+why_now: [[B-011]] made the client half real. Before it, no React consumer could hold a wired
+  document at all, so "joins and sees nothing" was unreachable. It is now the first thing the
+  second user of a document experiences, and the README documents the feature.
+status: shipped
+dod:
+  - a test with two clients where the first edits BEFORE the second connects, and the second ends
+    up with the first's content
+  - the handshake is a protocol decision, recorded: `Y.encodeStateAsUpdate` replay on join is the
+    obvious one, and the reason for choosing it over a state-vector exchange is written down
+  - the README stops describing the workaround and describes the behaviour
+shipped: 2026-08-24 — the sync fires in `subscribeRoom`, and where it fires IS the finding.
+
+Reproduced by running it: `FRAMES BOB RECEIVED: [ 'joined' ]`, `BOB DOC CONTENT: ""`. The server held
+the full document the whole time (`packages/plugin-realtime/src/yjs-provider.ts:14`); what it lacked
+was a way to address ONE client. `fanout` iterates listeners with no identity — its own comment says
+so — and `joinRoom` receives a `ConnectionInfo` with no channel back. `subscribeRoom` has both, and
+the provider's comment deferring initial sync as "a separate concern" is what had kept the search at
+`joinRoom`, where it cannot be written.
+
+All three `dod` bullets closed:
+
+- **the test** — 6 cases, including the item's exact scenario (first client edits before the second
+  connects). Mutation-verified: disabling the sync turns 3 red.
+- **the protocol decision, recorded** — `docs/adr/0003-initial-sync-replays-full-state.md`, with the
+  rejected alternative costed. The decisive constraint is not bytes: a state-vector exchange needs a
+  client→server frame that does not exist, and `applyYjsUpdate` cannot serve as one because it
+  APPLIES bytes to the doc — a vector sent through it would corrupt the document. A's O(document)
+  cost is stated with its threshold explicitly **unmeasured** rather than guessed.
+- **the README** — the workaround paragraph replaced by the behaviour, plus what it still does not
+  do: nothing is persisted, so a room garbage-collected after the last participant leaves gives the
+  next arrival an empty document.
+
+Two of my tests failed after the code was already correct, both with an empty document — with no
+presence and no listener, `gcIfEmpty` destroys the room's doc. They had encoded a lifetime assumption
+this package deliberately does not hold. That assumption is now pinned by its own case so it is not
+rediscovered as a bug.
+
+Review `READY_TO_MERGE`. One HIGH, and it is a disclosure rather than debt: a subscriber to a
+non-empty room receives one frame more than before, `tsc` cannot surface it, and the changeset says
+so in the words a consumer needs.
+
+## B-030 — a multipart scalar array loses every element but the last   [x]
+
+domain: plugin-server
+repo: plugin-forms
+suggested_mode: bug
+source: human
+evidence: measured 2026-08-24 by the round-trip test shipped with [[B-012]]
+  (`packages/plugin-forms/tests/integration/multipart-round-trip.test.ts`), which drives a real
+  action through `theokit`'s own `executeAction` over a real multipart request.
+  `{ tags: ['first','second','third'] }` comes back as `['third']`.
+  The cause is upstream of the convention, in the framework rather than in this package:
+  `parseWebRequestBody` collects text parts into a **plain object** (`fields[key] = value`), so two
+  parts named `tags` overwrite each other. `synthesizeFormData` then rebuilds a `FormData` from that
+  object, and by the time `formDataToObject` calls `getAll('tags')` there is only ever one value to
+  get. **File** arrays are unaffected — the same parser keeps files in an array
+  (`files.push({fieldName, …})`) — which is why [[B-012]]'s feature works and this does not.
+  There is no client-side fix: the collapse happens before any convention is applied.
+why_now: [[B-012]] shipped the client half, so a `<TheoForm encType="multipart/form-data">` is now a
+  supported path and a consumer with a multi-select or a tag list will hit this. Before it, nothing
+  in this ecosystem produced a multipart body with repeated text parts.
+status: shipped
+dod:
+  - the fix is in `theokit`, not here: this item tracks reporting it and re-verifying, since
+    `rules/knowledge-base-location.md § Autonomy` forbids an item here from depending on another
+    repository's state
+  - the pinning test in this repository flips from asserting `['third']` to asserting all three
+    elements, on the day the framework carries them
+  - until then, the limitation is documented where a consumer chooses `encType`
+shipped: 2026-08-24 — the `dod` asks for exactly two things, reporting and re-verifying, and both
+are done. **No code changed here**: the collapse happens upstream of any convention this package
+could apply.
+
+**Re-verified** against `theokit@0.48.8`: `packages/plugin-forms/tests/integration/multipart-round-trip.test.ts`
+passes 6/6, which means the DIAGNOSIS case still asserts `['third']` and the contrasting file-array
+case still passes. Both halves of the asymmetry hold.
+
+**Reported** as `usetheokit/theokit#430`, and measuring for the report sharpened the diagnosis. The
+defect and its counter-example sit in ONE loop, in the `multipart/form-data` branch of
+`parseWebRequestBody`:
+
+```js
+if (typeof value === "string") {
+  fields[key] = value;     // repeated names overwrite
+} else {
+  files.push({ fieldName: key, ... });   // repeated names accumulate
+}
+```
+
+`form.entries()` yields one entry per PART, so three parts named `tags` iterate three times and the
+third assignment wins. The Node path repeats it at the busboy `field` handler. The issue carries a
+suggested fix that keeps the single-value case byte-identical, because `fields` is consumed shape and
+turning every scalar into a one-element array would break `fields.name.trim()`.
+
+One thing I got wrong on the way and corrected before reporting: a `fields[key] ?? []` accumulator
+elsewhere in the bundle looked like the framework already having the right implementation. It
+collects Zod validation issues by field path — unrelated. Reporting it would have sent the maintainer
+to the wrong file.
+
+The test now names the issue, so the pin and the report point at each other.
+
+## B-031 — the skip message names a script nobody checks exists   [x]
+
+domain: plugin-server
+repo: plugin-payments
+suggested_mode: review
+source: human
+evidence: measured 2026-08-24 while closing [[B-015]].
+  `integration/src/harness.ts:112` skips a suite with "run it locally with the flow:* script for
+  this service". Nothing asserts that script exists. It did not for `auth-google`, so the
+  instruction pointed at nothing and that provider's OAuth success path was exercised by neither CI
+  nor a documented procedure — found by reading, not by any gate.
+  The check is mechanical and cheap: every service whose suite calls `describeManualOAuth` must have
+  a matching `flow:<id>` in `integration/package.json`. The registry already carries service ids
+  (`integration/src/services.ts`), and `integration/tests/readiness.test.ts` already reads it, so
+  there is a place for the assertion to live.
+why_now: [[B-015]] added `flow:google`, so the gap is closed for today's two providers — and closed
+  by hand. The next `describeManualOAuth` caller reintroduces it silently.
+status: shipped
+dod:
+  - a test that fails when a service uses `describeManualOAuth` and has no matching `flow:*` script
+  - it fails for the right reason: deleting the `flow:google` entry turns it red, not the suite
+  - the failure message names the service and the script it expected
+shipped: 2026-08-24 — `integration/tests/manifests/manual-flow-scripts.offline.test.ts`, 4 cases, and
+a `manualFlowScript` field on the service registry.
+
+**The item's proposed rule would have failed on correct data.** It asks for "a matching `flow:<id>`",
+and the ids do not match the scripts: `auth-github` is served by `flow:github`. A check guessing
+`flow:<id>` would have gone red on both existing services while they were right. So the link is
+DECLARED on the service instead — a convention nobody wrote down is a convention that drifts, which
+is this item's own thesis applied to its own fix.
+
+All three `dod` bullets measured:
+
+- **fails when a service uses the helper and has no script** — the third case, plus a second one
+  asserting every service using it declares one at all.
+- **fails for the right reason** — deleting `flow:google` turns THIS test red and leaves the suite
+  alone; the check reads files and `package.json` and never runs a suite.
+- **the message names both** — `auth-google declares "flow:google", which is not a script`.
+
+Two things the writing surfaced. The scanner matched **itself**: this test file contains
+`describeManualOAuth(` inside a string literal, so a plain `includes` reported `manifests` as a
+service whose id had drifted. It now requires the harness import too, which is what a real caller has
+and a mention does not. And a vacuity case was added first, because a scanner finding zero suites
+would make every other assertion pass — the failure mode [[B-026]] shipped a helper to stop, one
+level up.
+
+## B-032 — the consumer gate resolves peers from the monorepo, so it cannot see a missing one   [x]
+
+domain: client-surface
+repo: plugin-forms
+suggested_mode: review
+source: human
+evidence: measured 2026-08-24 while closing [[B-016]].
+  `integration/tests/consumer/packaged.test.ts:233` imports each entry by ABSOLUTE PATH into
+  `packages/<name>/`, so every peer resolves from the monorepo's own `node_modules`. Its comment
+  claims the assertion "exercises what a consumer resolves: bundled output, externals, and every
+  peer the entry pulls at load time" — it exercises the first two and cannot exercise the third.
+  Proven by contrast: copying `packages/plugin-forms/dist` into a fixture without `@usetheo/ui`
+  makes the barrel fail with `ERR_MODULE_NOT_FOUND`, while the harness loads the same entry green.
+  A first probe that SYMLINKED the package also passed, because Node resolves a symlink to its real
+  path and walks up into the monorepo — the same blindness, one layer out.
+why_now: [[B-016]] is a missing-peer defect that survived in a published package while a gate whose
+  stated purpose is "if somebody installs this, does it load at all?" reported it green. The gate is
+  not wrong about what it checks; it is wrong about what it says it checks, which is the pattern
+  this repository keeps finding in its own gates ([[B-026]]).
+status: shipped
+dod:
+  - the harness loads each entry from a layout that does NOT resolve peers from the monorepo
+  - removing a required peer from that layout turns the assertion red, proving it observes peers
+  - the comment claiming peer coverage is either true or removed
+shipped: 2026-08-24 — `integration/tests/consumer/isolated-entries.offline.test.ts`, 19 cases across
+every published entry.
+
+The machinery already existed in miniature: `missing-peer.offline.test.ts` (from [[B-016]]) staged
+one isolated consumer by hand. This generalises it — copy the package's `dist`, symlink **exactly**
+its declared dependencies and peers, import each `exports` target from there. An entry importing
+something it never declared cannot resolve it in that layout, which is the whole point.
+
+The copy is load-bearing and the trap was already measured in B-016: symlinking the package under
+test passes, because Node resolves a symlink to its real path and walks up into the monorepo — the
+same blindness one layer out. Peers stay symlinked, which is safe: they are real installs whose own
+dependencies resolving from the store is correct.
+
+All three `dod` bullets:
+
+- **a layout that does not resolve peers from the monorepo** — the fixture holds only what the
+  manifest declares.
+- **removing a required peer turns it red** — dropping `react` from the link list turns 5 entries red
+  with `ERR_MODULE_NOT_FOUND Cannot find package 'react' imported from /tmp/isolated-…`. Measured,
+  then reverted.
+- **the overclaiming comment** — `packaged.test.ts` said it exercised "every peer the entry pulls at
+  load time". It now says what it does exercise, why it cannot exercise peers, and which file can.
+
+One design detail worth keeping: a declared dependency absent from the pnpm store is **reported in
+the failure message** rather than skipped silently — otherwise a peer nobody installed would look
+exactly like a peer the entry does not need. Two showed up that way (`mermaid`,
+`@theokit/plugin-realtime`), both lazily imported, both correctly loading without it.
+
+## B-033 — two kit skills ship the same module name, so their suites cannot run together   [x]
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: review
+source: human
+evidence: measured 2026-08-24 while fixing [[B-017]] in the kit's own repository.
+  `skills/discover-confidence/scripts/check_corner_coverage.py` and
+  `skills/discover-plan-confidence/scripts/check_corner_coverage.py` are two DIFFERENT modules with
+  the same name. Under pytest's default import mode the first one imported wins, so
+  `skills/discover-plan-confidence/tests/test_check_corner_coverage.py` imports the OTHER skill's
+  module and fails collection: `ImportError: cannot import name '_has_defer_corner_marker'`.
+  Running `pytest skills/discover-plan-confidence/tests skills/discover-confidence/tests` interrupts
+  with 3 collection errors. Verified pre-existing by stashing the B-017 changes and re-running.
+  Each suite passes when run alone, which is why nobody noticed: the kit's CI runs them separately.
+why_now: it is a trap rather than a live failure — a contributor who runs the whole test tree in one
+  command sees three errors that have nothing to do with their change, and the natural reading is
+  that they broke something. [[B-017]] hit it and had to stash to prove otherwise.
+status: shipped
+dod:
+  - one command runs every kit suite and exits 0 (importmode=importlib, or per-skill packages, or
+    distinct module names — the mechanism is the decision)
+  - the fix is proven by running that one command, not by running the suites separately
+  - whichever mechanism is chosen, a NEW skill that reuses an existing script name does not
+    reintroduce it silently
+shipped: 2026-08-24 — kit commit `5e61b9a`. Measuring corrected the item's diagnosis twice, and
+both corrections changed what got built.
+
+**The `dod` was already satisfied.** It asks that "one command runs every kit suite and exits 0";
+`bash scripts/run_slice_tests.sh` does exactly that — measured, exit 0 — and its header explains why
+the isolation is deliberate: it mirrors production, where each skill runs alone with only its own
+`scripts/` on `sys.path`.
+
+**The cause is not the import mode.** `why_now` says "under pytest's default import mode the first
+one imported wins". `pyproject.toml` already sets `--import-mode=importlib`, and that governs how
+pytest imports TEST files, not how a test's own `import X` resolves. The real cause is
+`sys.path.insert(0, SCRIPTS_DIR)` in each slice's `conftest.py`: the first slice collected wins
+`sys.modules` for the whole session.
+
+So unifying the namespace — the fix the item's framing implies — would have made the test
+environment differ from production, which is precisely what the isolation exists to prevent. Built
+instead: a root `conftest.py` that refuses a multi-slice invocation and names the command that
+works. The three confusing errors become one sentence.
+
+It fires in `pytest_configure`, not `pytest_collection_modifyitems` — by the time items are
+collected the ImportErrors have already been raised and printed. It reads the command-line
+arguments and expands a bare `skills` or the repo root to every slice on disk; measured, `pytest
+skills` names all 17.
+
+Three tests, and one of them guards the guard: a single slice, and the root suite, must still run
+normally. Kit suite after: `run_slice_tests.sh` exit 0, root 127 passed, `check_xrefs.py` PASS.
+
+## B-034 — the advisory gate is single-sourced, against a rule that names two scanners   [x]
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: evolve
+source: human
+evidence: measured 2026-08-24 while shipping [[B-018]]. `rules/deps-audit-golden-rule.md § 5` names
+  `npm audit` AND `osv-scanner` for npm, cross-checked. `which osv-scanner` → not found, and
+  `tools/check-deps-advisories.mjs` reports its own coverage as single-sourced rather than implying
+  otherwise. Adding it to CI means an action reference pinned to a 40-character SHA — 9 of the 10
+  `uses:` in `.github/workflows/ci.yml` are pinned that way and zizmor enforces it — and a SHA
+  written from memory is a fabrication with a plausible shape. So it was left out deliberately
+  rather than guessed at.
+why_now: [[B-018]] shipped the gate, so there is now something for the second scanner to cross-check.
+  Before it, there was no audit in CI at all and the golden rule's § 5 had nothing to bind.
+status: shipped
+dod:
+  - `osv-scanner` runs in CI beside `pnpm audit`, its action pinned to a real SHA that was looked up
+  - a disagreement between the two scanners is reported, not silently resolved toward either
+  - the gate's coverage note stops saying single-sourced, because it stops being true
+shipped: 2026-08-24 — and the item's own assumption about HOW was wrong, which is the point of it
+having been filed instead of guessed.
+
+**There is no action to pin.** `google/osv-scanner-action`'s `action.yml` carries no `runs:` — it is
+18 lines of metadata, and a `uses:` pointing at it fails. What that repository ships is reusable
+WORKFLOWS (`osv-scanner-reusable.yml` and two siblings), which run as a job and upload SARIF; they
+cannot hand results back to the gate, and the gate is the thing that has to compare the two scanners.
+Both facts were read from the repository. The earlier attempt — `google/osv-scanner-action/setup-action@v2.2.3`,
+written from memory — was wrong in every part: that path does not exist and the SHA was invented.
+This item exists because that near-miss was caught before it shipped.
+
+So the binary is fetched from the release and verified against the release's own `SHA256SUMS`:
+`v2.5.1`, `f9f25499…2194be` for `osv-scanner_linux_amd64`, both looked up and the checksum confirmed
+locally against the downloaded bytes. A pinned version plus a verified checksum is the honest
+equivalent of a SHA pin for a downloaded artifact — `dod` bullet 1 in the only form available.
+
+**Disagreements are reported, never resolved.** The gate reads `OSV_RESULTS` and compares GHSA id
+sets in BOTH directions, matching on `id` AND `aliases` — for npm, OSV's own id is usually the GHSA
+but not always, and matching one field alone would manufacture disagreements out of a naming
+difference. It does not fail on divergence: the two read different databases on different refresh
+cycles, so one seeing something first is normal, and a gate red for a reason nobody here can act on
+is a gate people route around.
+
+Measured baseline, which is what makes a future divergence meaningful: **29 GHSA ids from
+`pnpm audit`, 29 from OSV, zero either way.** Verified the reporting works by injecting a divergent
+OSV file — `only \`osv-scanner\` sees GHSA-0000-0000-0000 (ghost-pkg)`.
+
+**The coverage note is now conditional**, so it is true either way: cross-checked with the counts
+when the file is present, and single-sourced when it is absent — which keeps the gate working on a
+machine without the scanner instead of failing there.
+
+## B-035 — a pre-code repo is marked INVALID for having no code   [x]
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: evolve
+source: human
+evidence: measured 2026-08-24 while shipping [[B-020]]'s second half in the kit.
+  [[B-020]]'s third DoD bullet asks that "a genuinely pre-code repo with no manifest still passes".
+  The kit decided the other way, deliberately and with reasoning recorded beside the guard:
+  `cycle-review` admits on PASS, so a run that looked at nothing must not report a clean audit —
+  even when there was nothing to look at. Its test builds a tmp tree with no manifests and asserts
+  `INVALID`.
+  Both positions are defensible and they conflict. Overriding a kit-wide policy on the strength of
+  one consumer's item would be the wrong way to settle it, so the current behaviour is now PINNED in
+  the kit's suite as a disagreement (`test_a_repo_with_no_manifests_at_all_is_still_INVALID_by_deliberate_policy`)
+  rather than silently flipped.
+why_now: [[B-020]] shipped the half that is unambiguously stronger — an unaudited manifest now fails
+  even when another language was audited. The remaining half is a policy question, and it is better
+  asked than assumed.
+status: shipped
+dod:
+  - the policy is decided by whoever owns the kit, and the decision is recorded as an ADR there
+  - whichever way it goes, the pinning test in the kit changes deliberately and says why
+  - if pre-code passes, it must still REPORT that it audited nothing — silence would be the defect
+    one layer down
+
+shipped: 2026-08-24 — the `dod` asks for exactly one thing, a decision by the kit's owner recorded
+as an ADR there, and that is what happened. **No code changed, in either repository.**
+
+Decided: **`INVALID` stays.** Recorded as `knowledge-base/adrs/ADR-0013-an-audit-that-looked-at-nothing-is-not-a-pass.md`
+in the kit.
+
+The deciding argument turned out not to be about pre-code repositories at all — it is about what a
+PASS is allowed to mean, and the evidence came from this repository. One maintenance run found
+**six** gates reporting success for work they had not done ([[B-026]]): two live, three already
+repaired one at a time by three different reviewers, and a sixth in a file that had already been
+fixed once. Returning PASS for zero manifests would be the kit committing the defect its own
+consumers keep finding in themselves — and unlike ours, it would propagate to every install.
+
+[[B-020]]'s third `dod` bullet is therefore recorded as **decided against**, not as unmet. The cost
+is one `INVALID` on the first run of a repository with no code, with the reason named, gone the
+moment a manifest exists.
+
+A third verdict (`NOOP`) is the most honest shape and was rejected on cost: a new token needs an
+entry in `cycle-rule-schema.md § Canonical verdict vocabularies` and an update to every consumer that
+reads the verdict. The ADR records it as worth revisiting if pre-code friction ever turns out to
+matter; nobody has reported it.
+
+The kit test that pinned this as an open disagreement now cites the ADR and pins it as a decision, so
+the day it changes, something says it changed on purpose.
+
+## B-036 — the release dry run's pins and gates can drift from `release.yml` with nothing detecting it [x]
+
+> Registered 2026-08-24 by the reviewer during B-023's REVIEW phase (finding HIGH-1).
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: review
+source: human
+evidence: none-yet
+why_now: `.github/workflows/release-dryrun.yml` shipped 2026-08-24 and its entire value rests on
+running what `.github/workflows/release.yml` runs. Four action SHAs and two gate steps are copied by
+hand, and the only thing holding them together is a comment saying "when you bump a pin there, bump
+it here". A note is not a check. If `release.yml` gains a step and the dry run does not, the dry run
+goes GREEN on a commit the real release rejects — worse than having no dry run, because it produces
+confidence it has not earned. That is the same failure shape this repository already paid for with
+the `pnpm version` reserved-word trap, where a step "still looked like it had worked" for two months.
+status: shipped
+dod:
+
+- a check fails when the two workflows pin different SHAs for the same action
+- the check states what it does NOT compare, since the gate list is not derivable from the YAML
+  without interpreting it — a check that silently covers half the drift is the problem again
+- it runs where a change to either workflow is seen, not only on a dispatch nobody remembers
+shipped: 2026-08-24 — `integration/tests/manifests/workflow-pin-drift.offline.test.ts`, 3 cases.
+
+All three `dod` bullets:
+
+- **fails when the two pin different SHAs** — mutating `actions/checkout` in the dry run turns it red
+  with `actions/checkout: release.yml pins 3d3c42e5aac5…, release-dryrun.yml pins 000000000000…`.
+  Both pins in the message, so the reader does not have to open two files to see which moved.
+- **states what it does NOT compare** — the gate STEPS. Whether the dry run runs the same
+  `pnpm typecheck` and `pnpm test` is a question about what a `run:` block MEANS, not about what a
+  `uses:` line says, and answering it would need the YAML interpreted. Named in the file header and
+  again in an assertion message, because a check silently covering half the drift is the problem
+  this item is about.
+- **runs where a change to either workflow is seen** — `integration:offline`, on every pull request.
+
+Two vacuity guards, and neither is a formality: an empty pin map would make the comparison agree
+perfectly while checking nothing, and two workflows sharing no action would make the drift assertion
+pass over an empty set. A third case covers the other direction — a dry run pinning an action the
+release does not use is rehearsing a different job, and the main comparison cannot see it.
+
+## B-037 — `ctx.stripe` is a vendor noun on published surface, and renaming it is a breaking change [ ]
+
+> Registered 2026-08-24 by the reviewer during B-024's REVIEW phase (finding HIGH-1).
+
+domain: plugin-server
+repo: plugin-payments
+suggested_mode: review
+source: human
+evidence: `.claude/knowledge-base/discoveries/opportunities/stripe-decoration-key-opportunity.md`
+— B-024 measured both halves of the convention breach and shipped only the additive one.
+why_now: B-024 shipped `STRIPE_DECORATION_KEY` on 2026-08-24, fixing the FORM and leaving the NAME.
+`.claude/rules/decoration-keys.md § 2` asks for a key namespaced by the plugin, not the vendor: a
+consumer using the Stripe SDK is a plausible claimant of `ctx.stripe`, and per [[B-002]]'s
+measurement the framework resolves that collision silently, last-writer-wins — in THEIR app, moving
+when they reorder their own config. `pnpm check:manifests` cannot see it by construction: it
+compares keys across our packages, and a consumer's key is outside this repository.
+`@theokit/plugin-payments` is published at 0.4.0 and the key is documented at
+`packages/plugin-payments/src/types.ts:34`, so this is a major, not a patch.
+status: raw
+dod:
+
+- the key is namespaced by the plugin rather than by the vendor, shipped as a major with a migration
+  note naming both the old and the new key
+- the migration note tells a consumer to import `STRIPE_DECORATION_KEY` — which B-024 shipped
+  precisely so the change is one line for them rather than a search-and-replace
+- `.claude/rules/decoration-keys.md § 2` stops recording the vendor-noun objection, because it no
+  longer applies
+
+owner_decision: 2026-08-24 — reviewed with the kit owner and deliberately LEFT OPEN. [[B-024]]
+already shipped the urgent half: `STRIPE_DECORATION_KEY` is exported, so the eventual migration is
+one line for a consumer rather than a search-and-replace. The remaining risk is a collision inside a
+consumer's app, which this repository cannot observe, against the cost of a major release. The
+vendor-noun objection stays recorded in `.claude/rules/decoration-keys.md § 2` so it is not lost.
+
+
+note: the name is not simply "the plugin noun" — `payments` is already claimed by the other plugin
+object in the SAME package. Choosing it is part of the work, not a detail.

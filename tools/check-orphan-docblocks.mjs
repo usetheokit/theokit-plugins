@@ -27,6 +27,7 @@
 
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { reportGateAndExit } from './lib/gate-summary.mjs'
 import { ROOT } from './lib/published-entries.mjs'
 
 const LABEL = 'doc-orphans'
@@ -56,7 +57,8 @@ function sources() {
 }
 
 const findings = []
-for (const file of sources()) {
+const files = sources()
+for (const file of files) {
   const text = readFileSync(file, 'utf8')
   for (const match of text.matchAll(ORPHAN)) {
     if (match.index === 0) continue
@@ -71,8 +73,10 @@ for (const file of sources()) {
 }
 
 if (findings.length === 0) {
-  console.log(`[${LABEL}] PASS — no docblock is stranded above another docblock.`)
-  process.exit(0)
+  // Was `console.log('PASS — no docblock is stranded…'); process.exit(0)`, guarded only by
+  // "I found nothing". With `sources()` empty that printed a clean pass having read zero files
+  // (B-026, measured 2026-08-24). The count decides now.
+  reportGateAndExit({ label: LABEL, subject: 'source files', checked: files.length })
 }
 
 console.error(`[${LABEL}] x ${findings.length} orphaned docblock(s):`)

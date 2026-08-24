@@ -1,0 +1,25 @@
+# Normalize line endings on checkin, and check out LF everywhere.
+#
+# Not cosmetic. A Windows clone with core.autocrlf=true rewrites every file to CRLF, and tooling
+# that reads sources line by line then sees a trailing \r on every line. The seam-documentation
+# check in scripts/validate-manifests.mjs was written against \n and would have failed all seven
+# packages with a message blaming their documentation — a gate reporting a real defect for a
+# reason that has nothing to do with the code.
+#
+# The check itself now tolerates CRLF (it splits on /\r?\n/), which is the right fix for a tool
+# reading arbitrary input. This file is the other half: the repository states what it stores, so
+# every other tool that has not been hardened does not have to be.
+* text=auto eol=lf
+
+# Binary — never normalized, never diffed as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+
+# Generated. Marked so a lockfile conflict does not arrive as a 10,000-line review.
+pnpm-lock.yaml linguist-generated=true -diff

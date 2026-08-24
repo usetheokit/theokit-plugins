@@ -40,6 +40,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # Tags, or the release-drift gate is inert exactly where it is wired. `actions/checkout`
+          # defaults to `fetch-depth: 1` and fetches with `--no-tags`, so `quality:changelog` took
+          # its no-tags branch on every run and reported that it had not checked — honest on
+          # stdout, invisible under a green check mark. `fetch-tags` is cheaper than
+          # `fetch-depth: 0`, which would pull the whole history for one comparison.
+          fetch-tags: true
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         # No `version:` here on purpose. The action reads `packageManager` from
         # package.json, which is already the single authority on the pnpm version.
@@ -81,6 +87,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # Tags, or the release-drift gate is inert exactly where it is wired. `actions/checkout`
+          # defaults to `fetch-depth: 1` and fetches with `--no-tags`, so `quality:changelog` took
+          # its no-tags branch on every run and reported that it had not checked — honest on
+          # stdout, invisible under a green check mark. `fetch-tags` is cheaper than
+          # `fetch-depth: 0`, which would pull the whole history for one comparison.
+          fetch-tags: true
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         # No `version:` here on purpose. The action reads `packageManager` from
         # package.json, which is already the single authority on the pnpm version.
@@ -110,6 +122,13 @@ jobs:
         run: pnpm build
 
       - run: pnpm typecheck
+      # Not redundant with the `pnpm install --frozen-lockfile` above, and the difference is
+      # legibility rather than coverage: when the install step rejects a drifted lockfile, the job
+      # fails inside a step named `pnpm install`, and a contributor reads that as "the install
+      # broke". A named gate puts the actual condition in the checks list, which is where they look
+      # first. It costs under a second on a runner that has already resolved (B-027).
+      - name: Lockfile satisfies the workspace manifests
+        run: pnpm check:lockfile
       - name: Check for circular dependencies (regression guard for the M1 canvas cycle fix)
         run: pnpm check:cycles
       # Catches, on every push, what previously surfaced only at a package's first
@@ -167,6 +186,51 @@ jobs:
       - name: CHANGELOG structure gate ([Unreleased] categories)
         run: pnpm quality:changelog
 
+      # Fails only when a HIGH advisory reaches a package's RUNTIME chain. All nineteen in this
+      # workspace enter through a devDependency — measured from the manifests, not assumed — so this
+      # is green today. Deliberately: a gate red on arrival over findings nobody can act on gets
+      # allowlisted wholesale or deleted, and then the real one is invisible too.
+      #
+      # It lives in this job rather than in `test` so a registry outage does not read as a test
+      # failure.
+      #
+      # The cross-check `rules/deps-audit-golden-rule.md § 5` names for npm (B-034).
+      #
+      # Fetched as a RELEASE BINARY verified against the release's own SHA256SUMS, not as an
+      # action. `google/osv-scanner-action`'s `action.yml` carries no `runs:` — it is metadata, and
+      # a `uses:` pointing at it fails. What that repository actually ships is reusable WORKFLOWS,
+      # which run as a job and upload SARIF; they cannot hand results back to the gate below, and
+      # the gate is the thing that has to compare the two scanners. Both facts were read from the
+      # repository, because the earlier attempt at this line was written from memory
+      # (`google/osv-scanner-action/setup-action@v2.2.3`) and every part of it was wrong — the
+      # path does not exist and the SHA was invented. That near-miss is why B-034 exists.
+      #
+      # A pinned version plus a verified checksum is the honest equivalent of a SHA pin for a
+      # downloaded artifact: `shasum -c` fails the step if the bytes are not the ones measured on
+      # 2026-08-24 against v2.5.1.
+      - name: Fetch osv-scanner (pinned, checksum-verified)
+        env:
+          OSV_VERSION: v2.5.1
+          OSV_SHA256: f9f25499a2c8cc367b3af45df2ea7eeca7fbccceab9c35079968f4b3652194be
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/osv-scanner" \
+            "https://github.com/google/osv-scanner/releases/download/$OSV_VERSION/osv-scanner_linux_amd64"
+          echo "$OSV_SHA256  $RUNNER_TEMP/osv-scanner" | shasum -a 256 -c -
+          chmod +x "$RUNNER_TEMP/osv-scanner"
+
+      # `|| true`: the scanner exits non-zero when it FINDS something, which is not a failure of
+      # this step — the gate below decides what matters, on runtime reachability rather than on
+      # presence. Losing that distinction is what makes a vulnerability gate get switched off.
+      - name: Scan the lockfile with osv-scanner
+        run: |
+          "$RUNNER_TEMP/osv-scanner" scan source --lockfile pnpm-lock.yaml \
+            --format json > "$RUNNER_TEMP/osv.json" || true
+
+      - name: Dependency advisories gate (runtime chains only)
+        env:
+          OSV_RESULTS: ${{ runner.temp }}/osv.json
+        run: pnpm quality:deps
+
   test:
     name: Unit tests
     runs-on: ubuntu-latest
@@ -175,6 +239,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # Tags, or the release-drift gate is inert exactly where it is wired. `actions/checkout`
+          # defaults to `fetch-depth: 1` and fetches with `--no-tags`, so `quality:changelog` took
+          # its no-tags branch on every run and reported that it had not checked — honest on
+          # stdout, invisible under a green check mark. `fetch-tags` is cheaper than
+          # `fetch-depth: 0`, which would pull the whole history for one comparison.
+          fetch-tags: true
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         # No `version:` here on purpose. The action reads `packageManager` from
         # package.json, which is already the single authority on the pnpm version.

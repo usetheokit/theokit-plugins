@@ -1,5 +1,64 @@
 # Changelog
 
+## 0.4.0
+
+### Minor Changes
+
+- 8b0aa9b: File uploads work. `<TheoForm encType="multipart/form-data">` converts the form's values to the
+  `FormData` shape the framework reconstructs.
+
+  The README said "No file uploads in v0.1", and measurement refuted the framing twice. The file
+  always reached the action — `TheoField` renders no input of its own, and `useAction` does not
+  serialise. And the rest of the stack already did multipart end to end: the client invoker sends a
+  `FormData` body untouched, and an action declaring `accept: 'form'` reconstructs an object from it
+  guided by the Zod schema. What was missing was one conversion in this package.
+
+  It is a shipped function rather than a documented snippet because the convention is not the obvious
+  one: dot notation for nesting, and **repeated keys** for arrays. A hand-rolled walk produces
+  `tags[0]`/`tags[1]`, which the other side does not find — the field arrives empty with no error
+  anywhere.
+
+  Two things to know when you use it:
+  - Write `z.array(z.instanceof(File))`, even for a single file. A registered file input holds a
+    `FileList`, which this package now normalises to `File[]` before validation — previously the
+    natural schema failed client-side and the submit never happened.
+  - Your action must declare `accept: 'form'` server-side. That is where the body is parsed and this
+    package cannot see it.
+
+  Also: `encType` is now a real prop. It was hardcoded `application/x-www-form-urlencoded` on every
+  form — the attribute a reader inspects to answer exactly this question, answering it wrongly.
+
+  Known limitation, pinned by a test: a multipart **scalar** array collapses to its last element
+  (`['a','b']` arrives as `['b']`). The cause is in the framework's body parser, upstream of anything
+  this package controls. Arrays of files are unaffected.
+
+### Patch Changes
+
+- 410c1ad: The README described a headless tier that cannot be reached. It now describes what the package does.
+
+  `@usetheo/ui` was listed as **optional** while `package.json` declares it a required peer, and the
+  "Gotchas" section said `<TheoField>` _"throws at first render … not at module import"_. Measured
+  against a real consumer layout, neither holds:
+
+  ```
+  import('@theokit/plugin-forms')        -> ERR_MODULE_NOT_FOUND: Cannot find package '@usetheo/ui'
+  import('@theokit/plugin-forms/react')  -> ERR_PACKAGE_PATH_NOT_EXPORTED
+  ```
+
+  The package declares exactly one export, and the barrel reaches `<TheoField>`, which imports
+  `@usetheo/ui` at module scope. So the failure happens when the module graph loads. `useTheoField` is
+  not an escape hatch from it — there is no second entry point to reach.
+
+  **No behaviour changed.** What changed is that the documentation says so, the version range matches
+  the manifest, and a consumer test pins it, so the day a headless entry point exists the test fails
+  and asks to be updated.
+
+  Why one was not added here: `<TheoForm>` imports `<TheoField>` to build the `TheoForm.Field`
+  compound, so the barrel reaches it either way, and `splitting: false` would duplicate
+  `TheoFormContext` and hand a consumer two React contexts — which is what reverted the earlier
+  attempt. Whether to build one anyway is a decision about the published surface, and it is recorded
+  rather than made.
+
 ## 0.3.0
 
 ### Minor Changes

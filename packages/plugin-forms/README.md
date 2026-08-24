@@ -8,21 +8,22 @@ Declarative form binding for TheoKit. Glues `zod` + `react-hook-form` + `useActi
 
 ```bash
 pnpm add @theokit/plugin-forms react-hook-form @hookform/resolvers zod@^4
-# Optional (recommended) for the styled <TheoField> tier:
+# Required. The package has ONE entry point and it imports @usetheo/ui at module scope,
+# so without this the import fails — see "The headless tier is not reachable" below.
 pnpm add @usetheo/ui
 ```
 
 Peer-dep matrix:
 
-| Package               | Range                 | Required?                                             |
-| --------------------- | --------------------- | ----------------------------------------------------- |
-| `react`               | `>=19.0.0`            | yes                                                   |
-| `react-hook-form`     | `^7.50.0`             | yes                                                   |
-| `@hookform/resolvers` | `^5.0.0`              | yes                                                   |
-| `zod`                 | `^3.25.0 \|\| ^4.0.0` | yes (matches `@theokit/sdk` peer range)               |
-| `theokit`             | `>=0.2.3`             | yes (G3 `__zodSchema` extension)                      |
-| `@theokit/react`      | `>=1.1.0`             | yes (`useAction` hook)                                |
-| `@usetheo/ui`         | `>=0.14.0`            | **optional** (only for the styled `<TheoField>` tier) |
+| Package               | Range                 | Required?                                                      |
+| --------------------- | --------------------- | -------------------------------------------------------------- |
+| `react`               | `>=19.0.0`            | yes                                                            |
+| `react-hook-form`     | `^7.50.0`             | yes                                                            |
+| `@hookform/resolvers` | `^5.0.0`              | yes                                                            |
+| `zod`                 | `^3.25.0 \|\| ^4.0.0` | yes (matches `@theokit/sdk` peer range)                        |
+| `theokit`             | `>=0.2.3`             | yes (G3 `__zodSchema` extension)                               |
+| `@theokit/react`      | `>=1.1.0`             | yes (`useAction` hook)                                         |
+| `@usetheo/ui`         | `>=0.22.0 <1`         | **required** — the only entry point imports it at module scope |
 
 ### `zod@^4` is required, and npm refuses without it
 
@@ -59,6 +60,8 @@ export const schema = z.object({
 
 Then import it from the action handler:
 
+<!-- doc-example: needs="./schemas/save-memory.js" -->
+
 ```ts
 // server/actions/save-memory.ts
 import { action } from 'theokit/server'
@@ -76,6 +79,8 @@ export const saveMemory = action()
 The TheoKit Vite plugin detects the convention and exposes the schema at runtime as `actions.saveMemory.__zodSchema`. `<TheoForm>` reads it to drive RHF's `zodResolver` — no client re-declaration.
 
 ## Cookbook 1 — basic form with `<TheoForm.Field>` (styled tier)
+
+<!-- doc-example: needs="@theo/actions" -->
 
 ```tsx
 'use client'
@@ -152,9 +157,11 @@ function SubmitButton() {
 }
 ```
 
-## Cookbook 3 — headless `useTheoField` (no `@usetheo/ui`)
+## Cookbook 3 — headless `useTheoField` (no `@usetheo/ui` components)
 
 For consumers who don't use `@usetheo/ui` (shadcn primitives, MUI, raw HTML):
+
+<!-- doc-example: needs="@theo/actions" -->
 
 ```tsx
 'use client'
@@ -186,7 +193,28 @@ export default function MyForm() {
 }
 ```
 
-The headless tier has **no `@usetheo/ui` dependency** — keeps the plugin usable in any React stack.
+### The headless tier is not reachable
+
+`useTheoField` itself needs nothing from `@usetheo/ui`. **You cannot get to it without the package
+installed**, and that is a packaging fact rather than a runtime one:
+
+```
+import('@theokit/plugin-forms')        -> ERR_MODULE_NOT_FOUND: Cannot find package '@usetheo/ui'
+import('@theokit/plugin-forms/react')  -> ERR_PACKAGE_PATH_NOT_EXPORTED
+```
+
+`package.json` declares exactly one export, `.`, and the barrel reaches `<TheoField>` — which
+imports `@usetheo/ui` at module scope. So the failure happens when the module graph loads, before
+any component renders. Measured 2026-08-24 against a real consumer layout and pinned by
+`integration/tests/consumer/missing-peer.offline.test.ts`.
+
+The obvious fix — a second entry point — was attempted and reverted: `<TheoForm>` imports
+`<TheoField>` to build the `TheoForm.Field` compound, so the barrel reaches it either way, and
+`splitting: false` would duplicate `TheoFormContext` and hand you two React contexts. Whether to
+build one anyway is a decision about the published surface; it has not been made.
+
+Until then: install `@usetheo/ui`. `useTheoField` still works in any React stack once you have —
+what is untrue is that you can skip the dependency.
 
 ## Field-error adapter — `applyActionErrorsToForm`
 
@@ -210,12 +238,66 @@ applyActionErrorsToForm(form.setError, {
 
 First message per field wins (HTML5 single `aria-describedby` convention). For multi-message rendering, read `formState.errors[name]` directly.
 
+## File uploads
+
+Files work. `<TheoField>` renders no input of its own, so a file control is just an input that
+spreads `useTheoFieldRegister()`:
+
+<!-- doc-example: needs="./my-action.js" -->
+
+```tsx
+import * as React from 'react'
+import { z } from 'zod'
+import { TheoField, TheoForm, useTheoFieldRegister } from '@theokit/plugin-forms'
+
+import { upload } from './my-action.js'
+
+const schema = z.object({
+  title: z.string(),
+  docs: z.array(z.instanceof(File)),
+})
+
+function FileControl(): React.JSX.Element {
+  const register = useTheoFieldRegister()
+  return <input type="file" multiple {...register} />
+}
+
+export function UploadForm(): React.JSX.Element {
+  return (
+    <TheoForm action={upload as never} schema={schema as never} encType="multipart/form-data">
+      <TheoField name="docs">
+        <FileControl />
+      </TheoField>
+    </TheoForm>
+  )
+}
+```
+
+Three things are worth knowing, because each is a thing you would otherwise get wrong once:
+
+- **`z.array(z.instanceof(File))`, not `z.instanceof(File)`** — even for a single file. A registered
+  file input holds a `FileList`, which this package normalises to `File[]` before validation. A
+  single-file field is a one-element array on both sides.
+- **`encType="multipart/form-data"` is required and is not inferred.** Without it the values go as a
+  plain object and `JSON.stringify` keeps the file's name and drops its bytes — your server stores
+  an empty file and nothing errors. Conversion is not inferred from the values because an action
+  whose input is an object on one submit and a `FormData` on the next cannot be typed.
+- **Your action must declare `accept: 'form'` server-side.** That is where the body is parsed, and
+  this package cannot see it. Without it the server reads JSON and every field arrives empty.
+
+The size limits (`maxFileSize`, `maxFiles`, total body) are the server's, and it enforces them while
+parsing — so a rejected upload is rejected _after_ the bytes crossed the network. The rejection
+reaches the field like any other server error.
+
 ## Limitations (v0.1)
 
 - **Requires JavaScript on the client.** No progressive-enhancement path in v0.1 — forms will not submit without JS. FormData wire (PE) is targeted for v0.2.
-- **No file uploads in v0.1.** `multipart/form-data` deferred to v0.2.
+- **A multipart scalar array collapses to its last element.** `tags: ['a','b']` arrives as `['b']`.
+  The cause is in the framework's body parser, upstream of anything this package controls, and
+  there is no client-side fix. Arrays of **files** are unaffected. Pinned by a test here so the day
+  it is fixed, we find out.
 - **No form arrays / wizards.** RHF `useFieldArray` works inside `<TheoForm>` but plugin sub-parts don't ship special UX for it.
-- **`<TheoField>` (styled tier) throws at first render if `@usetheo/ui` is not installed**, not at module import. Use `useTheoField` (headless) when `@usetheo/ui` is not in the dep tree.
+- **The package does not import at all without `@usetheo/ui`.** Not "throws at first render" — the single entry point pulls it into the module graph, so `import('@theokit/plugin-forms')` fails with `ERR_MODULE_NOT_FOUND` before any component exists. `useTheoField` is not an escape hatch from that; see "The headless tier is not reachable".
 - **Async zod refinements (`.refine(async)`) are stripped client-side.** RHF cannot handle async resolvers cleanly; rely on the server's `ActionInputError` for those.
 - **Shared-schema convention is required for `__zodSchema` auto-detection.** If you keep `input: z.object({...})` inline in `defineAction(...)`, `actions.X.__zodSchema` is `undefined` and `<TheoForm>` falls back to no client-side validation (server-side `ActionInputError` still hydrates).
 

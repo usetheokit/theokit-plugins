@@ -28,6 +28,8 @@ pnpm add @theokit/plugin-canvas @usetheo/ui @theokit/ui
 
 ### 1. Publish artifacts from an agent tool
 
+<!-- doc-example: partial -->
+
 ```ts
 // agents/chat.ts — the tool your agent calls to put something on the canvas
 import { defineArtifactTool, createSqliteArtifactStore } from '@theokit/plugin-canvas'
@@ -106,6 +108,8 @@ export default function Page() {
 ## Server-side artifact bus
 
 `createArtifactBus()` is a process-local pub/sub between the agent tool handler (which emits when `publish_artifact` is called) and the SSE endpoint (which subscribes to forward `tool_result` events to the browser).
+
+<!-- doc-example: partial -->
 
 ```ts
 import { createArtifactBus } from '@theokit/plugin-canvas/server'

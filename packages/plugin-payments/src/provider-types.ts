@@ -61,7 +61,7 @@ export type CheckoutMode = 'payment' | 'subscription'
  * reinterpreting it, so a recurring price in `'payment'` mode fails loudly at the gateway instead of
  * quietly charging once.
  */
-export interface CheckoutInput {
+interface CheckoutInputCommon {
   readonly items: readonly CheckoutItem[]
   /**
    * Defaults to `'payment'`. Providers reject a mismatch between the mode and
@@ -88,22 +88,93 @@ export interface CheckoutInput {
 }
 
 /**
+ * A checkout whose payment page the provider serves. The default, and what every caller before
+ * `uiMode` existed was asking for.
+ */
+export interface HostedCheckoutInput extends CheckoutInputCommon {
+  readonly uiMode?: 'hosted'
+  /** Where the provider sends the customer after success. */
+  readonly successUrl?: string
+  /** Where the provider sends the customer if they abandon. */
+  readonly cancelUrl?: string
+  readonly returnUrl?: never
+}
+
+/**
+ * A checkout mounted inside the caller's own page.
+ *
+ * `returnUrl` replaces the hosted pair rather than joining it. That is not a style choice: measured
+ * live 2026-08-24, Stripe answers "`success_url` is not supported with `ui_mode: embedded`" and
+ * refuses the request. A type that permits the combination defers a known-invalid call to the
+ * gateway when it could refuse to compile.
+ *
+ * Not every provider serves this. An adapter that does not must refuse it by name — and say so
+ * about ITSELF, not about the provider, unless somebody measured the provider.
+ */
+export interface EmbeddedCheckoutInput extends CheckoutInputCommon {
+  readonly uiMode: 'embedded'
+  /** Where the provider sends the customer once the embedded session completes. */
+  readonly returnUrl: string
+  readonly successUrl?: never
+  readonly cancelUrl?: never
+}
+
+/**
+ * What a caller asks for.
+ *
+ * `mode` is not a hint: providers reject a mismatch between it and the referenced price rather than
+ * reinterpreting it, so a recurring price in `'payment'` mode fails loudly at the gateway instead of
+ * quietly charging once.
+ *
+ * `uiMode` is the discriminator, and it is optional on the hosted branch so every call written
+ * before it existed still type-checks and still means the same thing.
+ */
+export type CheckoutInput = HostedCheckoutInput | EmbeddedCheckoutInput
+
+/**
  * A successfully opened checkout.
  *
  * `id` is what correlates the later webhook back to this session, and `provider` is what lets a
  * multi-provider app route that webhook to the right verifier. `raw` carries the untouched provider
  * response so nothing this contract omits is lost.
  */
-export interface CheckoutResult {
+interface CheckoutResultCommon {
   /** Provider-assigned id, for correlating the later webhook. */
   readonly id: string
-  /** Where to send the customer. Both supported providers return one. */
-  readonly url: string
   /** Which provider produced this, so a multi-provider app can route back. */
   readonly provider: string
   /** Untouched provider response, for anything this contract does not model. */
   readonly raw: unknown
 }
+
+/** A hosted session: the provider serves the page, so there is somewhere to send the customer. */
+export interface HostedCheckoutResult extends CheckoutResultCommon {
+  readonly uiMode: 'hosted'
+  /**
+   * Where to send the customer. REQUIRED, and deliberately so.
+   *
+   * Making it optional to accommodate embedded would move a compile-time guarantee into a runtime
+   * check for every caller who will never use embedded — including this repository's own live
+   * suite, which reads it unguarded. Discrimination keeps the promise where it was.
+   */
+  readonly url: string
+}
+
+/** An embedded session: the caller mounts the form, so there is a secret instead of a URL. */
+export interface EmbeddedCheckoutResult extends CheckoutResultCommon {
+  readonly uiMode: 'embedded'
+  /** What the caller hands the provider's client-side SDK to mount the form. */
+  readonly clientSecret: string
+}
+
+/**
+ * A successfully opened checkout, in whichever mode was asked for.
+ *
+ * Narrow on `uiMode` to reach the field that mode carries. A provider that serves only hosted
+ * sessions simply never produces the embedded branch — which is what lets this contract bind a
+ * provider whose embedded capability nobody has measured.
+ */
+export type CheckoutResult = HostedCheckoutResult | EmbeddedCheckoutResult
 
 /**
  * Normalised webhook outcome.
