@@ -37,13 +37,12 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-36 items — **Open** 12 · **In flight** 0 · **Closed** 24
+37 items — **Open** 12 · **In flight** 0 · **Closed** 25
 
 ### Open (12)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
-| [`B-024`](#b-024--plugin-payments-claims-ctxstripe-a-vendor-noun-a-consumer-is-likely-to-want--) | `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want | `raw` | — |
 | [`B-025`](#b-025--no-python-runs-in-ci-so-a-consumer-side-kit-invariant-could-not-execute--) | no Python runs in CI, so a consumer-side kit invariant could not execute | `raw` | — |
 | [`B-026`](#b-026--three-gates-in-a-row-shipped-a-summary-line-the-run-had-not-earned--) | three gates in a row shipped a summary line the run had not earned | `raw` | — |
 | [`B-027`](#b-027--no-local-gate-catches-a-manifest-edited-without-its-lockfile--) | no local gate catches a manifest edited without its lockfile | `raw` | — |
@@ -55,12 +54,13 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-034`](#b-034--the-advisory-gate-is-single-sourced-against-a-rule-that-names-two-scanners----) | the advisory gate is single-sourced, against a rule that names two scanners | `raw` | — |
 | [`B-035`](#b-035--a-pre-code-repo-is-marked-invalid-for-having-no-code----) | a pre-code repo is marked INVALID for having no code | `raw` | — |
 | [`B-036`](#b-036--the-release-dry-runs-pins-and-gates-can-drift-from-releaseyml-with-nothing-detecting-it--) | the release dry run's pins and gates can drift from `release.yml` with nothing detecting it | `raw` | — |
+| [`B-037`](#b-037--ctxstripe-is-a-vendor-noun-on-published-surface-and-renaming-it-is-a-breaking-change--) | `ctx.stripe` is a vendor noun on published surface, and renaming it is a breaking change | `raw` | — |
 
 ### In flight (0)
 
 _None._
 
-### Closed (24)
+### Closed (25)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -87,6 +87,7 @@ _None._
 | [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package-x) | the OAuth transaction cookie is encrypted with a constant published in the package | `shipped` | — |
 | [`B-022`](#b-022--assertproductionsecret-warns-about-a-boot-refusal-nothing-implements-x) | `assertProductionSecret` warns about a boot refusal nothing implements | `killed` | — |
 | [`B-023`](#b-023--the-release-pipeline-cannot-open-its-own-version-packages-pr-x) | the release pipeline cannot open its own Version Packages PR | `shipped` | — |
+| [`B-024`](#b-024--plugin-payments-claims-ctxstripe-a-vendor-noun-a-consumer-is-likely-to-want-x) | `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want | `shipped` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
@@ -1078,7 +1079,7 @@ Two of the three `dod` bullets closed differently and both are recorded rather t
 
 Review `READY_TO_MERGE_WITH_FOLLOWUPS`; the one HIGH is registered as [[B-036]].
 
-## B-024 — `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want [ ]
+## B-024 — `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want [x]
 
 > Registered 2026-08-23 by the plugin-server reviewer during B-002's REVIEW phase.
 
@@ -1086,7 +1087,7 @@ domain: plugin-server
 repo: plugin-payments
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/stripe-decoration-key-opportunity.md` — measured 2026-08-24
 why_now: found 2026-08-23 while writing the decoration-key rule, which claimed "both existing keys"
 follow the exported-const form. There are **three** keys, and `stripe`
 (`packages/plugin-payments/src/stripe.ts:123`) follows neither half of the convention: it is an
@@ -1096,7 +1097,7 @@ a vendor noun rather than a plugin noun. A consumer using the Stripe SDK is a pl
 last-writer-wins — in their app, moving when they reorder their own config. `pnpm check:manifests`
 cannot see it: the check compares keys across OUR packages, and a consumer's key is outside this
 repository by construction.
-status: raw
+status: shipped
 dod:
 
 - the key is namespaced by the plugin rather than by the vendor, and exported as a const so it can
@@ -1105,6 +1106,34 @@ dod:
   surface as much as an exported function — `@theokit/plugin-payments` is published at 0.4.0
 - `rules/decoration-keys.md`'s table is updated in the same change, so the rule stops recording a
   known exception
+shipped: 2026-08-24 — measurement split this item in two, and only one half shipped.
+
+**Shipped (additive).** `export const STRIPE_DECORATION_KEY` at
+`packages/plugin-payments/src/stripe.ts:85`, used at the call site. The key's VALUE is unchanged, so
+nothing breaks — `packages/plugin-payments/tests/factory.test.ts:142` reads `decorations.get('stripe')`
+and passes **unmodified**, which is the evidence. More durable than the fix itself:
+`pnpm check:manifests` now fails on a key passed as a string literal OR as a non-exported const, so
+the next key cannot regress. Mutation-verified — reverting the call site to `'stripe'` turns the
+gate red.
+
+The non-exported-const half came from the edge-case review (EC-1) and is the half that mattered: a
+check asking only "identifier or literal?" accepts a module-local const — an identifier at the call
+site, and still a key no consumer can import.
+
+**Not shipped, and registered rather than mentioned.** The rename. `dod` bullets 1b and 2 ask for the
+key to be namespaced by the plugin and shipped as a breaking change; `ctx.stripe` is published
+surface on `@theokit/plugin-payments@0.4.0`, documented at `packages/plugin-payments/src/types.ts:34`
+and reachable through the `./stripe` subpath. Bundling a major into a slice whose other parts are
+additive would force consumers to take a breaking change to receive a gate fix. → [[B-037]].
+
+The ordering was the point: exporting the const is what makes the later rename a one-line change for
+a consumer instead of a search-and-replace.
+
+`dod` bullet 3 is closed — `.claude/rules/decoration-keys.md § 2` no longer records a live
+exception, and § 3 gains the new mechanical row plus its stated limit (the gate cannot see whether
+the exported const is reachable from a package entry).
+
+Review `READY_TO_MERGE_WITH_FOLLOWUPS`.
 
 ## B-025 — no Python runs in CI, so a consumer-side kit invariant could not execute [ ]
 
@@ -1427,3 +1456,34 @@ dod:
 - the check states what it does NOT compare, since the gate list is not derivable from the YAML
   without interpreting it — a check that silently covers half the drift is the problem again
 - it runs where a change to either workflow is seen, not only on a dispatch nobody remembers
+
+## B-037 — `ctx.stripe` is a vendor noun on published surface, and renaming it is a breaking change [ ]
+
+> Registered 2026-08-24 by the reviewer during B-024's REVIEW phase (finding HIGH-1).
+
+domain: plugin-server
+repo: plugin-payments
+suggested_mode: review
+source: human
+evidence: `.claude/knowledge-base/discoveries/opportunities/stripe-decoration-key-opportunity.md`
+— B-024 measured both halves of the convention breach and shipped only the additive one.
+why_now: B-024 shipped `STRIPE_DECORATION_KEY` on 2026-08-24, fixing the FORM and leaving the NAME.
+`.claude/rules/decoration-keys.md § 2` asks for a key namespaced by the plugin, not the vendor: a
+consumer using the Stripe SDK is a plausible claimant of `ctx.stripe`, and per [[B-002]]'s
+measurement the framework resolves that collision silently, last-writer-wins — in THEIR app, moving
+when they reorder their own config. `pnpm check:manifests` cannot see it by construction: it
+compares keys across our packages, and a consumer's key is outside this repository.
+`@theokit/plugin-payments` is published at 0.4.0 and the key is documented at
+`packages/plugin-payments/src/types.ts:34`, so this is a major, not a patch.
+status: raw
+dod:
+
+- the key is namespaced by the plugin rather than by the vendor, shipped as a major with a migration
+  note naming both the old and the new key
+- the migration note tells a consumer to import `STRIPE_DECORATION_KEY` — which B-024 shipped
+  precisely so the change is one line for them rather than a search-and-replace
+- `.claude/rules/decoration-keys.md § 2` stops recording the vendor-noun objection, because it no
+  longer applies
+
+note: the name is not simply "the plugin noun" — `payments` is already claimed by the other plugin
+object in the SAME package. Choosing it is part of the work, not a detail.
