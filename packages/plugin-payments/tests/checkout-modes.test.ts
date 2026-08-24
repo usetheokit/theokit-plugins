@@ -91,7 +91,12 @@ describe('the checkout result', () => {
   it('keeps url REQUIRED on the hosted branch', () => {
     // @ts-expect-error — a hosted result without a url is the shape this contract promises never
     // to produce, and the promise is what an unguarded consumer relies on.
-    const hosted: CheckoutResult = { id: 'cs_test_3', uiMode: 'hosted', provider: 'stripe', raw: {} }
+    const hosted: CheckoutResult = {
+      id: 'cs_test_3',
+      uiMode: 'hosted',
+      provider: 'stripe',
+      raw: {},
+    }
 
     expect(hosted.id).toBe('cs_test_3')
   })

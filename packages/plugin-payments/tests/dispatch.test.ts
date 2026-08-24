@@ -24,7 +24,13 @@ function providerReturning(event: Partial<PaymentEvent>, name = 'fake'): Payment
   return {
     name,
     createCheckout: () =>
-      Promise.resolve({ id: 'c', uiMode: 'hosted' as const, url: 'https://pay/1', provider: name, raw: {} }),
+      Promise.resolve({
+        id: 'c',
+        uiMode: 'hosted' as const,
+        url: 'https://pay/1',
+        provider: name,
+        raw: {},
+      }),
     retrieveCheckout: () =>
       Promise.resolve({ id: 'c', status: 'pending' as const, provider: name, raw: {} }),
     refund: () => Promise.resolve({ id: 'r', provider: name, raw: {} }),

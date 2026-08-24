@@ -76,7 +76,35 @@ describeLive(PAYMENTS, 'checkout', () => {
     // change that still returns something. `cs_test_` also re-proves we are in
     // test mode at the moment of the call, not merely at credential-check time.
     expect(result.id).toMatch(/^cs_test_[A-Za-z0-9]+$/)
-    expect(result.url).toMatch(/^https:\/\/checkout\.stripe\.com\//)
+    // Narrowed: the result is discriminated by `uiMode` because an embedded session has no URL at
+    // all. Asserting the mode first is also what makes this test say which of the two it exercised.
+    expect(result.uiMode).toBe('hosted')
+    expect(result.uiMode === 'hosted' ? result.url : null).toMatch(
+      /^https:\/\/checkout\.stripe\.com\//,
+    )
+  }, 60_000)
+
+  it('creates an embedded session Stripe accepts, and returns something to mount it with', async () => {
+    // B-013's second DoD bullet: accepted by the provider, not only typed. This is the assertion
+    // that separates "our types allow it" from "Stripe agreed" — and the two differ, because
+    // Stripe refuses `success_url` together with `ui_mode: embedded`, which the neutral input now
+    // makes unrepresentable.
+    const marker = runMarker()
+    const result = await provider().createCheckout({
+      items: [{ ref: required('STRIPE_TEST_PRICE_ID'), quantity: 1 }],
+      uiMode: 'embedded',
+      returnUrl: `https://example.com/return?run=${marker}&s={CHECKOUT_SESSION_ID}`,
+      metadata: { marker },
+    })
+
+    expect(result.provider).toBe('stripe')
+    expect(result.id).toMatch(/^cs_test_[A-Za-z0-9]+$/)
+    expect(result.uiMode).toBe('embedded')
+    // Asserting the ABSENCE of a url matters as much as the secret's presence: a hosted session
+    // also carries a client_secret, so a test that only checked for one would pass against the
+    // mode it was written to distinguish.
+    expect(result.uiMode === 'embedded' ? result.clientSecret : null).toMatch(/_secret_/)
+    expect('url' in result, 'an embedded result must not carry a redirect url').toBe(false)
   }, 60_000)
 
   it('returns the SAME session for a repeated idempotency key, so a retry cannot charge twice', async () => {
@@ -109,7 +137,12 @@ describeLive(PAYMENTS, 'subscription mode', () => {
     })
 
     expect(result.id).toMatch(/^cs_test_[A-Za-z0-9]+$/)
-    expect(result.url).toMatch(/^https:\/\/checkout\.stripe\.com\//)
+    // Narrowed: the result is discriminated by `uiMode` because an embedded session has no URL at
+    // all. Asserting the mode first is also what makes this test say which of the two it exercised.
+    expect(result.uiMode).toBe('hosted')
+    expect(result.uiMode === 'hosted' ? result.url : null).toMatch(
+      /^https:\/\/checkout\.stripe\.com\//,
+    )
     // `raw` is the untouched session, so the mode Stripe actually recorded is
     // observable — asserting our own input back would prove nothing.
     expect((result.raw as { mode?: string }).mode).toBe('subscription')

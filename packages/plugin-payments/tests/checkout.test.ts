@@ -174,7 +174,12 @@ describe('createCheckoutSession and the embedded mode', () => {
     // session — and then hit the same null-url throw the provider used to have. Leaving it there
     // while the provider serves both modes would be a second copy of the same wall.
     const result = await createCheckoutSession(
-      embeddedClient({ id: 'cs_1', url: null, client_secret: 'cs_1_secret_abc', ui_mode: 'embedded' }),
+      embeddedClient({
+        id: 'cs_1',
+        url: null,
+        client_secret: 'cs_1_secret_abc',
+        ui_mode: 'embedded',
+      }),
       { ui_mode: 'embedded', mode: 'payment', line_items: [], return_url: 'https://x/return' },
     )
 
