@@ -37,13 +37,12 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-37 items — **Open** 10 · **In flight** 0 · **Closed** 27
+37 items — **Open** 9 · **In flight** 0 · **Closed** 28
 
-### Open (10)
+### Open (9)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
-| [`B-027`](#b-027--no-local-gate-catches-a-manifest-edited-without-its-lockfile--) | no local gate catches a manifest edited without its lockfile | `raw` | — |
 | [`B-029`](#b-029--a-client-joining-a-room-sees-an-empty-document-until-somebody-types----) | a client joining a room sees an empty document until somebody types | `raw` | — |
 | [`B-030`](#b-030--a-multipart-scalar-array-loses-every-element-but-the-last----) | a multipart scalar array loses every element but the last | `raw` | — |
 | [`B-031`](#b-031--the-skip-message-names-a-script-nobody-checks-exists----) | the skip message names a script nobody checks exists | `raw` | — |
@@ -58,7 +57,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (27)
+### Closed (28)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -88,6 +87,7 @@ _None._
 | [`B-024`](#b-024--plugin-payments-claims-ctxstripe-a-vendor-noun-a-consumer-is-likely-to-want-x) | `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want | `shipped` | — |
 | [`B-025`](#b-025--no-python-runs-in-ci-so-a-consumer-side-kit-invariant-could-not-execute-x) | no Python runs in CI, so a consumer-side kit invariant could not execute | `shipped` | — |
 | [`B-026`](#b-026--three-gates-in-a-row-shipped-a-summary-line-the-run-had-not-earned-x) | three gates in a row shipped a summary line the run had not earned | `shipped` | — |
+| [`B-027`](#b-027--no-local-gate-catches-a-manifest-edited-without-its-lockfile-x) | no local gate catches a manifest edited without its lockfile | `shipped` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
@@ -1251,22 +1251,22 @@ judgement, and a mechanism claiming otherwise would be the unearned confidence t
 
 Review `READY_TO_MERGE` — zero BLOCKER, zero HIGH.
 
-## B-027 — no local gate catches a manifest edited without its lockfile [ ]
+## B-027 — no local gate catches a manifest edited without its lockfile [x]
 
 > Registered 2026-08-23 after making the same mistake twice in one day.
 
 domain: dev-tooling
 repo: plugin-db-drizzle
-suggested_mode: bug
+suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/lockfile-drift-gate-opportunity.md` — measured 2026-08-24
 why_now: measured 2026-08-23 — twice, in [[B-008]] and [[B-010]], a devDependency was added to
 `integration/package.json` and `pnpm-lock.yaml` was left behind. Both times **all ten local gates
 passed** and CI failed at `pnpm install --frozen-lockfile` with `ERR_PNPM_OUTDATED_LOCKFILE`,
 because no local script passes that flag: `pnpm test`, `pnpm build` and the rest install
 permissively. The feedback arrives ~2 minutes into CI instead of ~1 second locally, and it arrives
 as a red build on a PR rather than as a check the author ran.
-status: raw
+status: shipped
 dod:
 
 - a local check fails when `pnpm-lock.yaml` does not satisfy the workspace manifests, runnable in
@@ -1278,6 +1278,34 @@ note: the fix is one command (`pnpm install --frozen-lockfile --lockfile-only --
 equivalent) plus a script entry. It is registered rather than fixed in passing because it belongs
 to whichever gate list it joins, and adding a gate mid-slice is the scope creep the review process
 exists to catch.
+shipped: 2026-08-24 — `pnpm check:lockfile`, wired into `package.json` and named as its own step in
+`ci.yml`. Mode reclassified `bug` → `review`: there was no failing test and the subject is a gate
+that does not exist, not a defect in product behaviour.
+
+**The note's proposed command does not run.** `why_now` says the fix is
+`pnpm install --frozen-lockfile --lockfile-only --dry-run`; measured, that answers
+`ERROR Unknown option: 'dry-run'`. `--dry-run` is not a pnpm option. The framing was load-bearing —
+it is what made this look like a five-minute task — and the working command had to be found by
+running candidates.
+
+All three `dod` bullets measured on the real repository, not on a fixture:
+
+- **under a second, wired with the other gates** — `Done in 285ms using pnpm v10.34.1`, exit 0.
+  Stated caveat: that is a warm-store figure.
+- **adding a dependency without updating the lockfile turns it red** — `left-pad` into
+  `integration/package.json` → exit 1 with `ERR_PNPM_OUTDATED_LOCKFILE`, the same string CI prints,
+  so nobody learns a second vocabulary for one condition.
+- **a clean checkout stays green** — exit 0, and `git diff pnpm-lock.yaml` empty after both runs.
+
+No wrapper under `tools/`, deliberately: the whole behaviour is pnpm's, and a wrapper would be one
+more place to report a pass it had not earned — which [[B-026]] shipped a helper to stop, one item
+earlier. Parsimony rung 5.
+
+**Stated limit:** it detects that the lockfile does not SATISFY the manifests, which is exactly
+pnpm's claim and no wider. A lockfile that satisfies them and is wrong some other way is invisible
+to it.
+
+Review `READY_TO_MERGE` — zero BLOCKER, zero HIGH.
 
 ## B-028 — the Yjs wire encodes on the way down and hands raw bytes on the way up   [ ]
 

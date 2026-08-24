@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `pnpm check:lockfile` fails locally when a `package.json` gains a dependency the lockfile does not carry — the same `ERR_PNPM_OUTDATED_LOCKFILE` CI reports, in about a quarter of a second instead of two minutes into a red pull request (B-027)
+
 - `CONTRIBUTING.md` states which parts of this repository CI does not cover: the `.claude/` maintenance kit is installed tooling, absent from a fresh clone, and checked by no gate here — the product itself is unaffected and fully gated (B-025)
 
 - `@theokit/plugin-payments` exports `STRIPE_DECORATION_KEY` from its `/stripe` subpath, so the key `ctx.stripe` is published under can be imported rather than retyped; the key's value is unchanged and nothing breaks (B-024)
