@@ -52,6 +52,22 @@ export { createStripeClientGetter, StripeSecretKeyMissingError } from './stripe-
 export type { Stripe }
 
 /**
+ * The key `ctx.stripe` is published under. Fixed, so a handler can rely on it.
+ *
+ * Import it rather than retyping the string: a mistyped key is not an error, it is `undefined` at
+ * request time, in a handler that looked correct. Mirrors `PAYMENTS_DECORATION_KEY`.
+ *
+ * The name is a VENDOR noun, and `rules/decoration-keys.md § 2` asks for a plugin noun — a
+ * consumer using the Stripe SDK is a plausible claimant of `ctx.stripe`, and the framework
+ * resolves that collision silently, last-writer-wins, in *their* app. Changing it is a breaking
+ * change to published surface, so it is tracked separately. Importing this const is what makes
+ * that migration a one-line change for a consumer instead of a search-and-replace.
+ *
+ * @public
+ */
+export const STRIPE_DECORATION_KEY = 'stripe'
+
+/**
  * A single-gateway plugin backed by Stripe, resolving its keys from the
  * environment.
  *
@@ -79,23 +95,7 @@ export type { Stripe }
  *   ],
  * });
  * ```
-/**
- * The key `ctx.stripe` is published under. Fixed, so a handler can rely on it.
  *
- * Import it rather than retyping the string: a mistyped key is not an error, it is `undefined` at
- * request time, in a handler that looked correct. Mirrors {@link PAYMENTS_DECORATION_KEY}.
- *
- * The name is a VENDOR noun, and `.claude/rules/decoration-keys.md § 2` asks for a plugin noun —
- * a consumer using the Stripe SDK is a plausible claimant of `ctx.stripe`, and the framework
- * resolves that collision silently, last-writer-wins, in *their* app. Changing it is a breaking
- * change to published surface, so it is tracked separately. Importing this const is what makes
- * that migration a one-line change for a consumer instead of a search-and-replace.
- *
- * @public
- */
-export const STRIPE_DECORATION_KEY = 'stripe'
-
-/**
  * @public
  */
 export function stripePayments(opts: PaymentsOptions = {}): PaymentsPlugin {
