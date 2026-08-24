@@ -1,0 +1,130 @@
+# Answers "what would a release do right now?" without doing it.
+#
+# `release.yml` is the file most likely to be edited blind: it only ever runs on a push to
+# `main`, so the first execution of any change to it is also a real release. When it went
+# wrong the cost was a repository left mid-release and a pull request opened by hand (#16,
+# B-023) — and the version bumps had already been computed by then.
+#
+# This workflow runs the same gates and the same version computation on demand, against
+# whatever branch you dispatch it from, and stops before anything leaves the runner.
+#
+# What it CANNOT tell you, and does not pretend to: whether the release would succeed.
+# The failure B-023 records is a missing permission, and exercising it would mean actually
+# opening a pull request, which is the opposite of a dry run. See the last step.
+name: Release Dry Run
+
+# Dispatch only. The question this answers is asked when someone is about to change the
+# release path, not on every commit — and a full install + build + typecheck + test on
+# every branch to compute a table nobody is reading is the definition of a gate that gets
+# muted. Deliberately NOT a `paths:` filter on `.changeset/**` either: `workflow-lint.yml`
+# records why this repository distrusts those.
+on:
+  workflow_dispatch:
+
+# Read only, and that is the guarantee rather than a promise in a comment. With this the
+# token cannot push a ref or create a release even if a future edit adds a step that tries
+# — the job fails instead of half-releasing, which is the state B-023 was filed about.
+permissions:
+  contents: read
+
+concurrency:
+  group: release-dryrun-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dry-run:
+    name: Compute the release without cutting it
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Every pin below is the SAME SHA `release.yml` uses for the same action. That is the
+      # point: a dry run on different versions of the toolchain answers a question about a
+      # release nobody is going to cut. When you bump a pin there, bump it here.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            package.json
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      # The release's own gates, not a lighter set. A dry run that skips what the real
+      # release runs goes green on a commit the real release rejects, which is worse than
+      # no dry run: it produces confidence it has not earned.
+      - name: Typecheck, as the release does
+        run: pnpm typecheck
+      - name: Test, as the release does
+        run: pnpm test
+
+      # `|| true` is deliberate: `changeset status` exits non-zero when there is nothing to
+      # release, and a red run for "nothing to release" is a false alarm that teaches people
+      # to ignore this workflow. The JSON is the authority on the outcome, not the exit code.
+      - name: Compute the release
+        run: pnpm exec changeset status --output "$RUNNER_TEMP/changeset-status.json" || true
+
+      # An empty table and a step that never ran look identical. This repository has already
+      # paid for that shape once — `release.yml` carries the record of a version step that
+      # "still looked like it had worked" for two months. So the renderer lives in `tools/`
+      # where it is unit tested (the empty case is the one nobody dispatches on purpose), and
+      # a MISSING status file raises rather than rendering as "nothing to release".
+      - name: Report what would be released
+        env:
+          STATUS_FILE: ${{ runner.temp }}/changeset-status.json
+        run: node tools/render-release-dryrun-summary.mjs
+
+      # Runs the real versioning script — `pnpm run version:packages`, never `pnpm version`,
+      # for the reason release.yml documents at length: `version` is a reserved npm/pnpm
+      # command that exits 0 without running the package script of the same name. The diff
+      # is captured immediately, before anything else writes to the tree.
+      - name: Show what the version bump would touch
+        run: |
+          pnpm run version:packages
+          {
+            echo "## Files the version bump would touch"
+            echo
+            if git diff --quiet; then
+              echo "No version change — the tree is unchanged."
+            else
+              echo '```'
+              git diff --stat
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Advisory, and worded so the limit travels with the claim.
+      #
+      # A workflow cannot read `orgs/{org}/actions/permissions/workflow` without an admin
+      # token it should not carry, so it can see the secret and not the organisation flag.
+      # Concluding "the release path is closed" from the secret alone would go red
+      # permanently the day the owner chooses the org-flag path — reporting a failure at the
+      # moment the problem was fixed. Hence a report, never a gate, and never on every PR:
+      # a blocking check for a condition no pull request can fix turns every PR red until
+      # someone with organisation rights acts.
+      - name: Report the observable half of the release-blocking state
+        env:
+          HAS_RELEASE_PAT: ${{ secrets.RELEASE_PAT != '' }}
+        run: |
+          {
+            echo "## Release-blocking state"
+            echo
+            if [ "$HAS_RELEASE_PAT" = "true" ]; then
+              echo "\`RELEASE_PAT\` is set, so \`release.yml\` will use it to open the Version Packages pull request."
+            else
+              echo "\`RELEASE_PAT\` is **not set**, so \`release.yml\` falls back to \`GITHUB_TOKEN\`."
+              echo
+              echo "That token can open the Version Packages pull request only if the organisation setting"
+              echo "*Allow GitHub Actions to create and approve pull requests* is enabled. **This job cannot read"
+              echo "that setting** — doing so needs an admin token it deliberately does not carry — so this is"
+              echo "not a verdict on whether the next release will succeed."
+              echo
+              echo "If it is disabled, the release will push the \`changeset-release\` branch and fail to open the"
+              echo "pull request. Tracked in #16."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

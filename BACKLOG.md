@@ -37,16 +37,12 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-35 items — **Open** 15 · **In flight** 0 · **Closed** 20
+36 items — **Open** 12 · **In flight** 0 · **Closed** 24
 
-### Open (15)
+### Open (12)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
-| [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package--) | the OAuth transaction cookie is encrypted with a constant published in the package | `triaged` | — |
-| [`B-022`](#b-022--assertproductionsecret-warns-about-a-boot-refusal-nothing-implements--) | `assertProductionSecret` warns about a boot refusal nothing implements | `raw` | — |
-| [`B-023`](#b-023--the-release-pipeline-cannot-open-its-own-version-packages-pr--) | the release pipeline cannot open its own Version Packages PR | `raw` | — |
 | [`B-024`](#b-024--plugin-payments-claims-ctxstripe-a-vendor-noun-a-consumer-is-likely-to-want--) | `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want | `raw` | — |
 | [`B-025`](#b-025--no-python-runs-in-ci-so-a-consumer-side-kit-invariant-could-not-execute--) | no Python runs in CI, so a consumer-side kit invariant could not execute | `raw` | — |
 | [`B-026`](#b-026--three-gates-in-a-row-shipped-a-summary-line-the-run-had-not-earned--) | three gates in a row shipped a summary line the run had not earned | `raw` | — |
@@ -58,15 +54,17 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-033`](#b-033--two-kit-skills-ship-the-same-module-name-so-their-suites-cannot-run-together----) | two kit skills ship the same module name, so their suites cannot run together | `raw` | — |
 | [`B-034`](#b-034--the-advisory-gate-is-single-sourced-against-a-rule-that-names-two-scanners----) | the advisory gate is single-sourced, against a rule that names two scanners | `raw` | — |
 | [`B-035`](#b-035--a-pre-code-repo-is-marked-invalid-for-having-no-code----) | a pre-code repo is marked INVALID for having no code | `raw` | — |
+| [`B-036`](#b-036--the-release-dry-runs-pins-and-gates-can-drift-from-releaseyml-with-nothing-detecting-it--) | the release dry run's pins and gates can drift from `release.yml` with nothing detecting it | `raw` | — |
 
 ### In flight (0)
 
 _None._
 
-### Closed (20)
+### Closed (24)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
+| [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims-x) | Nothing verifies that what a package exports is accepted by the seam it claims | `shipped` | — |
 | [`B-002`](#b-002--the-request-decoration-namespace-is-global-and-has-no-convention-x) | The request-decoration namespace is global and has no convention | `shipped` | — |
 | [`B-003`](#b-003--plugin-realtimes-integration-tests-never-open-a-websocket-x) | `plugin-realtime`'s integration tests never open a WebSocket | `shipped` | — |
 | [`B-004`](#b-004--auth-magic-link-has-no-live-suite-while-the-other-two-auth-providers-do-x) | `auth-magic-link` has no live suite while the other two auth providers do | `shipped` | — |
@@ -86,13 +84,16 @@ _None._
 | [`B-018`](#b-018--nineteen-transitive-high-advisories-sit-in-the-workspace-with-nothing-watching-them-x) | nineteen transitive HIGH advisories sit in the workspace with nothing watching them | `shipped` | — |
 | [`B-019`](#b-019--four-packages-integrate-through-a-seam-the-current-sdk-major-no-longer-has-x) | four packages integrate through a seam the current SDK major no longer has | `shipped` | — |
 | [`B-020`](#b-020--code-quality-was-returning-pass-over-zero-languages-x) | /code-quality was returning PASS over zero languages | `shipped` | — |
+| [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package-x) | the OAuth transaction cookie is encrypted with a constant published in the package | `shipped` | — |
+| [`B-022`](#b-022--assertproductionsecret-warns-about-a-boot-refusal-nothing-implements-x) | `assertProductionSecret` warns about a boot refusal nothing implements | `killed` | — |
+| [`B-023`](#b-023--the-release-pipeline-cannot-open-its-own-version-packages-pr-x) | the release pipeline cannot open its own Version Packages PR | `shipped` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
 ## Items
 
-## B-001 — Nothing verifies that what a package exports is accepted by the seam it claims [ ]
+## B-001 — Nothing verifies that what a package exports is accepted by the seam it claims [x]
 
 > Registered 2026-08-18 by `/backlog-item` (slug: `seam-conformance-tests`).
 
@@ -106,7 +107,7 @@ via `PAYMENTS_DECORATION_KEY`); `plugin-db-drizzle` has a `register(_app)` that 
 nothing; a grep hit in `plugin-canvas` was `DOMPurify.addHook`, unrelated. #42 shipped because a
 package typed against a framework API that did not exist, and nothing in CI would catch the same
 class of defect today.
-status: triaged
+status: shipped
 dod:
 
 - a test per integrating package that hands its export to the real framework surface it claims —
@@ -124,6 +125,22 @@ remaining nine packages have no such test, `auth-google` is covered only at comp
 suite's measured blind spot is written into its own header — deleting the Web branch of the OAuth
 providers' URL parsing leaves it green, because those providers read nothing but `searchParams`.
 For them the guard is `pnpm typecheck`, which is a different mechanism than this item asks for.
+shipped: 2026-08-24 — the plan's three phases landed in `d79d48e`, `2d7dbf3` and `8f2475d`; the
+review (`seam-conformance-tests-review-2026-08-23.md`) returned `READY_TO_MERGE_WITH_FOLLOWUPS`
+with every HIGH registered (B-019, B-021, B-022). The block was never flipped, so the three DoD
+bullets were re-measured on 2026-08-24 rather than read off the report:
+
+1. `integration/src/integrating-packages.ts` registers all 11 packages; conformance runs through
+   the real `createPluginRunnerFromConfig` and the real `defineAuth` orchestrator.
+2. Re-applying the Q3 mutation (an enumerable-shape capability check in
+   `packages/plugin-payments/src/plugin.ts`, rebuilt) leaves `pnpm test` GREEN and turns
+   `plugin-runner-conformance.offline.test.ts` RED — 2 failed of 9. Reverted; tree clean.
+3. `registry-exhaustiveness.offline.test.ts` reads `packages/` from disk and fails on any
+   directory the registry does not name, so a seamless package is exempt by a written reason and
+   never by silence.
+
+Suites at closure: 20 passed | 1 expected fail — the `it.fails` round trip that goes red the day
+the upstream sdk cookie-name defect is fixed.
 
 ## B-002 — The request-decoration namespace is global and has no convention [x]
 
@@ -909,7 +926,7 @@ checkout starts unaudited again. That is the second half of this item, and it is
 fix belongs in the kit — a default that audits what it finds — rather than in a config file this
 repo cannot version.
 
-## B-021 — the OAuth transaction cookie is encrypted with a constant published in the package [ ]
+## B-021 — the OAuth transaction cookie is encrypted with a constant published in the package [x]
 
 > Registered 2026-08-23 by the auth-provider reviewer during B-001's REVIEW phase.
 
@@ -936,7 +953,8 @@ unreachable for any value satisfying the declared type — confirmed against a r
 (`oauth-transaction-store.d.ts:9`), so a sibling subdomain can set it. `AuthSecretTooShortError`
 does not fire: the constant is 48 chars. Latent today only because [[B-019]]'s cookie-name
 mismatch makes the callback unreachable; it becomes live the moment that is fixed.
-status: triaged
+status: shipped
+shipped: 2026-08-24 — PR #132. No code changed: both defects are in `@theokit/sdk@2.18.0`, a peer this repository never builds, and the three auth packages implement a type contract without constructing the orchestrator. Shipped instead: `integration/tests/seam/sdk-tx-cookie-defects.offline.test.ts` (asserts both defects are PRESENT, so it goes red the day either is fixed) and a `THEOKIT_OAUTH_TX_SECRET` production note in all three auth READMEs. The `dod` bullets above are NOT met and cannot be met here — they are obligations on the sdk.
 dod:
 
 - a sign-in cannot proceed when the transaction secret is the published constant — it fails at
@@ -948,36 +966,74 @@ dod:
 note: the fix is in `@theokit/sdk`, another repository. What belongs here is the measurement, the
 regression test, and a decision on whether these packages may ship against a version that has it.
 
-## B-022 — `assertProductionSecret` warns about a boot refusal nothing implements [ ]
+## B-022 — `assertProductionSecret` warns about a boot refusal nothing implements [x]
 
 domain: auth-provider
 repo: auth-github
 suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/plans/assert-production-secret-plan.md` — measured 2026-08-24
 why_now: measured 2026-08-23 — `theokit@0.48.8` exports `assertProductionSecret` from
 `theokit/server/auth`, and it has zero callers in this repository. It is also never called by
 `createSessionManager` itself (grepped the bundled chunk: only the definition and the export
 list). What actually runs is `normalizeSecrets`, a 32-character floor applied in every
 environment. So the guard's own message — that a production server will refuse to boot until the
 placeholder is replaced — is not backed by anything these packages wire.
-status: raw
+status: killed
 dod:
 
 - either the packages call it where they claim the guarantee, or the claim is removed from the
   surface that makes it
 - a test asserts the chosen behaviour under `NODE_ENV=production`, since that is the only branch
   where it would bite
+kill_reason: measured 2026-08-24 against `theokit@0.48.8`. The two factual halves of `why_now`
+both hold, and the third — the one that would locate work here — does not.
 
-## B-023 — the release pipeline cannot open its own Version Packages PR [ ]
+**What holds.** `assertProductionSecret` occurs 6 times across 160 `.js` files under
+`integration/node_modules/theokit/dist/`, and every occurrence is the definition
+(`dist/chunk-646CA6RV.js:239`) or an export re-listing. There is no call site. Its promise sits
+in the non-production branch at `dist/chunk-646CA6RV.js:262` — *"the production server will
+REFUSE to boot until you replace it"* — which means the sentence announcing the refusal is
+itself inside the function nobody calls, so a developer never even sees the warning. What runs
+instead is `normalizeSecrets` (`:93`), a length floor with no knowledge of `PLACEHOLDER_PATTERN`.
+Measured consequence: `NODE_ENV=production` + a 33-character `CHANGE_ME…` secret →
+`createSessionManager` **accepts it**; a short secret is refused, by the other function, with the
+other message.
+
+**Why the item dies here anyway.** The measurement plan's falsification criterion 3, written
+before measuring, said: if no surface this repository owns leads a reader to expect the boot
+refusal, the defect belongs upstream and there is nothing here to fix. Searched by the CLAIM's
+vocabulary rather than the symbol name (plan EC-2, precisely to avoid killing a promise made in
+prose): `refuses to boot` / `will not boot` / `placeholder` / `NODE_ENV` across every
+`packages/*/README.md` and `src/` — **zero** hits that make the claim. The `placeholder` hits are
+form fields; the `NODE_ENV` hits are `auth-google`'s test-only OIDC escape hatch and
+`plugin-payments`' idempotency-store guard. The two auth READMEs that mention
+`createSessionManagerWeb` do so in a prose aside without a secret argument and without any
+guarantee. `docs/` has nothing.
+
+So the item's `dod` is unexecutable here by construction: neither *"call it where they claim the
+guarantee"* nor *"remove the claim from the surface that makes it"* has a subject in this
+repository. No package constructs a session manager; the consumer does, through theokit.
+
+**Where it went instead:** filed as `usetheokit/theokit#429` with the repro, the 6/160 count, and
+a suggested fix (call it from `createSessionManager` before `normalizeSecrets` returns, or stop
+promising a refusal the framework does not perform). Per
+`rules/knowledge-base-location.md § Autonomy` this registry does not span other repositories, so
+the finding is recorded there rather than kept open here.
+
+Adjacent, and deliberately not folded in: B-021 added a `THEOKIT_OAUTH_TX_SECRET` production note
+to the three auth READMEs. That note instructs; it promises no guard, so it is not the claim this
+item was about. If it ever grows one, this kill should be revisited under a new id.
+
+## B-023 — the release pipeline cannot open its own Version Packages PR [x]
 
 > Registered 2026-08-23 during B-001's RELEASE phase, which hit it.
 
 domain: dev-tooling
 repo: plugin-db-drizzle
-suggested_mode: bug
+suggested_mode: review
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/release-pr-permission-opportunity.md` — measured 2026-08-24. Mode reclassified `bug` → `review` (nothing reproduces in a test; the subject is a setting and a workflow's ordering).
 why_now: measured 2026-08-23 — merging `develop → main` (#117) started `release.yml`, which ran
 `changeset version`, consumed all 11 changesets, pushed the bumps to `changeset-release/main`, and
 then failed: `HttpError: GitHub Actions is not permitted to create or approve pull requests`
@@ -987,7 +1043,7 @@ for. Recovering meant opening the PR by hand (#118) and merging it, which then p
 packages successfully (run 32639033942). The workflow has a step literally named "Fail loudly if
 the release PR could not be opened", so the failure mode was anticipated; the permission was not
 granted.
-status: raw
+status: shipped
 dod:
 
 - a release either completes or leaves the changesets intact — the half-applied state above must
@@ -999,6 +1055,28 @@ dod:
 note: the pipeline is otherwise correct — versions, tags and GitHub releases were all right once
 the PR existed. This is one missing setting ("Allow GitHub Actions to create and approve pull
 requests"), not a broken design.
+shipped: 2026-08-24 — `.github/workflows/release-dryrun.yml`, a `workflow_dispatch` dry run that
+runs the release's own typecheck and test gates, renders the planned version table, shows what the
+bump would touch, and publishes nothing (`permissions: contents: read` is what makes that a property
+of the job rather than a promise). Its summary renderer lives in `tools/` and is unit tested — the
+case worth getting right is the empty one, and an empty markdown table is exactly what a step that
+never ran also produces.
+
+Two of the three `dod` bullets closed differently and both are recorded rather than quietly ticked:
+
+- Bullet 1 was **already satisfied before this item was written**. Measured: 11 changesets present
+  at `d17a4a4` (main, during the failed window) and 0 at `44b7792` (after the hand-opened PR
+  merged). `changesets/action` versions on a side branch, so a failed run cannot consume `main`'s
+  changesets. The state was incomplete, not half-applied — `why_now`'s "the changesets were gone"
+  is wrong.
+- Bullet 2 is **not closed and is not this repository's to close**. `RELEASE_PAT` is unset
+  (`total_count: 0`) and the organisation's `can_approve_pull_request_reviews` is `false`, so the
+  next release still fails the same way. Both remedies need a human with org rights: minting a
+  credential, or flipping a flag that also grants Actions the ability to APPROVE pull requests in
+  every repository of the org. The dry run reports the observable half and explicitly says it
+  cannot read the other.
+
+Review `READY_TO_MERGE_WITH_FOLLOWUPS`; the one HIGH is registered as [[B-036]].
 
 ## B-024 — `plugin-payments` claims `ctx.stripe`, a vendor noun a consumer is likely to want [ ]
 
@@ -1324,3 +1402,28 @@ dod:
   - whichever way it goes, the pinning test in the kit changes deliberately and says why
   - if pre-code passes, it must still REPORT that it audited nothing — silence would be the defect
     one layer down
+
+
+## B-036 — the release dry run's pins and gates can drift from `release.yml` with nothing detecting it [ ]
+
+> Registered 2026-08-24 by the reviewer during B-023's REVIEW phase (finding HIGH-1).
+
+domain: dev-tooling
+repo: plugin-db-drizzle
+suggested_mode: review
+source: human
+evidence: none-yet
+why_now: `.github/workflows/release-dryrun.yml` shipped 2026-08-24 and its entire value rests on
+running what `.github/workflows/release.yml` runs. Four action SHAs and two gate steps are copied by
+hand, and the only thing holding them together is a comment saying "when you bump a pin there, bump
+it here". A note is not a check. If `release.yml` gains a step and the dry run does not, the dry run
+goes GREEN on a commit the real release rejects — worse than having no dry run, because it produces
+confidence it has not earned. That is the same failure shape this repository already paid for with
+the `pnpm version` reserved-word trap, where a step "still looked like it had worked" for two months.
+status: raw
+dod:
+
+- a check fails when the two workflows pin different SHAs for the same action
+- the check states what it does NOT compare, since the gate list is not derivable from the YAML
+  without interpreting it — a check that silently covers half the drift is the problem again
+- it runs where a change to either workflow is seen, not only on a dispatch nobody remembers

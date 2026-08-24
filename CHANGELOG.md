@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- A `release-dryrun` workflow (`workflow_dispatch`) computes and reports the release this repository would cut — the planned version table and the files a bump would touch — running the same typecheck and test gates the real release runs, and publishing nothing (#16, B-023)
+- Backlog B-001 closed: every one of the 11 packages now declares its integration seam, and the conformance suite hands each export to the real `createPluginRunnerFromConfig` / `defineAuth`. Re-verified by mutation: a capability check that `pnpm test` accepts turns the seam suite red (#116, #120)
+
 - `pnpm quality:deps` — a dependency-advisory gate that fails only when a HIGH advisory reaches a package's **runtime** chain, and reports the ones contained in dev chains. Wired into CI, where no audit ran at all before. All nineteen HIGH advisories in this workspace enter through a devDependency, so it is green today — deliberately, because a gate red on arrival gets deleted and then the real one is invisible too (#B-018)
 - `pnpm flow:google` in the integration suite — the manual OAuth round trip script `auth-github` already had. The skip message told Google users to run "the flow:\* script for this service"; there was none, so `auth-google`'s success path was exercised by neither CI nor a documented procedure (#B-015)
 - Embedded checkout in `@theokit/plugin-payments`: `createCheckout({ uiMode: 'embedded', returnUrl })` returns a `clientSecret` to mount the payment form inside your own page. Proven against real Stripe, not only typed (#B-013)
