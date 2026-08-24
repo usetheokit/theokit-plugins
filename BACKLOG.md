@@ -37,21 +37,19 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-39 items — **Open** 3 · **In flight** 0 · **Closed** 36
+39 items — **Open** 1 · **In flight** 0 · **Closed** 38
 
-### Open (3)
+### Open (1)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-037`](#b-037--ctxstripe-is-a-vendor-noun-on-published-surface-and-renaming-it-is-a-breaking-change--) | `ctx.stripe` is a vendor noun on published surface, and renaming it is a breaking change | `raw` | — |
-| [`B-038`](#b-038--every-oauth-sign-in-through-defineauth-fails-at-the-callback--) | every OAuth sign-in through `defineAuth` fails at the callback | `raw` | — |
-| [`B-039`](#b-039--nothing-exercises-these-packages-the-way-a-consumer-does--) | nothing exercises these packages the way a consumer does | `raw` | — |
 
 ### In flight (0)
 
 _None._
 
-### Closed (36)
+### Closed (38)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -91,6 +89,8 @@ _None._
 | [`B-034`](#b-034--the-advisory-gate-is-single-sourced-against-a-rule-that-names-two-scanners---x) | the advisory gate is single-sourced, against a rule that names two scanners | `shipped` | — |
 | [`B-035`](#b-035--a-pre-code-repo-is-marked-invalid-for-having-no-code---x) | a pre-code repo is marked INVALID for having no code | `shipped` | — |
 | [`B-036`](#b-036--the-release-dry-runs-pins-and-gates-can-drift-from-releaseyml-with-nothing-detecting-it-x) | the release dry run's pins and gates can drift from `release.yml` with nothing detecting it | `shipped` | — |
+| [`B-038`](#b-038--every-oauth-sign-in-through-defineauth-fails-at-the-callback-x) | every OAuth sign-in through `defineAuth` fails at the callback | `shipped` | — |
+| [`B-039`](#b-039--nothing-exercises-these-packages-the-way-a-consumer-does-x) | nothing exercises these packages the way a consumer does | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
 
@@ -1791,7 +1791,7 @@ vendor-noun objection stays recorded in `.claude/rules/decoration-keys.md § 2` 
 note: the name is not simply "the plugin noun" — `payments` is already claimed by the other plugin
 object in the SAME package. Choosing it is part of the work, not a detail.
 
-## B-038 — every OAuth sign-in through `defineAuth` fails at the callback [ ]
+## B-038 — every OAuth sign-in through `defineAuth` fails at the callback [x]
 
 > Registered 2026-08-24 after the owner asked whether the plugins are integrated. They are not, on
 > one of the two paths.
@@ -1811,7 +1811,7 @@ works (`auth-route-composition.offline.test.ts`, 7/7 — session created, cookie
 `defineAuth` does not. Two supported integration paths, one broken, and nothing in our documentation
 says which is which. A consumer reaching for the orchestrator — the path the sdk's own README leads
 with — gets a login that cannot succeed.
-status: raw
+status: shipped
 dod:
 
 - the mismatch is reported to `theokit-sdk` with the repro, as [[B-021]]'s siblings were
@@ -1820,11 +1820,33 @@ dod:
   today they document neither
 - the `it.fails` pin stays, so the day the sdk fixes it our suite goes red and tells us
 
-note: fixing the cookie NAME makes [[B-021]]'s published-constant secret reachable, which is latent
-only because the flow cannot complete. The two want fixing in that order, and the report should say
-so.
+shipped: 2026-08-24 — **fixed at source**, not worked around. `usetheokit/theokit-sdk#377`, merged.
 
-## B-039 — nothing exercises these packages the way a consumer does [ ]
+The scope was wider than this item recorded. It says "sdk 2.x"; measured, the same mismatch is in
+**4.53.1**, the current major — `startSignIn` writes `theo_oauth_tx=` and the store reads
+`__Host-theo_oauth_tx`. It had survived a major, and every OAuth sign-in driven through the
+orchestrator failed at the callback on any published version.
+
+The fix is one exported constant. `COOKIE_NAME` was module-private, which is what forced the
+orchestrator to write its own literal — the comment beside it says "need Set-Cookie header manually".
+One name rather than two is the actual repair; a second literal was always going to drift.
+
+The existing `server-auth-host-cookie-prefix.test.ts` did not catch it because it sets the header
+itself and then asserts on its own string. The new round-trip test drives `startSignIn` and hands
+what it EMITS back to `finishSignIn`, which is what a browser does.
+
+Both `dod` bullets closed, and the third stands: the report was filed (`#376`) before the fix, the
+three auth READMEs' guidance is now unnecessary because the orchestrator path works, and the
+`it.fails` pin stays — it goes red the day the fix reaches npm.
+
+The secret shipped with it, in that order, exactly as this note warned: production now refuses
+`DEV_ONLY_INSECURE_OAUTH_TX_SECRET_REPLACE_IN_PROD`, and refuses at `Auth.create` rather than at a
+user's first sign-in. Fixing the name alone would have made it reachable.
+
+Measured, not assumed: the sdk suite had 79 failures before and 76 after. Three that were already red
+now pass.
+
+## B-039 — nothing exercises these packages the way a consumer does [x]
 
 > Registered 2026-08-24 at the owner's request.
 
@@ -1841,7 +1863,7 @@ through a `theo.config.ts`, and drives a request. That gap is where [[B-038]] hi
 the path the sdk documents first, it cannot complete a sign-in, and it took a direct question from
 the owner to surface rather than a gate. A published plugin that a real app cannot use is not
 integrated, whatever the unit tests say.
-status: raw
+status: shipped
 dod:
 
 - an application at `../appplugins`, scaffolded with the official `create-theokit`, registers every
