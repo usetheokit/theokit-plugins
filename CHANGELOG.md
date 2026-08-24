@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `pnpm flow:google` in the integration suite — the manual OAuth round trip script `auth-github` already had. The skip message told Google users to run "the flow:\* script for this service"; there was none, so `auth-google`'s success path was exercised by neither CI nor a documented procedure (#B-015)
 - Embedded checkout in `@theokit/plugin-payments`: `createCheckout({ uiMode: 'embedded', returnUrl })` returns a `clientSecret` to mount the payment form inside your own page. Proven against real Stripe, not only typed (#B-013)
 - `<TheoForm encType="multipart/form-data">` in `@theokit/plugin-forms` converts values to the multipart shape the framework reconstructs, so file uploads work. The README said "No file uploads in v0.1"; the file always reached the action, and what was missing was one schema-guided conversion (#B-012)
 - `useYDoc()` in `@theokit/plugin-realtime` returns the room's Yjs document instead of throwing. Pass a stable `ydoc` to `<RoomProvider>`; live edits flow both ways. There is no initial sync yet — a client joining an existing document sees it empty until somebody types. `yjs` stays an optional peer (#B-011)
@@ -110,6 +111,7 @@ Eleven packages cut together: `@theokit/auth-github@0.3.0`, `@theokit/auth-googl
 
 ### Fixed
 
+- The auth caveats now say the round trip is blocked by a **session credential**, not by the absence of a browser, and carry the date last measured. A headless browser without a session gets the same redirect to a login screen, so "needs a browser" invited reaching for one and discovering the real cost late (#B-015)
 - The AbacatePay readiness caveat listed the refund happy path as uncovered. It was covered by a test in the same commit that added the caveat, so the claim was false from the day it was written — not stale. The remaining two entries now carry the kind of block (provider capability vs structural) and the date last measured (#B-014)
 - Yjs frames now carry base64 in both directions in `@theokit/plugin-realtime`. Only the server-to-client half was encoded, so a frame produced by a browser could not survive `JSON.stringify` — the transport the package's own README documents. `dispatchFrame` still accepts raw bytes (#B-028)
 - A CRDT frame sent to a room whose descriptor never declared `storage: 'yjs'` is now refused by name. It was silently dropped on a provider without Yjs support, and silently _applied_ on one with it — writing document state into a room that never opted in (#B-011)

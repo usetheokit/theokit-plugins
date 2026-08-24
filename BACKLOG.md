@@ -37,15 +37,14 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-30 items — **Open** 17 · **In flight** 0 · **Closed** 13
+31 items — **Open** 17 · **In flight** 0 · **Closed** 14
 
 ### Open (17)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited--) | three AbacatePay legs are declared uncoverable and never revisited | `triaged` | — |
-| [`B-015`](#b-015--the-oauth-consent-round-trip-is-automated-for-nobody--) | the OAuth consent round trip is automated for nobody | `raw` | — |
+| [`B-015`](#b-015--the-oauth-consent-round-trip-is-automated-for-nobody--) | the OAuth consent round trip is automated for nobody | `triaged` | — |
 | [`B-016`](#b-016--theokitplugin-forms-headless-tier-cannot-be-consumed-without-usetheoui--) | `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` | `raw` | — |
 | [`B-017`](#b-017--the-measurement-target-gate-reads-an-npm-subpath-specifier-as-a-missing-file--) | the measurement-target gate reads an npm subpath specifier as a missing file | `raw` | — |
 | [`B-018`](#b-018--nineteen-transitive-high-advisories-sit-in-the-workspace-with-nothing-watching-them--) | nineteen transitive HIGH advisories sit in the workspace with nothing watching them | `raw` | — |
@@ -60,12 +59,13 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 | [`B-027`](#b-027--no-local-gate-catches-a-manifest-edited-without-its-lockfile--) | no local gate catches a manifest edited without its lockfile | `raw` | — |
 | [`B-029`](#b-029--a-client-joining-a-room-sees-an-empty-document-until-somebody-types----) | a client joining a room sees an empty document until somebody types | `raw` | — |
 | [`B-030`](#b-030--a-multipart-scalar-array-loses-every-element-but-the-last----) | a multipart scalar array loses every element but the last | `raw` | — |
+| [`B-031`](#b-031--the-skip-message-names-a-script-nobody-checks-exists----) | the skip message names a script nobody checks exists | `raw` | — |
 
 ### In flight (0)
 
 _None._
 
-### Closed (13)
+### Closed (14)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -81,6 +81,7 @@ _None._
 | [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `shipped` | — |
 | [`B-012`](#b-012--plugin-forms-cannot-upload-a-file-x) | `plugin-forms` cannot upload a file | `shipped` | — |
 | [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout-x) | `plugin-payments` ships only hosted checkout | `shipped` | — |
+| [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited-x) | three AbacatePay legs are declared uncoverable and never revisited | `shipped` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
@@ -595,7 +596,7 @@ dod:
 - AbacatePay's position is stated rather than assumed — it may have no analogue, and saying so
   is a result
 
-## B-014 — three AbacatePay legs are declared uncoverable and never revisited [ ]
+## B-014 — three AbacatePay legs are declared uncoverable and never revisited [x]
 
 > Registered 2026-08-22 by `/backlog-item` (slug: `abacatepay-uncovered-legs`).
 
@@ -618,7 +619,11 @@ available for this store"), the refund happy path (a devMode payment adds no bal
 refusal is verifiable), and `verifyWebhook` (delivery needs a public HTTPS endpoint). The full
 live run on 2026-08-22 passed 179 tests with none of these among them. Each reason may have
 changed on the provider's side since it was written, and nothing re-checks.
-status: triaged
+status: shipped
+shipped_by: PR #127, merged 2026-08-24. The item assumed the recorded reasons might have CHANGED;
+  one was NEVER TRUE — the refund happy path was covered by a test in the same commit that declared
+  it uncovered. The other two are re-verified and now carry the kind of block and the date. No test
+  was added: the planned one would have duplicated a better existing one.
 dod:
 
 - each of the three is re-measured against the current provider, and the result recorded — a
@@ -635,14 +640,23 @@ domain: auth-provider
 repo: auth-github
 suggested_mode: live-test
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/oauth-roundtrip-unattended-opportunity.md`
+— measured 2026-08-24, and the reason is sharper than the item states. **The blocker is a session
+credential, not a browser.** Both providers 302 an unauthenticated authorize request to a login
+screen (`github.com/login`, `accounts.google.com/v3/signin/identifier` — the Google probe re-run with
+the real client id after a fake one answered about the id rather than the session). A headless
+browser without a session gets the same 302, so automating means storing a live USER SESSION in CI —
+an account, not a scope-limited token. Every alternative grant (device flow, App installation token,
+PAT) exercises a different code path than the one under test. **The actionable finding is parity**:
+`auth-github` has `flow:github`; `auth-google` has no equivalent script, so its success path is
+exercised by nothing — not CI, not a human procedure.
 why_now: measured 2026-08-22 — the full live run skipped exactly two behaviours, both the same:
 "full consent round trip [skipped: needs a browser session, so it cannot run in CI]", for
 `auth-github` and `auth-google`. The server half is covered live; the leg where a human clicks
 "allow" is exercised only by hand, through `pnpm flow:github`. So the single most important thing
 these packages do — turn a real consent into a session — is verified by somebody remembering to
 run a script.
-status: raw
+status: triaged
 dod:
 
 - the round trip runs unattended against the real provider, or the reason it cannot is
@@ -1103,3 +1117,26 @@ dod:
   - the pinning test in this repository flips from asserting `['third']` to asserting all three
     elements, on the day the framework carries them
   - until then, the limitation is documented where a consumer chooses `encType`
+
+## B-031 — the skip message names a script nobody checks exists   [ ]
+
+domain: plugin-server
+repo: plugin-payments
+suggested_mode: review
+source: human
+evidence: measured 2026-08-24 while closing [[B-015]].
+  `integration/src/harness.ts:112` skips a suite with "run it locally with the flow:* script for
+  this service". Nothing asserts that script exists. It did not for `auth-google`, so the
+  instruction pointed at nothing and that provider's OAuth success path was exercised by neither CI
+  nor a documented procedure — found by reading, not by any gate.
+  The check is mechanical and cheap: every service whose suite calls `describeManualOAuth` must have
+  a matching `flow:<id>` in `integration/package.json`. The registry already carries service ids
+  (`integration/src/services.ts`), and `integration/tests/readiness.test.ts` already reads it, so
+  there is a place for the assertion to live.
+why_now: [[B-015]] added `flow:google`, so the gap is closed for today's two providers — and closed
+  by hand. The next `describeManualOAuth` caller reintroduces it silently.
+status: raw
+dod:
+  - a test that fails when a service uses `describeManualOAuth` and has no matching `flow:*` script
+  - it fails for the right reason: deleting the `flow:google` entry turns it red, not the suite
+  - the failure message names the service and the script it expected

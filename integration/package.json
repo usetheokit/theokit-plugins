@@ -14,7 +14,8 @@
     "flow:github": "node scripts/full-flow-github.mjs",
     "flow:stripe-webhook": "node scripts/full-flow-stripe-webhook.mjs",
     "readiness": "vitest run tests/readiness.offline.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "flow:google": "node scripts/full-flow-google.mjs"
   },
   "devDependencies": {
     "@theokit/auth-github": "workspace:*",
