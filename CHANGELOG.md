@@ -112,6 +112,7 @@ Eleven packages cut together: `@theokit/auth-github@0.3.0`, `@theokit/auth-googl
 
 ### Fixed
 
+- The auth conformance suite now says why it breaks on an `@theokit/sdk` major bump, instead of failing with a bare `TypeError`. Measured: `defineAuth` is absent in sdk 4, but **no package imports it** — all four take types only, and those types exist in both majors. The packages were never affected; the test was (#B-019)
 - `@theokit/plugin-forms` documented a headless tier "usable in any React stack" that cannot be reached: the package has one entry point and it imports `@usetheo/ui` at module scope, so the import fails before any component renders. Three README claims were false, one contradicting the package's own manifest. The behaviour is now documented and pinned by a consumer test (#B-016)
 - The auth caveats now say the round trip is blocked by a **session credential**, not by the absence of a browser, and carry the date last measured. A headless browser without a session gets the same redirect to a login screen, so "needs a browser" invited reaching for one and discovering the real cost late (#B-015)
 - The AbacatePay readiness caveat listed the refund happy path as uncovered. It was covered by a test in the same commit that added the caveat, so the claim was false from the day it was written — not stale. The remaining two entries now carry the kind of block (provider capability vs structural) and the date last measured (#B-014)

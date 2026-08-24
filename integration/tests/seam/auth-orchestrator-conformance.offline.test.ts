@@ -244,3 +244,92 @@ describe('the real auth orchestrator is what drives a provider', () => {
     },
   )
 })
+
+/**
+ * Why this suite breaks on an sdk major bump, and the packages do not.
+ *
+ * Measured 2026-08-24 against both majors installed here: `defineAuth` is a function in sdk 2.18.0
+ * and `undefined` in 4.53.1, where the orchestrator is the `Auth` class instead. A token-level grep
+ * finds the name in both — importing the module is what discriminates.
+ *
+ * But **no package imports it.** `auth-github`, `auth-google` and `auth-magic-link` take
+ * `AuthProvider`, `AuthResult` and `OAuthTransaction` as `import type`, and all three types exist in
+ * both majors. `plugin-copilot` takes one type from the root barrel. The sole caller of `defineAuth`
+ * in this repository is this file — because a **type contract** cannot be handed to anything, so a
+ * runtime seam is the only thing a conformance test can drive.
+ *
+ * The consequence for a consumer is worth stating, because it is the one real cost of the pin: the
+ * packages declare `^2.18.0` as a PEER range, so somebody already on sdk 4 hits a **peer conflict**
+ * even though their type contract would be satisfied by it. That is a product decision about a
+ * published range, not a defect.
+ *
+ * So: an out-of-range sdk should break this file, and it should say why. Before this assertion it
+ * failed with a bare `TypeError: defineAuth is not a function`, which cost three measurements to
+ * explain — the last of which refuted the premise it was filed under.
+ */
+describe('the sdk major this suite assumes', () => {
+  it('is within the range the packages themselves declare', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { dirname, join } = await import('node:path')
+    const { fileURLToPath } = await import('node:url')
+
+    /**
+     * Find a package's own manifest, the way a consumer's resolver would.
+     *
+     * Two things this deliberately does not do. It does not ask for `<pkg>/package.json`: neither
+     * package lists that in `exports`, so it throws `ERR_PACKAGE_PATH_NOT_EXPORTED` — correctly, a
+     * manifest is not public surface. And it does not use `createRequire().resolve`: these packages
+     * are ESM-only, their `.` entry defines no `require` condition, and asking for one answers
+     * "No exports main defined" — a resolution failure that says nothing about the package.
+     *
+     * `import.meta.resolve` uses the `import` condition, which is the one that exists.
+     */
+    const manifestOf = (specifier: string): Record<string, unknown> => {
+      let dir = dirname(fileURLToPath(import.meta.resolve(specifier)))
+      for (let depth = 0; depth < 8; depth += 1) {
+        try {
+          return JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as Record<
+            string,
+            unknown
+          >
+        } catch {
+          dir = dirname(dir)
+        }
+      }
+      throw new Error(`no package.json found above the entry point of ${specifier}`)
+    }
+
+    // Both sides read from disk. A hardcoded major would restate the manifest in a second place
+    // that can drift from it — the shape two other gates in this repository were fixed for.
+    const pkg = manifestOf('@theokit/auth-github') as {
+      peerDependencies?: Record<string, string>
+    }
+    const declared = pkg.peerDependencies?.['@theokit/sdk']
+    expect(declared, '@theokit/auth-github stopped declaring an sdk peer range').toBeDefined()
+
+    const sdk = manifestOf('@theokit/sdk/server/auth') as { version: string }
+
+    const declaredMajor = Number(/(\d+)/.exec(declared!)?.[1])
+    const resolvedMajor = Number(sdk.version.split('.')[0])
+
+    expect(
+      resolvedMajor,
+      `@theokit/sdk resolved to ${sdk.version}, outside the ${declared} that ` +
+        '@theokit/auth-github declares. `defineAuth` is a function in sdk 2.x and absent in 4.x, ' +
+        'where the orchestrator is the `Auth` class — so this suite cannot run. The PACKAGES are ' +
+        'unaffected: they import types only, and those types exist in both majors. Either pin the ' +
+        'sdk back, or migrate this suite to `Auth` and update this assertion deliberately.',
+    ).toBe(declaredMajor)
+  })
+
+  it('reads the expectation from the manifest rather than a constant', () => {
+    // The property that makes the assertion above a check instead of a copy: change the declared
+    // range and the expectation follows. A hardcoded `toBe(2)` would pass this file and fail the
+    // day the decision changes, for the wrong reason.
+    const parse = (range: string): number => Number(/(\d+)/.exec(range)?.[1])
+
+    expect(parse('^2.18.0')).toBe(2)
+    expect(parse('>=4.0.0 <5.0.0')).toBe(4)
+    expect(parse('^11.2.0')).toBe(11)
+  })
+})

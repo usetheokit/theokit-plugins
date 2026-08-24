@@ -37,15 +37,14 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-34 items — **Open** 17 · **In flight** 0 · **Closed** 17
+34 items — **Open** 16 · **In flight** 0 · **Closed** 18
 
-### Open (17)
+### Open (16)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-018`](#b-018--nineteen-transitive-high-advisories-sit-in-the-workspace-with-nothing-watching-them--) | nineteen transitive HIGH advisories sit in the workspace with nothing watching them | `triaged` | — |
-| [`B-019`](#b-019--four-packages-integrate-through-a-seam-the-current-sdk-major-no-longer-has--) | four packages integrate through a seam the current SDK major no longer has | `raw` | — |
+| [`B-019`](#b-019--four-packages-integrate-through-a-seam-the-current-sdk-major-no-longer-has--) | four packages integrate through a seam the current SDK major no longer has | `triaged` | — |
 | [`B-020`](#b-020--code-quality-was-returning-pass-over-zero-languages--) | /code-quality was returning PASS over zero languages | `raw` | — |
 | [`B-021`](#b-021--the-oauth-transaction-cookie-is-encrypted-with-a-constant-published-in-the-package--) | the OAuth transaction cookie is encrypted with a constant published in the package | `raw` | — |
 | [`B-022`](#b-022--assertproductionsecret-warns-about-a-boot-refusal-nothing-implements--) | `assertProductionSecret` warns about a boot refusal nothing implements | `raw` | — |
@@ -65,7 +64,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (17)
+### Closed (18)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -85,6 +84,7 @@ _None._
 | [`B-015`](#b-015--the-oauth-consent-round-trip-is-automated-for-nobody-x) | the OAuth consent round trip is automated for nobody | `shipped` | — |
 | [`B-016`](#b-016--theokitplugin-forms-headless-tier-cannot-be-consumed-without-usetheoui-x) | `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` | `shipped` | — |
 | [`B-017`](#b-017--the-measurement-target-gate-reads-an-npm-subpath-specifier-as-a-missing-file-x) | the measurement-target gate reads an npm subpath specifier as a missing file | `shipped` | — |
+| [`B-018`](#b-018--nineteen-transitive-high-advisories-sit-in-the-workspace-with-nothing-watching-them-x) | nineteen transitive HIGH advisories sit in the workspace with nothing watching them | `shipped` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
@@ -768,7 +768,7 @@ not a fix, and it will not occur to the next author.
 note: `.claude/` is not versioned here. Per the personal-environment rule, this item's fix belongs
 in the kit's own repository; registering it here records the finding so it is not lost.
 
-## B-018 — nineteen transitive HIGH advisories sit in the workspace with nothing watching them [ ]
+## B-018 — nineteen transitive HIGH advisories sit in the workspace with nothing watching them [x]
 
 > Registered 2026-08-23 by `/deps-audit` while auditing B-001's plan.
 
@@ -791,7 +791,12 @@ manifest here): `brace-expansion` (6), `undici` (4), `js-yaml` (4), `nanoid` (2)
 `packages/plugin-canvas > jsdom > form-data` — but through a devDependency, so it does not ship to
 consumers. Nothing in CI runs `pnpm audit`, so this count is invisible between manual audits, and
 a future advisory on a runtime path would be equally invisible.
-status: triaged
+status: shipped
+shipped_by: PR #130, merged 2026-08-24. `pnpm quality:deps` fails only on a runtime chain and
+  reports dev chains, with the distinction read from the manifests — a test runs the same advisory
+  against two manifests differing only in the section and asserts opposite verdicts. Green today, on
+  purpose. Surfaced [[B-034]]: I wrote an osv-scanner action reference from memory and removed it,
+  because 9 of 10 `uses:` here are SHA-pinned and a SHA from memory is a fabrication.
 dod:
 
 - a gate that fails when a HIGH advisory reaches a package's **runtime** dependency chain, and
@@ -827,7 +832,7 @@ providers the documented way. This is the #42 defect class exactly: a package ty
 framework API, and the framework moved. It surfaced within minutes of the conformance test
 existing (`integration/tests/seam/auth-orchestrator-conformance.offline.test.ts` failed with
 `TypeError: defineAuth is not a function` while the sdk was briefly resolved at `@latest`).
-status: raw
+status: triaged
 dod:
 
 - a decision, recorded as an ADR, on whether these packages move to the `Auth` class or stay
