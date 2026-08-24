@@ -236,7 +236,7 @@ export function Page({
 Two preconditions, refused in two different places on purpose:
 
 - **No `ydoc` passed** — `useYDoc()` throws, naming the prop. That is decidable on the client.
-- **The room does not declare `storage: 'yjs'`** — the *server* refuses the frame with
+- **The room does not declare `storage: 'yjs'`** — the _server_ refuses the frame with
   `RealtimeError({ code: 'yjs_storage_not_declared' })`. The descriptor lives server-side and a
   client is not a trust boundary, so putting the same rule in both places would mean maintaining it
   twice. The consequence is worth knowing: a document wired to a non-CRDT room looks fine until the

@@ -63,7 +63,10 @@ describe('a room without storage:"yjs"', () => {
     const rt = new RealtimeRuntime({ provider, rooms: [PLAIN] })
 
     await expect(rt.dispatchFrame(PLAIN.id, 'alice', UPDATE)).rejects.toThrow(/storage/i)
-    expect(apply, 'CRDT state was written into a room that never declared it').not.toHaveBeenCalled()
+    expect(
+      apply,
+      'CRDT state was written into a room that never declared it',
+    ).not.toHaveBeenCalled()
   })
 })
 

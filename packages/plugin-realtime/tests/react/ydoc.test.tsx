@@ -125,7 +125,7 @@ describe('inbound Yjs frames', () => {
 
     await push({ type: 'yjs-update', connectionId: 'other', bytes: b64(update) })
 
-    await waitFor(() => expect(target.getText('t').toString()).toBe('hello'))
+    await waitFor(() => expect(target.getText('t').toJSON()).toBe('hello'))
   })
 
   it('keeps the subscription alive when a frame carries undecodable bytes', async () => {
@@ -134,7 +134,7 @@ describe('inbound Yjs frames', () => {
     // the whole room, silently — the exact shape `rules/error-handling.md § 5` names.
     const target = new Y.Doc()
     const { client, push } = controllable()
-    const reported = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const reported = vi.spyOn(console, 'error').mockImplementation(() => undefined)
 
     render(
       <RoomProvider roomId="r" client={client} ydoc={target}>
@@ -152,7 +152,7 @@ describe('inbound Yjs frames', () => {
       bytes: b64(Y.encodeStateAsUpdate(source)),
     })
 
-    await waitFor(() => expect(target.getText('t').toString()).toBe('still here'))
+    await waitFor(() => expect(target.getText('t').toJSON()).toBe('still here'))
     expect(reported, 'the bad frame was swallowed rather than reported').toHaveBeenCalled()
     reported.mockRestore()
   })
@@ -178,7 +178,7 @@ describe('inbound Yjs frames', () => {
       bytes: b64(Y.encodeStateAsUpdate(source)),
     })
 
-    await waitFor(() => expect(target.getText('t').toString()).toBe('after'))
+    await waitFor(() => expect(target.getText('t').toJSON()).toBe('after'))
   })
 
   it('decodes the bytes without Buffer, which a browser does not have', async () => {
@@ -202,7 +202,7 @@ describe('inbound Yjs frames', () => {
     delete globalThis.Buffer
     try {
       await push({ type: 'yjs-update', connectionId: 'other', bytes: encoded })
-      await waitFor(() => expect(target.getText('t').toString()).toBe('browser'))
+      await waitFor(() => expect(target.getText('t').toJSON()).toBe('browser'))
     } finally {
       globalThis.Buffer = original
     }
@@ -215,7 +215,7 @@ describe('inbound Yjs frames', () => {
     const originalAtob = globalThis.atob
     const target = new Y.Doc()
     const { client, push } = controllable()
-    const reported = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const reported = vi.spyOn(console, 'error').mockImplementation(() => undefined)
 
     render(
       <RoomProvider roomId="r" client={client} ydoc={target}>
@@ -289,7 +289,7 @@ describe('outbound document updates', () => {
       connectionId: 'other',
       bytes: b64(Y.encodeStateAsUpdate(source)),
     })
-    await waitFor(() => expect(doc.getText('t').toString()).toBe('from the wire'))
+    await waitFor(() => expect(doc.getText('t').toJSON()).toBe('from the wire'))
 
     expect(
       sent.filter((f) => f.kind === 'yjs-update'),
@@ -314,7 +314,7 @@ describe('outbound document updates', () => {
       await Promise.resolve()
     })
 
-    expect(doc.getText('t').toString()).toBe('local only')
+    expect(doc.getText('t').toJSON()).toBe('local only')
   })
 
   it('detaches the document listener on unmount', async () => {
