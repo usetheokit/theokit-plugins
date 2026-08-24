@@ -126,9 +126,10 @@ describe('two packages may not claim the same decoration key', () => {
  * Example — a plugin claims its key like this:
  *   app.decorateRequest('ghost', {})
  */
+export const DECORATION_KEY = '${pkg}-key'
 export function plugin() {
   // app.decorateRequest('ghost', {})
-  return { name: '@fixture/${pkg}', register(app) { app.decorateRequest('${pkg}-key', {}) } }
+  return { name: '@fixture/${pkg}', register(app) { app.decorateRequest(DECORATION_KEY, {}) } }
 }
 `
     const root = fixture({ alpha: commented('alpha'), beta: commented('beta') })
@@ -193,9 +194,13 @@ export const p = { name: 'a', register(app) { app.decorateRequest(K, {}) } }`,
     // The property is "two PACKAGES", not "two call sites". Without this, deriving the package
     // could be broken outright and the whole suite would still pass — measured: it did.
     const root = fixture({
-      alpha: `export const p = { name: 'a', register(app) {
-  app.decorateRequest('shared', {})
-  app.decorateRequest('shared', {})
+      // The key is an exported const because the form rule below requires it; this case is about
+      // "two call sites in one package are not a collision", and keeping the two concerns separate
+      // is what stops one test failing for the other's reason.
+      alpha: `export const DECORATION_KEY = 'shared'
+export const p = { name: 'a', register(app) {
+  app.decorateRequest(DECORATION_KEY, {})
+  app.decorateRequest(DECORATION_KEY, {})
 } }`,
     })
 
@@ -229,5 +234,107 @@ export const p = { name: 'a', register(app) { app.decorateRequest(KEYS.payments,
     expect(code).toBe(0)
     expect(output, 'claimed a clean comparison it did not make').not.toMatch(/no two packages/)
     expect(output).toMatch(/could NOT be resolved/)
+  })
+})
+
+describe('a decoration key must be an importable const, not a literal', () => {
+  // `.claude/rules/decoration-keys.md § 2` requires the key to be "declared as an exported `const`
+  // beside the plugin so a consumer can import it rather than retype it". Until this existed the
+  // gate compared VALUES only, so `'stripe'` and `STRIPE_DECORATION_KEY` were indistinguishable to
+  // it — correct for collision detection, and blind to the form.
+  //
+  // A consumer who retypes a key gets a silent `undefined` at request time when they mistype it.
+  // That is the cost the convention exists to remove, and a rule nothing enforces is a rule that
+  // decays: three keys existed and one had already drifted.
+
+  it('fails on a key passed as an inline string literal', () => {
+    const root = fixture({
+      solo: `
+export function plugin() {
+  return { name: '@fixture/solo', register(app) { app.decorateRequest('thing', {}) } }
+}
+`,
+    })
+
+    const { code, output } = validate(root)
+
+    expect(code).not.toBe(0)
+    // The file AND the line: a gate that fails without saying where is a gate people disable.
+    expect(output).toMatch(/packages.solo.src.plugin\.ts:\d+/)
+    expect(output).toMatch(/literal/i)
+  })
+
+  it('fails on an identifier resolving to a const that is not exported', () => {
+    // The half that is easy to miss. A check asking only "identifier or literal?" accepts this —
+    // and a module-local const is one a consumer still cannot import, so the gate would report
+    // compliance for a key that does not deliver the thing the convention is for.
+    const root = fixture({
+      local: `
+const DECORATION_KEY = 'thing'
+export function plugin() {
+  return { name: '@fixture/local', register(app) { app.decorateRequest(DECORATION_KEY, {}) } }
+}
+`,
+    })
+
+    const { code, output } = validate(root)
+
+    expect(code).not.toBe(0)
+    expect(output).toMatch(/export/i)
+  })
+
+  it('accepts an exported const declared in a different file of the same package', () => {
+    // Splitting a const into its own module is an ordinary refactor, and the collision check was
+    // once broken by exactly it (`scripts/validate-manifests.mjs:387`). The form rule must not
+    // reintroduce that: resolution is package-wide, so this passes.
+    const root = fixture({
+      split: {
+        'keys.ts': `export const DECORATION_KEY = 'thing'
+`,
+        'plugin.ts': `
+import { DECORATION_KEY } from './keys.js'
+export function plugin() {
+  return { name: '@fixture/split', register(app) { app.decorateRequest(DECORATION_KEY, {}) } }
+}
+`,
+      },
+    })
+
+    expect(validate(root).code).toBe(0)
+  })
+
+  it('fires through the element-access form too', () => {
+    // `app['decorateRequest'](…)` is the bypass the collision check already closes
+    // (`scripts/validate-manifests.mjs:426`). If the form rule did not reach through it, the
+    // documented bypass would become the supported way to keep an inline literal.
+    const root = fixture({
+      elem: `
+export function plugin() {
+  return { name: '@fixture/elem', register(app) { app['decorateRequest']('thing', {}) } }
+}
+`,
+    })
+
+    expect(validate(root).code).not.toBe(0)
+  })
+
+  it('leaves an unresolvable key on the report channel, not the failure channel', () => {
+    // The `ℹ` channel is an honest report of what the parser cannot see
+    // (`.claude/rules/decoration-keys.md § 3`). A literal is fully resolved — the parser knows
+    // exactly what it is — so failing both on the same channel would blur a known violation with
+    // an acknowledged blind spot, and the blind-spot channel is the one that must stay readable.
+    const root = fixture({
+      dynamic: `
+const KEYS = { thing: 'thing' }
+export function plugin() {
+  return { name: '@fixture/dynamic', register(app) { app.decorateRequest(KEYS.thing, {}) } }
+}
+`,
+    })
+
+    const { code, output } = validate(root)
+
+    expect(code).toBe(0)
+    expect(output).toMatch(/unresolved decoration key/i)
   })
 })

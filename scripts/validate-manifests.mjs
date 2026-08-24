@@ -399,12 +399,29 @@ function decorationKeys(dir) {
 
   // Pass 1: every `const NAME = <resolvable>` in the package. Comments are not nodes, so a name
   // that appears only in prose never lands here.
+  //
+  // `exported` is tracked separately from `literals` rather than folded into it. The convention has
+  // two halves — the key is an identifier, AND that identifier is importable — and a check that
+  // collapsed them would accept a module-local const: an identifier at the call site, and still a
+  // key no consumer can import, which is the whole thing the convention is for.
+  //
+  // The `export` modifier sits on the VariableStatement, two levels above the declaration, so it is
+  // read from the declaration list's parent rather than from the declaration itself.
   const literals = new Map()
+  const exported = new Set()
   for (const { source } of parsed) {
     const collect = (node) => {
       if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
         const value = resolveString(node.initializer, source, literals)
-        if (value !== null) literals.set(node.name.text, value)
+        if (value !== null) {
+          literals.set(node.name.text, value)
+          const statement = node.parent?.parent
+          const isExported =
+            statement !== undefined &&
+            ts.isVariableStatement(statement) &&
+            (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export) !== 0
+          if (isExported) exported.add(node.name.text)
+        }
       }
       ts.forEachChild(node, collect)
     }
@@ -432,8 +449,17 @@ function decorationKeys(dir) {
           const arg = node.arguments[0]
           const line = source.getLineAndCharacterOfPosition(arg.getStart(source)).line + 1
           const value = resolveString(arg, source, literals)
-          if (value !== null) resolved.push({ key: value, at: `${file}:${line}` })
-          else unresolved.push({ at: `${file}:${line}`, text: arg.getText(source) })
+          if (value !== null) {
+            // The FORM is read from the AST node, before resolution. After resolution `'stripe'`
+            // and `STRIPE_DECORATION_KEY` are the same string — which is correct for collision
+            // detection and blind to the thing this rule is about.
+            const form = ts.isIdentifier(arg)
+              ? exported.has(arg.text)
+                ? 'exported-const'
+                : 'local-const'
+              : 'literal'
+            resolved.push({ key: value, at: `${file}:${line}`, form, text: arg.getText(source) })
+          } else unresolved.push({ at: `${file}:${line}`, text: arg.getText(source) })
         }
       }
       ts.forEachChild(node, visit)
@@ -461,6 +487,27 @@ function checkDecorationKeys(dirs) {
     // Reported, never dropped — and de-duplicated, because one unresolved identifier used three
     // times produced three byte-identical lines.
     for (const { at, text } of unresolved) unresolvedKeys.add(`${at}: \`${text}\``)
+
+    // The form rule fires only on keys the parser FULLY resolved. An unresolvable key keeps the
+    // `ℹ` channel above, which is an honest report of a blind spot; a literal is not a blind spot,
+    // the parser knows exactly what it is. Failing both the same way would blur the two, and the
+    // blind-spot channel is the one that has to stay readable.
+    for (const { key, at, form, text } of resolved) {
+      if (form === 'literal') {
+        violations.push(
+          `decoration key \`${key}\` is passed as a string literal at ${at} — declare it as an ` +
+            `exported const beside the plugin so a consumer can import it instead of retyping it. ` +
+            `A retyped key that is mistyped reads as \`undefined\` at request time, silently. ` +
+            `See rules/decoration-keys.md § 2.`,
+        )
+      } else if (form === 'local-const') {
+        violations.push(
+          `decoration key \`${key}\` is passed as \`${text}\` at ${at}, which is a const that is ` +
+            `not exported — a consumer still cannot import it. Add \`export\`. ` +
+            `See rules/decoration-keys.md § 2.`,
+        )
+      }
+    }
   }
 
   for (const line of [...unresolvedKeys].sort()) {
