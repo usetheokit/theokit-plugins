@@ -62,6 +62,53 @@ export interface TheoFormAction<TInput extends FieldValues = FieldValues, TData 
  * `schema` is the escape hatch for an action that does not carry one; with neither, the form still
  * submits and still shows server-side field errors — it just does no client-side validation first.
  */
+/**
+ * A `FileList` becomes a `File[]`; everything else is returned as it came.
+ *
+ * NOT `Array.isArray`: a browser's `FileList` is array-like and not an `Array`, and this repository
+ * cannot observe one — happy-dom's `DataTransfer.files` is itself an `Array`, measured. A check
+ * that passes every test here and fails in the browser would be worse than none.
+ */
+function normaliseValue(value: unknown): unknown {
+  if (value === null || typeof value !== 'object') return value
+  if (value instanceof Blob || Array.isArray(value)) return value
+  const length = (value as { length?: unknown }).length
+  if (typeof length !== 'number') return value
+  const items: Blob[] = []
+  for (let i = 0; i < length; i += 1) {
+    const item = (value as Record<number, unknown>)[i]
+    if (!(item instanceof Blob)) return value
+    items.push(item)
+  }
+  return items
+}
+
+/**
+ * Unwrap `FileList` values BEFORE the schema sees them.
+ *
+ * This is the resolver, deliberately, and it took two wrong answers to get here. A registered file
+ * input does not hold a `File`, so `z.array(z.instanceof(File))` — the shape the server's own
+ * reconstruction produces — failed validation and the submit died before `handleValid` ever ran.
+ * Unwrapping at conversion time is downstream of that. Unwrapping via `register`'s `setValueAs` is
+ * upstream of it but never runs: measured, RHF does not call `setValueAs` for a file input; it
+ * stores `event.target.files` directly.
+ *
+ * The resolver is the one place that sits between what RHF stores and what both the schema and the
+ * submit handler receive — RHF passes the resolver's returned `values` to the submit handler, so
+ * normalising here fixes validation and the payload in one move.
+ */
+function normaliseFileFields(inner: Resolver<never>): Resolver<never> {
+  return (async (values: Record<string, unknown>, context: unknown, options: unknown) => {
+    const normalised: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(values ?? {})) normalised[key] = normaliseValue(value)
+    return (inner as unknown as (v: unknown, c: unknown, o: unknown) => unknown)(
+      normalised,
+      context,
+      options,
+    )
+  }) as unknown as Resolver<never>
+}
+
 export interface TheoFormProps<TInput extends FieldValues = FieldValues, TData = unknown> {
   action: TheoFormAction<TInput, TData>
   /**
@@ -104,7 +151,7 @@ function TheoFormRootInner<TInput extends FieldValues, TData>(
   // Schema priority: explicit prop > convention-attached __zodSchema > none
   const resolvedSchema = schema ?? action.__zodSchema
   const resolver = resolvedSchema?.parse
-    ? (zodResolver(resolvedSchema as never) as Resolver<TInput>)
+    ? (normaliseFileFields(zodResolver(resolvedSchema as never)) as unknown as Resolver<TInput>)
     : undefined
   const form: UseFormReturn<TInput> = useForm<TInput>({
     defaultValues: defaultValues as never,

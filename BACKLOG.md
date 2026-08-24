@@ -37,15 +37,14 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 ## Index
 
-29 items — **Open** 19 · **In flight** 0 · **Closed** 10
+29 items — **Open** 18 · **In flight** 0 · **Closed** 11
 
-### Open (19)
+### Open (18)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
-| [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `triaged` | — |
-| [`B-012`](#b-012--plugin-forms-cannot-upload-a-file--) | `plugin-forms` cannot upload a file | `raw` | — |
+| [`B-012`](#b-012--plugin-forms-cannot-upload-a-file--) | `plugin-forms` cannot upload a file | `triaged` | — |
 | [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout--) | `plugin-payments` ships only hosted checkout | `raw` | — |
 | [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited--) | three AbacatePay legs are declared uncoverable and never revisited | `raw` | — |
 | [`B-015`](#b-015--the-oauth-consent-round-trip-is-automated-for-nobody--) | the OAuth consent round trip is automated for nobody | `raw` | — |
@@ -67,7 +66,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 
 _None._
 
-### Closed (10)
+### Closed (11)
 
 | Item | Title | Status | Severity |
 |---|---|---|---|
@@ -80,6 +79,7 @@ _None._
 | [`B-008`](#b-008--the-root-v-tag-convention-is-dead-and-the-changelog-still-implies-it-x) | The root `v*` tag convention is dead and the CHANGELOG still implies it | `shipped` | — |
 | [`B-009`](#b-009--nothing-compiles-the-code-examples-our-readmes-publish-x) | Nothing compiles the code examples our READMEs publish | `shipped` | — |
 | [`B-010`](#b-010--plugin-realtimes-presence-and-broadcast-never-leave-the-client-x) | `plugin-realtime`'s presence and broadcast never leave the client | `shipped` | — |
+| [`B-011`](#b-011--useydoc-throws-instead-of-wiring-the-ydoc--) | `useYDoc()` throws instead of wiring the Y.Doc | `shipped` | — |
 | [`B-028`](#b-028--the-yjs-wire-encodes-on-the-way-down-and-hands-raw-bytes-on-the-way-up----) | the Yjs wire encodes on the way down and hands raw bytes on the way up | `shipped` | — |
 
 <!-- BACKLOG-INDEX:END -->
@@ -509,7 +509,9 @@ the message names the workaround (use YjsRealtimeProvider server-side, consume u
 `useBroadcast`). That workaround depends on B-010, which is itself local-only, so the documented
 escape route does not currently work either. The provider ships and the CRDT round trip is
 covered over a real socket by `wire-round-trip.test.ts`; what is missing is the React wiring.
-status: triaged
+status: shipped
+shipped_by: PR #124, merged 2026-08-23. Also closed [[B-028]] (the wire encoded only downward) and
+  surfaced [[B-029]] (no initial-sync handshake), which is filed rather than implemented.
 dod:
 
 - `useYDoc()` returns a `Y.Doc` when the room descriptor declares `storage: 'yjs'`
@@ -526,11 +528,24 @@ domain: client-surface
 repo: plugin-forms
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/forms-multipart-upload-opportunity.md`
+— **the item's premise is partially refuted, and the refutation is the finding.** A probe rendered
+a real `<TheoForm>` with a registered `<input type="file">` and the File REACHED the action: RHF
+delivers an array of `File`, and `useAction` does not serialise (`ActionInvoker` is a function the
+consumer supplies). What costs the consumer is everything after: `z.instanceof(File)` rejects what
+RHF actually hands over; `JSON.stringify` keeps the metadata and drops the bytes, so a server
+stores an empty file with no error anywhere; the multipart walk is ~15 identical lines plus a key
+convention nobody can infer; and `encType` is hardcoded `application/x-www-form-urlencoded`
+(`packages/plugin-forms/src/components/TheoForm.tsx:152`). **And the rest of the stack already does multipart end to end**: `theokit`'s client invoker sends a
+`FormData` body as-is, and an action declaring `accept: 'form'` reconstructs an object from it
+guided by the Zod schema. The convention is already fixed and is NOT the obvious one — dot notation
+for nesting, REPEATED keys for arrays (`getAll`), so a hand-rolled `tags[0]`/`tags[1]` walk yields
+an empty array with no error. The item is smaller than it looked: one schema-guided conversion in
+this package, whose correctness criterion is an exact round trip.
 why_now: measured 2026-08-22 — `README.md:216` states "**No file uploads in v0.1.**
 `multipart/form-data` deferred to v0.2." A form library without file upload is a form library a
 consumer outgrows on their second form. The declaration is honest; the gap is real.
-status: raw
+status: triaged
 dod:
 
 - a `<TheoField>` bound to a file input submits through the action as multipart
