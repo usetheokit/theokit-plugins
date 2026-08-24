@@ -45,7 +45,7 @@ anti-pattern, and it would let a plan be justified by a hunch wearing a citation
 |---|---|---|---|
 | [`B-001`](#b-001--nothing-verifies-that-what-a-package-exports-is-accepted-by-the-seam-it-claims--) | Nothing verifies that what a package exports is accepted by the seam it claims | `triaged` | — |
 | [`B-012`](#b-012--plugin-forms-cannot-upload-a-file--) | `plugin-forms` cannot upload a file | `triaged` | — |
-| [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout--) | `plugin-payments` ships only hosted checkout | `raw` | — |
+| [`B-013`](#b-013--plugin-payments-ships-only-hosted-checkout--) | `plugin-payments` ships only hosted checkout | `triaged` | — |
 | [`B-014`](#b-014--three-abacatepay-legs-are-declared-uncoverable-and-never-revisited--) | three AbacatePay legs are declared uncoverable and never revisited | `raw` | — |
 | [`B-015`](#b-015--the-oauth-consent-round-trip-is-automated-for-nobody--) | the OAuth consent round trip is automated for nobody | `raw` | — |
 | [`B-016`](#b-016--theokitplugin-forms-headless-tier-cannot-be-consumed-without-usetheoui--) | `@theokit/plugin-forms`' headless tier cannot be consumed without `@usetheo/ui` | `raw` | — |
@@ -563,13 +563,22 @@ domain: plugin-server
 repo: plugin-payments
 suggested_mode: evolve
 source: human
-evidence: none-yet
+evidence: `.claude/knowledge-base/discoveries/opportunities/payments-embedded-checkout-opportunity.md`
+— measured LIVE against real Stripe. The hypothesis holds and **understates** the problem. Stripe
+accepts `ui_mode: 'embedded'` and returns `client_secret` with `url: null`, so the feature is
+unexposed rather than unavailable. The result is unreachable — the null-URL throw
+(`packages/plugin-payments/src/providers/stripe.ts:171`) precedes the return that carries `raw`
+(`:182`). And the REQUEST cannot be expressed either: Stripe refused the contract's own parameters
+with "`success_url` is not supported with `ui_mode: embedded`", and `CheckoutInput` has no
+`returnUrl` and no way to ask for the mode. AbacatePay's capability is **unmeasured** — our adapter
+requires a URL (`providers/abacatepay.ts:366`), which is evidence about our adapter, not the
+provider.
 why_now: measured 2026-08-22 — `src/checkout.ts:7` records that the contract returns a redirect
 URL and that "Elements/embedded deferred to v0.x". A consumer who wants the payment form inside
 their own page cannot have it. The hosted path is well covered: the live suite creates real
 Stripe sessions and reconciles them, and the idempotency round trip is asserted against the real
 API.
-status: raw
+status: triaged
 dod:
 
 - the contract expresses an embedded/Elements session without breaking the hosted one
