@@ -246,24 +246,24 @@ describe('the real auth orchestrator is what drives a provider', () => {
 /**
  * Why this suite breaks on an sdk major bump, and the packages do not.
  *
- * Measured 2026-08-24 against both majors installed here: `defineAuth` is a function in sdk 2.18.0
- * and `undefined` in 4.53.1, where the orchestrator is the `Auth` class instead. A token-level grep
+ * Measured 2026-08-24 against every major installed here: `defineAuth` is a function in sdk 2.18.0
+ * and `undefined` in 4.x, where the orchestrator is the `Auth` class instead. A token-level grep
  * finds the name in both — importing the module is what discriminates.
  *
  * But **no package imports it.** `auth-github`, `auth-google` and `auth-magic-link` take
- * `AuthProvider`, `AuthResult` and `OAuthTransaction` as `import type`, and all three types exist in
- * both majors. `plugin-copilot` takes one type from the root barrel. The sole caller of `defineAuth`
- * in this repository is this file — because a **type contract** cannot be handed to anything, so a
- * runtime seam is the only thing a conformance test can drive.
+ * `AuthProvider`, `AuthResult` and `OAuthTransaction` as `import type`, and all three types exist
+ * in both majors. `plugin-copilot` takes one type from the root barrel. The sole caller of the
+ * orchestrator in this repository is this file — because a **type contract** cannot be handed to
+ * anything, so a runtime seam is the only thing a conformance test can drive.
  *
- * The consequence for a consumer is worth stating, because it is the one real cost of the pin: the
- * packages declare `^2.18.0` as a PEER range, so somebody already on sdk 4 hits a **peer conflict**
- * even though their type contract would be satisfied by it. That is a product decision about a
- * published range, not a defect.
+ * This suite has been migrated to `Auth.create`, and the packages' peer range now reads
+ * `>=4.54.0`. The earlier `^2.18.0` was the one real cost of the pin: it produced a peer conflict
+ * for anybody already on sdk 4, whose type contract would have been satisfied by it. That was a
+ * product decision about a published range rather than a defect, and it has been taken.
  *
- * So: an out-of-range sdk should break this file, and it should say why. Before this assertion it
- * failed with a bare `TypeError: defineAuth is not a function`, which cost three measurements to
- * explain — the last of which refuted the premise it was filed under.
+ * So: an out-of-range sdk should break this file, and it should say why. Before the assertion
+ * below it failed with a bare `TypeError: defineAuth is not a function`, which cost three
+ * measurements to explain — the last of which refuted the premise it was filed under.
  */
 describe('the sdk major this suite assumes', () => {
   it('is within the range the packages themselves declare', async () => {

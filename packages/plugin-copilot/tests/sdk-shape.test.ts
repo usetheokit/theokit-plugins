@@ -24,8 +24,8 @@ import { z } from 'zod'
 import { settleCost } from '../src/internal/cost.js'
 import type { CopilotAgentLike, CopilotUsage } from '../src/types.js'
 
-const answerSchema = z.object({ text: z.string() })
-type Answer = z.infer<typeof answerSchema>
+const _answerSchema = z.object({ text: z.string() })
+type Answer = z.infer<typeof _answerSchema>
 
 /**
  * The element type of the stream `CopilotAgentLike` promises, for a given SCHEMA.
@@ -47,7 +47,7 @@ type CopilotEvent<S extends z.ZodType> =
  * The assignment under test. If a real `StreamObjectEvent<Answer>` stops fitting the
  * local union, this line stops compiling — which is the entire point of the file.
  */
-function acceptsSdkEvent(event: StreamObjectEvent<Answer>): CopilotEvent<typeof answerSchema> {
+function acceptsSdkEvent(event: StreamObjectEvent<Answer>): CopilotEvent<typeof _answerSchema> {
   return event
 }
 
