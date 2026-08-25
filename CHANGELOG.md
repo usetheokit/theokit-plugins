@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## 2026-08-24 (fourth cut)
+
+Four packages: `@theokit/auth-github@0.5.0`, `@theokit/auth-google@0.5.0`,
+`@theokit/auth-magic-link@0.6.0`, `@theokit/plugin-copilot@0.5.0`.
+
+All three auth READMEs opened by importing `defineAuth` — a function that shipped in
+`@theokit/sdk` 2.x and is gone from 4.x, the version npm serves. A reader following the
+first example imported something that does not exist. The orchestrator is `Auth.create`
+and the options are unchanged.
+
+Nothing here caught it because these packages were verified against `@theokit/sdk@^2.18.0`,
+two majors behind a consumer's install. The gate that type-checks README examples was
+reading a version where the function still existed.
+
+`plugin-copilot` also composes with the two packages it was always supposed to: its agent
+contract could not be satisfied by any real agent, and its mirror of the realtime frame had
+stopped at four of six variants.
+
 ### Changed
 
 - The auth packages and `plugin-copilot` are built, tested and documented against `@theokit/sdk@4.54.0`; the peer floor moves to match, instead of admitting two majors nobody here verifies (#158).
