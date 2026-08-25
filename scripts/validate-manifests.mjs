@@ -105,10 +105,30 @@ const PEER_WITHOUT_USE_EXEMPT = {
   'plugin-email': {
     theokit:
       'Holds an EmailProvider — the closest analogue to what plugin-payments now publishes on ctx.payments.',
+    react:
+      'render-react-email.ts:16 states the design: no unconditional `react` import, because consumers pass a ReactElement they built with their own React. The peer is what makes it the same React.',
   },
   'plugin-realtime': {
     theokit:
       'Providers are in-memory and Yjs; never imports @theokit/sdk either, so it opens no socket. Adapter value unclear — measure before deciding.',
+  },
+  // The five below are third-party peers, visible to this rule only since #166 widened it beyond
+  // `theokit`/`@theokit/*`. Each is declared for the CONSUMER's benefit and deliberately not
+  // imported here, and each already said so somewhere before the rule could see it.
+  'plugin-payments': {
+    'drizzle-orm':
+      "The ORM-backed idempotency store is the consumer's: README.md:154 tells them to install it alongside @theokit/orm. Optional on purpose — the in-memory store needs none of it.",
+    'reflect-metadata':
+      "Same install line (README.md:154): @theokit/orm entity decorators need the polyfill in the CONSUMER's app, not in this package.",
+  },
+  'plugin-db-drizzle': {
+    'drizzle-orm':
+      "This package drives the drizzle-kit BINARY; the consumer's schema is what imports drizzle-orm. README.md:28 is the install line.",
+    'reflect-metadata':
+      "Same install line (README.md:28) — needed by the consumer's @theokit/orm entities, never by this package.",
+  },
+  'plugin-forms': {
+    zod: 'valuesToFormData.ts:37 reads Zod class names off the constructor "so this file needs no `zod` import". The schema still has to be a zod schema, so the peer is real.',
   },
 }
 
@@ -250,12 +270,21 @@ function checkFrameworkContract(dir, pkg, where) {
   }
   walk(srcDir)
 
-  // Every framework peer, not just `theokit`. The check covered exactly one name, so a
-  // decorative `@theokit/*` peer was invisible to it — and a peer nobody imports still drags
-  // its dependency tree into the consumer's resolution, which is what made plugin-forms
-  // impossible to install (#64, #66).
-  const frameworkPeers = Object.keys(pkg.peerDependencies ?? {}).filter(
-    (name) => name === 'theokit' || name.startsWith('@theokit/'),
+  // EVERY peer, not only the framework's. The rule covered `theokit` alone, then grew to
+  // `@theokit/*` when a decorative framework peer turned out to be invisible to it (#64, #66) —
+  // and stopped there, so a third-party peer was still checked by nothing. `plugin-payments`
+  // declared `drizzle-orm` and `reflect-metadata` and imports neither; its own docblock says the
+  // Repository surface is structural precisely so the plugin would NOT take that peer (#166).
+  //
+  // The reason is the same for both kinds: a peer nobody imports still drags its dependency tree
+  // into the consumer's resolution, and it is a claim of support nothing here exercises.
+  //
+  // `@types/*` is excluded by construction, not by triage: ambient type packages are picked up by
+  // the compiler and are never the target of an import statement, so "imports nothing from it" is
+  // true of every correct declaration. Flagging them would be the rule misreading how TypeScript
+  // works, and each package would need an exemption saying so.
+  const declaredPeers = Object.keys(pkg.peerDependencies ?? {}).filter(
+    (name) => !name.startsWith('@types/'),
   )
   const imported = new Set()
 
@@ -264,9 +293,15 @@ function checkFrameworkContract(dir, pkg, where) {
     // A real reference is an import specifier. A name inside a comment or a string is not
     // one — which is how plugin-canvas read as a consumer of the framework while only
     // mentioning it in a JSDoc example.
-    for (const peer of frameworkPeers) {
+    for (const peer of declaredPeers) {
       const escaped = peer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      if (new RegExp(`\\bfrom\\s+['"]${escaped}(\\/[^'"]*)?['"]`).test(text)) imported.add(peer)
+      const spec = `['"]${escaped}(\\/[^'"]*)?['"]`
+      // `from '…'` AND `import('…')`. The dynamic form is how a package uses an OPTIONAL peer —
+      // `plugin-canvas` loads `mermaid` and `plugin-email` loads `@react-email/render` that way,
+      // both from a string literal the bundler can trace. Matching only the static form would
+      // have called those two decorative, which is a gate firing on correct code.
+      if (new RegExp(`\\bfrom\\s+${spec}`).test(text)) imported.add(peer)
+      else if (new RegExp(`\\bimport\\s*\\(\\s*${spec}\\s*\\)`).test(text)) imported.add(peer)
     }
 
     // Same lesson as the import check above, applied where it was missing: prose is not
@@ -295,7 +330,7 @@ function checkFrameworkContract(dir, pkg, where) {
 
   const exempt = PEER_WITHOUT_USE_EXEMPT[dir] ?? {}
 
-  for (const peer of frameworkPeers) {
+  for (const peer of declaredPeers) {
     if (imported.has(peer)) {
       if (peer in exempt) {
         violations.push(
@@ -320,6 +355,9 @@ function checkFrameworkContract(dir, pkg, where) {
   //
   // Checked for every framework peer that has a devDependency to compare against; a peer with
   // no devDependency is not compiled here at all, so there is nothing to measure it by.
+  const frameworkPeers = declaredPeers.filter(
+    (name) => name === 'theokit' || name.startsWith('@theokit/'),
+  )
   for (const peer of frameworkPeers) {
     const devRange = pkg.devDependencies?.[peer]
     const peerRange = pkg.peerDependencies?.[peer]
@@ -345,8 +383,10 @@ function checkFrameworkContract(dir, pkg, where) {
     // people to skip it.
   }
 
+  // Against `declaredPeers`, not `frameworkPeers`: the rule covers every peer since #166, so an
+  // exemption for a third-party one is legitimate and must not read as stale.
   for (const peer of Object.keys(exempt)) {
-    if (!frameworkPeers.includes(peer)) {
+    if (!declaredPeers.includes(peer)) {
       violations.push(
         `${where}: exempted for \`${peer}\` but declares no such peer — the exemption is stale, remove it.`,
       )
@@ -820,7 +860,7 @@ if (violations.length > 0) {
 // for a run that opened no manifest at all (B-026).
 const summary =
   '✓ every package manifest is publishable (repository + directory, provenance, no escaping local paths)\n' +
-  '✓ no package re-invents a theokit type, and every `theokit`/`@theokit/*` peer is used or triaged\n' +
+  '✓ no package re-invents a theokit type, and every declared peer is imported or triaged\n' +
   // Never unconditional. A summary that claims "no two packages claim the same key" after
   // resolving none of them is a green line the run did not earn — and that is exactly what the
   // first version printed while an ordinary refactor hid a real collision.
