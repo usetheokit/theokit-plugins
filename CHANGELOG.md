@@ -6,7 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-## 2026-08-24 (fourth cut)
+## 2026-08-25 (fourth cut)
+
+<!-- Dated in UTC, which is what `tools/check-changelog-structure.mjs` compares against and what
+     the tags carry. This section said 2026-08-24 for a release tagged 00:48 UTC on the 25th — the
+     same instant, two calendar days, written from a UTC-3 clock. The tool's own docblock warns
+     about exactly that and it happened anyway, which is why the note is here rather than there. -->
 
 Four packages: `@theokit/auth-github@0.5.0`, `@theokit/auth-google@0.5.0`,
 `@theokit/auth-magic-link@0.6.0`, `@theokit/plugin-copilot@0.5.0`.
