@@ -8,6 +8,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **The eleven gate scripts are linted.** `pnpm lint` covered `{packages,integration}` and `.ts`
+  only, so `scripts/` and `tools/` — every quality gate in the repository, plus the shared library
+  three of them build on — were the only code nothing checked. They sit outside every tsconfig, so
+  the type-aware program cannot parse them; a config block scoped to those paths turns the
+  type-aware rules off and keeps the recommended set. `no-dupe-keys` is the reason: a duplicate key
+  in the peer triage map silently dropped an entry, in an object where a missing entry means
+  "nobody looked" reads as "somebody looked". All eleven pass as they are — nothing was wrong, and
+  now something would say so (#168)
+
+- **`plugin-forms` no longer depends on an unmaintainable package.** `TheoForm` took `useAction`
+  from `@theokit/react` — one version, published once in June, no `repository` field, and a
+  `@theokit/sdk ^1.1.0` peer against a published 4.x. Requiring it meant a consumer installing forms
+  next to a current SDK got an unmet peer nobody could fix, because the package has no source
+  anybody can reach. The hook now ships in `theokit/client` itself, so the peer becomes
+  `theokit >=0.52.1` — which every consumer of a `<TheoForm>` already has, since the `action` it
+  takes comes from theokit's own `@theo/actions` module (usetheokit/theokit#453)
+
+### Changed
+
 - **The imports-nothing peer rule covers every peer, not only the framework's.** It refused a
   `theokit` or `@theokit/*` peer that nothing imported and ignored `stripe`, `drizzle-orm`, `react`,
   `zod` and the rest. Widened, it found eight such peers across five packages — and every one turned
