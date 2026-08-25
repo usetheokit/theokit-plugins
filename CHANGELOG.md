@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## 2026-08-25 (fifth cut)
+
+Three packages: `@theokit/auth-github@0.5.1`, `@theokit/auth-google@0.5.1`,
+`@theokit/auth-magic-link@0.6.1`.
+
+The route examples in all three READMEs named `server/routes/api/auth/<provider>/…`. TheoKit
+already serves `server/routes/` under `/api`, so those files answer at
+`/api/api/auth/<provider>/…` — a reader who registered `/api/auth/<provider>/callback` with
+GitHub or Google got a 404 on the redirect, and the generated typed client carried the same
+redundant segment.
+
+Found by building a consumer app against these examples and watching a real OAuth callback fail.
+
 ## 2026-08-25 (fourth cut)
 
 <!-- Dated in UTC, which is what `tools/check-changelog-structure.mjs` compares against and what
