@@ -1,6 +1,6 @@
 # @theokit/auth-google
 
-Google OAuth (OIDC) provider for [`@theokit/sdk`](https://www.npmjs.com/package/@theokit/sdk) auth orchestrator (`defineAuth`).
+Google OAuth (OIDC) provider for [`@theokit/sdk`](https://www.npmjs.com/package/@theokit/sdk) auth orchestrator (`Auth.create`).
 
 Composes OIDC discovery + PKCE (S256) + authorization-code flow + userinfo fetch using `theokit/server/auth` primitives. Zero runtime dependencies; ~5 KB ESM bundle.
 
@@ -18,11 +18,13 @@ Peer dependencies: `@theokit/sdk >= 1.5.0`, `theokit >= 0.2.4`.
 
 ```ts
 // server/auth/index.ts
-import { defineAuth } from '@theokit/sdk/server/auth'
+import { Auth } from '@theokit/sdk/server/auth'
 import { google, type GoogleProfile } from '@theokit/auth-google'
 import { sessionManager } from './session.js'
 
-export const auth = defineAuth({
+// `Auth.create`, not `Auth.create`. The function existed in `@theokit/sdk` 2.x and is gone
+// from 4.x, which is what npm serves; the options are unchanged, only the entry point moved.
+export const auth = Auth.create({
   session: sessionManager,
   providers: [
     google({
@@ -42,7 +44,7 @@ export const auth = defineAuth({
 
 Wire into your routes:
 
-> **Two ways in, and they differ by request shape.** `defineAuth`'s orchestrator
+> **Two ways in, and they differ by request shape.** `Auth.create`'s orchestrator
 > (`startSignIn` / `finishSignIn`) takes Node's `IncomingMessage` / `ServerResponse`, so it
 > needs a Node server. The provider itself also accepts a Web `Request`, which is what
 > TheoKit's `route()` handler hands you — so inside TheoKit you drive the provider directly
@@ -208,7 +210,7 @@ The provider will route OIDC discovery to the local sidecar instead of `accounts
 
 | Error code                      | Meaning                                          | Likely cause                                                                                   |
 | ------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| `missing_pkce_verifier`         | `OAuthTransaction.pkceVerifier` missing          | The orchestrator should populate it; check `defineAuth` wiring                                 |
+| `missing_pkce_verifier`         | `OAuthTransaction.pkceVerifier` missing          | The orchestrator should populate it; check `Auth.create` wiring                                |
 | `state_mismatch`                | Callback `state` doesn't match transaction state | Either CSRF attempt OR user resubmitted a stale callback. Restart sign-in                      |
 | `token_exchange_failed`         | Google rejected the code exchange                | Wrong `clientSecret`, expired code, mismatched `redirectUri`                                   |
 | `missing_sub` / `missing_email` | Userinfo response lacks required fields          | OAuth scopes didn't grant `email` permission; double-check Google Cloud Console consent screen |

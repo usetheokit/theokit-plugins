@@ -1,41 +1,43 @@
 /**
- * Two defects in `@theokit/sdk`'s OAuth transaction cookie, pinned so we learn when they are fixed.
+ * Two defects in `@theokit/sdk`'s OAuth transaction cookie — pinned while they were live, and now
+ * pinned as FIXED, which is the state this file was written to reach.
  *
- * Neither is ours. Both are in the sdk's built output, and `auth-github`, `auth-google` and
- * `auth-magic-link` declare `^2.18.0` as a PEER — so every consumer installing them gets a version
- * that has them, and none of the three can fix it. They implement a type contract and never
- * construct the orchestrator, so there is no seam here to guard.
+ * Neither was ours. Both were in the sdk's built output, and `auth-github`, `auth-google` and
+ * `auth-magic-link` could not fix them: they implement a type contract and never construct the
+ * orchestrator. What this file did was stop the two facts being rediscovered, and tell us the day
+ * they changed. It told us.
  *
- * What this file does is stop the two facts being rediscovered, and tell us the day they change.
+ * ── Defect 1: the cookie the callback looked for was never the one sign-in wrote ────────────────
  *
- * ── Defect 1: the transaction secret falls back to a published literal ──────────────────────────
+ * `startSignIn` emitted `theo_oauth_tx=` while the transaction store read `__Host-theo_oauth_tx`.
+ * The callback therefore never found the transaction, and EVERY OAuth sign-in failed there. It was
+ * present in 2.18.0 and still in 4.53.1, so it survived a major release.
  *
- * `txCookieSecret` tries `opts.session.secret`, then `THEOKIT_OAUTH_TX_SECRET`, then a constant
- * that ships inside the package. The FIRST branch is unreachable for any conforming value:
- * `DefineAuthOptions.session` is typed `SessionManager<TSession>`, which declares four methods and
- * no `secret`. So unless a deployment sets the environment variable, the cookie carrying `state`
- * and `pkceVerifier` — the two values that make an authorization-code flow safe against CSRF and
- * code interception — is encrypted with a string anybody can read out of npm.
+ * Fixed in usetheokit/theokit-sdk#377 by exporting the store's constant and using it at the write
+ * site: one name rather than two. Shipped in `@theokit/sdk@4.54.0`.
  *
- * `AuthSecretTooShortError` does not fire: the constant is 48 characters, and the guard checks
- * length rather than provenance.
+ * ── Defect 2: the transaction secret fell back to a published literal ───────────────────────────
  *
- * ── Defect 2: the cookie is written under a name nothing reads ──────────────────────────────────
+ * `txCookieSecret` tried `opts.session.secret`, then `THEOKIT_OAUTH_TX_SECRET`, then a constant
+ * shipped inside the package. The first branch is unreachable for any conforming value —
+ * `SessionManager` declares four methods and no `secret`, which the third test still pins — so a
+ * deployment setting no environment variable encrypted `state` and `pkceVerifier`, the two values
+ * that make an authorization-code flow safe, with a string anybody can read out of npm.
+ * `AuthSecretTooShortError` did not fire: the constant is 48 characters and the guard checks
+ * length, not provenance.
  *
- * The store declares and reads `__Host-theo_oauth_tx`; the writer emits `theo_oauth_tx`. Two
- * consequences, and the second is why the first is latent:
+ * The literal remains, deliberately, as the DEV fallback. What changed is that production refuses
+ * it — at wiring time, rather than at a user's first sign-in.
  *
- *   - the `__Host-` guarantee is lost — without the prefix a sibling subdomain can set the cookie,
- *     and the store's own docstring cites RFC 6265bis for exactly that reason;
- *   - the callback cannot find the transaction it wrote, so the flow does not complete — which is
- *     what keeps defect 1 from being exploitable today, and what makes it exploitable the moment
- *     the name is fixed.
+ * The order mattered and is worth recording: fixing the cookie name alone would have made defect 2
+ * reachable, because the flow could not complete before. They shipped together.
  *
- * ── Why these assertions are shaped this way ────────────────────────────────────────────────────
+ * ── Why the assertions are shaped this way ─────────────────────────────────────────────────────
  *
  * They read the INSTALLED artifact rather than citing a path, because a path under `node_modules`
- * moves with the lockfile. And they assert the defects are PRESENT: when the sdk fixes either, this
- * file goes red and asks to be updated, which is the notification this repository actually needs.
+ * moves with the lockfile. And they resolve it through the package under test rather than by
+ * scanning the store: three sdk majors sit in this workspace, and "what is installed somewhere" is
+ * a different question from "what these packages use".
  *
  * Credential-free by construction — `*.offline.test.ts`, so it runs on every pull request.
  */
@@ -48,60 +50,87 @@ import { describe, expect, it } from 'vitest'
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 
-/** The built auth module of whichever `@theokit/sdk` the auth packages resolve. */
-function authModuleSource(): { version: string; source: string } {
-  const store = join(REPO_ROOT, 'node_modules', '.pnpm')
-  // The 2.x install is the one the auth packages' `^2.18.0` peer range admits. A 4.x copy is also
-  // present in this workspace, pulled by `theokit` itself, and it is a different contract.
-  const dir = readdirSync(store).find((d) => d.startsWith('@theokit+sdk@2.'))
-  if (dir === undefined) {
-    throw new Error(
-      'no @theokit/sdk 2.x in the store — the auth packages declare ^2.18.0, so either the range ' +
-        'moved or the install did. Either way this pin needs revisiting rather than skipping.',
-    )
+/**
+ * The `@theokit/sdk` the auth packages actually resolve, and its built auth output.
+ *
+ * Resolved through `packages/auth-github/node_modules/@theokit/sdk` — the symlink pnpm points at
+ * the version that package declares. The previous version scanned the workspace `.pnpm` store for
+ * the first `@theokit+sdk@2.` directory, which is a different question: it asked what is INSTALLED
+ * somewhere rather than what the packages under test USE. Three sdk majors sit in this store, and
+ * the answer differed.
+ *
+ * The cookie name lives in a shared chunk rather than in `server/auth/index.js`, so the whole
+ * `dist` is read.
+ */
+function authArtifact(): { version: string; js: string } {
+  const root = join(REPO_ROOT, 'packages', 'auth-github', 'node_modules', '@theokit', 'sdk')
+  const version = (
+    JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { version: string }
+  ).version
+
+  const js: string[] = []
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name)
+      if (entry.isDirectory()) walk(full)
+      // `.js` only: a `.map` carries the original source text and a `.d.ts` the types, and
+      // counting either would measure what the sdk was written as rather than what it ships.
+      else if (entry.name.endsWith('.js')) js.push(readFileSync(full, 'utf8'))
+    }
   }
-  const root = join(store, dir, 'node_modules', '@theokit', 'sdk')
-  return {
-    version: (JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { version: string })
-      .version,
-    source: readFileSync(join(root, 'dist', 'server', 'auth', 'index.js'), 'utf8'),
-  }
+  walk(join(root, 'dist'))
+
+  return { version, js: js.join('\n') }
 }
 
-describe('@theokit/sdk 2.x OAuth transaction cookie', () => {
-  it('still falls back to a secret published inside the package', () => {
-    const { version, source } = authModuleSource()
+describe('@theokit/sdk OAuth transaction cookie — the two defects, now fixed', () => {
+  it('writes and reads ONE cookie name, and it carries the __Host- prefix', () => {
+    const { version, js } = authArtifact()
+
+    // The defect: `startSignIn` wrote `theo_oauth_tx=` while the transaction store read
+    // `__Host-theo_oauth_tx`, so the callback never found what sign-in had written and EVERY
+    // OAuth flow failed there. Present in 2.18.0 and still in 4.53.1 — it survived a major.
+    //
+    // Fixed in usetheokit/theokit-sdk#377 by exporting the store's constant and using it at the
+    // write site: one name instead of two. Asserting the COUNT is what makes this about that
+    // property rather than about a string existing somewhere.
+    const bare = js.replaceAll('__Host-theo_oauth_tx', '@@').match(/theo_oauth_tx/g) ?? []
 
     expect(
-      source,
-      `@theokit/sdk@${version} no longer ships the fallback transaction secret. If it now refuses ` +
-        'to boot without a real one, delete this test and drop the THEOKIT_OAUTH_TX_SECRET note ' +
-        'from the three auth READMEs.',
-    ).toContain('DEV_ONLY_INSECURE_OAUTH_TX_SECRET_REPLACE_IN_PROD')
+      bare,
+      `@theokit/sdk@${version} ships an unprefixed transaction cookie name again — the writer and ` +
+        'the store have diverged, which breaks every OAuth callback.',
+    ).toEqual([])
+
+    expect(js).toContain('__Host-theo_oauth_tx')
   })
 
-  it('still writes the transaction cookie without the __Host- prefix its store reads', () => {
-    const { version, source } = authModuleSource()
+  it('refuses the published fallback secret in production', () => {
+    const { version, js } = authArtifact()
 
-    // The store's constant — what the callback looks for.
-    expect(source).toContain('__Host-theo_oauth_tx')
-
-    // The writer's template — what actually reaches the browser. Asserting the unprefixed form
-    // appears OUTSIDE the prefixed constant is what makes this about the mismatch rather than
-    // about the string existing at all.
-    const unprefixed = source.replaceAll('__Host-theo_oauth_tx', '')
+    // The other defect: `txCookieSecret` fell back to a 48-character literal shipped inside the
+    // package, so a deployment that set no environment variable encrypted `state` and
+    // `pkceVerifier` with a string anybody can read out of npm. `AuthSecretTooShortError` did not
+    // fire — it checks length, not provenance.
+    //
+    // The literal still exists, deliberately: it is the DEV fallback, and removing it would make a
+    // local sign-in impossible before any secret is configured. What changed is that production
+    // now refuses it, at wiring time rather than at a user's first sign-in.
     expect(
-      unprefixed,
-      `@theokit/sdk@${version} may have fixed the cookie-name mismatch. If the writer now emits ` +
-        'the prefixed name, this test should assert that instead — and note that fixing this makes ' +
-        'the fallback-secret defect reachable, so the two are worth fixing in that order.',
-    ).toContain('theo_oauth_tx=')
+      js,
+      `@theokit/sdk@${version} no longer guards the fallback secret by NODE_ENV. If the literal is ` +
+        'gone entirely, assert that instead and drop the THEOKIT_OAUTH_TX_SECRET note from the ' +
+        'three auth READMEs.',
+    ).toContain('missing_tx_secret')
+
+    expect(js).toContain('NODE_ENV === "production"')
   })
 
   it('has no `secret` on the SessionManager the orchestrator is handed', async () => {
-    // Why the first fallback branch is unreachable rather than merely unused: a value satisfying
-    // the declared type cannot carry a secret, so `opts.session.secret` is always undefined for a
-    // conforming caller.
+    // Unchanged and still worth pinning: it is WHY the first fallback branch was unreachable
+    // rather than merely unused. A value satisfying the declared type cannot carry a secret, so
+    // `opts.session.secret` is always undefined for a conforming caller — which is what left the
+    // published literal as the only remaining source.
     const { createSessionManager } = await import('theokit/server/auth')
     const manager = createSessionManager({
       secret: 'a'.repeat(40),

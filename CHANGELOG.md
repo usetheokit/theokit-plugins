@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- The auth packages and `plugin-copilot` are built, tested and documented against `@theokit/sdk@4.54.0`; the peer floor moves to match, instead of admitting two majors nobody here verifies (#158).
+
+### Fixed
+
+- All three auth READMEs opened by importing `defineAuth`, which shipped in `@theokit/sdk` 2.x and is gone from 4.x — the version npm serves. The orchestrator is `Auth.create`; the options are unchanged (#158).
+- `plugin-copilot`'s agent contract could not be satisfied by any agent: it promised an output type no parameter determined, so `@theokit/sdk`'s `Agent` was not assignable while the README invited exactly that wiring. It is now parameterised on the schema, as the SDK is (#158).
+- `plugin-copilot` accepts `@theokit/plugin-realtime`'s provider again — the package it declares as a peer. Its mirror of the realtime frame had stopped at four variants while the original grew to six (#158).
+
 ## 2026-08-24 (third cut)
 
 Nine packages: `@theokit/auth-github@0.4.0`, `@theokit/auth-google@0.4.0`,

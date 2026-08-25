@@ -309,7 +309,7 @@ export const RedisRealtimeProvider = defineRealtimeProvider({
 
 | Threat                        | Mitigation                                                                                                                                          |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unauthorized broadcast        | `defineRoom({authorize?: (ctx) => boolean})` per-room hook; G11 `defineAuth` runs at WS upgrade boundary before subscription dispatch               |
+| Unauthorized broadcast        | `defineRoom({authorize?: (ctx) => boolean})` per-room hook; G11 `Auth.create` runs at WS upgrade boundary before subscription dispatch              |
 | Presence flooding (DoS)       | Consumer wires `@theokit/plugin-rate-limit` (P#10) middleware at G8 upgrade; SDK ships `RealtimeRuntime.getPresence()` for ops visibility           |
 | Yjs update poisoning          | `YjsRealtimeProvider({maxUpdateBytes})` caps update size (default 1 MB); throws `RealtimeError({code:'yjs_update_oversized'})`                      |
 | Y.Awareness oversized payload | Same `maxUpdateBytes` cap applies via `applyYjsAwareness`                                                                                           |

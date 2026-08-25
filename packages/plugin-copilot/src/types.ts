@@ -20,6 +20,7 @@
  * this package last got someone else's shape wrong (#62).
  */
 import type { DeepPartial } from '@theokit/sdk'
+import type { z } from 'zod'
 
 /**
  * Identity of a copilot as a P#9 RoomMember. Visible to other room participants
@@ -77,7 +78,12 @@ export type CopilotTrigger =
     }
 
 /**
- * Frame shape received from P#9 (structural mirror of RealtimeFrame).
+ * Frame shape received from P#9 — a structural mirror of `RealtimeFrame` in
+ * `@theokit/plugin-realtime`, kept as a mirror rather than an import so this package does
+ * not take a hard dependency on it (ADR D4).
+ *
+ * A mirror only works while it is complete, and nothing made it so until
+ * `tests/composes-with-realtime.test.ts` existed. Add a variant upstream, add it here.
  *
  * @public
  */
@@ -99,6 +105,16 @@ export type CopilotFrame =
       readonly event: string
       readonly payload: Record<string, unknown>
     }
+  // The Yjs pair arrived in `plugin-realtime` with collaborative editing and was never copied
+  // here. A mirror missing a variant the original can emit is not a mirror: listeners are
+  // contravariant, so a `RealtimeProvider` stopped being assignable to `CopilotRealtimeProvider`
+  // and a consumer wiring the two — which this package's peer dependency invites — got a `tsc`
+  // error about `subscribeRoom`, several layers from the cause.
+  //
+  // `tests/composes-with-realtime.test.ts` performs that assignment, so the next variant added
+  // upstream fails here instead of in an app.
+  | { readonly type: 'yjs-update'; readonly connectionId: string; readonly bytes: Uint8Array }
+  | { readonly type: 'yjs-awareness'; readonly connectionId: string; readonly bytes: Uint8Array }
 
 /**
  * P#9 RoomDescriptor structural mirror. Copilot binds to one room descriptor.
@@ -312,6 +328,11 @@ export interface CopilotUsage {
  * a compatible `streamObject` works, which is what lets a test drive a deterministic
  * agent and a consumer bring one this package has never heard of.
  *
+ * The SCHEMA parameter is typed as `z.ZodType` rather than mirrored structurally. An earlier
+ * version avoided that to keep zod out of the contract — but zod is already a declared
+ * dependency of this package and `internal/runtime.ts` imports it at runtime, so the avoidance
+ * bought nothing and cost the contract its only real implementation.
+ *
  * The shape mirrors `@theokit/sdk`'s `StreamObjectEvent`, and `tests/sdk-shape.test.ts`
  * is what holds the mirror to the original: it asserts a real `StreamObjectEvent` is
  * assignable here. Before that assertion existed the two drifted — the SDK reported
@@ -321,8 +342,19 @@ export interface CopilotUsage {
  * @public
  */
 export interface CopilotAgentLike {
-  streamObject<T>(opts: {
-    schema: unknown
+  // Parameterised on the SCHEMA, not on the object — which is what `@theokit/sdk`'s `Agent`
+  // does (`streamObject<T extends ZodType>(…): AsyncGenerator<StreamObjectEvent<z.infer<T>>>`).
+  //
+  // It used to read `streamObject<T>(opts: { schema: unknown; … })` with `DeepPartial<T>` on the
+  // way out. That `T` was determined by no parameter, so TypeScript instantiated it as `unknown`
+  // and no real implementation could satisfy the interface: a callee cannot produce a type the
+  // caller picks arbitrarily with nothing to infer it from. `typeof Agent` — the only agent this
+  // ecosystem ships — was not assignable, while the README invited exactly that wiring.
+  //
+  // Still structural on purpose: any object with a compatible `streamObject` works, which is what
+  // lets a test drive a deterministic agent.
+  streamObject<S extends z.ZodType>(opts: {
+    schema: S
     prompt: string
     model: string | { id: string }
     apiKey?: string
@@ -330,10 +362,10 @@ export interface CopilotAgentLike {
     systemPrompt?: string
     maxRetries?: number
   }): AsyncIterable<
-    | { type: 'partial'; partial: DeepPartial<T>; attempt: number }
+    | { type: 'partial'; partial: DeepPartial<z.infer<S>>; attempt: number }
     // Extra fields the SDK sets (`raw`, `finishReason`) are accepted and ignored: this
     // is a supertype of the SDK event, not a copy of it.
-    | { type: 'complete'; object: T; usage?: CopilotUsage }
+    | { type: 'complete'; object: z.infer<S>; usage?: CopilotUsage }
   >
 
   send?(message: string, opts?: Record<string, unknown>): Promise<{ text: string }>

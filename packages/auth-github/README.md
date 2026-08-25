@@ -1,6 +1,6 @@
 # @theokit/auth-github
 
-GitHub OAuth 2.0 provider for [`@theokit/sdk`](https://www.npmjs.com/package/@theokit/sdk) auth orchestrator (`defineAuth`).
+GitHub OAuth 2.0 provider for [`@theokit/sdk`](https://www.npmjs.com/package/@theokit/sdk) auth orchestrator (`Auth.create`).
 
 OAuth 2.0 only (GitHub does not expose OIDC discovery and does not implement PKCE). Hardcoded GitHub endpoints; overridable for GitHub Enterprise Server.
 
@@ -18,11 +18,13 @@ Peer dependencies: `@theokit/sdk >= 1.5.0`, `theokit >= 0.2.4`.
 
 ```ts
 // server/auth/index.ts
-import { defineAuth } from '@theokit/sdk/server/auth'
+import { Auth } from '@theokit/sdk/server/auth'
 import { github, type GitHubProfile } from '@theokit/auth-github'
 import { sessionManager } from './session.js'
 
-export const auth = defineAuth({
+// `Auth.create`, not `Auth.create`. The function existed in `@theokit/sdk` 2.x and is gone
+// from 4.x, which is what npm serves; the options are unchanged, only the entry point moved.
+export const auth = Auth.create({
   session: sessionManager,
   providers: [
     github({
@@ -99,7 +101,7 @@ export const GET = route()
 `handleCallback` accepts the Web `Request` a TheoKit route hands you as well as Node's
 `IncomingMessage`, and `sessions` is a `createSessionManagerWeb(...)` from
 `theokit/server/auth` — it writes the session cookie into a `Headers` you own, so the whole
-flow stays on Web shapes. `defineAuth`'s orchestrator is the other way in and is
+flow stays on Web shapes. `Auth.create`'s orchestrator is the other way in and is
 Node-shaped, so it needs a Node server rather than a route.
 
 ## Required in production: `THEOKIT_OAUTH_TX_SECRET`
