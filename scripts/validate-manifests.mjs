@@ -54,6 +54,7 @@ import { reportGate } from '../tools/lib/gate-summary.mjs'
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
+import semver from 'semver'
 import ts from 'typescript'
 
 import { splitFences } from '../tools/lib/markdown-fences.mjs'
@@ -721,10 +722,90 @@ function readmeCode(path) {
   return splitFences(readFileSync(path, 'utf8')).code.join('\n')
 }
 
+/**
+ * A declared peer range must admit the version this repository actually builds against.
+ *
+ * Every peer rule above is scoped to `theokit` and `@theokit/*`, so a THIRD-PARTY peer was checked
+ * by nothing. Measured 2026-08-25, `plugin-realtime` declared `lib0: "^1"`:
+ *
+ *   $ npm view lib0 version              -> 0.2.117
+ *   $ npm view lib0 versions --json      -> the only 1.x are 1.0.0-0 and 1.0.0-rc.0 … rc.26
+ *
+ * There is no stable 1.0.0. `^1` carries no prerelease, and semver excludes prereleases from such
+ * a range, so it matched NOTHING a consumer could install — while `yjs@13.6.32` depends on
+ * `lib0@^0.2.99` and `y-protocols@1.0.7` on `^0.2.85`, putting the whole ecosystem on 0.2.x.
+ *
+ * The mechanism is worth naming because it is invisible by reading: the devDependency said
+ * `^1.0.0-rc.1`, which DOES match the rc line, so the package installed and compiled here while
+ * the peer it published could not be satisfied by anyone. The same asymmetry as #158 — verified
+ * against a devDependency nobody else installs.
+ *
+ * Comparing against the INSTALLED version rather than the devDependency range is what catches it:
+ * the previous floor check compares two ranges and `^1`'s floor (1.0.0) sits ABOVE `^1.0.0-rc.1`'s,
+ * which reads as a package being conservative rather than as one promising a version that does not
+ * exist.
+ *
+ * Offline by construction: it asks the workspace what is on disk, never the registry. The cost is
+ * that a peer with nothing installed cannot be measured at all, which is reported rather than
+ * counted as a pass.
+ */
+function checkPeerRangesAgainstInstalled(dirs) {
+  let compared = 0
+  const unmeasured = []
+
+  for (const dir of dirs) {
+    const manifestPath = join(PACKAGES_DIR, dir, 'package.json')
+    if (!existsSync(manifestPath)) continue
+    const pkg = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    const where = `packages/${dir}/package.json`
+
+    for (const [peer, range] of Object.entries(pkg.peerDependencies ?? {})) {
+      const installedManifest = join(PACKAGES_DIR, dir, 'node_modules', peer, 'package.json')
+      if (!existsSync(installedManifest)) {
+        // Nothing is installed for it here, so this repository never builds against it. Saying so
+        // is the honest outcome; treating it as a pass would report coverage the run did not have.
+        unmeasured.push(`${dir} → ${peer} (${range})`)
+        continue
+      }
+
+      const installed = JSON.parse(readFileSync(installedManifest, 'utf8')).version
+      if (typeof installed !== 'string') {
+        unmeasured.push(`${dir} → ${peer} (no version in the installed manifest)`)
+        continue
+      }
+
+      compared += 1
+      if (semver.validRange(range) === null) {
+        unmeasured.push(`${dir} → ${peer} (${range} is not a range semver can parse)`)
+        compared -= 1
+        continue
+      }
+      if (!semver.satisfies(installed, range)) {
+        violations.push(
+          `${where}: peerDependencies[${JSON.stringify(peer)}] is ${JSON.stringify(range)}, ` +
+            `but the version this repository builds against is ${installed}, which the range does ` +
+            `NOT admit. A consumer installing the published package cannot reproduce what we test ` +
+            `— and when no published version satisfies the range at all, they cannot install it. ` +
+            `Widen the peer to the version in devDependencies, or build against one the peer admits.`,
+        )
+      }
+    }
+  }
+
+  if (unmeasured.length > 0) {
+    for (const line of unmeasured) {
+      console.error(`  ℹ peer not installed here, so not measured: ${line}`)
+    }
+  }
+
+  return { compared, unmeasured: unmeasured.length }
+}
+
 const packageDirs = readdirSync(PACKAGES_DIR).sort()
 for (const dir of packageDirs) check(dir)
 const keyReport = checkDecorationKeys(packageDirs)
 const docsReport = checkSeamDocumentation(packageDirs)
+const peerReport = checkPeerRangesAgainstInstalled(packageDirs)
 
 if (violations.length > 0) {
   console.error(`✗ ${violations.length} manifest violation(s):\n`)
@@ -748,7 +829,12 @@ const summary =
     : `✓ no two packages claim the same request-decoration key (${keyReport.compared} compared)`) +
   (docsReport.registry === false
     ? `\n⚠ no seam registry found — 0 packages checked for documenting their factory`
-    : `\n✓ every package with a seam names its factory in its README (${docsReport.checked} checked)`)
+    : `\n✓ every package with a seam names its factory in its README (${docsReport.checked} checked)`) +
+  // Same discipline: a peer with nothing installed was not measured, and the line says so rather
+  // than folding it into a count that reads as coverage.
+  (peerReport.unmeasured > 0
+    ? `\n⚠ ${peerReport.compared} peer range(s) checked against the installed version; ${peerReport.unmeasured} had nothing installed here and were NOT measured (listed above)`
+    : `\n✓ every declared peer range admits the version this repository builds against (${peerReport.compared} compared)`)
 console.log(summary)
 process.exit(
   reportGate({ label: 'manifests', subject: 'package manifests', checked: packageDirs.length })
