@@ -21,7 +21,7 @@ export interface DbCommand {
   /**
    * How the runner executes this verb.
    *
-   * - `"drizzle-kit"` — spawn `drizzle-kit` with `buildArgs()` (#170).
+   * - `"drizzle-kit"` — spawn `drizzle-kit` with `buildArgs()`.
    * - `"drizzle-kit-with-config"` — `drizzle-kit` accepts ONLY `--config` for
    *   this verb, measured against 0.31.10 (#48). The runner MUST write
    *   `renderDrizzleConfig(opts)` to `opts.configPath` and then spawn. Skipping
@@ -31,13 +31,23 @@ export interface DbCommand {
    */
   readonly kind: 'drizzle-kit' | 'drizzle-kit-with-config' | 'user-script'
   /**
-   * #168: destructive verb the runner MUST gate behind an explicit `--force`
+   * Destructive verb the runner MUST gate behind an explicit `--force`
    * flag before executing. Enforcement lives in the CLI runner (it has the
    * user's argv); this descriptor only declares the requirement.
    */
   readonly requiresForce?: boolean
-  /** Build the drizzle-kit args array for this verb given resolved options. */
-  buildArgs(opts: ResolvedDrizzleDbOptions): string[]
+  /**
+   * Build the drizzle-kit args array for this verb.
+   *
+   * Takes nothing. It closes over the options handed to `buildDbCommands`, and used to DECLARE a
+   * `ResolvedDrizzleDbOptions` parameter it never read — so a caller who resolved their config
+   * twice and passed the fresh copy got an argv built from the first, silently. Measured: handing
+   * it a postgresql config produced an argv still saying `--dialect sqlite` (#170).
+   *
+   * Removing the parameter is a breaking change at the type level, and the right one: the argument
+   * has never had an effect, and a compile error is how a caller finds that out.
+   */
+  buildArgs(): string[]
 }
 
 /** The canonical 7-verb set per plan ADR D3. */
@@ -57,17 +67,18 @@ const VERBS: readonly DbVerb[] = [
  * Build the 7 CLI commands from resolved plugin options.
  *
  * Pure factory — no spawn here. The runner inside theokit's plugin runtime
- * calls `cmd.buildArgs(resolved)` then spawns drizzle-kit.
+ * calls `cmd.buildArgs()` then spawns drizzle-kit. The options reach the argv through THIS call's
+ * argument and nowhere else; `buildArgs` takes none (#170).
  */
 export function buildDbCommands(opts: ResolvedDrizzleDbOptions): DbCommand[] {
   return VERBS.map((verb) => ({
     verb,
     summary: SUMMARIES[verb],
     kind: kindOf(verb),
-    // #168: `reset` is destructive (drops the DB) — the runner must require --force.
+    // `reset` is destructive (drops the DB) — the runner must require --force.
     ...(verb === 'reset' ? { requiresForce: true } : {}),
     buildArgs: () => {
-      // #170 for `seed`, #48 for `reset`: drizzle-kit has neither subcommand, so
+      // #48: drizzle-kit has neither a `seed` nor a `reset` subcommand, so
       // both run a script the user supplies.
       if (verb === 'seed') return scriptArgs('seed', opts.seedScript)
       if (verb === 'reset') return scriptArgs('reset', opts.resetScript)
@@ -93,7 +104,7 @@ const SUMMARIES: Record<DbVerb, string> = {
 }
 
 /**
- * The verbs drizzle-kit does not have: `seed` (#170) and `reset` (#48). Both run
+ * The verbs drizzle-kit does not have: `seed` and `reset` (#48). Both run
  * a script the user supplies, returned as the sole arg for `kind:"user-script"`.
  *
  * Fails loud when unconfigured. `reset` used to be spawned as

@@ -66,7 +66,7 @@ describe('the verbs drizzle-kit does not have', () => {
       const cmd = buildDbCommands(opts).find((c) => c.verb === verb)
 
       expect(cmd?.kind).toBe('user-script')
-      const args = cmd?.buildArgs(opts) ?? []
+      const args = cmd?.buildArgs() ?? []
       expect(args).toEqual([`./db/${verb}.ts`])
       // Not the passthrough shape: `drizzle-kit reset` is what 0.2.0 spawned, and
       // no version of drizzle-kit has ever had that subcommand.
@@ -78,7 +78,7 @@ describe('the verbs drizzle-kit does not have', () => {
       const opts = resolveOptions({ driver: 'sqlite', url: 'file:app.db' })
       const cmd = buildDbCommands(opts).find((c) => c.verb === verb)
 
-      expect(() => cmd?.buildArgs(opts)).toThrow(new RegExp(`${verb}Script`))
+      expect(() => cmd?.buildArgs()).toThrow(new RegExp(`${verb}Script`))
     })
   }
 })

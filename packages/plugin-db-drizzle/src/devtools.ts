@@ -31,7 +31,7 @@ export interface DrizzleDevtoolsTab {
  * independent mount() closure.
  */
 export function buildDevtoolsTab(opts: ResolvedDrizzleDbOptions): DrizzleDevtoolsTab {
-  // #207: build the studio URL from the resolved host/port (default
+  // Build the studio URL from the resolved host/port (default
   // localhost:4983) instead of a hardcoded constant.
   const studioUrl = `http://${opts.studioHost}:${opts.studioPort}`
   return {
@@ -41,7 +41,7 @@ export function buildDevtoolsTab(opts: ResolvedDrizzleDbOptions): DrizzleDevtool
     mount(container: HTMLElement): void {
       const iframe = container.ownerDocument.createElement('iframe')
       iframe.src = studioUrl
-      // #206: do NOT pair `allow-scripts` with `allow-same-origin` — that lets
+      // Do NOT pair `allow-scripts` with `allow-same-origin` — that lets
       // the framed studio remove its own sandbox and escape. Studio is a
       // separate origin (its own host:port), so same-origin is unnecessary.
       iframe.setAttribute('sandbox', 'allow-scripts')

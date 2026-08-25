@@ -76,7 +76,7 @@ describe('buildDevtoolsTab (P#5 T2.2)', () => {
     expect(iframes[0]?.title).toBe('Drizzle Studio')
   })
 
-  it('test_iframe_sandbox_is_safe (#206)', () => {
+  it('test_iframe_sandbox_is_safe', () => {
     const iframes: { getAttribute: (k: string) => string | null }[] = []
     const container = {
       ownerDocument: {
@@ -101,13 +101,13 @@ describe('buildDevtoolsTab (P#5 T2.2)', () => {
 
     buildDevtoolsTab(resolveOptions({ driver: 'sqlite', url: ':memory:' })).mount(container)
     const sandbox = iframes[0]?.getAttribute('sandbox') ?? ''
-    // #206: combining allow-scripts + allow-same-origin lets framed content
+    // Combining allow-scripts + allow-same-origin lets framed content
     // remove its own sandbox → escape. The pair must NOT both be present.
     const escapePair = sandbox.includes('allow-scripts') && sandbox.includes('allow-same-origin')
     expect(escapePair).toBe(false)
   })
 
-  it('test_studio_url_from_resolved_options (#207)', () => {
+  it('test_studio_url_from_resolved_options', () => {
     const opts = resolveOptions({
       driver: 'sqlite',
       url: ':memory:',

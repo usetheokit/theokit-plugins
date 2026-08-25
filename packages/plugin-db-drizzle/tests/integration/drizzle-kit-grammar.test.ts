@@ -39,7 +39,7 @@ const REFUSALS = [
 
 /**
  * Verbs that reach the real binary. `seed` and `reset` do not: drizzle-kit has
- * neither subcommand, so both run a script the user supplies (#48, #170).
+ * neither subcommand, so both run a script the user supplies (#48).
  */
 const PASSTHROUGH = ['generate', 'migrate', 'push', 'studio', 'check'] as const
 
@@ -156,7 +156,7 @@ function argsFor(project: string, verb: string): string[] {
     mkdirSync(dirname(target), { recursive: true })
     writeFileSync(target, renderDrizzleConfig(resolved))
   }
-  return cmd.buildArgs(resolved)
+  return cmd.buildArgs()
 }
 
 describe('the args we emit are a command line drizzle-kit accepts', () => {
