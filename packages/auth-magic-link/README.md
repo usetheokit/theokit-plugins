@@ -86,7 +86,7 @@ straight into a TheoKit route:
 <!-- doc-example: needs="../../../auth/providers.js" -->
 
 ```ts
-// server/routes/api/auth/magic-link/start.ts
+// server/routes/auth/magic-link/start.ts
 import { route } from 'theokit/server'
 import { magicLinkProvider } from '../../../auth/providers.js' // your magicLink() instance
 
@@ -109,7 +109,7 @@ export const POST = route()
 <!-- doc-example: needs="../../../auth/providers.js" -->
 
 ```ts
-// server/routes/api/auth/magic-link/callback.ts
+// server/routes/auth/magic-link/callback.ts
 import { route } from 'theokit/server'
 import { magicLinkProvider, sessions } from '../../../auth/providers.js'
 
