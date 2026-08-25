@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **The manifest gate checks every peer dependency, not only the framework's.** Its three peer
+  rules were all scoped to `theokit` and `@theokit/*`, so a third-party peer — `lib0`, `yjs`,
+  `react`, `stripe`, `drizzle-orm` — was checked by nothing. It now asserts, for every peer, that
+  the version this repository actually builds against satisfies the range the package publishes.
+  Comparing against the INSTALLED version is what the previous rule could not do: it compares two
+  ranges, and a peer floor sitting above the devDependency's reads as caution rather than as a
+  promise of a version that does not exist. Offline by construction — a peer with nothing installed
+  is reported as unmeasured rather than counted as a pass (#164)
+
+### Fixed
+
+- **`plugin-realtime` no longer asks for a `lib0` version that does not exist.** It declared the
+  peer as `^1`; npm's latest `lib0` is `0.2.117` and the whole `1.x` line is prereleases, which a
+  caret without a prerelease tag excludes — so the range matched nothing a consumer could install,
+  while `yjs` and `y-protocols` both depend on `lib0@^0.2.x`. Nothing imported it: the provider
+  loads `yjs` and `y-protocols/awareness.js`, and its own error message already said to install
+  those two. It stayed invisible because the devDependency said `^1.0.0-rc.1`, which does match the
+  rc line — so the package built here against a version its published peer forbade (#164)
+
 ## 2026-08-25 (fifth cut)
 
 Three packages: `@theokit/auth-github@0.5.1`, `@theokit/auth-google@0.5.1`,
