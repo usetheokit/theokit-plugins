@@ -36,16 +36,16 @@ export interface DrizzleDbOptions {
    */
   devtoolsTab?: boolean
   /**
-   * Host for the drizzle-kit studio devtools iframe (#207). Default `localhost`.
+   * Host for the drizzle-kit studio devtools iframe. Default `localhost`.
    */
   studioHost?: string
   /**
-   * Port for the drizzle-kit studio devtools iframe (#207). Default `4983`
+   * Port for the drizzle-kit studio devtools iframe. Default `4983`
    * (drizzle-kit's default) — only used when unset.
    */
   studioPort?: number
   /**
-   * Path to the user's seed script run by `db seed` (#170). `drizzle-kit` has
+   * Path to the user's seed script run by `db seed`. `drizzle-kit` has
    * no `seed` verb, so seeding runs THIS script. Typically resolved at
    * register-time from `package.json#theokit.db.seed`; can also be set here.
    * When unset, `db seed` errors instead of invoking a nonexistent subcommand.

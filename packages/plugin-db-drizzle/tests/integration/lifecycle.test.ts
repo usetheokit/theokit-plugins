@@ -56,7 +56,7 @@ describe('plugin lifecycle smoke', () => {
     const argsOf = (verb: string) => {
       const cmd = cmds.find((c) => c.verb === verb)
       expect(cmd, `${verb} missing`).toBeDefined()
-      return cmd?.buildArgs(plugin.options) ?? []
+      return cmd?.buildArgs() ?? []
     }
 
     const generate = argsOf('generate')
