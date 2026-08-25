@@ -23,7 +23,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   next to a current SDK got an unmet peer nobody could fix, because the package has no source
   anybody can reach. The hook now ships in `theokit/client` itself, so the peer becomes
   `theokit >=0.52.1` — which every consumer of a `<TheoForm>` already has, since the `action` it
-  takes comes from theokit's own `@theo/actions` module (usetheokit/theokit#453)
+  takes comes from theokit's own `@theo/actions` module. **To upgrade:** drop `@theokit/react` from
+  your dependencies and make sure `theokit` is at `0.52.1` or newer — not `0.52.0`, which shipped
+  the hook with a defect that turned a validation failure into a generic 500 with its field
+  messages dropped (usetheokit/theokit#453)
 
 - **The imports-nothing peer rule covers every peer, not only the framework's.** It refused a
   `theokit` or `@theokit/*` peer that nothing imported and ignored `stripe`, `drizzle-orm`, `react`,
