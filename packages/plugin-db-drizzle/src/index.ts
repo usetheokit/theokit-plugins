@@ -24,7 +24,22 @@ export type { DrizzleDbPlugin, TheoApp, TheoPlugin } from './types.js'
 // from a `register()` that called a nonexistent API, and from their own tests —
 // ~30 assertions covering something no consumer could invoke (#43). Exporting
 // them is not new surface; it un-hides surface that already existed and is
-// already tested. Wire `buildDbCommands` into a package script of your own.
+// already tested.
+//
+// Wire it into a package script of your own, and take its argument from the plugin:
+//
+//     const plugin = drizzleDb({ driver: 'sqlite', url, schemaPath })  // the theo.config.ts call
+//     for (const cmd of buildDbCommands(plugin.options)) …             // resolved, defaults filled
+//
+// `plugin.options`, NOT an object of your own. `buildDbCommands` takes the RESOLVED shape — ten
+// required fields, no optionals — and a hand-written one short by a field does not fail here: it
+// builds `["migrate", "--config", undefined]`, an argv whose slot after the flag holds the JS value
+// `undefined`. Measured, not inferred. What the tool then does with it was NOT measured and is not
+// claimed; the point is that nothing on this side objects. `drizzleDb(...)` is the only thing that
+// fills the defaults, so it is the only honest source for that argument.
+//
+// `tests/documented-wiring-builds-a-complete-argv.test.ts` pins both halves: every verb built the
+// documented way carries a complete argv, and the short object produces exactly the hole above.
 export { buildDbCommands, renderDrizzleConfig, type DbCommand, type DbVerb } from './cli/db.js'
 export { buildDevtoolsTab, type DrizzleDevtoolsTab } from './devtools.js'
 
@@ -75,7 +90,9 @@ export function drizzleDb(opts: DrizzleDbOptions): DrizzleDbPlugin {
       // hands DATABASE_URL to the consumer's drizzle-kit and never connects,
       // which is also why `e2e/src/services.ts` excludes it from the live
       // suites. `buildDbCommands` stays tested and is exported below so a
-      // consumer can wire it into their own script (#43, fix option 2).
+      // consumer can wire it into their own script (#43, fix option 2) — from
+      // `drizzleDb(...).options` rather than an object of their own; see the
+      // export comment above for why that distinction is load-bearing.
     },
   }
 }

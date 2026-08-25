@@ -76,7 +76,9 @@ const verb = process.argv[2]
 const cmd = buildDbCommands(plugin.options).find((c) => c.verb === verb)
 if (!cmd) throw new Error(`unknown verb ${verb}`)
 
-spawnSync('npx', ['drizzle-kit', ...cmd.buildArgs(plugin.options)], { stdio: 'inherit' })
+// `buildArgs()` takes nothing: the options reached it through `buildDbCommands` above, and
+// `plugin.options` is what fills the defaults it needs.
+spawnSync('npx', ['drizzle-kit', ...cmd.buildArgs()], { stdio: 'inherit' })
 ```
 
 ```json

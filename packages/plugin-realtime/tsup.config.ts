@@ -22,7 +22,6 @@ export default defineConfig({
     'yjs',
     'y-protocols',
     'y-protocols/awareness',
-    'lib0',
     'react',
   ],
 })

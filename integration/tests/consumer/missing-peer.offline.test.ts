@@ -7,8 +7,14 @@
  * exercise a MISSING peer, because none is ever missing there. Filed separately.
  *
  * This file stages the layout that can: the built `dist` COPIED — never symlinked — into a fixture
- * whose `node_modules` holds React, `react-hook-form`, `zod` and `@theokit/react`, and deliberately
- * not `@usetheo/ui`.
+ * whose `node_modules` holds React, `react-hook-form`, `zod` and `theokit`, and deliberately not
+ * `@usetheo/ui`.
+ *
+ * `react-router` is staged too, and only because of where `useAction` lives. `theokit/client` is
+ * the React entry, and it re-exports `Link`, which imports the router — so pulling one hook out of
+ * that barrel pulls the router with it. A real consumer always has it (theokit declares it a
+ * REQUIRED peer), but this fixture is a bare tmpdir with nothing above it to resolve from, which is
+ * the whole point: it measures a consumer, not the monorepo.
  *
  * The copy is load-bearing. A first probe symlinked the package and reported a clean pass, because
  * Node resolves a symlink to its real path and resolution walked up into the monorepo — measuring
@@ -76,7 +82,10 @@ const PEERS_WITHOUT_UI = [
   ['react-dom@19', 'react-dom'],
   ['react-hook-form@', 'react-hook-form'],
   ['@hookform+resolvers@', '@hookform/resolvers'],
-  ['@theokit+react@', '@theokit/react'],
+  // `theokit` since usetheokit/theokit#453: `useAction` moved into the framework, out of
+  // `@theokit/react` — one published version, no repository, an unsatisfiable SDK peer.
+  ['theokit@0.52', 'theokit'],
+  ['react-router@', 'react-router'],
   ['zod@4', 'zod'],
 ] as const
 

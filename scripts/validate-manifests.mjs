@@ -54,6 +54,7 @@ import { reportGate } from '../tools/lib/gate-summary.mjs'
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
+import semver from 'semver'
 import ts from 'typescript'
 
 import { splitFences } from '../tools/lib/markdown-fences.mjs'
@@ -104,10 +105,30 @@ const PEER_WITHOUT_USE_EXEMPT = {
   'plugin-email': {
     theokit:
       'Holds an EmailProvider — the closest analogue to what plugin-payments now publishes on ctx.payments.',
+    react:
+      'render-react-email.ts:16 states the design: no unconditional `react` import, because consumers pass a ReactElement they built with their own React. The peer is what makes it the same React.',
   },
   'plugin-realtime': {
     theokit:
       'Providers are in-memory and Yjs; never imports @theokit/sdk either, so it opens no socket. Adapter value unclear — measure before deciding.',
+  },
+  // The five below are third-party peers, visible to this rule only since #166 widened it beyond
+  // `theokit`/`@theokit/*`. Each is declared for the CONSUMER's benefit and deliberately not
+  // imported here, and each already said so somewhere before the rule could see it.
+  'plugin-payments': {
+    'drizzle-orm':
+      "The ORM-backed idempotency store is the consumer's: README.md:154 tells them to install it alongside @theokit/orm. Optional on purpose — the in-memory store needs none of it.",
+    'reflect-metadata':
+      "Same install line (README.md:154): @theokit/orm entity decorators need the polyfill in the CONSUMER's app, not in this package.",
+  },
+  'plugin-db-drizzle': {
+    'drizzle-orm':
+      "This package drives the drizzle-kit BINARY; the consumer's schema is what imports drizzle-orm. README.md:28 is the install line.",
+    'reflect-metadata':
+      "Same install line (README.md:28) — needed by the consumer's @theokit/orm entities, never by this package.",
+  },
+  'plugin-forms': {
+    zod: 'valuesToFormData.ts:37 reads Zod class names off the constructor "so this file needs no `zod` import". The schema still has to be a zod schema, so the peer is real.',
   },
 }
 
@@ -249,12 +270,21 @@ function checkFrameworkContract(dir, pkg, where) {
   }
   walk(srcDir)
 
-  // Every framework peer, not just `theokit`. The check covered exactly one name, so a
-  // decorative `@theokit/*` peer was invisible to it — and a peer nobody imports still drags
-  // its dependency tree into the consumer's resolution, which is what made plugin-forms
-  // impossible to install (#64, #66).
-  const frameworkPeers = Object.keys(pkg.peerDependencies ?? {}).filter(
-    (name) => name === 'theokit' || name.startsWith('@theokit/'),
+  // EVERY peer, not only the framework's. The rule covered `theokit` alone, then grew to
+  // `@theokit/*` when a decorative framework peer turned out to be invisible to it (#64, #66) —
+  // and stopped there, so a third-party peer was still checked by nothing. `plugin-payments`
+  // declared `drizzle-orm` and `reflect-metadata` and imports neither; its own docblock says the
+  // Repository surface is structural precisely so the plugin would NOT take that peer (#166).
+  //
+  // The reason is the same for both kinds: a peer nobody imports still drags its dependency tree
+  // into the consumer's resolution, and it is a claim of support nothing here exercises.
+  //
+  // `@types/*` is excluded by construction, not by triage: ambient type packages are picked up by
+  // the compiler and are never the target of an import statement, so "imports nothing from it" is
+  // true of every correct declaration. Flagging them would be the rule misreading how TypeScript
+  // works, and each package would need an exemption saying so.
+  const declaredPeers = Object.keys(pkg.peerDependencies ?? {}).filter(
+    (name) => !name.startsWith('@types/'),
   )
   const imported = new Set()
 
@@ -263,9 +293,15 @@ function checkFrameworkContract(dir, pkg, where) {
     // A real reference is an import specifier. A name inside a comment or a string is not
     // one — which is how plugin-canvas read as a consumer of the framework while only
     // mentioning it in a JSDoc example.
-    for (const peer of frameworkPeers) {
+    for (const peer of declaredPeers) {
       const escaped = peer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      if (new RegExp(`\\bfrom\\s+['"]${escaped}(\\/[^'"]*)?['"]`).test(text)) imported.add(peer)
+      const spec = `['"]${escaped}(\\/[^'"]*)?['"]`
+      // `from '…'` AND `import('…')`. The dynamic form is how a package uses an OPTIONAL peer —
+      // `plugin-canvas` loads `mermaid` and `plugin-email` loads `@react-email/render` that way,
+      // both from a string literal the bundler can trace. Matching only the static form would
+      // have called those two decorative, which is a gate firing on correct code.
+      if (new RegExp(`\\bfrom\\s+${spec}`).test(text)) imported.add(peer)
+      else if (new RegExp(`\\bimport\\s*\\(\\s*${spec}\\s*\\)`).test(text)) imported.add(peer)
     }
 
     // Same lesson as the import check above, applied where it was missing: prose is not
@@ -294,7 +330,7 @@ function checkFrameworkContract(dir, pkg, where) {
 
   const exempt = PEER_WITHOUT_USE_EXEMPT[dir] ?? {}
 
-  for (const peer of frameworkPeers) {
+  for (const peer of declaredPeers) {
     if (imported.has(peer)) {
       if (peer in exempt) {
         violations.push(
@@ -319,6 +355,9 @@ function checkFrameworkContract(dir, pkg, where) {
   //
   // Checked for every framework peer that has a devDependency to compare against; a peer with
   // no devDependency is not compiled here at all, so there is nothing to measure it by.
+  const frameworkPeers = declaredPeers.filter(
+    (name) => name === 'theokit' || name.startsWith('@theokit/'),
+  )
   for (const peer of frameworkPeers) {
     const devRange = pkg.devDependencies?.[peer]
     const peerRange = pkg.peerDependencies?.[peer]
@@ -344,8 +383,10 @@ function checkFrameworkContract(dir, pkg, where) {
     // people to skip it.
   }
 
+  // Against `declaredPeers`, not `frameworkPeers`: the rule covers every peer since #166, so an
+  // exemption for a third-party one is legitimate and must not read as stale.
   for (const peer of Object.keys(exempt)) {
-    if (!frameworkPeers.includes(peer)) {
+    if (!declaredPeers.includes(peer)) {
       violations.push(
         `${where}: exempted for \`${peer}\` but declares no such peer — the exemption is stale, remove it.`,
       )
@@ -721,10 +762,90 @@ function readmeCode(path) {
   return splitFences(readFileSync(path, 'utf8')).code.join('\n')
 }
 
+/**
+ * A declared peer range must admit the version this repository actually builds against.
+ *
+ * Every peer rule above is scoped to `theokit` and `@theokit/*`, so a THIRD-PARTY peer was checked
+ * by nothing. Measured 2026-08-25, `plugin-realtime` declared `lib0: "^1"`:
+ *
+ *   $ npm view lib0 version              -> 0.2.117
+ *   $ npm view lib0 versions --json      -> the only 1.x are 1.0.0-0 and 1.0.0-rc.0 … rc.26
+ *
+ * There is no stable 1.0.0. `^1` carries no prerelease, and semver excludes prereleases from such
+ * a range, so it matched NOTHING a consumer could install — while `yjs@13.6.32` depends on
+ * `lib0@^0.2.99` and `y-protocols@1.0.7` on `^0.2.85`, putting the whole ecosystem on 0.2.x.
+ *
+ * The mechanism is worth naming because it is invisible by reading: the devDependency said
+ * `^1.0.0-rc.1`, which DOES match the rc line, so the package installed and compiled here while
+ * the peer it published could not be satisfied by anyone. The same asymmetry as #158 — verified
+ * against a devDependency nobody else installs.
+ *
+ * Comparing against the INSTALLED version rather than the devDependency range is what catches it:
+ * the previous floor check compares two ranges and `^1`'s floor (1.0.0) sits ABOVE `^1.0.0-rc.1`'s,
+ * which reads as a package being conservative rather than as one promising a version that does not
+ * exist.
+ *
+ * Offline by construction: it asks the workspace what is on disk, never the registry. The cost is
+ * that a peer with nothing installed cannot be measured at all, which is reported rather than
+ * counted as a pass.
+ */
+function checkPeerRangesAgainstInstalled(dirs) {
+  let compared = 0
+  const unmeasured = []
+
+  for (const dir of dirs) {
+    const manifestPath = join(PACKAGES_DIR, dir, 'package.json')
+    if (!existsSync(manifestPath)) continue
+    const pkg = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    const where = `packages/${dir}/package.json`
+
+    for (const [peer, range] of Object.entries(pkg.peerDependencies ?? {})) {
+      const installedManifest = join(PACKAGES_DIR, dir, 'node_modules', peer, 'package.json')
+      if (!existsSync(installedManifest)) {
+        // Nothing is installed for it here, so this repository never builds against it. Saying so
+        // is the honest outcome; treating it as a pass would report coverage the run did not have.
+        unmeasured.push(`${dir} → ${peer} (${range})`)
+        continue
+      }
+
+      const installed = JSON.parse(readFileSync(installedManifest, 'utf8')).version
+      if (typeof installed !== 'string') {
+        unmeasured.push(`${dir} → ${peer} (no version in the installed manifest)`)
+        continue
+      }
+
+      compared += 1
+      if (semver.validRange(range) === null) {
+        unmeasured.push(`${dir} → ${peer} (${range} is not a range semver can parse)`)
+        compared -= 1
+        continue
+      }
+      if (!semver.satisfies(installed, range)) {
+        violations.push(
+          `${where}: peerDependencies[${JSON.stringify(peer)}] is ${JSON.stringify(range)}, ` +
+            `but the version this repository builds against is ${installed}, which the range does ` +
+            `NOT admit. A consumer installing the published package cannot reproduce what we test ` +
+            `— and when no published version satisfies the range at all, they cannot install it. ` +
+            `Widen the peer to the version in devDependencies, or build against one the peer admits.`,
+        )
+      }
+    }
+  }
+
+  if (unmeasured.length > 0) {
+    for (const line of unmeasured) {
+      console.error(`  ℹ peer not installed here, so not measured: ${line}`)
+    }
+  }
+
+  return { compared, unmeasured: unmeasured.length }
+}
+
 const packageDirs = readdirSync(PACKAGES_DIR).sort()
 for (const dir of packageDirs) check(dir)
 const keyReport = checkDecorationKeys(packageDirs)
 const docsReport = checkSeamDocumentation(packageDirs)
+const peerReport = checkPeerRangesAgainstInstalled(packageDirs)
 
 if (violations.length > 0) {
   console.error(`✗ ${violations.length} manifest violation(s):\n`)
@@ -739,7 +860,7 @@ if (violations.length > 0) {
 // for a run that opened no manifest at all (B-026).
 const summary =
   '✓ every package manifest is publishable (repository + directory, provenance, no escaping local paths)\n' +
-  '✓ no package re-invents a theokit type, and every `theokit`/`@theokit/*` peer is used or triaged\n' +
+  '✓ no package re-invents a theokit type, and every declared peer is imported or triaged\n' +
   // Never unconditional. A summary that claims "no two packages claim the same key" after
   // resolving none of them is a green line the run did not earn — and that is exactly what the
   // first version printed while an ordinary refactor hid a real collision.
@@ -748,7 +869,12 @@ const summary =
     : `✓ no two packages claim the same request-decoration key (${keyReport.compared} compared)`) +
   (docsReport.registry === false
     ? `\n⚠ no seam registry found — 0 packages checked for documenting their factory`
-    : `\n✓ every package with a seam names its factory in its README (${docsReport.checked} checked)`)
+    : `\n✓ every package with a seam names its factory in its README (${docsReport.checked} checked)`) +
+  // Same discipline: a peer with nothing installed was not measured, and the line says so rather
+  // than folding it into a count that reads as coverage.
+  (peerReport.unmeasured > 0
+    ? `\n⚠ ${peerReport.compared} peer range(s) checked against the installed version; ${peerReport.unmeasured} had nothing installed here and were NOT measured (listed above)`
+    : `\n✓ every declared peer range admits the version this repository builds against (${peerReport.compared} compared)`)
 console.log(summary)
 process.exit(
   reportGate({ label: 'manifests', subject: 'package manifests', checked: packageDirs.length })

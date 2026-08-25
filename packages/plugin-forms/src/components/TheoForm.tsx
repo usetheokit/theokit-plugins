@@ -21,7 +21,7 @@
  *     on ActionInputError-shape error → applyActionErrorsToForm bridges to RHF
  */
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useAction } from '@theokit/react'
+import { useAction } from 'theokit/client'
 import { forwardRef, type ReactNode, useCallback } from 'react'
 import {
   FormProvider,

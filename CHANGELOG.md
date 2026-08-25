@@ -6,6 +6,104 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## 2026-08-25 (sixth cut)
+
+Four packages: `@theokit/plugin-db-drizzle@0.6.0`, `@theokit/plugin-forms@0.5.0`,
+`@theokit/plugin-payments@0.7.0`, `@theokit/plugin-realtime@0.2.1`.
+
+Three of the four are the same defect wearing different clothes: **a declaration that promised
+something it did not deliver.** `plugin-realtime` declared a `lib0` peer no published version could
+satisfy. `plugin-payments` declared a `stripe` peer spanning eight majors it cannot compile against.
+`plugin-db-drizzle` declared a `buildArgs(opts)` parameter its implementation never read — measured
+by handing it a postgresql config and watching the argv still say `--dialect sqlite`.
+
+The db-drizzle cut also removes five fabricated issue citations from `dist/index.d.ts`, which is
+what an editor shows a consumer on hover. Two of the five pointed at numbers that existed in no
+repository; a third resolved, on the day this shipped, to an unrelated issue that had just taken the
+number — worse than dangling, because only a dangling reference announces itself.
+
+`plugin-forms` takes `useAction` from `theokit` instead of an orphan package that no longer
+receives fixes. Consumers who imported the hook from the old path have a one-line change; the
+package changelog names it.
+
+### Changed
+
+- **The eleven gate scripts are linted.** `pnpm lint` covered `{packages,integration}` and `.ts`
+  only, so `scripts/` and `tools/` — every quality gate in the repository, plus the shared library
+  three of them build on — were the only code nothing checked. They sit outside every tsconfig, so
+  the type-aware program cannot parse them; a config block scoped to those paths turns the
+  type-aware rules off and keeps the recommended set. `no-dupe-keys` is the reason: a duplicate key
+  in the peer triage map silently dropped an entry, in an object where a missing entry means
+  "nobody looked" reads as "somebody looked". All eleven pass as they are — nothing was wrong, and
+  now something would say so (#168)
+
+- **`plugin-forms` no longer depends on an unmaintainable package.** `TheoForm` took `useAction`
+  from `@theokit/react` — one version, published once in June, no `repository` field, and a
+  `@theokit/sdk ^1.1.0` peer against a published 4.x. Requiring it meant a consumer installing forms
+  next to a current SDK got an unmet peer nobody could fix, because the package has no source
+  anybody can reach. The hook now ships in `theokit/client` itself, so the peer becomes
+  `theokit >=0.52.1` — which every consumer of a `<TheoForm>` already has, since the `action` it
+  takes comes from theokit's own `@theo/actions` module. **To upgrade:** drop `@theokit/react` from
+  your dependencies and make sure `theokit` is at `0.52.1` or newer — not `0.52.0`, which shipped
+  the hook with a defect that turned a validation failure into a generic 500 with its field
+  messages dropped (usetheokit/theokit#453)
+
+- **The imports-nothing peer rule covers every peer, not only the framework's.** It refused a
+  `theokit` or `@theokit/*` peer that nothing imported and ignored `stripe`, `drizzle-orm`, `react`,
+  `zod` and the rest. Widened, it found eight such peers across five packages — and every one turned
+  out to be correct and already explained somewhere: the ORM install line in two READMEs, a docblock
+  saying `plugin-email` deliberately avoids an unconditional `react` import, another saying
+  `plugin-forms` reads Zod class names off the constructor. Those are now entries in the triage map,
+  so the next undeclared peer is the one that gets refused. `@types/*` is excluded by construction —
+  ambient types are never imported by anyone (#166)
+
+- **The manifest gate checks every peer dependency, not only the framework's.** Its three peer
+  rules were all scoped to `theokit` and `@theokit/*`, so a third-party peer — `lib0`, `yjs`,
+  `react`, `stripe`, `drizzle-orm` — was checked by nothing. It now asserts, for every peer, that
+  the version this repository actually builds against satisfies the range the package publishes.
+  Comparing against the INSTALLED version is what the previous rule could not do: it compares two
+  ranges, and a peer floor sitting above the devDependency's reads as caution rather than as a
+  promise of a version that does not exist. Offline by construction — a peer with nothing installed
+  is reported as unmeasured rather than counted as a pass (#164)
+
+### Fixed
+
+- **`plugin-payments` no longer claims stripe majors it cannot compile against.** The peer said
+  `>=14.0.0` while npm serves 22.5.0. `src/options.ts` types the API version as
+  `Stripe.LatestApiVersion` and assigns `'2023-10-16'` to it — stripe 14's literal, and only 14's
+  (15 says `2024-04-10`, 22 says `2026-07-29.dahlia`), so the file does not typecheck above 14. On a
+  newer SDK a consumer either hit `StripeApiVersionError` at client construction or was silently
+  pinned to an API version three years older than their own types described. The supported range is
+  unchanged; the manifest now states it at install time rather than leaving it to runtime (#166)
+
+- **`plugin-realtime` no longer asks for a `lib0` version that does not exist.** It declared the
+  peer as `^1`; npm's latest `lib0` is `0.2.117` and the whole `1.x` line is prereleases, which a
+  caret without a prerelease tag excludes — so the range matched nothing a consumer could install,
+  while `yjs` and `y-protocols` both depend on `lib0@^0.2.x`. Nothing imported it: the provider
+  loads `yjs` and `y-protocols/awareness.js`, and its own error message already said to install
+  those two. It stayed invisible because the devDependency said `^1.0.0-rc.1`, which does match the
+  rc line — so the package built here against a version its published peer forbade (#164)
+
+- **`plugin-db-drizzle` no longer declares a `buildArgs` parameter it never reads.** The interface
+  said `buildArgs(opts: ResolvedDrizzleDbOptions)`; the implementation was a zero-argument closure
+  over the options handed to `buildDbCommands`. Measured: one command built from a sqlite config
+  returned a byte-identical argv when handed a postgresql config, `{}`, or nothing — still saying
+  `--dialect sqlite`. A caller who resolved their config twice and passed the fresh copy got the
+  first one's argv, silently. **To upgrade:** delete the argument — `cmd.buildArgs(resolved)`
+  becomes `cmd.buildArgs()`. It is a compile error rather than a quiet change, which is how a
+  caller learns the argument never worked; nothing that runs today changes behaviour. The
+  documented wiring now also names where `buildDbCommands`' own argument comes from
+  (`drizzleDb(...).options`), because a hand-written one short by a field builds
+  `["migrate", "--config", undefined]` with no diagnostic (#170)
+
+- **Five fabricated issue citations are gone from `plugin-db-drizzle`'s published types.**
+  `dist/index.d.ts` — what an editor shows on hover — cited `#170`, `#168`, `#169`, `#206` and
+  `#207` for subjects those numbers do not describe; two existed in no repository at all, and a
+  third resolved, the day this shipped, to an unrelated issue that had just taken the number. A
+  citation that resolves to the wrong subject is worse than one that dangles, because only the
+  dangling one announces itself. The rationale in each docblock stands without the link, so the
+  number is dropped and the sentence kept — except where `#48` genuinely covers it (#171)
+
 ## 2026-08-25 (fifth cut)
 
 Three packages: `@theokit/auth-github@0.5.1`, `@theokit/auth-google@0.5.1`,
