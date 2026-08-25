@@ -1,6 +1,6 @@
 {
   "name": "@theokit/plugin-payments",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Multi-provider payments plugin for TheoKit — one neutral PaymentProvider contract with Stripe and AbacatePay (PIX) behind subpath exports, webhook signature verification, idempotent dispatch, and PIX as a typed optional capability.",
   "type": "module",
   "main": "./dist/index.js",
