@@ -3,12 +3,12 @@
  *
  * B-001's DoD names "the `AuthProvider` contract from `@theokit/sdk/server/auth`" as the surface
  * to test against. Measured, `AuthProvider` is an `export type` — the module's runtime exports
- * are `defineAuth`, `validateReturnTo` and five error classes. Nothing can be handed to a type,
- * so this suite targets `defineAuth` instead, and the DoD is corrected rather than satisfied
+ * are `Auth`, `validateReturnTo` and five error classes. Nothing can be handed to a type,
+ * so this suite targets `Auth.create` instead, and the DoD is corrected rather than satisfied
  * literally.
  *
  * Constructing the orchestrator is NOT the test. Probed directly against the installed sdk,
- * `defineAuth({ session, providers: [{ name: 'broken' }] })` returns the full five-method
+ * `Auth.create({ session, providers: [{ name: 'broken' }] })` returns the full five-method
  * surface without complaint. A test that asserted the orchestrator was defined would therefore
  * pass for a provider that cannot work. So the orchestrator is driven: `startSignIn` is what
  * makes the provider's own `createAuthorizationURL` run.
@@ -27,7 +27,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { type AddressInfo } from 'node:net'
 
 import { google } from '@theokit/auth-google'
-import { defineAuth } from '@theokit/sdk/server/auth'
+import { Auth } from '@theokit/sdk/server/auth'
 import { createSessionManager } from 'theokit/server/auth'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
@@ -120,11 +120,11 @@ function collectingResponse(): ServerResponse {
 }
 
 function orchestratorFor(provider: unknown) {
-  return defineAuth<Session>({
+  return Auth.create<Session>({
     // `createSessionManager`, not `createSessionManagerWeb`. The Web variant is WHATWG-shaped
     // (Request/Headers) while the sdk's `SessionManager` is Node-shaped
     // (IncomingMessage/ServerResponse), so the two do not interchange — tsc caught the swap. The
-    // session is not what this suite tests; it is the argument `defineAuth` requires.
+    // session is not what this suite tests; it is the argument `Auth.create` requires.
     session: createSessionManager<Session>({
       secret: 'conformance-only-secret-at-least-32-chars-long',
     }),
@@ -199,73 +199,71 @@ describe('the real auth orchestrator is what drives a provider', () => {
     expect(setCookie).toMatch(/SameSite=Lax/)
   })
 
-  it.fails(
-    'completes the round trip: the cookie startSignIn sets is one finishSignIn can read',
-    async () => {
-      // `it.fails` — NOT a skip. It passes while the body throws and turns RED the moment the body
-      // succeeds, which is exactly the signal wanted here: the defect is upstream, and this test is
-      // what tells us when it is gone.
-      //
-      // Measured against @theokit/sdk@2.18.0: `startSignIn` writes `theo_oauth_tx=...` (index.js:249)
-      // while the transaction store reads `__Host-theo_oauth_tx` (index.js:107). The cookie is
-      // therefore never found, and EVERY OAuth sign-in driven through `defineAuth` fails at the
-      // callback with AuthCallbackError. Reproduced end to end before writing this.
-      //
-      // Filed as B-019. A conformance suite that stopped at the 302 would certify half a round trip
-      // — which is the failure mode this file's own docstring argues against.
-      //
-      // The provider here is deliberately minimal: what is under test is the ORCHESTRATOR's cookie
-      // handling, not a package's provider logic. Driving `auth-google` this far would need a token
-      // endpoint too, and would tell us about Google's leg rather than the seam's.
-      const provider = {
-        name: 'roundtrip',
-        createAuthorizationURL: (tx: { state: string }) =>
-          Promise.resolve(new URL(`https://${LOCAL_AUTHORIZE_HOST}/a?state=${tx.state}`)),
-        handleCallback: () => Promise.resolve({ profile: { sub: 'round-trip-user' } }),
-      }
-      const orchestrator = orchestratorFor(provider)
+  it('completes the round trip: the cookie startSignIn sets is one finishSignIn can read', async () => {
+    // This was an `it.fails` — a canary, passing while the body threw and turning red the moment
+    // it stopped. It turned red, which is the outcome it was written for.
+    //
+    // The defect: `startSignIn` wrote `theo_oauth_tx=...` while the transaction store read
+    // `__Host-theo_oauth_tx`. The cookie was never found, so EVERY OAuth sign-in failed at the
+    // callback with AuthCallbackError — in 2.18.0 and still in 4.53.1, so it survived a major.
+    //
+    // Filed as B-019, fixed upstream in usetheokit/theokit-sdk#377, shipped in
+    // `@theokit/sdk@4.54.0`. The cookie name is now an exported const used at the write site,
+    // so there is one name rather than two.
+    //
+    // It stays a round trip rather than becoming an assertion about a header: a conformance
+    // suite that stopped at the 302 would certify half a journey, which is the failure mode this
+    // file's own docstring argues against. The `await` below IS the assertion — it throws if the
+    // callback cannot find what sign-in wrote.
+    //
+    // The provider here is deliberately minimal: what is under test is the ORCHESTRATOR's cookie
+    // handling, not a package's provider logic. Driving `auth-google` this far would need a token
+    // endpoint too, and would tell us about Google's leg rather than the seam's.
+    const provider = {
+      name: 'roundtrip',
+      createAuthorizationURL: (tx: { state: string }) =>
+        Promise.resolve(new URL(`https://${LOCAL_AUTHORIZE_HOST}/a?state=${tx.state}`)),
+      handleCallback: () => Promise.resolve({ profile: { sub: 'round-trip-user' } }),
+    }
+    const orchestrator = orchestratorFor(provider)
 
-      const started = await orchestrator.startSignIn(
-        'roundtrip',
-        incomingRequest('/auth/roundtrip'),
-      )
-      const cookie = started.headers.get('set-cookie')!.split(';')[0]
-      const state = new URL(started.headers.get('location')!).searchParams.get('state')
+    const started = await orchestrator.startSignIn('roundtrip', incomingRequest('/auth/roundtrip'))
+    const cookie = started.headers.get('set-cookie')!.split(';')[0]
+    const state = new URL(started.headers.get('location')!).searchParams.get('state')
 
-      await orchestrator.finishSignIn(
-        'roundtrip',
-        {
-          url: `/auth/roundtrip/callback?code=any&state=${state}`,
-          method: 'GET',
-          headers: { host: 'app.invalid', cookie },
-        } as IncomingMessage,
-        collectingResponse(),
-      )
-    },
-  )
+    await orchestrator.finishSignIn(
+      'roundtrip',
+      {
+        url: `/auth/roundtrip/callback?code=any&state=${state}`,
+        method: 'GET',
+        headers: { host: 'app.invalid', cookie },
+      } as IncomingMessage,
+      collectingResponse(),
+    )
+  })
 })
 
 /**
  * Why this suite breaks on an sdk major bump, and the packages do not.
  *
- * Measured 2026-08-24 against both majors installed here: `defineAuth` is a function in sdk 2.18.0
- * and `undefined` in 4.53.1, where the orchestrator is the `Auth` class instead. A token-level grep
+ * Measured 2026-08-24 against every major installed here: `defineAuth` is a function in sdk 2.18.0
+ * and `undefined` in 4.x, where the orchestrator is the `Auth` class instead. A token-level grep
  * finds the name in both — importing the module is what discriminates.
  *
  * But **no package imports it.** `auth-github`, `auth-google` and `auth-magic-link` take
- * `AuthProvider`, `AuthResult` and `OAuthTransaction` as `import type`, and all three types exist in
- * both majors. `plugin-copilot` takes one type from the root barrel. The sole caller of `defineAuth`
- * in this repository is this file — because a **type contract** cannot be handed to anything, so a
- * runtime seam is the only thing a conformance test can drive.
+ * `AuthProvider`, `AuthResult` and `OAuthTransaction` as `import type`, and all three types exist
+ * in both majors. `plugin-copilot` takes one type from the root barrel. The sole caller of the
+ * orchestrator in this repository is this file — because a **type contract** cannot be handed to
+ * anything, so a runtime seam is the only thing a conformance test can drive.
  *
- * The consequence for a consumer is worth stating, because it is the one real cost of the pin: the
- * packages declare `^2.18.0` as a PEER range, so somebody already on sdk 4 hits a **peer conflict**
- * even though their type contract would be satisfied by it. That is a product decision about a
- * published range, not a defect.
+ * This suite has been migrated to `Auth.create`, and the packages' peer range now reads
+ * `>=4.54.0`. The earlier `^2.18.0` was the one real cost of the pin: it produced a peer conflict
+ * for anybody already on sdk 4, whose type contract would have been satisfied by it. That was a
+ * product decision about a published range rather than a defect, and it has been taken.
  *
- * So: an out-of-range sdk should break this file, and it should say why. Before this assertion it
- * failed with a bare `TypeError: defineAuth is not a function`, which cost three measurements to
- * explain — the last of which refuted the premise it was filed under.
+ * So: an out-of-range sdk should break this file, and it should say why. Before the assertion
+ * below it failed with a bare `TypeError: defineAuth is not a function`, which cost three
+ * measurements to explain — the last of which refuted the premise it was filed under.
  */
 describe('the sdk major this suite assumes', () => {
   it('is within the range the packages themselves declare', async () => {
