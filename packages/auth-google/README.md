@@ -53,7 +53,7 @@ Wire into your routes:
 <!-- doc-example: needs="../../../auth/index.js" -->
 
 ```ts
-// server/routes/api/auth/google/start.ts
+// server/routes/auth/google/start.ts
 import { generateOAuthState, generatePkceChallenge } from 'theokit/server/auth'
 import { route } from 'theokit/server'
 import { provider, saveTransaction } from '../../../auth/index.js'
@@ -82,7 +82,7 @@ export const GET = route()
 <!-- doc-example: needs="../../../auth/index.js" -->
 
 ```ts
-// server/routes/api/auth/google/callback.ts
+// server/routes/auth/google/callback.ts
 import { route } from 'theokit/server'
 import { provider, sessions, loadTransaction } from '../../../auth/index.js'
 
