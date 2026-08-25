@@ -25,8 +25,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `theokit >=0.52.1` — which every consumer of a `<TheoForm>` already has, since the `action` it
   takes comes from theokit's own `@theo/actions` module (usetheokit/theokit#453)
 
-### Changed
-
 - **The imports-nothing peer rule covers every peer, not only the framework's.** It refused a
   `theokit` or `@theokit/*` peer that nothing imported and ignored `stripe`, `drizzle-orm`, `react`,
   `zod` and the rest. Widened, it found eight such peers across five packages — and every one turned
