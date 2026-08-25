@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## 2026-08-25 (sixth cut)
+
+Four packages: `@theokit/plugin-db-drizzle@0.6.0`, `@theokit/plugin-forms@0.5.0`,
+`@theokit/plugin-payments@0.7.0`, `@theokit/plugin-realtime@0.2.1`.
+
+Three of the four are the same defect wearing different clothes: **a declaration that promised
+something it did not deliver.** `plugin-realtime` declared a `lib0` peer no published version could
+satisfy. `plugin-payments` declared a `stripe` peer spanning eight majors it cannot compile against.
+`plugin-db-drizzle` declared a `buildArgs(opts)` parameter its implementation never read — measured
+by handing it a postgresql config and watching the argv still say `--dialect sqlite`.
+
+The db-drizzle cut also removes five fabricated issue citations from `dist/index.d.ts`, which is
+what an editor shows a consumer on hover. Two of the five pointed at numbers that existed in no
+repository; a third resolved, on the day this shipped, to an unrelated issue that had just taken the
+number — worse than dangling, because only a dangling reference announces itself.
+
+`plugin-forms` takes `useAction` from `theokit` instead of an orphan package that no longer
+receives fixes. Consumers who imported the hook from the old path have a one-line change; the
+package changelog names it.
+
 ### Changed
 
 - **The eleven gate scripts are linted.** `pnpm lint` covered `{packages,integration}` and `.ts`
@@ -63,6 +83,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   loads `yjs` and `y-protocols/awareness.js`, and its own error message already said to install
   those two. It stayed invisible because the devDependency said `^1.0.0-rc.1`, which does match the
   rc line — so the package built here against a version its published peer forbade (#164)
+
+- **`plugin-db-drizzle` no longer declares a `buildArgs` parameter it never reads.** The interface
+  said `buildArgs(opts: ResolvedDrizzleDbOptions)`; the implementation was a zero-argument closure
+  over the options handed to `buildDbCommands`. Measured: one command built from a sqlite config
+  returned a byte-identical argv when handed a postgresql config, `{}`, or nothing — still saying
+  `--dialect sqlite`. A caller who resolved their config twice and passed the fresh copy got the
+  first one's argv, silently. **To upgrade:** delete the argument — `cmd.buildArgs(resolved)`
+  becomes `cmd.buildArgs()`. It is a compile error rather than a quiet change, which is how a
+  caller learns the argument never worked; nothing that runs today changes behaviour. The
+  documented wiring now also names where `buildDbCommands`' own argument comes from
+  (`drizzleDb(...).options`), because a hand-written one short by a field builds
+  `["migrate", "--config", undefined]` with no diagnostic (#170)
+
+- **Five fabricated issue citations are gone from `plugin-db-drizzle`'s published types.**
+  `dist/index.d.ts` — what an editor shows on hover — cited `#170`, `#168`, `#169`, `#206` and
+  `#207` for subjects those numbers do not describe; two existed in no repository at all, and a
+  third resolved, the day this shipped, to an unrelated issue that had just taken the number. A
+  citation that resolves to the wrong subject is worse than one that dangles, because only the
+  dangling one announces itself. The rationale in each docblock stands without the link, so the
+  number is dropped and the sentence kept — except where `#48` genuinely covers it (#171)
 
 ## 2026-08-25 (fifth cut)
 
