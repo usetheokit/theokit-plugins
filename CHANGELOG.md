@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **The imports-nothing peer rule covers every peer, not only the framework's.** It refused a
+  `theokit` or `@theokit/*` peer that nothing imported and ignored `stripe`, `drizzle-orm`, `react`,
+  `zod` and the rest. Widened, it found eight such peers across five packages — and every one turned
+  out to be correct and already explained somewhere: the ORM install line in two READMEs, a docblock
+  saying `plugin-email` deliberately avoids an unconditional `react` import, another saying
+  `plugin-forms` reads Zod class names off the constructor. Those are now entries in the triage map,
+  so the next undeclared peer is the one that gets refused. `@types/*` is excluded by construction —
+  ambient types are never imported by anyone (#166)
+
 - **The manifest gate checks every peer dependency, not only the framework's.** Its three peer
   rules were all scoped to `theokit` and `@theokit/*`, so a third-party peer — `lib0`, `yjs`,
   `react`, `stripe`, `drizzle-orm` — was checked by nothing. It now asserts, for every peer, that
@@ -18,6 +27,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   is reported as unmeasured rather than counted as a pass (#164)
 
 ### Fixed
+
+- **`plugin-payments` no longer claims stripe majors it cannot compile against.** The peer said
+  `>=14.0.0` while npm serves 22.5.0. `src/options.ts` types the API version as
+  `Stripe.LatestApiVersion` and assigns `'2023-10-16'` to it — stripe 14's literal, and only 14's
+  (15 says `2024-04-10`, 22 says `2026-07-29.dahlia`), so the file does not typecheck above 14. On a
+  newer SDK a consumer either hit `StripeApiVersionError` at client construction or was silently
+  pinned to an API version three years older than their own types described. The supported range is
+  unchanged; the manifest now states it at install time rather than leaving it to runtime (#166)
 
 - **`plugin-realtime` no longer asks for a `lib0` version that does not exist.** It declared the
   peer as `^1`; npm's latest `lib0` is `0.2.117` and the whole `1.x` line is prereleases, which a
