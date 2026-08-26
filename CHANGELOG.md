@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `@theokit/plugin-canvas` exports `ArtifactsControllerBase` from `./server` — the artifact endpoints as a controller your app extends, instead of handlers it mounts by hand. The plugin keeps the verbs and the behaviour behind them; your app supplies the URL, the store, and the access decision per verb, without editing the plugin to vary any of them. `createArtifactRouteHandlers` is unchanged and still supported. (usetheokit/theokit#514, #517)
+
+### Changed
+
+- `@theokit/http` is now an OPTIONAL peer dependency of `@theokit/plugin-canvas`. An app that never touches controllers installs no decorator runtime and keeps using the handlers exactly as before.
+
 ## 2026-08-25 (sixth cut)
 
 Four packages: `@theokit/plugin-db-drizzle@0.6.0`, `@theokit/plugin-forms@0.5.0`,
