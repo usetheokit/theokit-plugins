@@ -9,3 +9,5 @@
  */
 
 export { createArtifactBus, type ArtifactBus, type ArtifactBusHandler } from './artifact-bus.js'
+
+export { ArtifactsControllerBase } from './artifacts-controller.js'
