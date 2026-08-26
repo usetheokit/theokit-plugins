@@ -134,8 +134,17 @@ jobs:
       # Scoped to promotions: a changeset on a `develop` PR is exactly right and must not be
       # blocked. Only `main` cannot consume one.
       #
-      # Delete this step the day `RELEASE_PAT` exists — then a changeset on `main` is fine, and this
-      # would be a gate enforcing a constraint that no longer applies.
+      # This used to read "delete this step the day `RELEASE_PAT` exists". That day will not come:
+      # `0ca9f7f` wired `release.yml` to mint a token from the `theokit-release` GitHub App, and the
+      # PAT it named was never created. An instruction whose trigger cannot occur is an instruction
+      # nobody can act on, so it is restated against the condition that actually retires the gate.
+      #
+      # Retire it when a release here has ACTUALLY opened a Version Packages pull request with the
+      # App's token — not when the App is merely configured. The distinction is the whole point: the
+      # secrets being present does not prove the App is installed on this repository, nor that its
+      # installation grants `contents` and `pull-requests` write. Until one release demonstrates it,
+      # the constraint this gate enforces still holds, and removing it on the strength of a
+      # configuration change would be reasoning about the mechanism instead of observing it.
       - name: A promotion to main carries no unconsumed changeset
         if: github.base_ref == 'main'
         run: |
