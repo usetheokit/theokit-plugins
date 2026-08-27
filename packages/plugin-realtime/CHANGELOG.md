@@ -1,5 +1,17 @@
 # @theokit/plugin-realtime
 
+## 0.2.2
+
+### Patch Changes
+
+- Raise the `theokit` peer floor from `>=0.4.0-beta.0` to `>=0.50.1`, matching every other package here.
+
+  The old floor was a leftover from the beta line, fifty minor versions below what this package is actually built and tested against. It was decorative — nothing in `src/` imports `theokit` — which is exactly why it went stale unnoticed.
+
+  It stopped being decorative when a gate started installing the bottom of every declared range: pinning `theokit@0.4.0` (published, deprecated) and hoisting it made `theokit/client` in a sibling package resolve to a version predating half its surface. A range nobody could sensibly be on was breaking a check for everybody.
+
+  Nothing installable changes for a real consumer. `@theokit/plugin-realtime@0.2.1` cannot work against `theokit@0.4.0` — the room-mounting and server-scanner conventions it documents did not exist there — so the narrowed range describes what was already true.
+
 ## 0.2.1
 
 ### Patch Changes
