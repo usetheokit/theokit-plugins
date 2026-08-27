@@ -7,7 +7,7 @@ import type { VoiceConfig } from '../src/options.js'
 import type { SttInput } from '../src/server/stt-server.js'
 import type { TtsInput } from '../src/server/tts-server.js'
 
-/**
+/*
  * The point of the base class is that an app can vary path, config and per-verb access WITHOUT
  * editing this package. Each test below is one of those variations actually exercised — not an
  * assertion that the decorators are present, which would pass on a class that routes nowhere.
@@ -15,7 +15,13 @@ import type { TtsInput } from '../src/server/tts-server.js'
 
 const config: VoiceConfig = {
   stt: { provider: 'openai', apiKey: 'k', model: 'whisper-1', endpoint: 'https://x/stt' },
-  tts: { provider: 'openai', apiKey: 'k', model: 'tts-1', voice: 'alloy', endpoint: 'https://x/tts' },
+  tts: {
+    provider: 'openai',
+    apiKey: 'k',
+    model: 'tts-1',
+    voice: 'alloy',
+    endpoint: 'https://x/tts',
+  },
 }
 
 class TestVoiceController extends VoiceControllerBase {

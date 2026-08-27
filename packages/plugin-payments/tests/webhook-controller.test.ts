@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { StripeWebhookControllerBase } from '../src/server/webhook-controller.js'
 import type { WebhookResult } from '../src/webhook.js'
 
-/**
+/*
  * The base exists so an app varies the URL and the four collaborators without editing this package,
  * and stops re-deriving the result → status mapping the plugin already decided. Each test exercises
  * one of those, rather than asserting a decorator is present — a class that routes nowhere would
@@ -25,7 +25,10 @@ class TestWebhookController extends StripeWebhookControllerBase {
   public seen: { rawBody: string; signature: string | undefined } | undefined
   public result: WebhookResult = { status: 'ok', eventId: 'evt_1', duplicate: false }
 
-  protected override process(rawBody: string, signature: string | undefined): Promise<WebhookResult> {
+  protected override process(
+    rawBody: string,
+    signature: string | undefined,
+  ): Promise<WebhookResult> {
     this.seen = { rawBody, signature }
     return Promise.resolve(this.result)
   }

@@ -17,5 +17,12 @@ export default defineConfig({
   // way; this one does not, because /abacatepay is a new entry point and there
   // is no reason to publish a known defect into it. The default flips in tsup 9.
   removeNodeProtocol: false,
-  external: ['@theokit/http', 'stripe', 'theokit', '@theokit/orm', 'drizzle-orm', 'reflect-metadata'],
+  external: [
+    '@theokit/http',
+    'stripe',
+    'theokit',
+    '@theokit/orm',
+    'drizzle-orm',
+    'reflect-metadata',
+  ],
 })
