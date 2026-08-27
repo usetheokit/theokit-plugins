@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## 2026-08-27 (eighth cut)
+
+Three packages: `@theokit/plugin-canvas@0.7.1`, `@theokit/plugin-voice@0.10.1`,
+`@theokit/plugin-payments@0.8.1`.
+
+The `@theokit/http` peer floor moves off `1.1.0`, which is deprecated on npm because it was
+published carrying `license: MIT` while its repository licenses the code under Apache-2.0. A range
+whose floor is that version means a consumer resolving to the bottom installs a package whose
+recorded licence contradicts its source — nothing breaks at runtime, which is why it would have sat
+there until an audit asked.
+
+Found by the dependency gate's floor check, which installs the bottom of every declared range rather
+than the version a lockfile happens to hold. No behaviour changes.
+
 ## 2026-08-27 (seventh cut)
 
 Four packages: `@theokit/plugin-canvas@0.7.0`, `@theokit/plugin-voice@0.10.0`,
