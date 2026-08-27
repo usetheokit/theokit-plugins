@@ -24,7 +24,11 @@ describe('#175 — the fields map is found in both shapes', () => {
     expect(
       extractFieldsFromError({
         data: undefined,
-        error: { code: 'ACTION_INPUT_ERROR', message: 'the server refused one field', fields: FIELDS },
+        error: {
+          code: 'ACTION_INPUT_ERROR',
+          message: 'the server refused one field',
+          fields: FIELDS,
+        },
       }),
     ).toEqual(FIELDS)
   })
