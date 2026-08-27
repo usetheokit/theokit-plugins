@@ -266,8 +266,29 @@ export const TheoForm = Object.assign(TheoFormRoot, {
 export function extractFieldsFromError(err: unknown): Record<string, string[]> | undefined {
   if (err === null || typeof err !== 'object') return undefined
   const obj = err as Record<string, unknown>
-  if (obj.fields === null || typeof obj.fields !== 'object') return undefined
-  return obj.fields as Record<string, string[]>
+  const direct = readFieldsMap(obj)
+  if (direct !== undefined) return direct
+  // #175 — the SAME error, one level down. An action's declared return type is
+  // `Promise<{ data, error }>`, so a caller that surfaces the envelope hands us
+  // `{ data: undefined, error: { code, message, fields } }` and the `fields` map sits
+  // inside `error`. Over HTTP the transport unwraps it first and the flat shape arrives,
+  // which is why every integration test (200/422/404) passed while a LOCAL action — no
+  // transport, envelope intact — fell through to the `throw err` in `routeActionError`
+  // and surfaced as an unhandled rejection with no field error rendered anywhere.
+  //
+  // Reading both shapes rather than picking one: the flat form is what the HTTP path has
+  // always produced and cannot be dropped, and the envelope is what the action's own type
+  // says it returns. A duck-type that only knows one of them is a duck-type that knows the
+  // transport, which is exactly what this helper exists to avoid.
+  return readFieldsMap(obj.error)
+}
+
+/** The `fields` map on a value, when it carries one. */
+function readFieldsMap(value: unknown): Record<string, string[]> | undefined {
+  if (value === null || typeof value !== 'object') return undefined
+  const fields = (value as Record<string, unknown>).fields
+  if (fields === null || typeof fields !== 'object') return undefined
+  return fields as Record<string, string[]>
 }
 
 /**
