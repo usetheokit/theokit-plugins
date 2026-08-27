@@ -311,3 +311,23 @@ jobs:
       # lowest — had never mounted either of its components.
       - name: Coverage floor (80% lines, per package)
         run: pnpm coverage
+
+  # SonarQube Cloud, from CI rather than Automatic Analysis.
+  #
+  # Automatic Analysis does not import coverage — its documentation states that "code coverage
+  # information is not supported" — so on that mechanism the quality gate could not see the
+  # per-package floor the `test` job above already enforces at 80%.
+  #
+  # The workflow lives in shared-workflows rather than as a step here, because the only inline
+  # version in the ecosystem was dead on arrival: `if: matrix.node-version == '22.x'` against a
+  # matrix of ['22.12', '22'], reporting `skipped` on every run for two months. A skipped step and
+  # a passing step render identically.
+  #
+  # Automatic Analysis is OFF for this project in SonarCloud, which the scanner requires rather
+  # than prefers: "You are running CI analysis while Automatic Analysis is enabled."
+  sonar:
+    needs: test
+    uses: usetheokit/shared-workflows/.github/workflows/sonar.yml@v1
+    secrets: inherit
+    with:
+      coverage-command: pnpm coverage
