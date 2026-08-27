@@ -14,10 +14,18 @@ import type { WebhookResult } from '../src/webhook.js'
 
 /** Drives the base without reaching Stripe: the seam under test is everything around the call. */
 class TestWebhookController extends StripeWebhookControllerBase {
+  // Never reached — `process` is overridden below. They are declared because the base demands
+  // them, and that demand IS part of the contract under test: a subclass that forgot one must not
+  // compile.
+  protected readonly stripe = undefined as never
+  protected readonly webhookSecret = 'whsec_test'
+  protected readonly registry = undefined as never
+  protected readonly store = undefined as never
+
   public seen: { rawBody: string; signature: string | undefined } | undefined
   public result: WebhookResult = { status: 'ok', eventId: 'evt_1', duplicate: false }
 
-  protected process(rawBody: string, signature: string | undefined): Promise<WebhookResult> {
+  protected override process(rawBody: string, signature: string | undefined): Promise<WebhookResult> {
     this.seen = { rawBody, signature }
     return Promise.resolve(this.result)
   }
@@ -29,7 +37,7 @@ function post(body: string, headers: Record<string, string> = {}): Request {
 
 describe('StripeWebhookControllerBase', () => {
   it('declares the verb so a subclass inherits a route it never wrote', () => {
-    const routes = getMeta(ROUTE_METHODS, TestWebhookController) as RouteMethodEntry[] | undefined
+    const routes = getMeta<RouteMethodEntry[]>(ROUTE_METHODS, TestWebhookController)
     expect(routes?.map((r) => `${r.verb} ${r.path}`)).toEqual(['POST '])
   })
 

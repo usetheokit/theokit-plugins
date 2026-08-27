@@ -38,6 +38,7 @@ const ARTIFACT = {
   title: 'A note',
   content: '# hello',
   version: 1,
+  createdAt: '2026-08-26T00:00:00.000Z',
 }
 
 function post(body: unknown): Request {
@@ -69,9 +70,35 @@ describe('ArtifactsControllerBase — the plugin ships verbs, the app ships poli
     // `enforceArtifactSecurity` inside the existing handler; a base that rebuilt the logic would
     // have to remember to call it, and the first version that forgot would ship stored XSS.
     const controller = new TestArtifactsController()
-    const hostile = { ...ARTIFACT, kind: 'html' as const, content: '<script>alert(1)</script>' }
+    // `svg` on purpose: `enforceArtifactSecurity` only inspects that kind. An earlier version of
+    // this test used `html`, which the gate never looks at — it was rejected by schema validation
+    // instead, so it passed while proving nothing about the gate it names.
+    const hostile = {
+      ...ARTIFACT,
+      kind: 'svg' as const,
+      content: '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+    }
+
     const response = await controller.create(post(hostile), hostile)
-    expect(response.status).toBeGreaterThanOrEqual(400)
+
+    expect(response.status).toBe(400)
+    const body = (await response.json()) as { error?: { message?: string } }
+    expect(JSON.stringify(body)).toContain('script')
+  })
+
+  it('accepts the same SVG once the script is gone, so the 400 above is the gate and not the kind', async () => {
+    // Without this pair, the previous test would pass even if `svg` were rejected wholesale for an
+    // unrelated reason — and it would still read as "the XSS gate works".
+    const controller = new TestArtifactsController()
+    const clean = {
+      ...ARTIFACT,
+      kind: 'svg' as const,
+      content: '<svg xmlns="http://www.w3.org/2000/svg"><circle r="1" /></svg>',
+    }
+
+    const response = await controller.create(post(clean), clean)
+
+    expect(response.status).toBe(201)
   })
 
   it('carries no @Controller and no access decision — both belong to the app', () => {

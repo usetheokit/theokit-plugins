@@ -8,9 +8,7 @@
       "ES2022",
       "DOM",
       "DOM.Iterable"
-    ],
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    ]
   },
   "include": [
     "src/**/*.ts",

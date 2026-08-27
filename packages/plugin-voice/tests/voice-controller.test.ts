@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest'
 
 import { VoiceControllerBase } from '../src/server/voice-controller.js'
 import type { VoiceConfig } from '../src/options.js'
+import type { SttInput } from '../src/server/stt-server.js'
+import type { TtsInput } from '../src/server/tts-server.js'
 
 /**
  * The point of the base class is that an app can vary path, config and per-verb access WITHOUT
@@ -14,7 +16,7 @@ import type { VoiceConfig } from '../src/options.js'
 const config: VoiceConfig = {
   stt: { provider: 'openai', apiKey: 'k', model: 'whisper-1', endpoint: 'https://x/stt' },
   tts: { provider: 'openai', apiKey: 'k', model: 'tts-1', voice: 'alloy', endpoint: 'https://x/tts' },
-} as VoiceConfig
+}
 
 class TestVoiceController extends VoiceControllerBase {
   protected readonly config = config
@@ -22,9 +24,7 @@ class TestVoiceController extends VoiceControllerBase {
 
 describe('VoiceControllerBase', () => {
   it('declares the two verbs so a subclass inherits routes it never wrote', () => {
-    const routes = getMeta(ROUTE_METHODS, TestVoiceController) as
-      | RouteMethodEntry[]
-      | undefined
+    const routes = getMeta<RouteMethodEntry[]>(ROUTE_METHODS, TestVoiceController)
 
     expect(routes?.map((r) => `${r.verb} ${r.path}`).sort()).toEqual(['POST stt', 'POST tts'])
   })
@@ -43,8 +43,12 @@ describe('VoiceControllerBase', () => {
     const seen: { audioSize: number; language?: string }[] = []
     class Spy extends VoiceControllerBase {
       protected readonly config = config
-      protected transcribe(input: { audio: Blob; language?: string }) {
-        seen.push({ audioSize: (input.audio as Blob).size, language: input.language })
+      protected override transcribe(input: SttInput) {
+        // `SttAudio` is a union — a `Blob` or a `{ buffer }` envelope. Narrowing rather than
+        // asserting is what makes this test say something: the multipart path must hand the
+        // provider a Blob, and a version that passed the raw form entry would fail here.
+        if (!(input.audio instanceof Blob)) throw new TypeError('expected a Blob from multipart')
+        seen.push({ audioSize: input.audio.size, language: input.language })
         return Promise.resolve(new Response('ok'))
       }
     }
@@ -77,7 +81,7 @@ describe('VoiceControllerBase', () => {
     const seen: unknown[] = []
     class Spy extends VoiceControllerBase {
       protected readonly config = config
-      protected synthesise(input: unknown) {
+      protected override synthesise(input: TtsInput) {
         seen.push(input)
         return Promise.resolve(new Response('ok'))
       }
