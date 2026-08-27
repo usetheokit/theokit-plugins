@@ -107,24 +107,40 @@ jobs:
       # moment the problem was fixed. Hence a report, never a gate, and never on every PR:
       # a blocking check for a condition no pull request can fix turns every PR red until
       # someone with organisation rights acts.
+      # What this reports changed with `0ca9f7f`, and the OLD text is why it is worth saying so.
+      # It read: "`RELEASE_PAT` is not set, so `release.yml` falls back to `GITHUB_TOKEN`" — true
+      # when written and false the moment the App landed. `release.yml` mints a token from the
+      # `theokit-release` GitHub App now and touches neither. An operator running this job would
+      # have been sent to check an organisation setting the release no longer depends on, by a job
+      # whose whole purpose is to tell them what state they are in.
+      #
+      # A diagnostic that describes a mechanism the system left behind is worse than no diagnostic:
+      # it is believed precisely because it ran.
       - name: Report the observable half of the release-blocking state
         env:
-          HAS_RELEASE_PAT: ${{ secrets.RELEASE_PAT != '' }}
+          HAS_APP_ID: ${{ secrets.RELEASE_APP_ID != '' }}
+          HAS_APP_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY != '' }}
         run: |
           {
             echo "## Release-blocking state"
             echo
-            if [ "$HAS_RELEASE_PAT" = "true" ]; then
-              echo "\`RELEASE_PAT\` is set, so \`release.yml\` will use it to open the Version Packages pull request."
+            if [ "$HAS_APP_ID" = "true" ] && [ "$HAS_APP_KEY" = "true" ]; then
+              echo "Both \`RELEASE_APP_ID\` and \`RELEASE_APP_PRIVATE_KEY\` are present, so \`release.yml\`"
+              echo "mints a short-lived token from the \`theokit-release\` GitHub App to open the Version"
+              echo "Packages pull request."
+              echo
+              echo "**This is not a verdict on the next release.** The secrets being readable does not prove"
+              echo "the App is installed on THIS repository, nor that its installation grants \`contents\` and"
+              echo "\`pull-requests\` write. Those are checked by the token-minting step itself, at release time."
             else
-              echo "\`RELEASE_PAT\` is **not set**, so \`release.yml\` falls back to \`GITHUB_TOKEN\`."
+              echo "One or both App secrets are **missing**:"
               echo
-              echo "That token can open the Version Packages pull request only if the organisation setting"
-              echo "*Allow GitHub Actions to create and approve pull requests* is enabled. **This job cannot read"
-              echo "that setting** — doing so needs an admin token it deliberately does not carry — so this is"
-              echo "not a verdict on whether the next release will succeed."
+              echo "| Secret | Present |"
+              echo "|---|---|"
+              echo "| \`RELEASE_APP_ID\` | $HAS_APP_ID |"
+              echo "| \`RELEASE_APP_PRIVATE_KEY\` | $HAS_APP_KEY |"
               echo
-              echo "If it is disabled, the release will push the \`changeset-release\` branch and fail to open the"
-              echo "pull request. Tracked in #16."
+              echo "\`release.yml\` cannot mint a token without both, so the Version Packages pull request will"
+              echo "not be opened. They are organisation secrets; a repository admin restores them."
             fi
           } >> "$GITHUB_STEP_SUMMARY"

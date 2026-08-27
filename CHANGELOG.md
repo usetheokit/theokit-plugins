@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `@theokit/plugin-voice` exports `VoiceControllerBase` from `./server` — the `stt` and `tts` endpoints as a controller your app extends. It carries the multipart parsing every consumer wrote by hand, and rejects a request with no audio as a typed `MISSING_AUDIO` instead of letting `undefined` reach the provider. It also exports `ttsInputSchema`, the zod schema `tts` validates against, so an app that wants a narrower or wider body starts from ours instead of retyping the fields. `handleSttRequest` / `handleTtsRequest` are unchanged. (#176)
+- `@theokit/plugin-payments` exports `StripeWebhookControllerBase` from `./server` — the webhook endpoint as a controller your app extends. It owns the result-to-status mapping `processWebhook` only documented (answering 200 to a handler error tells Stripe to stop retrying a delivery that never succeeded) and reads the body as unparsed text, because Stripe signs the exact bytes it sent. Your subclass still declares the endpoint public and CSRF-exempt. `processWebhook` is unchanged. (#176)
+- `@theokit/plugin-canvas` exports `ArtifactsControllerBase` from `./server` — the artifact endpoints as a controller your app extends, instead of handlers it mounts by hand. The plugin keeps the verbs and the behaviour behind them; your app supplies the URL, the store, and the access decision per verb, without editing the plugin to vary any of them. `createArtifactRouteHandlers` is unchanged and still supported. (#176)
+
+### Changed
+
+- `@theokit/http` is now an OPTIONAL peer dependency of `@theokit/plugin-canvas`, `@theokit/plugin-voice` and `@theokit/plugin-payments`. An app that never touches controllers installs no decorator runtime and keeps using the handlers exactly as before.
+
 ## 2026-08-25 (sixth cut)
 
 Four packages: `@theokit/plugin-db-drizzle@0.6.0`, `@theokit/plugin-forms@0.5.0`,

@@ -46,25 +46,18 @@ jobs:
           # stdout, invisible under a green check mark. `fetch-tags` is cheaper than
           # `fetch-depth: 0`, which would pull the whole history for one comparison.
           fetch-tags: true
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-        # No `version:` here on purpose. The action reads `packageManager` from
-        # package.json, which is already the single authority on the pnpm version.
-        # Pinning it a second time in this file creates two places to update, and
-        # once they disagree action-setup aborts with ERR_PNPM_BAD_PM_VERSION.
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'pnpm'
-          # The cache key must change when the package manager does. setup-node keys the
-          # pnpm store on the lockfile alone, so a pnpm 9 -> 10 bump leaves the key
-          # identical and the job restores a store the new pnpm reads as inconsistent —
-          # `ERR_PNPM_MISSING_PACKAGE_INDEX_FILE`, on a package the lockfile does list.
-          # package.json carries `packageManager`, so including it ties the cache to the
-          # pnpm that wrote it.
-          cache-dependency-path: |
-            pnpm-lock.yaml
-            package.json
-      - run: pnpm install --frozen-lockfile
+      # The install spine — Node, the package manager this repository DECLARES, a cache keyed
+      # so it cannot outlive that manager, and a frozen install. Shared because it was the
+      # same four steps in nine repositories, and because the knowledge inside them was not:
+      # theokit-sdk pinned pnpm 9.15.0 in four workflows while its manifest said 10.34.1, so
+      # every gate there validated a tree no contributor had (usetheokit/theokit-sdk#415).
+      #
+      # @v1 is a moving major and the blanket SHA-pinning policy is suppressed for it: that
+      # policy defends against a THIRD PARTY moving a ref under us, and this is the same
+      # organisation. What a SHA would buy is a guarantee we already have; what it would cost
+      # is one correction becoming nine pull requests. What the action RUNS stays pinned —
+      # every action inside it by digest, and the package manager by this repository's manifest.
+      - uses: usetheokit/shared-workflows/actions/setup@v1 # zizmor: ignore[unpinned-uses]
       # Cross-package imports resolve through each package's `exports` map, which points
       # at `dist/` — so the workspace has to be BUILT before anything type-aware or
       # runtime-loading touches it. Skipping this is invisible on a developer machine
@@ -93,25 +86,18 @@ jobs:
           # stdout, invisible under a green check mark. `fetch-tags` is cheaper than
           # `fetch-depth: 0`, which would pull the whole history for one comparison.
           fetch-tags: true
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-        # No `version:` here on purpose. The action reads `packageManager` from
-        # package.json, which is already the single authority on the pnpm version.
-        # Pinning it a second time in this file creates two places to update, and
-        # once they disagree action-setup aborts with ERR_PNPM_BAD_PM_VERSION.
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'pnpm'
-          # The cache key must change when the package manager does. setup-node keys the
-          # pnpm store on the lockfile alone, so a pnpm 9 -> 10 bump leaves the key
-          # identical and the job restores a store the new pnpm reads as inconsistent —
-          # `ERR_PNPM_MISSING_PACKAGE_INDEX_FILE`, on a package the lockfile does list.
-          # package.json carries `packageManager`, so including it ties the cache to the
-          # pnpm that wrote it.
-          cache-dependency-path: |
-            pnpm-lock.yaml
-            package.json
-      - run: pnpm install --frozen-lockfile
+      # The install spine — Node, the package manager this repository DECLARES, a cache keyed
+      # so it cannot outlive that manager, and a frozen install. Shared because it was the
+      # same four steps in nine repositories, and because the knowledge inside them was not:
+      # theokit-sdk pinned pnpm 9.15.0 in four workflows while its manifest said 10.34.1, so
+      # every gate there validated a tree no contributor had (usetheokit/theokit-sdk#415).
+      #
+      # @v1 is a moving major and the blanket SHA-pinning policy is suppressed for it: that
+      # policy defends against a THIRD PARTY moving a ref under us, and this is the same
+      # organisation. What a SHA would buy is a guarantee we already have; what it would cost
+      # is one correction becoming nine pull requests. What the action RUNS stays pinned —
+      # every action inside it by digest, and the package manager by this repository's manifest.
+      - uses: usetheokit/shared-workflows/actions/setup@v1 # zizmor: ignore[unpinned-uses]
       # Cross-package imports resolve through each package's `exports` map, which points
       # at `dist/` — so the workspace has to be BUILT before anything type-aware or
       # runtime-loading touches it. Skipping this is invisible on a developer machine
@@ -134,8 +120,17 @@ jobs:
       # Scoped to promotions: a changeset on a `develop` PR is exactly right and must not be
       # blocked. Only `main` cannot consume one.
       #
-      # Delete this step the day `RELEASE_PAT` exists — then a changeset on `main` is fine, and this
-      # would be a gate enforcing a constraint that no longer applies.
+      # This used to read "delete this step the day `RELEASE_PAT` exists". That day will not come:
+      # `0ca9f7f` wired `release.yml` to mint a token from the `theokit-release` GitHub App, and the
+      # PAT it named was never created. An instruction whose trigger cannot occur is an instruction
+      # nobody can act on, so it is restated against the condition that actually retires the gate.
+      #
+      # Retire it when a release here has ACTUALLY opened a Version Packages pull request with the
+      # App's token — not when the App is merely configured. The distinction is the whole point: the
+      # secrets being present does not prove the App is installed on this repository, nor that its
+      # installation grants `contents` and `pull-requests` write. Until one release demonstrates it,
+      # the constraint this gate enforces still holds, and removing it on the strength of a
+      # configuration change would be reasoning about the mechanism instead of observing it.
       - name: A promotion to main carries no unconsumed changeset
         if: github.base_ref == 'main'
         run: |
@@ -287,25 +282,18 @@ jobs:
           # stdout, invisible under a green check mark. `fetch-tags` is cheaper than
           # `fetch-depth: 0`, which would pull the whole history for one comparison.
           fetch-tags: true
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-        # No `version:` here on purpose. The action reads `packageManager` from
-        # package.json, which is already the single authority on the pnpm version.
-        # Pinning it a second time in this file creates two places to update, and
-        # once they disagree action-setup aborts with ERR_PNPM_BAD_PM_VERSION.
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'pnpm'
-          # The cache key must change when the package manager does. setup-node keys the
-          # pnpm store on the lockfile alone, so a pnpm 9 -> 10 bump leaves the key
-          # identical and the job restores a store the new pnpm reads as inconsistent —
-          # `ERR_PNPM_MISSING_PACKAGE_INDEX_FILE`, on a package the lockfile does list.
-          # package.json carries `packageManager`, so including it ties the cache to the
-          # pnpm that wrote it.
-          cache-dependency-path: |
-            pnpm-lock.yaml
-            package.json
-      - run: pnpm install --frozen-lockfile
+      # The install spine — Node, the package manager this repository DECLARES, a cache keyed
+      # so it cannot outlive that manager, and a frozen install. Shared because it was the
+      # same four steps in nine repositories, and because the knowledge inside them was not:
+      # theokit-sdk pinned pnpm 9.15.0 in four workflows while its manifest said 10.34.1, so
+      # every gate there validated a tree no contributor had (usetheokit/theokit-sdk#415).
+      #
+      # @v1 is a moving major and the blanket SHA-pinning policy is suppressed for it: that
+      # policy defends against a THIRD PARTY moving a ref under us, and this is the same
+      # organisation. What a SHA would buy is a guarantee we already have; what it would cost
+      # is one correction becoming nine pull requests. What the action RUNS stays pinned —
+      # every action inside it by digest, and the package manager by this repository's manifest.
+      - uses: usetheokit/shared-workflows/actions/setup@v1 # zizmor: ignore[unpinned-uses]
       # Cross-package imports resolve through each package's `exports` map, which points
       # at `dist/` — so the workspace has to be BUILT before anything type-aware or
       # runtime-loading touches it. Skipping this is invisible on a developer machine

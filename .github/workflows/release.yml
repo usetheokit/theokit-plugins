@@ -30,12 +30,41 @@ jobs:
       # Each pin carries the version it resolved to on 2026-08-21, read from the action's own
       # tags rather than assumed from the ref name. Majors are deliberately unchanged: pinning
       # freezes what already runs, upgrading is a separate decision with its own risk.
+      # Mint a short-lived token from the `theokit-release` GitHub App. This is the
+      # "(or GitHub App token)" the note below anticipated, now that the App exists.
+      #
+      # GitHub does not start workflow runs from GITHUB_TOKEN-authored events, so a Version
+      # Packages pull request opened with that token arrives with none of its required
+      # checks running, and a required check that never reports cannot be satisfied. An
+      # App-authored event does start them. Proven on theokit-ui: 0/3 required checks became
+      # 3/3, the pull request reached CLEAN by itself, and 1.10.1 published with no manual
+      # gesture.
+      #
+      # The token is minted per run and expires with it. What is long-lived is the App's
+      # private key, an organization secret scoped to three repository permissions. NOT used
+      # for npm — publishing stays OIDC trusted publishing, with no token at all.
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          # Narrow the token to what this job does rather than inheriting whatever the
+          # installation holds. zizmor flags the unrestricted form as high severity.
+          permission-contents: write
+          permission-pull-requests: write
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 # zizmor: ignore[artipacked]
         with:
           # The one checkout in this repository that keeps its credential, and not
           # by oversight: changesets/action pushes the version commit and the
           # release tags with the git CLI, which authenticates from exactly this
           # persisted token. `persist-credentials: false` breaks the release.
+          #
+          # It must be the APP's token. The push of `changeset-release/main` is what the
+          # pull request is opened against, so a push carrying the Actions bot's credential
+          # produces a bot-authored branch and the checks stay dormant even though the pull
+          # request was opened by the App. Both halves have to be the App or neither is.
+          token: ${{ steps.app-token.outputs.token }}
           fetch-depth: 0
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         # No `version:` here on purpose. The action reads `packageManager` from
@@ -106,23 +135,34 @@ jobs:
           # cannot be re-armed by someone dropping the `run`.
           version: pnpm run version:packages
         env:
-          # RELEASE_PAT first, GITHUB_TOKEN as the fallback (#16).
+          # The App's token. This replaces `secrets.RELEASE_PAT || secrets.GITHUB_TOKEN`,
+          # and the analysis that line carried is preserved here because most of it still
+          # holds and one part of it is a warning that outlived its own premise.
           #
-          # Opening the "Version Packages" PR needs a token allowed to create pull
-          # requests, and GITHUB_TOKEN is not — the ORGANISATION setting "Allow
-          # GitHub Actions to create and approve pull requests" is `false`, and it
-          # is a ceiling: a repository cannot override it (measured, the API answers
-          # 409 "The organization does not allow GitHub Actions to create or approve
-          # pull requests").
+          # WHAT IT SAID: opening the Version Packages PR needs a token allowed to create
+          # pull requests; GITHUB_TOKEN was not, because the ORGANISATION flag "Allow GitHub
+          # Actions to create and approve pull requests" was `false` and is a ceiling a
+          # repository cannot override (measured: the API answers 409). Of the two ways out,
+          # it took the safer — a PAT scoped to this workflow — and warned that flipping the
+          # org flag would also grant Actions the ability to APPROVE pull requests across
+          # every repository, a review-bypass vector next to required reviews.
           #
-          # Two ways out, and this line takes the safer one without demanding it.
-          # Flipping the org flag would also grant Actions the ability to APPROVE
-          # pull requests, in every repository of the org — a review-bypass vector
-          # next to required reviews. A PAT (or GitHub App token) in RELEASE_PAT
-          # confines the grant to this workflow. Absent the secret this expression
-          # falls back and the release behaves exactly as before, so adding it is
-          # the only step needed and nothing breaks meanwhile.
-          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+          # WHAT CHANGED: the org flag IS now `true`. It was flipped to make the App usable
+          # at all — GitHub refuses the per-repository setting while the org forbids it — so
+          # this workflow inherits the exposure that warning names.
+          #
+          # THE WARNING STILL STANDS, and is kept rather than deleted. It is currently
+          # inert: no repository in this organisation requires approving reviews
+          # (`required_approving_review_count: 0` everywhere it was measured), so there is no
+          # review for Actions to bypass. The day any repository turns required reviews on,
+          # that flag is already granted and this paragraph is where someone should look.
+          #
+          # WHY NOT THE PAT: it was the right call when it was the only alternative. An App
+          # token is strictly better — bound to no person, three repository permissions,
+          # revocable without touching anyone's access — and it also fixes what the PAT would
+          # not have: the checks on the Version PR now run, because the event is
+          # App-authored rather than GITHUB_TOKEN-authored.
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           # NPM_TOKEN intentionally absent — per technical-hardening-sprint plan v1.1 EC-2
           # absorbed: NPM_TOKEN env DISABLES OIDC trusted-publisher binding silently.
           # npm CLI prioritizes token auth over the OIDC token from id-token: write
