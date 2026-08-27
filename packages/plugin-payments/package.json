@@ -1,6 +1,6 @@
 {
   "name": "@theokit/plugin-payments",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Multi-provider payments plugin for TheoKit — one neutral PaymentProvider contract with Stripe and AbacatePay (PIX) behind subpath exports, webhook signature verification, idempotent dispatch, and PIX as a typed optional capability.",
   "type": "module",
   "main": "./dist/index.js",
@@ -39,7 +39,7 @@
     "reflect-metadata": "^0.2.0",
     "stripe": "^14.8.0",
     "theokit": ">=0.50.1",
-    "@theokit/http": ">=1.1.0 <2"
+    "@theokit/http": ">=1.1.1 <2"
   },
   "peerDependenciesMeta": {
     "drizzle-orm": {

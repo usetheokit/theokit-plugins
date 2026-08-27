@@ -1,5 +1,17 @@
 # @theokit/plugin-payments
 
+## 0.8.1
+
+### Patch Changes
+
+- Raise the `@theokit/http` peer floor from `>=1.1.0` to `>=1.1.1`.
+
+  `1.1.0` is deprecated on npm, and for a reason that matters to anyone who has to answer a licence question: it was published carrying `license: MIT` while the repository licenses the code under Apache-2.0. The deprecation message says `Use >=1.1.1`.
+
+  A range whose floor is that version means a consumer resolving to the bottom installs a package whose recorded licence contradicts its source. Nothing breaks at runtime — which is exactly why it would have gone unnoticed until an audit asked.
+
+  Found by the dependency gate's floor check, which installs the bottom of every declared range rather than the version a lockfile happens to hold.
+
 ## 0.8.0
 
 ### Minor Changes
