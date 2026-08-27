@@ -5,7 +5,7 @@ export default defineConfig({
   // in step: a subpath with no entry here resolves to a file the tarball does
   // not ship, which is exactly how #9 reached npm and stayed broken for weeks.
   // `pnpm integration:consumer` asserts the correspondence on every CI run.
-  entry: ['src/index.ts', 'src/stripe.ts', 'src/abacatepay.ts'],
+  entry: ['src/index.ts', 'src/stripe.ts', 'src/abacatepay.ts', 'src/server/index.ts'],
   format: ['esm'],
   dts: true,
   clean: true,
@@ -17,5 +17,5 @@ export default defineConfig({
   // way; this one does not, because /abacatepay is a new entry point and there
   // is no reason to publish a known defect into it. The default flips in tsup 9.
   removeNodeProtocol: false,
-  external: ['stripe', 'theokit', '@theokit/orm', 'drizzle-orm', 'reflect-metadata'],
+  external: ['@theokit/http', 'stripe', 'theokit', '@theokit/orm', 'drizzle-orm', 'reflect-metadata'],
 })
