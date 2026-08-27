@@ -8,8 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## 2026-08-27 (seventh cut)
 
-Three packages: `@theokit/plugin-canvas@0.7.0`, `@theokit/plugin-voice@0.10.0`,
-`@theokit/plugin-payments@0.8.0`.
+Four packages: `@theokit/plugin-canvas@0.7.0`, `@theokit/plugin-voice@0.10.0`,
+`@theokit/plugin-payments@0.8.0`, `@theokit/plugin-realtime@0.2.2`.
 
 All three owned HTTP behaviour and published it as **functions you wire to a route yourself** — which
 put the plugin's own logic on your side of the line, to be re-derived once per app. Each now also
@@ -20,6 +20,11 @@ The half each one takes over is the half that was easy to get wrong: the XSS gat
 `Request` for canvas, the multipart parse for voice, and for payments the retry semantics — answering
 200 to a handler error tells Stripe to stop retrying a delivery that never succeeded — plus the raw
 body, which Stripe signs byte for byte.
+
+`plugin-realtime` also corrects a `theokit` peer floor that was fifty minor versions stale — a
+leftover from the beta line, decorative until a gate started installing the bottom of every declared
+range and pinning a `theokit` that predated half the surface its siblings use. Nothing installable
+changes for a real consumer; the narrowed range describes what was already true.
 
 `plugin-email` and `plugin-realtime` deliberately got none. They publish interfaces, so you already
 vary everything through them, and a base there would be a seam nobody has.
