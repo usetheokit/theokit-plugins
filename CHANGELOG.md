@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## 2026-08-27 (ninth cut)
+
+One package: `@theokit/plugin-forms@0.5.1`.
+
+A field error returned by a local action lands on the input that produced it again. The package's
+headline feature had been unreachable from a browser: the submit rejected with an unhandled promise
+and the user saw nothing — no banner, no inline message, no network request.
+
+The root cause was one layer down, in `theokit`, and shipped in `0.57.0`: the framework discarded the
+`fields` map on its way to the client, so this package correctly refused to guess and re-threw. This
+release is the other half — the case where the action resolves with an envelope rather than throwing.
+
 ## 2026-08-27 (eighth cut)
 
 Three packages: `@theokit/plugin-canvas@0.7.1`, `@theokit/plugin-voice@0.10.1`,
