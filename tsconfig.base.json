@@ -20,7 +20,6 @@
     "declarationMap": true,
     "sourceMap": true,
     "removeComments": false,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "experimentalDecorators": true
   }
 }

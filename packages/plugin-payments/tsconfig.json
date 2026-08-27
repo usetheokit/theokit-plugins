@@ -4,7 +4,8 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "rootDir": ".",
-    "types": ["vitest/globals", "node"]
+    "types": ["vitest/globals", "node"],
+    "emitDecoratorMetadata": true
   },
   "include": ["src/**/*.ts", "tests/**/*.ts"]
 }
