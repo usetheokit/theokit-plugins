@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## 2026-08-27 (tenth cut)
+
+One package: `@theokit/plugin-forms@0.5.2`.
+
+`0.5.1` could not render. The bundle carried five bare `React.createElement` calls and no `React`
+import, so any page mounting `TheoForm` died with `ReferenceError: React is not defined` — and the
+error boundary took the whole route down, hiding every other component on it.
+
+Nothing in the package changed; its build did. `emitDecoratorMetadata` had been added to the shared
+`tsconfig.base.json` for three unrelated packages, and that flag makes tsup abandon the automatic JSX
+transform for everything that extends it. The flag now lives only where it is needed.
+
+Worth recording for anyone reading the gates: the broken build passed all of them — 1068 tests,
+typecheck, lint, format, manifests. None of them renders a component, and an HTTP probe returns 200
+for the route because the server shell renders before React hydrates. A browser was the only thing
+that could see it.
+
 ## 2026-08-27 (ninth cut)
 
 One package: `@theokit/plugin-forms@0.5.1`.
