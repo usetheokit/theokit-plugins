@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## 2026-08-27 (seventh cut)
+
+Three packages: `@theokit/plugin-canvas@0.7.0`, `@theokit/plugin-voice@0.10.0`,
+`@theokit/plugin-payments@0.8.0`.
+
+All three owned HTTP behaviour and published it as **functions you wire to a route yourself** — which
+put the plugin's own logic on your side of the line, to be re-derived once per app. Each now also
+ships a base class you extend, and each base binds no URL and no access decision, because both of
+those are yours. Every existing function still works; nothing here is a migration.
+
+The half each one takes over is the half that was easy to get wrong: the XSS gate and the drained
+`Request` for canvas, the multipart parse for voice, and for payments the retry semantics — answering
+200 to a handler error tells Stripe to stop retrying a delivery that never succeeded — plus the raw
+body, which Stripe signs byte for byte.
+
+`plugin-email` and `plugin-realtime` deliberately got none. They publish interfaces, so you already
+vary everything through them, and a base there would be a seam nobody has.
+
 ### Added
 
 - `@theokit/plugin-voice` exports `VoiceControllerBase` from `./server` — the `stt` and `tts` endpoints as a controller your app extends. It carries the multipart parsing every consumer wrote by hand, and rejects a request with no audio as a typed `MISSING_AUDIO` instead of letting `undefined` reach the provider. It also exports `ttsInputSchema`, the zod schema `tts` validates against, so an app that wants a narrower or wider body starts from ours instead of retyping the fields. `handleSttRequest` / `handleTtsRequest` are unchanged. (#176)
