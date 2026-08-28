@@ -84,7 +84,6 @@ jobs:
           cache-dependency-path: |
             pnpm-lock.yaml
             package.json
-          registry-url: 'https://registry.npmjs.org'
       # `changeset publish` shells out to `npm publish`, and OIDC trusted publishing
       # landed in npm 11.5.1. Node 22 ships npm 10.9.7, which has no OIDC code at all:
       # measured by unpacking the tarballs and grepping lib/ for
@@ -101,7 +100,7 @@ jobs:
       # required — the binding authorizes this workflow, this line is what lets the CLI
       # present the token the binding checks.
       - name: Upgrade npm to a version that supports OIDC trusted publishing
-        run: npm install -g npm@11.9.0 # zizmor: ignore[adhoc-packages] — bootstrapping npm itself; no lockfile can cover it
+        uses: usetheokit/shared-workflows/actions/npm-oidc@v1 # zizmor: ignore[unpinned-uses]
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       # This job and ci.yml trigger on the SAME event (`push` to main) and run in parallel,
