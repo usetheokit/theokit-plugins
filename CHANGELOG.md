@@ -6,20 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Changed
+## 2026-08-27 (eleventh cut)
 
-- `plugin-voice` and `plugin-canvas` declare `zod` as `peerDependencies: ^4.0.0` instead of
-  `dependencies: ^3.24.0`, matching `plugin-forms` and what `@theokit/http` requires (#191).
+Two packages: `@theokit/plugin-voice@0.11.0` and `@theokit/plugin-canvas@0.8.0`.
 
-### Fixed
+Both published a base controller whose own JSDoc prescribes handing their exported schema to
+`@theokit/http`'s `@Body()`, and that pattern did not compile in any consumer. `@theokit/http` types
+the decorator against zod 4; both packages declared `dependencies: { zod: ^3.24.0 }`, which puts a
+second zod in the consumer's tree, and their published `.d.ts` resolved its bare `import { z } from
+'zod'` to that copy. A zod 3 `ZodObject` is not assignable to a zod 4 `ZodType`.
 
-- `plugin-voice` and `plugin-canvas` bundled their own `zod@3` and exported schemas meant for
-  `@theokit/http`'s `@Body()`, which is typed against `zod@4` — so the pattern each package's own
-  JSDoc prescribes failed to compile in every consumer, while compiling here (#191).
-- `plugin-voice` returned a config with no provider, model or endpoint under `zod@4`. `.default({})`
-  applies AFTER the sub-schema parses in `zod@4`, so the nested field defaults never landed; the
-  schema now uses `.prefault({})`. Silent, not a type error — the fields the rest of the package
-  treats as always-present were simply absent (#191).
+Nothing here caught it, and the reason is worth recording: `pnpm typecheck` verifies each package
+against its own resolution — the one resolution a consumer never has. Inside the monorepo the pair
+was consistent and every gate was green. The new gate is on the manifest rather than on types,
+because the manifest is what decides whether a second copy exists at all.
+
+Migrating surfaced a defect that was never a compile error. In zod 4 `.default({})` is applied after
+the sub-schema parses, so `resolveVoiceConfig()` returned stt/tts objects with no provider, model or
+endpoint — fields the rest of the package treats as always present. `.prefault({})` restores the
+zod 3 semantics.
+
+Minor rather than patch on both: the peer range no longer accepts zod 3, so a consumer on that line
+must move. Neither package's own API changed.
 
 ## 2026-08-27 (tenth cut)
 
