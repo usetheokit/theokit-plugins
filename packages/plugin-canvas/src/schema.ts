@@ -134,14 +134,14 @@ const svgArtifactSchema = artifactEnvelopeSchema.extend({
 
 const whiteboardSceneArtifactSchema = artifactEnvelopeSchema.extend({
   kind: z.literal('whiteboard-scene'),
-  scene: z.record(z.unknown()),
+  scene: z.record(z.string(), z.unknown()),
 })
 
 const slideDeckArtifactSchema = artifactEnvelopeSchema.extend({
   kind: z.literal('slide-deck'),
   source: z.union([
     sized(MAX_MARKDOWN_BYTES, 'slide-deck markdown'),
-    z.array(z.record(z.unknown())).max(200),
+    z.array(z.record(z.string(), z.unknown())).max(200),
   ]),
 })
 
