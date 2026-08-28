@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **`auth-github` sends PKCE when the transaction carries a verifier.** GitHub accepts `S256` since July 2025; the package's own comment said it "ignores PKCE parameters entirely", which was true when written. Opt-in rather than mandatory, unlike `auth-google`: GitHub recommends PKCE where Google requires it, so demanding a verifier here would break consumers calling `newTransaction(false)` (#196).
+
 ## 2026-08-28 (eleventh cut)
 
 Two packages: `@theokit/plugin-voice@0.11.0` and `@theokit/plugin-canvas@0.8.0`.
