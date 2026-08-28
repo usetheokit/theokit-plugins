@@ -63,7 +63,9 @@ function packagesExportingSchemasToBody(): string[] {
     const usesBodyWithSchema = readdirSync(serverDir)
       .filter((f) => f.endsWith('.ts'))
       .some((f) =>
-        /@Body\(\s*[A-Za-z_$][\w$]*\s*\)/.test(stripComments(readFileSync(join(serverDir, f), 'utf8'))),
+        /@Body\(\s*[A-Za-z_$][\w$]*\s*\)/.test(
+          stripComments(readFileSync(join(serverDir, f), 'utf8')),
+        ),
       )
     if (usesBodyWithSchema) out.push(pkg)
   }
@@ -86,7 +88,10 @@ describe('zod across the @Body seam', () => {
         `packages/${pkg} declares zod under dependencies, which puts a second zod in every ` +
           `consumer's tree and makes its exported schema unusable with @Body (#191)`,
       ).toBeUndefined()
-      expect(manifest?.peerDependencies?.zod, `packages/${pkg} must declare a zod peer`).toBeDefined()
+      expect(
+        manifest?.peerDependencies?.zod,
+        `packages/${pkg} must declare a zod peer`,
+      ).toBeDefined()
     },
   )
 
