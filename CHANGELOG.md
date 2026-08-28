@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-## 2026-08-27 (eleventh cut)
+## 2026-08-28 (eleventh cut)
 
 Two packages: `@theokit/plugin-voice@0.11.0` and `@theokit/plugin-canvas@0.8.0`.
 
