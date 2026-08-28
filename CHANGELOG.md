@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## 2026-08-27 (eleventh cut)
+
+Two packages: `@theokit/plugin-voice@0.11.0` and `@theokit/plugin-canvas@0.8.0`.
+
+Both published a base controller whose own JSDoc prescribes handing their exported schema to
+`@theokit/http`'s `@Body()`, and that pattern did not compile in any consumer. `@theokit/http` types
+the decorator against zod 4; both packages declared `dependencies: { zod: ^3.24.0 }`, which puts a
+second zod in the consumer's tree, and their published `.d.ts` resolved its bare `import { z } from
+'zod'` to that copy. A zod 3 `ZodObject` is not assignable to a zod 4 `ZodType`.
+
+Nothing here caught it, and the reason is worth recording: `pnpm typecheck` verifies each package
+against its own resolution — the one resolution a consumer never has. Inside the monorepo the pair
+was consistent and every gate was green. The new gate is on the manifest rather than on types,
+because the manifest is what decides whether a second copy exists at all.
+
+Migrating surfaced a defect that was never a compile error. In zod 4 `.default({})` is applied after
+the sub-schema parses, so `resolveVoiceConfig()` returned stt/tts objects with no provider, model or
+endpoint — fields the rest of the package treats as always present. `.prefault({})` restores the
+zod 3 semantics.
+
+Minor rather than patch on both: the peer range no longer accepts zod 3, so a consumer on that line
+must move. Neither package's own API changed.
+
 ## 2026-08-27 (tenth cut)
 
 One package: `@theokit/plugin-forms@0.5.2`.
