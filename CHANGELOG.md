@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- `plugin-voice` and `plugin-canvas` declare `zod` as `peerDependencies: ^4.0.0` instead of
+  `dependencies: ^3.24.0`, matching `plugin-forms` and what `@theokit/http` requires (#191).
+
+### Fixed
+
+- `plugin-voice` and `plugin-canvas` bundled their own `zod@3` and exported schemas meant for
+  `@theokit/http`'s `@Body()`, which is typed against `zod@4` — so the pattern each package's own
+  JSDoc prescribes failed to compile in every consumer, while compiling here (#191).
+- `plugin-voice` returned a config with no provider, model or endpoint under `zod@4`. `.default({})`
+  applies AFTER the sub-schema parses in `zod@4`, so the nested field defaults never landed; the
+  schema now uses `.prefault({})`. Silent, not a type error — the fields the rest of the package
+  treats as always-present were simply absent (#191).
+
 ## 2026-08-27 (tenth cut)
 
 One package: `@theokit/plugin-forms@0.5.2`.

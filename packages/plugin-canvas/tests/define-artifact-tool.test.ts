@@ -115,11 +115,26 @@ describe('defineArtifactTool', () => {
    * union — that crashes at registration time with "inputSchema must
    * be a ZodObject (z.object({...}))". The wrapper schema is
    * `z.object({ artifact: artifactSchema })`.
+   *
+   * The assertion is behavioural. It used to read `_def.typeName === 'ZodObject'`, which is zod 3's
+   * internal shape — so moving this package to zod 4 turned the regression red while the contract it
+   * guards still held (theokit's `isZodObject` accepts `def.type === 'object'` too). Asserting a
+   * dependency's private field asserts that dependency's version, not our contract.
+   *
+   * `.shape` is what the guard is actually protecting: it exists on a ZodObject in both zod majors,
+   * and it is precisely what theokit's JSON-Schema converter reads to build the `properties` record.
+   * A discriminated union — the shape this regression exists to prevent returning to — has no
+   * `.shape`, so the test still fails for the original reason (#191).
+   *
+   * Calling `defineAgentTool` itself would be stricter, and is not available: it appears in
+   * theokit's published `.d.ts` but is exported at runtime from no subpath, in neither 0.50.1 nor
+   * 0.58.0. That is theokit's defect to fix, not something to work around here.
    */
-  it('exposes inputSchema as a ZodObject (theokit defineAgentTool contract)', () => {
+  it('exposes inputSchema with a .shape the JSON-Schema converter can read', () => {
     const tool = defineArtifactTool({ onPublish: (a) => Promise.resolve(a) })
-    const shape = (tool.inputSchema as { _def?: { typeName?: string } })._def?.typeName
-    expect(shape).toBe('ZodObject')
+    const shape = (tool.inputSchema as { shape?: Record<string, unknown> }).shape
+    expect(shape).toBeDefined()
+    expect(Object.keys(shape ?? {})).toContain('artifact')
   })
 
   /**

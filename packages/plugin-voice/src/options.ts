@@ -48,8 +48,13 @@ const ttsSchema = z.object({
 })
 
 export const voiceOptionsSchema = z.object({
-  stt: sttSchema.default({}),
-  tts: ttsSchema.default({}),
+  // `prefault`, not `default`: the value is injected BEFORE the sub-schema parses, so `{}` runs
+  // through `sttSchema` and every field default lands. zod 4's `default` injects AFTER parsing and
+  // hands the empty object straight back — `{ stt: {} }`, with no provider, model or endpoint. That
+  // is not a type error, it is a silent one: `resolveVoiceConfig()` would return a config whose
+  // fields the rest of the package treats as always-present (#191).
+  stt: sttSchema.prefault({}),
+  tts: ttsSchema.prefault({}),
 })
 
 /** What a consumer passes to `voicePlugin()` — the input side of the schema, before defaults. */
