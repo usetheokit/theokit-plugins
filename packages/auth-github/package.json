@@ -1,6 +1,6 @@
 {
   "name": "@theokit/auth-github",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "GitHub OAuth 2.0 provider for @theokit/sdk/server/auth. Plugs into defineAuth({ providers: [github({...})] }).",
   "type": "module",
   "main": "./dist/index.js",
