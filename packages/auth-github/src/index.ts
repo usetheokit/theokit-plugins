@@ -3,8 +3,9 @@
 // Per plan g11-auth-architecture-implementation T3.1 + Wasp blueprint Q1:
 // - NO OIDC discovery — GitHub does not expose `.well-known/openid-configuration`.
 // Endpoints are hardcoded (override via opts.* for GitHub Enterprise).
-// - NO PKCE — GitHub OAuth 2.0 ignores PKCE params (RFC 7636 not implemented).
-// CSRF defense via `state` only per RFC 6749 §10.12.
+// - PKCE when the transaction carries a verifier. GitHub accepts S256 since July 2025; it does
+//   not require it, so this is opt-in rather than mandatory (see the docblock below).
+//   `state` stays the CSRF defence per RFC 6749 §10.12; PKCE defends against code interception.
 // - Conditional second fetch to /user/emails when scope includes `user:email`
 // because GitHub's /user response returns `email: null` for users without a
 // public email address (Wasp blueprint Q1 finding).
@@ -15,6 +16,7 @@
 
 import type { IncomingMessage } from 'node:http'
 import type { AuthProvider, AuthResult, OAuthTransaction } from '@theokit/sdk/server/auth'
+import { pkceChallengeFromVerifier } from 'theokit/server/auth'
 import type { GitHubProfile, GitHubProviderOptions } from './types.js'
 
 export type { GitHubProfile, GitHubProviderOptions } from './types.js'
@@ -83,9 +85,28 @@ function resolveScopes(opts: GitHubProviderOptions): readonly string[] {
 /**
  * GitHub OAuth 2.0 provider for `defineAuth`.
  *
- * There is no OIDC discovery and no PKCE here, and neither is an omission: GitHub publishes no
- * `.well-known/openid-configuration`, and its OAuth 2.0 endpoint ignores PKCE parameters entirely
- * (RFC 7636 is not implemented). CSRF defence therefore rests on `state` alone, per RFC 6749 §10.12.
+ * There is no OIDC discovery, and that is not an omission: GitHub publishes no
+ * `.well-known/openid-configuration`, so the endpoints are hardcoded.
+ *
+ * PKCE used to be absent for the same kind of reason, and that reason expired. This file said
+ * GitHub "ignores PKCE parameters entirely (RFC 7636 is not implemented)" — true when written,
+ * false since July 2025. Measured against the live endpoint rather than taken from a changelog:
+ * sending `code_challenge_method=plain` answers
+ *
+ *   "When utilizing PKCE (RFC 7636), supply both a code_challenge_method and a code_challenge.
+ *    The code_challenge_method is expected to be 'S256'."
+ *
+ * An endpoint that ignored them would have rendered the consent screen instead.
+ *
+ * So PKCE is sent when `tx.pkceVerifier` is present, and not otherwise. Opt-in, unlike
+ * `auth-google` where it is mandatory and its absence is an error: Google REQUIRES PKCE, GitHub
+ * recommends it. Rejecting a transaction without a verifier here would break every consumer
+ * calling `newTransaction(false)` — a breaking change for a defence-in-depth gain, which is the
+ * wrong trade to make on someone else's behalf (#196).
+ *
+ * `state` remains the CSRF defence per RFC 6749 §10.12; PKCE defends a different thing — an
+ * authorization code that leaks through a log, a redirect or a proxy cannot be exchanged without
+ * the verifier.
  *
  * When the granted scopes include `user:email`, resolving the profile costs a second request to
  * `/user/emails`, because `/user` reports `email: null` for a user without a public address. A
@@ -116,7 +137,7 @@ export function github(opts: GitHubProviderOptions): Omit<
   return {
     name: 'github',
 
-    createAuthorizationURL(tx: OAuthTransaction): Promise<URL> {
+    async createAuthorizationURL(tx: OAuthTransaction): Promise<URL> {
       const url = new URL(authorizeEndpoint)
       url.searchParams.set('client_id', opts.clientId)
       url.searchParams.set('redirect_uri', opts.redirectUri)
@@ -124,7 +145,16 @@ export function github(opts: GitHubProviderOptions): Omit<
       url.searchParams.set('state', tx.state)
       // GitHub allows response_type omission; include for RFC 6749 compliance
       url.searchParams.set('response_type', 'code')
-      return Promise.resolve(url)
+
+      // PKCE when the caller supplied a verifier, and only then. GitHub accepts S256 since July
+      // 2025 but does not require it, so demanding one here would break every consumer calling
+      // `newTransaction(false)`. That is the difference from `auth-google`, where PKCE is mandatory
+      // and its absence is an error: Google requires it, GitHub recommends it (#196).
+      if (tx.pkceVerifier) {
+        url.searchParams.set('code_challenge', await pkceChallengeFromVerifier(tx.pkceVerifier))
+        url.searchParams.set('code_challenge_method', 'S256')
+      }
+      return url
     },
 
     async handleCallback(
@@ -147,7 +177,7 @@ export function github(opts: GitHubProviderOptions): Omit<
 
       // #183: behavior-preserving extraction into named helpers keeps this
       // method's cyclomatic complexity low. Each helper owns one fetch + its guards.
-      const accessToken = await githubExchangeToken(code, opts, tokenEndpoint)
+      const accessToken = await githubExchangeToken(code, opts, tokenEndpoint, tx.pkceVerifier)
       const raw = await githubFetchUser(accessToken, userinfoEndpoint)
       const email = await githubResolveEmail(raw, wantsEmail, accessToken, emailsEndpoint)
 
@@ -173,6 +203,7 @@ async function githubExchangeToken(
   code: string,
   opts: GitHubProviderOptions,
   tokenEndpoint: string,
+  pkceVerifier?: string,
 ): Promise<string> {
   const tokenBody = new URLSearchParams({
     grant_type: 'authorization_code',
@@ -181,6 +212,10 @@ async function githubExchangeToken(
     client_id: opts.clientId,
     client_secret: opts.clientSecret,
   })
+  // The half that does the protecting. A challenge on the authorization call with no verifier here
+  // is theatre: GitHub would have nothing to compare against, and an intercepted code stays as
+  // usable as it was.
+  if (pkceVerifier) tokenBody.set('code_verifier', pkceVerifier)
   const tokenRes = await fetch(tokenEndpoint, {
     method: 'POST',
     headers: { accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' },

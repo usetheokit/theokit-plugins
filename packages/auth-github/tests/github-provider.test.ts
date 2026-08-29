@@ -2,7 +2,7 @@
  * @theokit/auth-github — T3.1 unit tests.
  *
  * Covers plan TDD checklist:
- *   - test_github_authorization_url_no_pkce            (D9 invariant)
+ *   - test_github_authorization_url_pkce_optional   (opt-in per #196; was a no-PKCE invariant)
  *   - test_github_handle_callback_uses_token_auth_header (NOT Bearer)
  *   - test_github_handle_callback_fetches_emails_when_scope_includes
  *   - test_github_profile_id_is_number_not_string      (type invariant)
@@ -56,12 +56,55 @@ afterEach(() => {
 })
 
 describe('github() — createAuthorizationURL', () => {
-  it('does NOT include PKCE params (GitHub OAuth 2.0 does not support PKCE — D9 invariant)', async () => {
+  it('omits PKCE params when the transaction carries no verifier', async () => {
+    // Not because GitHub cannot take them — it can, since July 2025 — but because the caller did
+    // not ask. `newTransaction(withPkce)` is the consumer's choice, and a provider that invented a
+    // verifier would be deciding a security posture on their behalf.
     const provider = github(OPTS)
     const url = await provider.createAuthorizationURL(TX)
 
     expect(url.searchParams.has('code_challenge')).toBe(false)
     expect(url.searchParams.has('code_challenge_method')).toBe(false)
+  })
+
+  /**
+   * This case replaces one asserting the opposite — `test_github_authorization_url_no_pkce`, whose
+   * name called it a "D9 invariant". It was correct when written: GitHub's OAuth 2.0 endpoint
+   * ignored RFC 7636 entirely, so sending a challenge bought nothing.
+   *
+   * That changed in July 2025. Measured against the live endpoint rather than read from a
+   * changelog — sending `code_challenge_method=plain` returns:
+   *
+   *   "When utilizing PKCE (RFC 7636), supply both a code_challenge_method and a code_challenge.
+   *    The code_challenge_method is expected to be 'S256'. (code_challenge_method 'plain' is not
+   *    supported.)"
+   *
+   * A provider that ignored the parameters would have rendered the consent screen. It parses them.
+   *
+   * Additive on purpose, and this is where it differs from `auth-google`: there PKCE is mandatory
+   * and a transaction without a verifier is REJECTED, because Google requires it. GitHub does not,
+   * so demanding one here would break every consumer calling `newTransaction(false)` for a
+   * defence-in-depth gain. Opting in is the consumer's call (usetheokit/theokit-plugins#196).
+   */
+  it('sends an S256 challenge derived from the verifier when the transaction carries one', async () => {
+    const verifier = 'a'.repeat(43)
+    const provider = github(OPTS)
+    const url = await provider.createAuthorizationURL({ ...TX, pkceVerifier: verifier })
+
+    expect(url.searchParams.get('code_challenge_method')).toBe('S256')
+
+    const challenge = url.searchParams.get('code_challenge')
+    expect(challenge).toBeTruthy()
+    // The challenge must be the S256 of THAT verifier, not merely present: a provider sending a
+    // well-formed challenge unrelated to the verifier would pass a presence check and fail every
+    // real exchange.
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))
+    const expected = Buffer.from(new Uint8Array(digest))
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '')
+    expect(challenge).toBe(expected)
   })
 
   it('includes state param (RFC 6749 §10.12 CSRF defense)', async () => {
@@ -87,6 +130,37 @@ describe('github() — createAuthorizationURL', () => {
 })
 
 describe('github() — handleCallback', () => {
+  it('sends code_verifier on the token exchange when the transaction carries one', async () => {
+    // The half that actually protects. A challenge on the authorization call with no verifier on
+    // the exchange is theatre: GitHub has nothing to compare against, and an intercepted code is
+    // as usable as before.
+    fetchSpy
+      .mockResolvedValueOnce(jsonResponse({ access_token: 'gho_test_access', scope: 'read:user' }))
+      .mockResolvedValueOnce(jsonResponse({ id: 1, login: 'o', name: 'O', email: 'o@github.test' }))
+
+    const verifier = 'b'.repeat(43)
+    const provider = github(OPTS)
+    await provider.handleCallback(mockReq(`?code=c&state=${TX.state}`), {
+      ...TX,
+      pkceVerifier: verifier,
+    })
+
+    const body = new URLSearchParams((fetchSpy.mock.calls[0]![1] as { body: string }).body)
+    expect(body.get('code_verifier')).toBe(verifier)
+  })
+
+  it('omits code_verifier when the transaction carries none, so existing callers are untouched', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(jsonResponse({ access_token: 'gho_test_access', scope: 'read:user' }))
+      .mockResolvedValueOnce(jsonResponse({ id: 1, login: 'o', name: 'O', email: 'o@github.test' }))
+
+    const provider = github(OPTS)
+    await provider.handleCallback(mockReq(`?code=c&state=${TX.state}`), TX)
+
+    const body = new URLSearchParams((fetchSpy.mock.calls[0]![1] as { body: string }).body)
+    expect(body.has('code_verifier')).toBe(false)
+  })
+
   it('uses Authorization: token (NOT Bearer) for userinfo fetch', async () => {
     fetchSpy
       .mockResolvedValueOnce(jsonResponse({ access_token: 'gho_test_access', scope: 'read:user' }))

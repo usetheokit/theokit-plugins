@@ -6,7 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-## 2026-08-27 (eleventh cut)
+## 2026-08-29 (twelfth cut)
+
+One package: `@theokit/auth-github@0.6.0`.
+
+The provider sends PKCE when the transaction carries a verifier. Its own comment said GitHub
+"ignores PKCE params (RFC 7636 not implemented)" and called the absence "not an omission" — true
+when written, false since July 2025. Measured against the live endpoint rather than a changelog:
+sending `code_challenge_method=plain` answers that S256 is expected. An endpoint ignoring the
+parameters would have rendered the consent screen.
+
+Opt-in rather than mandatory, and the difference from `auth-google` is deliberate: Google REQUIRES
+PKCE and rejects a transaction without a verifier, GitHub recommends it. Demanding one here would
+break every consumer calling `newTransaction(false)` — a breaking change for a defence-in-depth
+gain, which is not a trade to make on their behalf.
+
+`state` was already verified and stays the CSRF defence. PKCE covers a different risk: an
+authorization code that leaks through a log, a redirect or a proxy cannot be exchanged without the
+verifier.
+
+## 2026-08-28 (eleventh cut)
 
 Two packages: `@theokit/plugin-voice@0.11.0` and `@theokit/plugin-canvas@0.8.0`.
 

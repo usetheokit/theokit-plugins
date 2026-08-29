@@ -126,9 +126,16 @@ describe('defineArtifactTool', () => {
    * A discriminated union — the shape this regression exists to prevent returning to — has no
    * `.shape`, so the test still fails for the original reason (#191).
    *
-   * Calling `defineAgentTool` itself would be stricter, and is not available: it appears in
-   * theokit's published `.d.ts` but is exported at runtime from no subpath, in neither 0.50.1 nor
-   * 0.58.0. That is theokit's defect to fix, not something to work around here.
+   * Calling the real check would be stricter and is not available to us: `defineAgentTool` is
+   * deliberately internal — ADR-0043 D1 removed the legacy `define*` FUNCTIONS from theokit's public
+   * surface, keeping only their TYPES, and `tool()` is the public builder that delegates to it. So
+   * there is no exported entry point that runs `isZodObject` on a schema we hand it.
+   *
+   * An earlier version of this comment claimed theokit's types exported the symbol while its runtime
+   * did not (usetheokit/theokit#542, filed by me and closed as invalid). That was a miscount: the
+   * three occurrences in the published `.d.ts` are all inside JSDoc, and `declare function
+   * defineAgentTool` appears zero times. Corrected here rather than left standing, because a wrong
+   * explanation in a comment outlives a wrong test — nobody executes it.
    */
   it('exposes inputSchema with a .shape the JSON-Schema converter can read', () => {
     const tool = defineArtifactTool({ onPublish: (a) => Promise.resolve(a) })
