@@ -94,10 +94,6 @@ const FRAMEWORK_OWNED_TYPES = ['TheoPluginApp', 'TheoApp', 'TheoPlugin']
  * here means somebody looked; an absent entry means the gate refuses.
  */
 const PEER_WITHOUT_USE_EXEMPT = {
-  'auth-github': {
-    theokit:
-      'Exchange + fetch helpers a route handler calls directly. Publishing them on ctx is the natural adapter step — see #42 item 2.',
-  },
   'auth-magic-link': {
     theokit:
       'Same shape as auth-github: token issue/verify helpers called from the consumer route.',
