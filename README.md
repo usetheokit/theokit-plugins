@@ -2,6 +2,17 @@
 
 > Official first-party plugins for the [TheoKit](https://github.com/usetheokit/theokit) framework.
 
+## These are FRAMEWORK plugins
+
+Everything in this repository extends a `theokit` **application** — routes, UI, devtools, CLI
+verbs. Installing one of these does nothing for an agent.
+
+The agent has its own, unrelated plugin system in `@theokit/sdk`: `PermissionPlugin.create(…)`,
+`Handoff.asPlugin(…)`, passed as `Agent.create({ plugins: [ … ] })`. Same word, different layer,
+different registration. That option additionally has two mutually exclusive forms — an array of
+code plugins, or `{ enabled: [...] }` selecting plugins discovered under `.theokit/plugins/` — and
+the SDK's README explains why `agent.pluginsManager` can read empty while a plugin is working.
+
 ## Status
 
 **11 first-party plugins shipped.** Three auth providers (`auth-github`, `auth-google`,
