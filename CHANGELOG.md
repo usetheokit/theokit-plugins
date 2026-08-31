@@ -115,6 +115,7 @@ changes for a real consumer; the narrowed range describes what was already true.
 vary everything through them, and a base there would be a seam nobody has.
 
 ### Added
+
 - **ci:** `Promotion gate` refuses a pull request into `develop` that does not come from this repository's own `workspace`. `git-safety.md` has always said so and `validate-command.sh:245` has always blocked it — for a `git merge` typed locally, which is not how any of this repository's 79 promotions landed (usetheokit/theokit#606)
 
 - `@theokit/plugin-voice` exports `VoiceControllerBase` from `./server` — the `stt` and `tts` endpoints as a controller your app extends. It carries the multipart parsing every consumer wrote by hand, and rejects a request with no audio as a typed `MISSING_AUDIO` instead of letting `undefined` reach the provider. It also exports `ttsInputSchema`, the zod schema `tts` validates against, so an app that wants a narrower or wider body starts from ours instead of retyping the fields. `handleSttRequest` / `handleTtsRequest` are unchanged. (#176)
