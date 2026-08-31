@@ -134,7 +134,20 @@ jobs:
       - name: A promotion to main carries no unconsumed changeset
         if: github.base_ref == 'main'
         run: |
-          pending="$(find .changeset -name '*.md' ! -name 'README.md' -printf '%f\n' 2>/dev/null || true)"
+          # In prerelease mode `changeset version` APPLIES a changeset and KEEPS its file, recording
+          # the name in `.changeset/pre.json` so the bump can be recomputed at `pre exit`. Such a
+          # file is consumed — its version bump is already in the manifests — and counting it here
+          # would refuse every promotion for as long as the repository stays on the `next` channel.
+          # Only a changeset absent from that list is genuinely pending.
+          consumed="$(node -e 'try{console.log((require("./.changeset/pre.json").changesets||[]).join("\n"))}catch(e){}' 2>/dev/null || true)"
+          pending=""
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            name="${f%.md}"
+            printf '%s\n' "$consumed" | grep -qxF "$name" && continue
+            pending="${pending}${f}"$'\n'
+          done <<< "$(find .changeset -name '*.md' ! -name 'README.md' -printf '%f\n' 2>/dev/null || true)"
+          pending="$(printf '%s' "$pending")"
           if [ -n "$pending" ]; then
             echo "::error title=Changeset would reach main::$pending"
             cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'

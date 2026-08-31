@@ -15,5 +15,7 @@
     "@theokit/plugin-realtime": "0.2.2",
     "@theokit/plugin-voice": "0.11.0"
   },
-  "changesets": []
+  "changesets": [
+    "http-peer-admits-v2"
+  ]
 }
