@@ -1,0 +1,21 @@
+{
+  "mode": "pre",
+  "tag": "next",
+  "initialVersions": {
+    "@theokit/plugins-integration": "0.0.0",
+    "@theokit/auth-github": "0.6.0",
+    "@theokit/auth-google": "0.5.1",
+    "@theokit/auth-magic-link": "0.6.1",
+    "@theokit/plugin-canvas": "0.8.0",
+    "@theokit/plugin-copilot": "0.5.0",
+    "@theokit/plugin-db-drizzle": "0.6.0",
+    "@theokit/plugin-email": "0.3.0",
+    "@theokit/plugin-forms": "0.5.2",
+    "@theokit/plugin-payments": "0.8.1",
+    "@theokit/plugin-realtime": "0.2.2",
+    "@theokit/plugin-voice": "0.11.0"
+  },
+  "changesets": [
+    "http-peer-admits-v2"
+  ]
+}
