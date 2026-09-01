@@ -116,6 +116,13 @@ vary everything through them, and a base there would be a seam nobody has.
 
 ### Added
 
+- **release:** the release channel this repository declares is now guarded. `"releaseChannel"` in
+  the root manifest and `.changeset/pre.json` must agree, checked on every pull request and again
+  immediately before a release. `changeset pre exit`, a bad merge, or a conflict resolved the wrong
+  way removes `pre.json`; nothing errors; the next release publishes a stable version and moves the
+  `latest` dist-tag for every consumer, reporting success. Cutting a stable release stays available
+  and becomes deliberate — it takes both edits, in the same pull request.
+
 - **ci:** `Promotion gate` refuses a pull request into `develop` that does not come from this repository's own `workspace`. `git-safety.md` has always said so and `validate-command.sh:245` has always blocked it — for a `git merge` typed locally, which is not how any of this repository's 79 promotions landed (usetheokit/theokit#606)
 
 - `@theokit/plugin-voice` exports `VoiceControllerBase` from `./server` — the `stt` and `tts` endpoints as a controller your app extends. It carries the multipart parsing every consumer wrote by hand, and rejects a request with no audio as a typed `MISSING_AUDIO` instead of letting `undefined` reach the provider. It also exports `ttsInputSchema`, the zod schema `tts` validates against, so an app that wants a narrower or wider body starts from ours instead of retyping the fields. `handleSttRequest` / `handleTtsRequest` are unchanged. (#176)
