@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **ci:** per-commit package previews via pkg.pr.new. A fix here is unverifiable from a sibling
+  repository until it is on a registry, and this ecosystem has nine interdependent publishable
+  repositories — measured 2026-08-31, `@theokit/http` reached 2.0.0 in one while three packages in
+  another declared a range excluding it, and nothing found out until a release gate ran. Previews
+  cost nothing and burn no npm version, so they are the first thing to reach for; the snapshot path
+  is for when the answer has to come from registry.npmjs.org specifically.
+
+- **release:** the release channel this repository declares is now guarded. `"releaseChannel"` in
+  the root manifest and `.changeset/pre.json` must agree, checked on every pull request and again
+  immediately before a release. `changeset pre exit`, a bad merge, or a conflict resolved the wrong
+  way removes `pre.json`; nothing errors; the next release publishes a stable version and moves the
+  `latest` dist-tag for every consumer, reporting success. Cutting a stable release stays available
+  and becomes deliberate — it takes both edits, in the same pull request.
+
+## 2026-08-31 (thirteenth cut)
+
+Three packages, all prerelease: `@theokit/plugin-canvas@0.8.1-next.0`,
+`@theokit/plugin-payments@0.8.2-next.0`, `@theokit/plugin-voice@0.11.1-next.0`.
+
+The first cut on the `next` channel. `latest` did not move and cannot move from here — the
+repository is in changesets prerelease mode, and a guard now refuses a release whose declared
+channel and `.changeset/pre.json` disagree.
+
+What shipped is one fix. All three declared `"@theokit/http": ">=1.1.1 <2"`, an upper bound written
+before `@theokit/http@2.0.0` existed. `theokit@0.64.0` depends on `@theokit/http@^2.0.0`, so the
+ranges were disjoint and `npm i` answered ERESOLVE: **these three packages could not be installed by
+any npm user alongside the current framework.** pnpm never showed it, having defaulted
+`strict-peer-dependencies` to false since v8; the `dep-check` gate caught it on a release pull
+request.
+
+2.0.0 is a behavioural major — a controller route declaring neither a guard nor an explicit access
+decision is refused rather than served. It does not reach these packages: each ships an abstract
+base with no `@Controller` and no access decoration, deliberately, because the URL space and the
+access decision belong to the application that extends it. The dev dependency moved with the peer,
+so the claim is exercised rather than asserted: typecheck clean, build green, 563 tests passing.
+
 ## 2026-08-29 (twelfth cut)
 
 One package: `@theokit/auth-github@0.6.0`.
