@@ -13,7 +13,8 @@
     "./react": {
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -93,5 +94,6 @@
   },
   "engines": {
     "node": ">=22.12.0"
-  }
+  },
+  "sideEffects": false
 }
