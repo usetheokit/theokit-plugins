@@ -9,7 +9,8 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -72,5 +73,6 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.0"
-  }
+  },
+  "sideEffects": false
 }
