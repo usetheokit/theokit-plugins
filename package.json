@@ -1,7 +1,7 @@
 {
   "name": "theokit-plugins-monorepo",
   "private": true,
-  "releaseChannel": "next",
+  "releaseChannel": "latest",
   "version": "0.0.0",
   "description": "Official first-party plugins for the TheoKit framework",
   "type": "module",
