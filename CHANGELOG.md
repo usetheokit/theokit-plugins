@@ -22,6 +22,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `latest` dist-tag for every consumer, reporting success. Cutting a stable release stays available
   and becomes deliberate — it takes both edits, in the same pull request.
 
+## 2026-09-03 (fourteenth cut)
+
+Three packages, now stable: `@theokit/plugin-canvas@0.8.1`, `@theokit/plugin-payments@0.8.2`,
+`@theokit/plugin-voice@0.11.1`.
+
+The same fix as the thirteenth cut, promoted off the `next` channel. Nothing new shipped: these are
+the `-next.0` versions below, published without the prerelease suffix, so the `@theokit/http` peer
+widening reaches anyone installing from `latest`.
+
+**This section was written on 2026-09-05, two days after the tags.** It is backfilled, and saying
+so matters more than the tidiness of pretending otherwise: the release went out through
+`Version Packages` (#213) and nobody recorded it, so for two days the repository's own record said
+the newest release was 2026-08-31. The drift was found by `tools/check-changelog-structure.mjs`
+running in CI on an unrelated pull request — the first CI run in this repository after the tags
+were created. The gate did its job; what was missing was a run to carry it.
+
 ## 2026-08-31 (thirteenth cut)
 
 Three packages, all prerelease: `@theokit/plugin-canvas@0.8.1-next.0`,
