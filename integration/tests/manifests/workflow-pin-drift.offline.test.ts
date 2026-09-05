@@ -88,10 +88,9 @@ describe('the release dry run pins what the release pins', () => {
     // action, which is what makes the dry run a rehearsal rather than a different job.
     expect(release.size).toBeGreaterThan(0)
     expect(dryRun.size).toBeGreaterThan(0)
-    expect(
-      [...release.keys()],
-      'release.yml does not reference the shared setup action',
-    ).toContain(SETUP_ACTION)
+    expect([...release.keys()], 'release.yml does not reference the shared setup action').toContain(
+      SETUP_ACTION,
+    )
     expect(
       [...dryRun.keys()],
       'the dry run does not set its toolchain up the way the release does',
