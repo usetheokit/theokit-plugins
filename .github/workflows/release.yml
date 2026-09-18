@@ -242,3 +242,31 @@ jobs:
           Tracked in #16.
           SUMMARY
           exit 1
+
+      # The drift gate, asked at the one moment it can answer (#215).
+      #
+      # `ci.yml` already runs `pnpm quality:changelog` on push to `main` with `fetch-tags: true`,
+      # and it still missed the 2026-09-03 release. Not because the run is absent — because it is
+      # SIMULTANEOUS. Both workflows trigger on the same push, so CI compares the CHANGELOG against
+      # the tags that exist at that instant, and the tags this job is about to create are not among
+      # them. The drift becomes visible on the next unrelated pull request, which is where it was
+      # eventually found, days later, reading as that pull request's problem.
+      #
+      # Here the tags exist: the publish above created them. Same script, same exit code, minutes
+      # after the release rather than days.
+      #
+      # It cannot PREVENT an unrecorded release — by the time it runs, the packages are on the
+      # registry. That is the honest limit of this placement, and it is still the difference
+      # between knowing today and finding out by accident.
+      - name: The CHANGELOG records what was just published
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          # The publish created tags locally and pushed them; fetch is belt-and-braces for a
+          # future where the action changes how it tags. --force because a moved tag must not
+          # leave a stale local ref behind, which would make this gate compare against fiction.
+          git fetch --tags --force origin
+          # `pnpm run`, not `node …`, so the gate keeps ONE name: change the script and this
+          # follows. It works despite `install: false` above because the checker imports only
+          # node stdlib and its own `tools/lib/*.mjs` — if it ever grows a dependency, this step
+          # is where `install: false` starts to bite, and this sentence is the warning.
+          pnpm quality:changelog

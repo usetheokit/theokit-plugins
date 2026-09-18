@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **ci:** the CHANGELOG drift gate runs after a release publishes, which is the one moment it can
+  answer (#215). It already ran on push to `main` with `fetch-tags: true` and still missed the
+  2026-09-03 release — not because the run was absent, but because it is SIMULTANEOUS: `ci.yml` and
+  `release.yml` trigger on the same push, so CI compares the CHANGELOG against the tags that exist
+  at that instant, and the tags the release is about to create are not among them. The drift
+  surfaced days later on an unrelated pull request, reading as that pull request's problem. The same
+  script now runs at the end of `release.yml`, gated on `changesets.outputs.published`, where the
+  tags exist. It cannot PREVENT an unrecorded release — by then the packages are published — and
+  that limit is written beside it.
 - **ci:** per-commit package previews via pkg.pr.new. A fix here is unverifiable from a sibling
   repository until it is on a registry, and this ecosystem has nine interdependent publishable
   repositories — measured 2026-08-31, `@theokit/http` reached 2.0.0 in one while three packages in
