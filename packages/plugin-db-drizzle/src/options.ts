@@ -4,20 +4,19 @@
  * Per plan p5-plugin-db-drizzle v1.0 § Phase 1 / T1.2 + blueprint Form 4 Hybrid.
  */
 
-/** Canonical driver names — covered by drizzle-kit + @theokit/orm. */
+/** Canonical driver names, mapped to drizzle-kit's `--dialect`. */
 export type DrizzleDriver = 'sqlite' | 'postgres' | 'mysql'
 
 /**
- * User-facing options for the `drizzleDb()` factory. Extends @theokit/orm's
- * shape so consumers can pass orm-specific options through the same surface
- * without double-config.
+ * User-facing options for the `drizzleDb()` factory. Every field feeds the
+ * drizzle-kit command lines, the generated config or the studio tab.
  */
 export interface DrizzleDbOptions {
   /** Canonical driver name. Required. */
   driver: DrizzleDriver
   /**
-   * Connection URL. Defaults to `process.env.DATABASE_URL` when omitted at
-   * register-time. Plugin does not read env here — caller chooses.
+   * Connection URL. The package never reads `process.env.DATABASE_URL`; pass
+   * it here. `renderDrizzleConfig` throws when it is missing.
    */
   url?: string
   /**
@@ -31,8 +30,8 @@ export interface DrizzleDbOptions {
    */
   migrationsPath?: string
   /**
-   * Enable devtools-tab registration when @theokit overlay (G4) is detected.
-   * Default: `true`. Pass `false` to suppress the tab entirely.
+   * Carried on `options` for the consumer's own devtools wiring; nothing in
+   * this package reads it or registers a tab. Default: `true`.
    */
   devtoolsTab?: boolean
   /**
@@ -46,9 +45,8 @@ export interface DrizzleDbOptions {
   studioPort?: number
   /**
    * Path to the user's seed script run by `db seed`. `drizzle-kit` has
-   * no `seed` verb, so seeding runs THIS script. Typically resolved at
-   * register-time from `package.json#theokit.db.seed`; can also be set here.
-   * When unset, `db seed` errors instead of invoking a nonexistent subcommand.
+   * no `seed` verb, so seeding runs THIS script. When unset, the `seed`
+   * command's `buildArgs()` throws instead of naming a nonexistent subcommand.
    */
   seedScript?: string
   /**

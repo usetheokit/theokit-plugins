@@ -1,7 +1,7 @@
 {
   "name": "@theokit/plugin-db-drizzle",
   "version": "0.6.0",
-  "description": "Standalone DB plugin for TheoKit — wraps drizzle-kit + @theokit/orm with a plugin-shape factory, 7-verb theokit db CLI, drizzle-kit studio passthrough, and optional devtools tab integration. Form 4 Hybrid per plan p5-plugin-db-drizzle v1.0.",
+  "description": "drizzle-kit helpers for TheoKit apps: builds the drizzle-kit command lines and the drizzle.config.ts for your own db scripts, plus a drizzle-kit studio tab descriptor. Registers nothing at runtime.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -24,7 +24,6 @@
   },
   "peerDependencies": {
     "drizzle-orm": ">=0.37.0",
-    "reflect-metadata": "^0.2.0",
     "theokit": ">=0.50.1 || >=0.65.0-0 <0.66.0"
   },
   "peerDependenciesMeta": {
@@ -33,13 +32,11 @@
     }
   },
   "devDependencies": {
-    "@theokit/orm": "^0.1.0-next.1",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22.0.0",
     "better-sqlite3": "^11.10.0",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",
-    "reflect-metadata": "^0.2.0",
     "theokit": ">=0.50.1 || >=0.65.0-0 <0.66.0",
     "tsup": "^8.5.0",
     "typescript": "^5.8.0",
