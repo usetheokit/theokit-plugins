@@ -1,84 +1,105 @@
 # @theokit/plugin-db-drizzle
 
-Standalone DB plugin for TheoKit — wraps drizzle-kit and `@theokit/orm` behind a single plugin-shape factory.
+drizzle-kit helpers for TheoKit apps. You declare your database once with `drizzleDb(...)`, and
+the package turns that declaration into the drizzle-kit command lines and the `drizzle.config.ts`
+your own `db` script runs.
 
-> **Status:** v0.1.0 initial publish on the `@next` tag. Promote to `@latest` is calendar-gated alongside the Onda 2 cohort.
-
-> **`theokit db <verb>` does not exist.** This README promised seven CLI
-> subcommands and a devtools tab for several releases; neither could ever run.
-> `register()` wired them by calling `app.registerCliCommand()` /
-> `app.registerDevtoolsTab()`, and the framework's `TheoApp` has only `addHook`
-> and `decorateRequest` — the calls sat behind `if (app.registerCliCommand)`
-> guards, so the result was a silent no-op rather than an error. The `theokit`
-> CLI itself knows `build`, `dev`, `doctor`, `start` and has no plugin extension
-> point. Tracked in #43; the command builders are still here and still tested,
-> reachable now as exported functions (see § Migrations and studio).
+> **What this package does not do.** It registers nothing at runtime: `drizzleDb(...).register()`
+> is empty, so adding the plugin to `theo.config.ts` connects to no database, adds no CLI command
+> and mounts no devtools tab. It never opens a connection or spawns a process itself. It also does
+> not depend on, wrap or re-export `@theokit/orm`.
+>
+> The `theokit db migrate | generate | seed` commands in the `theokit` CLI (0.75 and later) are
+> part of TheoKit and do not use this plugin.
 
 ## What you get
 
-- One `drizzleDb(opts)` call, carrying resolved options your own tooling can read.
-- `buildDbCommands(options)` — the seven drizzle-kit invocations as data, to wire into a script of your own.
-- `buildDevtoolsTab(options)` — the studio-IFRAME tab descriptor, for whatever overlay you actually have.
+| Export                         | What it returns                                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `drizzleDb(options)`           | A plugin object whose `options` field holds your options with every default filled in. Its `register()` does nothing.     |
+| `buildDbCommands(options)`     | Seven command descriptors (`generate`, `migrate`, `push`, `studio`, `reset`, `seed`, `check`) for your own script to run. |
+| `renderDrizzleConfig(options)` | The text of a `drizzle.config.ts`, for the verbs drizzle-kit only drives through `--config`.                              |
+| `buildDevtoolsTab(options)`    | A `{ id, label, studioUrl, mount }` descriptor that frames drizzle-kit studio, for an overlay of your own.                |
 
-`@theokit/orm` is a required peer — this plugin wraps it, never duplicates. Your Repository, `@InjectRepository`, `@Transactional`, and `OrmModule` keep working unchanged.
+Pass `drizzleDb(...).options` to the three builders. They take the resolved shape, and a
+hand-written object missing a field builds an argv with `undefined` in it instead of failing.
 
 ## Install
 
 ```bash
-pnpm add @theokit/plugin-db-drizzle@next @theokit/orm@next drizzle-orm reflect-metadata
-# Optional — only needed for the CLI verbs (generate/migrate/studio/...)
+pnpm add @theokit/plugin-db-drizzle drizzle-orm
 pnpm add -D drizzle-kit
 ```
 
-## Wire it into `theo.config.ts`
+`drizzle-orm` is a peer because your schema file imports it; this package does not. `drizzle-kit`
+is an optional peer: only the commands you build need it.
+
+## Declare the database
 
 ```ts
 import { drizzleDb } from '@theokit/plugin-db-drizzle'
-import { config } from 'theokit'
 
-export default config()
-  .set({
-    plugins: [
-      drizzleDb({
-        driver: 'postgres',
-        url: process.env.DATABASE_URL,
-        schemaPath: './db/schema.ts',
-        migrationsPath: './db/migrations',
-      }),
-    ],
-  })
-  .build()
+export const db = drizzleDb({
+  driver: 'postgres',
+  url: process.env.DATABASE_URL,
+  schemaPath: './db/schema.ts',
+  migrationsPath: './db/migrations',
+})
 ```
+
+Listing `db` under `plugins` in `theo.config.ts` is allowed and changes nothing at runtime. Keep it
+in a module your scripts can import.
 
 ## Options reference
 
-| Option           | Type                                | Default             | Notes                                            |
-| ---------------- | ----------------------------------- | ------------------- | ------------------------------------------------ |
-| `driver`         | `'sqlite' \| 'postgres' \| 'mysql'` | (required)          | Canonical drizzle-kit driver names               |
-| `url`            | `string`                            | (caller-provided)   | Connection URL — pass `process.env.DATABASE_URL` |
-| `schemaPath`     | `string`                            | `'./db/schema.ts'`  | Path to your drizzle schema file                 |
-| `migrationsPath` | `string`                            | `'./db/migrations'` | Directory for generated migration files          |
-| `devtoolsTab`    | `boolean`                           | `true`              | Register a devtools-overlay tab when present     |
+| Option           | Type                                | Default                          | Notes                                                      |
+| ---------------- | ----------------------------------- | -------------------------------- | ---------------------------------------------------------- |
+| `driver`         | `'sqlite' \| 'postgres' \| 'mysql'` | (required)                       | Mapped to drizzle-kit's `--dialect`                        |
+| `url`            | `string`                            | (none)                           | Connection URL; the package does not read `DATABASE_URL`   |
+| `schemaPath`     | `string`                            | `'./db/schema.ts'`               | Your drizzle schema file                                   |
+| `migrationsPath` | `string`                            | `'./db/migrations'`              | Where `generate` writes migrations                         |
+| `configPath`     | `string`                            | `'./.theokit/drizzle.config.ts'` | Where your script writes `renderDrizzleConfig(...)`        |
+| `seedScript`     | `string`                            | (none)                           | Script the `seed` verb runs; drizzle-kit has no `seed`     |
+| `resetScript`    | `string`                            | (none)                           | Script the `reset` verb runs; drizzle-kit has no `reset`   |
+| `studioHost`     | `string`                            | `'localhost'`                    | Host for `studio` and the devtools tab                     |
+| `studioPort`     | `number`                            | `4983`                           | Port for `studio` and the devtools tab                     |
+| `devtoolsTab`    | `boolean`                           | `true`                           | Carried on `options` for your own wiring; nothing reads it |
 
-## Migrations and studio
+## A `db` script
 
-There is no `theokit db` command to call (see the note at the top). What the
-package gives you is the seven drizzle-kit invocations as data, so you wire them
-where your project already keeps its scripts:
+Each command says how to run it in `kind`:
+
+- `drizzle-kit`: run `drizzle-kit` with `buildArgs()`.
+- `drizzle-kit-with-config`: write `renderDrizzleConfig(options)` to `options.configPath` first,
+  then run `drizzle-kit` with `buildArgs()`. `migrate` and `studio` accept only `--config`.
+- `user-script`: `buildArgs()` returns your `seedScript` or `resetScript`; run that. It throws when
+  the script is not configured.
+
+`reset` also sets `requiresForce`, so the script below refuses it without `--force`.
 
 ```ts
 // scripts/db.ts
-import { buildDbCommands, drizzleDb } from '@theokit/plugin-db-drizzle'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 import { spawnSync } from 'node:child_process'
+import { buildDbCommands, drizzleDb, renderDrizzleConfig } from '@theokit/plugin-db-drizzle'
 
-const plugin = drizzleDb({ driver: 'postgres', url: process.env.DATABASE_URL! })
-const verb = process.argv[2]
-const cmd = buildDbCommands(plugin.options).find((c) => c.verb === verb)
+const { options } = drizzleDb({ driver: 'postgres', url: process.env.DATABASE_URL })
+const [verb, ...rest] = process.argv.slice(2)
+const cmd = buildDbCommands(options).find((c) => c.verb === verb)
 if (!cmd) throw new Error(`unknown verb ${verb}`)
+if (cmd.requiresForce && !rest.includes('--force')) throw new Error(`db ${verb} needs --force`)
 
-// `buildArgs()` takes nothing: the options reached it through `buildDbCommands` above, and
-// `plugin.options` is what fills the defaults it needs.
-spawnSync('npx', ['drizzle-kit', ...cmd.buildArgs()], { stdio: 'inherit' })
+if (cmd.kind === 'drizzle-kit-with-config') {
+  mkdirSync(dirname(options.configPath), { recursive: true })
+  writeFileSync(options.configPath, renderDrizzleConfig(options))
+}
+const [file, args] =
+  cmd.kind === 'user-script'
+    ? ['npx', ['tsx', ...cmd.buildArgs()]]
+    : ['npx', ['drizzle-kit', ...cmd.buildArgs()]]
+const result = spawnSync(file, args, { stdio: 'inherit' })
+process.exit(result.status ?? 1)
 ```
 
 ```json
@@ -86,23 +107,22 @@ spawnSync('npx', ['drizzle-kit', ...cmd.buildArgs()], { stdio: 'inherit' })
 ```
 
 ```bash
-pnpm db generate    # migration from schema diff
-pnpm db migrate     # apply pending migrations
-pnpm db push        # push schema directly (dev-only)
-pnpm db studio      # drizzle-kit studio (visual DB explorer)
-pnpm db reset       # drop tables + re-apply all migrations
-pnpm db seed        # run the user-provided seed script
-pnpm db check       # check schema drift
+pnpm db generate       # drizzle-kit generate: migration from the schema diff
+pnpm db migrate        # drizzle-kit migrate, through the generated config
+pnpm db push           # drizzle-kit push: schema straight to the database (development)
+pnpm db studio         # drizzle-kit studio, through the generated config
+pnpm db check          # drizzle-kit check
+pnpm db seed           # your seedScript
+pnpm db reset --force  # your resetScript
 ```
 
-Every verb shells out to `drizzle-kit`. Without it installed your runtime app
-still works — only these fail, with drizzle-kit's own message.
+The generated config is rewritten on every run; add `.theokit/` to `.gitignore`.
 
 ## Devtools tab
 
-`buildDevtoolsTab(options)` returns a `{ id, label, mount }` descriptor that
-IFRAMEs `http://localhost:4983` (drizzle-kit's default studio port). Mount it in
-whatever overlay you have:
+`buildDevtoolsTab(options)` returns a descriptor whose `mount(container)` appends an `<iframe>`
+pointing at `http://<studioHost>:<studioPort>` (drizzle-kit studio's default is
+`http://localhost:4983`). Nothing registers it for you; mount it in an overlay you own:
 
 ```ts
 import { buildDevtoolsTab, drizzleDb } from '@theokit/plugin-db-drizzle'
@@ -111,55 +131,6 @@ const tab = buildDevtoolsTab(drizzleDb({ driver: 'sqlite', url: ':memory:' }).op
 tab.mount(document.getElementById('panel')!)
 ```
 
-The plugin does **not** register it for you — there is no framework hook to
-register it through (#43). `drizzleDb({ devtoolsTab: false })` still resolves to
-`false` in `options`, so your own wiring can honour the flag.
-
-## RLS / auth integration
-
-The plugin re-uses `@theokit/orm`'s `withAgentContext` AsyncLocalStorage. Wrap session-scoped queries the same way you do with orm direct:
-
-<!-- doc-example: needs="@theokit/orm" partial -->
-
-<!-- doc-example: partial -->
-
-```ts
-import { withAgentContext } from '@theokit/orm'
-
-await withAgentContext({ agentId: session.agentId, conversationId }, async () => {
-  return await users.findMany()
-})
-```
-
-`AgentContext` carries `agentId`, `runId` and `conversationId` — all optional. It does **not**
-carry a user id: this context is what identifies the _agent run_, not the end user. For row-level
-security keyed to a user, put the user id where your own policy reads it; `withAgentContext` will
-not carry it for you.
-
-For native RLS policy generation, drizzle-kit's RLS support is the canonical path — this plugin does not add a layer on top.
-
-## Migration from `@theokit/orm` direct usage
-
-If you currently wire orm directly:
-
-<!-- doc-example: partial -->
-
-```ts
-// Before
-import { OrmModule } from '@theokit/orm'
-defineConfig({
-  modules: [OrmModule.forRoot({ connector: 'postgres', url: process.env.DATABASE_URL })],
-})
-
-// After
-import { drizzleDb } from '@theokit/plugin-db-drizzle'
-defineConfig({
-  plugins: [drizzleDb({ driver: 'postgres', url: process.env.DATABASE_URL })],
-})
-```
-
-Your Repository / decorator usage stays identical — the plugin re-exports orm's surface.
-
 ## License
 
-MIT
+Apache-2.0

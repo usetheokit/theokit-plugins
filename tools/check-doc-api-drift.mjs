@@ -21,7 +21,8 @@
 // EXTERNAL SPECIFIERS ARE CHECKED WHERE THE READER STANDS. `theokit`, `@theokit/sdk`, `zod` and the
 // rest are versioned dependencies, and the workspace holds several versions of some of them at
 // once, so a probe is compiled from inside the package that owns the document — the root whose
-// `node_modules` has the version that package declares — falling back to `integration/`. An
+// `node_modules` has the version that package declares. A document outside every package falls
+// back to the repository root, whose manifest pins the current `theokit` for exactly this. An
 // external the workspace does not install at all is out of scope and counted, not failed: this
 // repository does not choose whether someone installs `@theokit/orm`.
 //
@@ -138,13 +139,21 @@ function documentedImports() {
   return claims
 }
 
-/** Where a reader of `file` stands: its own package first, then the member that has the most links. */
+/**
+ * Where a reader of `file` stands: its own package first, then the repository root.
+ *
+ * A document outside every package (the root README, CONTRIBUTING, the ADRs) describes TheoKit as
+ * it is today, so it is checked against the `theokit` the root manifest pins for that purpose. It
+ * used to fall back to `integration/`, whose `theokit` is pinned to whatever its seam tests were
+ * written against (0.48.x when this changed): the root README's core-primitives table was checked
+ * against a release twenty-seven minors old and could not cite a name added since.
+ */
 function resolutionRoot(file) {
   const owner = /^(packages\/[^/]+)\//.exec(file)
   if (owner !== null && existsSync(join(ROOT, owner[1], 'node_modules'))) {
     return join(ROOT, owner[1])
   }
-  return join(ROOT, 'integration')
+  return ROOT
 }
 
 /** Whether an external specifier is installed at `root` — walking up as node resolution would. */
