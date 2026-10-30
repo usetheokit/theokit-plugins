@@ -43,6 +43,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `integration/`, which its seam tests hold at 0.48.x. Against 0.48.x the gate would have reported
   `parseRequestBody` missing from `theokit/server/http`, where 0.75.1 does export it.
 
+## 2026-10-30 (sixteenth cut)
+
+Two packages: `@theokit/plugin-db-drizzle@0.6.2`, `@theokit/plugin-voice@0.11.2`.
+
+Text fixes for two places that sent a reader to something that does not exist (#231). The
+plugin-voice README and its published docblocks named `defineRoute`, which theokit does not export;
+they now name `route()` from `theokit/server/define`. The plugin-db-drizzle error for a missing
+`seed` or `reset` script also pointed at `package.json#theokit.db.seed`, a key nothing reads; it now
+names only `drizzleDb({ seedScript })` and `drizzleDb({ resetScript })`.
+
 ## 2026-10-30 (fifteenth cut)
 
 One package: `@theokit/plugin-db-drizzle@0.6.1`.

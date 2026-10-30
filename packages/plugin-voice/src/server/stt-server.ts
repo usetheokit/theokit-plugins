@@ -4,7 +4,7 @@
  * Accepts an already-parsed `SttInput` (audio blob/buffer + optional
  * language/prompt) and returns a `Response`. The caller is responsible
  * for getting the audio out of the inbound request — theokit's
- * `defineRoute` already parses multipart bodies, so the shim in
+ * `route()` builder already parses multipart bodies, so the shim in
  * `server/routes/voice/stt.ts` is a 12-line adapter.
  *
  * Why we don't reconstruct a Web Standards `Request` from theokit's
