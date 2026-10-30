@@ -1,17 +1,14 @@
 /**
  * @theokit/plugin-db-drizzle — devtools-tab descriptor.
  *
- * Per plan p5-plugin-db-drizzle v1.0 § Phase 2 / T2.2. Blueprint ADR D2:
- * studio is passthrough; when G4 devtools overlay is detected, the plugin
- * registers an IFRAMEs-the-studio tab for visual continuity.
- *
- * Graceful no-op when overlay absent (consumer's plugin runner does NOT
- * call `app.registerDevtoolsTab` when the overlay package is missing).
+ * A tab that frames drizzle-kit studio. Nothing here registers it: TheoKit has
+ * no devtools-tab hook a plugin can call (#43), so the consumer mounts it in an
+ * overlay of their own.
  */
 
 import type { ResolvedDrizzleDbOptions } from './options.js'
 
-/** Descriptor shape consumed by theokit's devtools overlay (G4). */
+/** A tab descriptor for the consumer's own devtools overlay. */
 export interface DrizzleDevtoolsTab {
   readonly id: 'db-studio'
   readonly label: 'Database'

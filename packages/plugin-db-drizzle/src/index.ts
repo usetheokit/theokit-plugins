@@ -1,15 +1,10 @@
 /**
- * @theokit/plugin-db-drizzle — standalone DB plugin (Form 4 Hybrid).
+ * @theokit/plugin-db-drizzle — drizzle-kit helpers for TheoKit apps.
  *
- * Per plan p5-plugin-db-drizzle v1.0 + blueprint v1.0 (SHIPPABLE 98.8/100).
- *
- * Wraps @theokit/orm + drizzle-kit behind a theokit plugin-shape factory.
- * Re-exports orm's Repository / @InjectRepository / @Transactional / OrmModule
- * for single-import ergonomics. Adds:
- *
- * - `drizzleDb(opts): TheoPlugin` factory with `kind: 'db'`
- * - 7 CLI verbs (`theokit db <verb>`): generate/migrate/push/studio/reset/seed/check
- * - Devtools-tab opt-in (G4 overlay backward-compat)
+ * `drizzleDb(opts)` resolves the options once; `buildDbCommands`, `renderDrizzleConfig` and
+ * `buildDevtoolsTab` turn them into drizzle-kit command lines, a `drizzle.config.ts` and a studio
+ * tab descriptor for the consumer's own script and overlay. The plugin registers nothing at
+ * runtime (see `register()` below), and it neither depends on nor re-exports `@theokit/orm`.
  *
  * @public
  */
@@ -46,22 +41,14 @@ export { buildDevtoolsTab, type DrizzleDevtoolsTab } from './devtools.js'
 /**
  * Create a `@theokit/plugin-db-drizzle` plugin instance.
  *
- * Pass the returned plugin to your `theo.config.ts`:
+ * Read `options` from the result and hand it to the builders; `register()` does nothing, so listing
+ * the plugin in `theo.config.ts` changes nothing at runtime:
  *
  * ```ts
- * import { drizzleDb } from "@theokit/plugin-db-drizzle";
- * import { defineConfig } from "theokit";
+ * import { buildDbCommands, drizzleDb } from "@theokit/plugin-db-drizzle";
  *
- * export default defineConfig({
- *   plugins: [
- *     drizzleDb({
- *       driver: "postgres",
- *       url: process.env.DATABASE_URL,
- *       schemaPath: "./db/schema.ts",
- *       migrationsPath: "./db/migrations",
- *     }),
- *   ],
- * });
+ * const { options } = drizzleDb({ driver: "postgres", url: process.env.DATABASE_URL });
+ * const commands = buildDbCommands(options);
  * ```
  *
  * @public

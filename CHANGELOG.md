@@ -31,6 +31,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `latest` dist-tag for every consumer, reporting success. Cutting a stable release stays available
   and becomes deliberate — it takes both edits, in the same pull request.
 
+### Changed
+
+- **docs:** the root README's core-primitives table names what `theokit@0.75.1` exports, and the
+  doc-api gate checks it (#225). Four of its names (`usePostgres`, `useRedis`, `useStorage`,
+  `defineWebSocket`) were not exports at all, and a fifth, `defineRoute`, had been replaced by
+  `route()`. Each row now carries the import a reader copies, or the `getStorageManager()` method
+  call for the three that are `StorageManager` methods, and a compiled example below the table
+  exercises those methods. Documents outside every package are now checked against the `theokit`
+  pinned in the root `package.json` (a new dev dependency, `^0.75.1`) instead of the one in
+  `integration/`, which its seam tests hold at 0.48.x. Against 0.48.x the gate would have reported
+  `parseRequestBody` missing from `theokit/server/http`, where 0.75.1 does export it.
+
+## 2026-10-30 (fifteenth cut)
+
+One package: `@theokit/plugin-db-drizzle@0.6.1`.
+
+A documentation and manifest release (#226). The README claimed `@theokit/orm` was a required peer
+the plugin wraps and re-exports, showed an `OrmModule.forRoot` call that throws, and gave the
+license as MIT. None of that was true of 0.6.0. The README now describes what ships: option
+resolution, an empty `register()`, and builders for a `db` script you own. The `reflect-metadata`
+peer, which nothing in the package imports, is removed. No runtime code changed.
+
 ## 2026-09-03 (fourteenth cut)
 
 Three packages, now stable: `@theokit/plugin-canvas@0.8.1`, `@theokit/plugin-payments@0.8.2`,

@@ -28,22 +28,43 @@ The demand gates that govern **future** plugins beyond these 11 are below, under
 
 Many things that became Fastify-style plugins are **direct primitives** in TheoKit:
 
-| Need                                  | TheoKit primitive                          |
-| ------------------------------------- | ------------------------------------------ |
-| Security headers (CSP/HSTS/X-Frame)   | Built-in via security-hardening defaults   |
-| Cookies                               | `getCookie` / `setCookie` / `deleteCookie` |
-| Rate limit                            | `createRateLimiter` + pluggable store      |
-| Multipart upload                      | `parseRequestBody` + busboy                |
-| Postgres                              | `usePostgres` + `StorageManager`           |
-| Redis                                 | `useRedis` + `StorageManager`              |
-| KV (Redis/S3/CF KV/Vercel KV/…)       | `useUnstorage` (20+ unstorage drivers)     |
-| SQL non-PG (libSQL/D1/MySQL/SQLite)   | `useDatabase` (db0 connectors)             |
-| Any custom client (Mongo/DynamoDB/…)  | `useStorage<T>` generic                    |
-| WebSocket                             | `defineWebSocket`                          |
-| Cron                                  | `defineCron`                               |
-| Webhooks                              | `defineWebhook`                            |
-| OpenAPI generation                    | Auto from `defineRoute` + Zod              |
-| Auth (PKCE/OAuth state/TOTP/sessions) | RFC-aligned primitives in core             |
+| Need                                  | TheoKit primitive                                                                                                 |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Security headers (CSP/HSTS/X-Frame)   | Built-in via security-hardening defaults                                                                          |
+| Cookies                               | `import { getCookie, setCookie, deleteCookie } from 'theokit/server/http'`                                        |
+| Rate limit                            | `import { createRateLimiter } from 'theokit/server/rate-limit'`, with a pluggable store                           |
+| Multipart upload                      | `import { parseRequestBody } from 'theokit/server/http'` (busboy)                                                 |
+| Postgres                              | `getStorageManager().usePostgres(dbName, factory)`                                                                |
+| Redis                                 | `getStorageManager().useRedis(serverName, factory)`                                                               |
+| KV (Redis/S3/CF KV/Vercel KV/…)       | `import { useUnstorage } from 'theokit/server/storage'` (20+ unstorage drivers)                                   |
+| SQL non-PG (libSQL/D1/MySQL/SQLite)   | `import { useDatabase } from 'theokit/server/storage'` (db0 connectors)                                           |
+| Any custom client (Mongo/DynamoDB/…)  | `getStorageManager().useStorage<T>(name, factory)`                                                                |
+| WebSocket                             | `import { websocket } from 'theokit/server/define'`                                                               |
+| Cron                                  | `import { defineCron } from 'theokit/server/cron'`                                                                |
+| Webhooks                              | `import { defineWebhook } from 'theokit/server/webhook'`                                                          |
+| OpenAPI generation                    | `import { route } from 'theokit/server/define'` + Zod, emitted by `theokit openapi` (opt-in via `config.openapi`) |
+| Auth (PKCE/OAuth state/TOTP/sessions) | RFC-aligned primitives in core                                                                                    |
+
+Postgres, Redis and custom clients are methods of the `StorageManager` singleton, not standalone
+exports. Each caches one client per name and calls its factory once:
+
+```ts
+import { getStorageManager, type PostgresFactory, type RedisFactory } from 'theokit/server/storage'
+
+declare const createPool: PostgresFactory // for example (server, db) => new pg.Pool({ ... })
+declare const createRedis: RedisFactory // for example (config) => new Redis(config.url)
+
+const storage = getStorageManager()
+const pool = storage.usePostgres('main', createPool)
+const redis = storage.useRedis('cache', createRedis)
+const sessions = storage.useStorage('sessions', () => new Map<string, string>())
+
+export { pool, redis, sessions }
+```
+
+`pnpm quality:doc-api` type-checks every import in the table and the example above against the
+`theokit` release pinned in the root `package.json`, so a rename in TheoKit fails this repository's
+CI instead of reaching a reader.
 
 ## Realistic plugin candidates (NOT shipping yet)
 

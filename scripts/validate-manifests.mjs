@@ -119,9 +119,7 @@ const PEER_WITHOUT_USE_EXEMPT = {
   },
   'plugin-db-drizzle': {
     'drizzle-orm':
-      "This package drives the drizzle-kit BINARY; the consumer's schema is what imports drizzle-orm. README.md:28 is the install line.",
-    'reflect-metadata':
-      "Same install line (README.md:28) — needed by the consumer's @theokit/orm entities, never by this package.",
+      "This package drives the drizzle-kit BINARY; the consumer's schema is what imports drizzle-orm. README.md:30 is the install line.",
   },
   'plugin-forms': {
     zod: 'valuesToFormData.ts:37 reads Zod class names off the constructor "so this file needs no `zod` import". The schema still has to be a zod schema, so the peer is real.',
