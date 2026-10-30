@@ -1,5 +1,15 @@
 # @theokit/plugin-voice
 
+## 0.11.2
+
+### Patch Changes
+
+- a8e64ea: The README and the docblocks in the published types name `route()` instead of `defineRoute` (#231)
+
+  The README told readers to wire each endpoint "via `defineRoute`", and four docblocks that ship in
+  the `.d.ts` files said the same. theokit exports no `defineRoute` from any subpath. The builder is
+  `route()` from `theokit/server/define`, and the text now says so. No runtime code changed.
+
 ## 0.11.1
 
 ### Patch Changes
