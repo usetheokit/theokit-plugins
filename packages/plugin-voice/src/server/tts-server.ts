@@ -4,7 +4,7 @@
  * Accepts an already-parsed `TtsInput` (`{ text, voice? }`) and returns
  * a `Response` whose body streams `audio/mpeg` directly from OpenAI
  * tts-1. The caller is responsible for parsing the inbound JSON body —
- * theokit's `defineRoute` already does that, so the shim is a 12-line
+ * theokit's `route()` builder already does that, so the shim is a 12-line
  * adapter.
  *
  * Hard constraints:

@@ -5,11 +5,11 @@
  *
  *   The handlers accept an already-parsed input + resolved config and
  *   return a Fetch `Response` (the caller extracts audio/JSON from the
- *   inbound request — theokit's `defineRoute` already parses the body):
+ *   inbound request — theokit's `route()` builder already parses the body):
  *     `handleSttRequest(input: SttInput, config, opts?): Promise<Response>`
  *     `handleTtsRequest(input: TtsInput, config, opts?): Promise<Response>`
  *
- *   Consumers wire them via a 12-line `defineRoute` stub per endpoint
+ *   Consumers wire them via a 12-line `route()` stub per endpoint
  *   in `server/routes/voice/{stt,tts}.ts`. The plugin still ships
  *   `voicePlugin()` so the consumer keeps a single registration line in
  *   `theo.config.ts` — its job is now **boot-time config validation
@@ -23,7 +23,7 @@
  *   pre-router handler (`corsHandler?.handlePreflight`) wired into the
  *   middleware as a special case — not via the plugin runner. To stay
  *   honest and to give the user observable, framework-aware routing,
- *   we lean on `defineRoute` shims instead of a framework patch.
+ *   we lean on `route()` shims instead of a framework patch.
  */
 // theokit M31: `defineTheoPlugin` (value) is internalized; the `TheoPlugin` type
 // remains public on the `theokit/server` barrel. Type-only import is erased at
@@ -70,7 +70,7 @@ export function resolveVoiceConfig(options: VoiceOptions = {}): VoiceConfig {
  *
  * The hook is intentionally a no-op: the framework runs plugin hooks
  * AFTER route matching (see api-middleware.ts:279), so any per-request
- * logic must live inside a `defineRoute` shim under
+ * logic must live inside a `route()` shim under
  * `server/routes/voice/`.
  */
 export default function voicePlugin(options: VoiceOptions = {}): TheoPlugin {
