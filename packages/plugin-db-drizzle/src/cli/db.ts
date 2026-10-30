@@ -99,7 +99,7 @@ const SUMMARIES: Record<DbVerb, string> = {
   push: 'Push schema directly to the database (dev-only, drizzle-kit push).',
   studio: 'Open the drizzle-kit visual database explorer.',
   reset: 'Drop the database, drop all tables, and re-apply all migrations. Requires --force.',
-  seed: 'Run the user-provided seed script (package.json#theokit.db.seed).',
+  seed: 'Run the user-provided seed script (drizzleDb({ seedScript })).',
   check: 'Check schema drift between code and database.',
 }
 
@@ -115,7 +115,7 @@ function scriptArgs(verb: 'seed' | 'reset', script: string | undefined): string[
   if (script === undefined || script.length === 0) {
     throw new Error(
       `db ${verb}: no ${verb} script configured. Set \`${verb}Script\` on drizzleDb(...) ` +
-        `or \`package.json#theokit.db.${verb}\` to the path of your ${verb} script. ` +
+        `to the path of your ${verb} script. ` +
         `drizzle-kit has no \`${verb}\` subcommand, so there is nothing to fall back to.`,
     )
   }
