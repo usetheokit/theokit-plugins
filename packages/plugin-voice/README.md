@@ -130,9 +130,11 @@ until you stop the recording and post it to `/api/voice/stt`. It is speaker-depe
 word with 3 or more utterances first.
 
 ```ts
-import { enrollWakeWord, startWakeWordListener } from '@theokit/plugin-voice'
+import { enrollWakeWord, startWakeWordListener, type AudioClip } from '@theokit/plugin-voice'
 
-const profile = enrollWakeWord('theo', clips) // clips: { samples: Float32Array, sampleRate }[]
+// 3 or more recorded utterances of the word: { samples: Float32Array, sampleRate }
+const clips: AudioClip[] = []
+const profile = enrollWakeWord('theo', clips)
 await startWakeWordListener({
   profile,
   onWake: () => console.log('wake'),
