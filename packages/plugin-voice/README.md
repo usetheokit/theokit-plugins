@@ -121,3 +121,25 @@ try {
 ## License
 
 MIT — see [LICENSE](./LICENSE).
+
+## Wake word (on-device)
+
+`startWakeWordListener` listens to the microphone and starts a recording when an enrolled word is
+heard. Matching runs in the page (MFCC + dynamic time warping), so no audio is sent to a provider
+until you stop the recording and post it to `/api/voice/stt`. It is speaker-dependent: enroll the
+word with 3 or more utterances first.
+
+```ts
+import { enrollWakeWord, startWakeWordListener } from '@theokit/plugin-voice'
+
+const profile = enrollWakeWord('theo', clips) // clips: { samples: Float32Array, sampleRate }[]
+await startWakeWordListener({
+  profile,
+  onWake: () => console.log('wake'),
+  onRecording: async (recorder) => {
+    /* later: const blob = await recorder.stop() and POST it to /api/voice/stt */
+  },
+})
+```
+
+The profile is plain JSON; persist it and reuse it. Requires a secure context.
