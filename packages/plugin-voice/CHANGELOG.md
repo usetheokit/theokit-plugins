@@ -1,5 +1,12 @@
 # @theokit/plugin-voice
 
+## 0.12.1
+
+### Patch Changes
+
+- 9ce2c23: Re-attach the `VoiceControllerBase` docblock to the class: the upload-cap helpers had been inserted between them, so the published declaration shipped the class undocumented.
+- a8063af: Cap the speech-to-text upload while reading it: the endpoint now answers 413 `PAYLOAD_TOO_LARGE` and cancels the stream once the body passes the limit, instead of buffering it all. Drop the unused `busboy` dependency.
+
 ## 0.12.0
 
 ### Minor Changes
