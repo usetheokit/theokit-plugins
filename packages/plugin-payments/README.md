@@ -222,6 +222,7 @@ export async function POST(req: Request, { params }: { params: { gateway: string
 > measured reasons — see § What is still not covered.
 
 - **BRL only.** A `createCheckout` with any other currency is refused, not converted.
+- **Every call is time-bounded.** `timeoutMs` (default `10000`) caps each AbacatePay API call; a call that does not answer in time rejects with `PaymentProviderError` code `upstream_timeout`. Other network failures stay `network_error`.
 - **No idempotency mechanism is documented**, so `CheckoutInput.idempotencyKey` is ignored on this provider — deliberately, rather than mapped onto `externalId`, which AbacatePay does not deduplicate on and which would look like retry safety while providing none. Its refund endpoint is idempotent by resource id instead, so nothing is sent there either.
 - **Webhook verification needs the request URL.** The per-merchant secret arrives as `?webhookSecret=…`, and verification refuses to run without it rather than falling back to no check.
 - **The secret arrives in a header too, and that is undocumented.** Measured on a real delivery: AbacatePay sends the per-merchant secret as an `x-webhook-secret` **header** as well as `?webhookSecret=`. The provider prefers the header — a secret in a URL reaches proxy logs, browser history and Referer, and a query string is the part of a request people paste into tickets. Pass `headers`, or `url`, or both; it refuses when neither carries it.

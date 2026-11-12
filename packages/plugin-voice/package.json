@@ -1,6 +1,6 @@
 {
   "name": "@theokit/plugin-voice",
-  "version": "0.11.2",
+  "version": "0.12.0",
   "description": "Voice plugin for TheoKit — STT + TTS bridge with browser MediaRecorder helper + UI components.",
   "type": "module",
   "main": "./dist/index.js",
@@ -29,10 +29,6 @@
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest"
-  },
-  "dependencies": {
-    "@types/busboy": "^1.5.4",
-    "busboy": "^1.6.0"
   },
   "peerDependencies": {
     "@theokit/http": ">=1.1.1 <3 || >=2.1.0-0 <2.2.0",

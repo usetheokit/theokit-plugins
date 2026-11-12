@@ -36,6 +36,19 @@ export class GoogleAuthError extends Error {
   }
 }
 
+const DEFAULT_TIMEOUT_MS = 10_000
+
+/** Turns an aborted-by-deadline fetch into `GoogleAuthError('upstream_timeout')`; other errors pass through. */
+function asUpstreamError(err: unknown, endpoint: string, limitMs: number): unknown {
+  const timedOut = err instanceof Error && err.name === 'TimeoutError'
+  return timedOut
+    ? new GoogleAuthError(
+        'upstream_timeout',
+        `Google ${endpoint} did not answer within ${limitMs} ms`,
+      )
+    : err
+}
+
 interface TokenResponse {
   access_token?: string
   id_token?: string
@@ -247,10 +260,14 @@ export function google(opts: GoogleProviderOptions): Omit<
         client_secret: opts.clientSecret,
         code_verifier: tx.pkceVerifier,
       })
+      const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
       const tokenRes = await fetch(metadata.token_endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/x-www-form-urlencoded' },
         body: tokenBody.toString(),
+        signal: AbortSignal.timeout(timeoutMs),
+      }).catch((err: unknown) => {
+        throw asUpstreamError(err, 'token endpoint', timeoutMs)
       })
       if (!tokenRes.ok) {
         throw new GoogleAuthError(
@@ -278,6 +295,9 @@ export function google(opts: GoogleProviderOptions): Omit<
       assertSafeOidcUrl(metadata.userinfo_endpoint, 'discovered userinfo_endpoint')
       const userRes = await fetch(metadata.userinfo_endpoint, {
         headers: { authorization: `Bearer ${tokens.access_token}` },
+        signal: AbortSignal.timeout(timeoutMs),
+      }).catch((err: unknown) => {
+        throw asUpstreamError(err, 'userinfo endpoint', timeoutMs)
       })
       if (!userRes.ok) {
         throw new GoogleAuthError(

@@ -37,4 +37,9 @@ export interface GoogleProviderOptions {
    * builds (`NODE_ENV !== 'test'`) ignore the env var entirely.
    */
   oidcBaseUrl?: string
+  /**
+   * Upper bound, in milliseconds, on each call to the provider's token and userinfo endpoints (not OIDC discovery) (default `10000`).
+   * A call that does not answer in time rejects with `GoogleAuthError` and `code: 'upstream_timeout'`.
+   */
+  timeoutMs?: number
 }

@@ -43,6 +43,28 @@ export class GitHubAuthError extends Error {
   }
 }
 
+const DEFAULT_TIMEOUT_MS = 10_000
+
+/** `fetch` bounded by `timeoutMs`; a timeout becomes `GitHubAuthError('upstream_timeout')`. */
+async function fetchWithTimeout(
+  what: string,
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  try {
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) })
+  } catch (err) {
+    if (err instanceof Error && err.name === 'TimeoutError') {
+      throw new GitHubAuthError(
+        'upstream_timeout',
+        `GitHub ${what} did not answer within ${timeoutMs} ms`,
+      )
+    }
+    throw err
+  }
+}
+
 interface TokenResponse {
   access_token?: string
   token_type?: string
@@ -177,9 +199,22 @@ export function github(opts: GitHubProviderOptions): Omit<
 
       // #183: behavior-preserving extraction into named helpers keeps this
       // method's cyclomatic complexity low. Each helper owns one fetch + its guards.
-      const accessToken = await githubExchangeToken(code, opts, tokenEndpoint, tx.pkceVerifier)
-      const raw = await githubFetchUser(accessToken, userinfoEndpoint)
-      const email = await githubResolveEmail(raw, wantsEmail, accessToken, emailsEndpoint)
+      const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
+      const accessToken = await githubExchangeToken(
+        code,
+        opts,
+        tokenEndpoint,
+        timeoutMs,
+        tx.pkceVerifier,
+      )
+      const raw = await githubFetchUser(accessToken, userinfoEndpoint, timeoutMs)
+      const email = await githubResolveEmail(
+        raw,
+        wantsEmail,
+        accessToken,
+        emailsEndpoint,
+        timeoutMs,
+      )
 
       const profile: GitHubProfile = {
         id: raw.id,
@@ -203,6 +238,7 @@ async function githubExchangeToken(
   code: string,
   opts: GitHubProviderOptions,
   tokenEndpoint: string,
+  timeoutMs: number,
   pkceVerifier?: string,
 ): Promise<string> {
   const tokenBody = new URLSearchParams({
@@ -216,11 +252,16 @@ async function githubExchangeToken(
   // is theatre: GitHub would have nothing to compare against, and an intercepted code stays as
   // usable as it was.
   if (pkceVerifier) tokenBody.set('code_verifier', pkceVerifier)
-  const tokenRes = await fetch(tokenEndpoint, {
-    method: 'POST',
-    headers: { accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' },
-    body: tokenBody.toString(),
-  })
+  const tokenRes = await fetchWithTimeout(
+    'token endpoint',
+    tokenEndpoint,
+    {
+      method: 'POST',
+      headers: { accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' },
+      body: tokenBody.toString(),
+    },
+    timeoutMs,
+  )
   if (!tokenRes.ok) {
     throw new GitHubAuthError(
       'token_exchange_failed',
@@ -241,10 +282,14 @@ async function githubExchangeToken(
 async function githubFetchUser(
   accessToken: string,
   userinfoEndpoint: string,
+  timeoutMs: number,
 ): Promise<Partial<GitHubProfile> & { id: number; login: string }> {
-  const userRes = await fetch(userinfoEndpoint, {
-    headers: { authorization: `token ${accessToken}`, accept: 'application/vnd.github+json' },
-  })
+  const userRes = await fetchWithTimeout(
+    'userinfo endpoint',
+    userinfoEndpoint,
+    { headers: { authorization: `token ${accessToken}`, accept: 'application/vnd.github+json' } },
+    timeoutMs,
+  )
   if (!userRes.ok) {
     throw new GitHubAuthError(
       'userinfo_fetch_failed',
@@ -271,12 +316,16 @@ async function githubResolveEmail(
   wantsEmail: boolean,
   accessToken: string,
   emailsEndpoint: string,
+  timeoutMs: number,
 ): Promise<string | null> {
   let email = raw.email ?? null
   if (wantsEmail && !email) {
-    const emailsRes = await fetch(emailsEndpoint, {
-      headers: { authorization: `token ${accessToken}`, accept: 'application/vnd.github+json' },
-    })
+    const emailsRes = await fetchWithTimeout(
+      'emails endpoint',
+      emailsEndpoint,
+      { headers: { authorization: `token ${accessToken}`, accept: 'application/vnd.github+json' } },
+      timeoutMs,
+    )
     if (!emailsRes.ok) {
       throw new GitHubAuthError(
         'emails_fetch_failed',
