@@ -1,11 +1,5 @@
 # @theokit/plugin-email
 
-## 0.3.1
-
-### Patch Changes
-
-- 32d55fb: Resolve `@theokit/auth-magic-link` to its source in the test config, so the magic-link seam test runs in coverage runs that do not build first.
-
 ## 0.3.0
 
 ### Minor Changes
