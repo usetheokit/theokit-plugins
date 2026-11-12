@@ -206,6 +206,14 @@ MOCK_GOOGLE_OIDC_BASE_URL=http://localhost:9999
 
 The provider will route OIDC discovery to the local sidecar instead of `accounts.google.com`. Production builds (`NODE_ENV !== 'test'`) **ignore** this env var — it is a test-only escape hatch (security pattern mirrors `THEOKIT_TEST_RESPONSE_OVERRIDE`).
 
+## Timeouts
+
+Every call to Google's token and userinfo endpoints is bounded by `timeoutMs` (default `10000`). A call that does not answer in time rejects with a `GoogleAuthError` whose `code` is `upstream_timeout`. Other network errors propagate unchanged.
+
+```ts
+google({ /* ... */ timeoutMs: 5_000 })
+```
+
 ## Troubleshooting
 
 | Error code                      | Meaning                                          | Likely cause                                                                                   |
@@ -213,6 +221,7 @@ The provider will route OIDC discovery to the local sidecar instead of `accounts
 | `missing_pkce_verifier`         | `OAuthTransaction.pkceVerifier` missing          | The orchestrator should populate it; check `Auth.create` wiring                                |
 | `state_mismatch`                | Callback `state` doesn't match transaction state | Either CSRF attempt OR user resubmitted a stale callback. Restart sign-in                      |
 | `token_exchange_failed`         | Google rejected the code exchange                | Wrong `clientSecret`, expired code, mismatched `redirectUri`                                   |
+| `upstream_timeout`              | Google did not answer in time                    | Upstream incident; raise `timeoutMs` if your network is slow                                   |
 | `missing_sub` / `missing_email` | Userinfo response lacks required fields          | OAuth scopes didn't grant `email` permission; double-check Google Cloud Console consent screen |
 | OIDC discovery `403` / `404`    | `oidcBaseUrl` wrong                              | If overriding, ensure the URL serves `/.well-known/openid-configuration`                       |
 

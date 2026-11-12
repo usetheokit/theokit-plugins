@@ -469,3 +469,34 @@ describe('google() — accepts a Web Request', () => {
     await expect(google(OPTS).handleCallback(request, TX)).rejects.toThrow(/state/i)
   })
 })
+
+/** A fetch that never resolves until its signal aborts, like a hung upstream. */
+function hangingFetch(_url: unknown, init?: RequestInit): Promise<Response> {
+  return new Promise((_resolve, reject) => {
+    const signal = init?.signal
+    // Like real fetch: reject with the abort reason itself (a DOMException named TimeoutError).
+    // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+    signal?.addEventListener('abort', () => reject(signal.reason))
+  })
+}
+
+describe('google() — upstream timeout', () => {
+  it('rejects with upstream_timeout when the token endpoint never answers', async () => {
+    fetchSpy.mockResolvedValueOnce(jsonResponse(DISCOVERY_DOC))
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    fetchSpy.mockImplementationOnce(hangingFetch)
+    const provider = google({ ...OPTS, timeoutMs: 50 })
+    await expect(
+      provider.handleCallback(mockReq(`?code=c&state=${TX.state}`), TX),
+    ).rejects.toMatchObject({ name: 'GoogleAuthError', code: 'upstream_timeout' })
+  })
+
+  it('passes an AbortSignal to the token request', async () => {
+    fetchSpy.mockResolvedValueOnce(jsonResponse(DISCOVERY_DOC))
+    fetchSpy.mockResolvedValueOnce(jsonResponse({ error: 'x' }, { status: 400 }))
+    const provider = google({ ...OPTS, timeoutMs: 50 })
+    await provider.handleCallback(mockReq(`?code=c&state=${TX.state}`), TX).catch(() => undefined)
+    const init = fetchSpy.mock.calls[1]![1] as RequestInit
+    expect(init.signal).toBeInstanceOf(AbortSignal)
+  })
+})
