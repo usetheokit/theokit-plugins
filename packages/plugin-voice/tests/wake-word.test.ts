@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { VoicePluginConfigError } from '../src/errors.js'
 import { createWakeWordDetector, enrollWakeWord, type AudioClip } from '../src/wake-word.js'
 
 const dir = resolve(dirname(fileURLToPath(import.meta.url)), 'fixtures/wake-word')
@@ -47,5 +48,34 @@ describe('wake-word detector on recorded speech', () => {
     expect(() => enrollWakeWord('theo', [silent, silent])).toThrow(/no usable speech/)
     expect(() => enrollWakeWord('theo', [wav('theo-enroll-1')])).toThrow(/at least 2/)
     expect(() => enrollWakeWord(' ', [])).toThrow(/non-empty/)
+  })
+
+  it('rejects a profile without templates', () => {
+    const empty = { ...profile(), templates: [] }
+    expect(() => createWakeWordDetector({ profile: empty, onWake: () => undefined })).toThrow(
+      VoicePluginConfigError,
+    )
+  })
+  it('suppresses a second fire during the cooldown and resets cleanly', () => {
+    let fires = 0
+    const d = createWakeWordDetector({ profile: profile(), onWake: () => fires++ })
+    const clip = wav('theo-wake')
+    const feedAll = () => {
+      for (let o = 0; o < clip.samples.length; o += 4096) {
+        d.feed(clip.samples.subarray(o, o + 4096), clip.sampleRate)
+      }
+    }
+    feedAll()
+    expect(fires).toBe(1)
+    d.reset()
+    feedAll()
+    expect(fires).toBe(2)
+  })
+  it('does not fire on very long continuous noise', () => {
+    let fires = 0
+    const d = createWakeWordDetector({ profile: profile(), onWake: () => fires++ })
+    const noise = Float32Array.from({ length: 16_000 * 4 }, (_, i) => Math.sin(i * 0.3) * 0.5)
+    d.feed(noise, 16_000)
+    expect(fires).toBe(0)
   })
 })
