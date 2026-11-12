@@ -235,21 +235,22 @@ describe('magicLink() startSignIn', () => {
     expect(record?.email).toBe('user@example.com')
   })
 
-  it('EC-12 throws MagicLinkConfigError when email missing', async () => {
+  it('EC-12 throws MagicLinkAuthError when email missing', async () => {
     const { provider } = makeProvider()
     const req = mockReq({ url: '/api/auth/magic-link/start' })
     await expect(provider.startSignIn(req)).rejects.toMatchObject({
-      name: 'MagicLinkConfigError',
+      name: 'MagicLinkAuthError',
       code: 'invalid_email',
     })
   })
 
-  it('EC-12 throws MagicLinkConfigError when email malformed', async () => {
+  it('EC-12 throws MagicLinkAuthError when email malformed', async () => {
     const { provider } = makeProvider()
     const req = mockReq({
       url: '/api/auth/magic-link/start?email=not-an-email',
     })
     await expect(provider.startSignIn(req)).rejects.toMatchObject({
+      name: 'MagicLinkAuthError',
       code: 'invalid_email',
     })
   })
@@ -398,15 +399,21 @@ describe('magicLink() input hardening (T3.2 #204/#209/#205)', () => {
   const sendEmail = (): SendEmailMock => vi.fn<SendMagicLinkFn>().mockResolvedValue(undefined)
 
   it('#204: rejects an oversized request body (DoS cap) → invalid_email', async () => {
+    const store = createMemoryStore()
+    const createToken = vi.spyOn(store, 'createToken')
     const provider = magicLink({
-      store: createMemoryStore(),
+      store,
       sendEmail: sendEmail(),
       callbackBaseUrl: 'https://myapp.test',
     })
     // Body > 16KB with an otherwise-valid email — only the cap should reject it.
     const body = JSON.stringify({ email: 'u@x.co', pad: 'a'.repeat(20_000) })
     const req = mockReq({ method: 'POST', contentType: 'application/json', body })
-    await expect(provider.startSignIn(req)).rejects.toMatchObject({ code: 'invalid_email' })
+    await expect(provider.startSignIn(req)).rejects.toMatchObject({
+      name: 'MagicLinkAuthError',
+      code: 'invalid_email',
+    })
+    expect(createToken).not.toHaveBeenCalled()
   })
 
   it('#204: the DoS cap holds on a Web Request too', async () => {
@@ -543,9 +550,16 @@ describe('magicLink() input hardening (T3.2 #204/#209/#205)', () => {
       magicLink({
         store: createMemoryStore(),
         sendEmail: sendEmail(),
-        callbackBaseUrl: 'not-a-url',
+        callbackBaseUrl: 'not a url',
       }),
     ).toThrow(MagicLinkConfigError)
+    expect(() =>
+      magicLink({
+        store: createMemoryStore(),
+        sendEmail: sendEmail(),
+        callbackBaseUrl: 'not a url',
+      }),
+    ).toThrow(expect.objectContaining({ code: 'invalid_callback_base_url' }))
   })
 })
 
