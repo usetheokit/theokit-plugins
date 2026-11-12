@@ -469,3 +469,41 @@ describe('google() — accepts a Web Request', () => {
     await expect(google(OPTS).handleCallback(request, TX)).rejects.toThrow(/state/i)
   })
 })
+
+describe('google() — upstream timeout', () => {
+  const timeoutError = () => new DOMException('The operation timed out.', 'TimeoutError')
+  const callback = (timeoutMs = 50) =>
+    google({ ...OPTS, timeoutMs }).handleCallback(mockReq(`?code=c&state=${TX.state}`), TX)
+
+  it('maps a timed-out token call to upstream_timeout', async () => {
+    fetchSpy.mockResolvedValueOnce(jsonResponse(DISCOVERY_DOC))
+    fetchSpy.mockRejectedValueOnce(timeoutError())
+    await expect(callback()).rejects.toMatchObject({
+      name: 'GoogleAuthError',
+      code: 'upstream_timeout',
+    })
+  })
+
+  it('maps a timed-out userinfo call to upstream_timeout', async () => {
+    fetchSpy.mockResolvedValueOnce(jsonResponse(DISCOVERY_DOC))
+    fetchSpy.mockResolvedValueOnce(jsonResponse({ access_token: 'at' }))
+    fetchSpy.mockRejectedValueOnce(timeoutError())
+    await expect(callback()).rejects.toMatchObject({ code: 'upstream_timeout' })
+  })
+
+  it('lets other fetch errors through unchanged', async () => {
+    fetchSpy.mockResolvedValueOnce(jsonResponse(DISCOVERY_DOC))
+    fetchSpy.mockRejectedValueOnce(new TypeError('network down'))
+    await expect(callback()).rejects.toBeInstanceOf(TypeError)
+  })
+
+  it('passes an AbortSignal to the token and userinfo requests', async () => {
+    fetchSpy.mockResolvedValueOnce(jsonResponse(DISCOVERY_DOC))
+    fetchSpy.mockResolvedValueOnce(jsonResponse({ access_token: 'at' }))
+    fetchSpy.mockResolvedValueOnce(jsonResponse({ error: 'x' }, { status: 400 }))
+    await callback().catch(() => undefined)
+    for (const i of [1, 2]) {
+      expect((fetchSpy.mock.calls[i]![1] as RequestInit).signal).toBeInstanceOf(AbortSignal)
+    }
+  })
+})

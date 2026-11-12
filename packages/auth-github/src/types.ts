@@ -38,6 +38,11 @@ export interface GitHubProviderOptions {
   authorizationEndpoint?: string
   /** Override token endpoint (default https://github.com/login/oauth/access_token). */
   tokenEndpoint?: string
+  /**
+   * Upper bound, in milliseconds, on each call to the provider's token, user and email endpoints (default `10000`).
+   * A call that does not answer in time rejects with `GitHubAuthError` and `code: 'upstream_timeout'`.
+   */
+  timeoutMs?: number
   /** Override userinfo endpoint (default https://api.github.com/user). */
   userinfoEndpoint?: string
   /** Override emails endpoint (default https://api.github.com/user/emails). */

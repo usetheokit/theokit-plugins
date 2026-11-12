@@ -189,6 +189,16 @@ When `scopes` include `user:email`:
 
 When `scopes` omits `user:email`, the second fetch is skipped entirely.
 
+## Timeouts
+
+Every call to GitHub's token and userinfo endpoints (and `/user/emails`) is bounded by `timeoutMs` (default `10000`). A call that does not answer in time rejects with a `GitHubAuthError` whose `code` is `upstream_timeout`. Other network errors propagate unchanged.
+
+<!-- doc-example: partial -->
+
+```ts
+github({ /* ... */ timeoutMs: 5_000 })
+```
+
 ## Troubleshooting
 
 | Error code                     | Meaning                                  | Likely cause                                                 |
@@ -196,6 +206,7 @@ When `scopes` omits `user:email`, the second fetch is skipped entirely.
 | `state_mismatch`               | Callback state doesn't match transaction | CSRF attempt OR stale callback. Restart sign-in              |
 | `token_exchange_failed`        | GitHub rejected the code exchange        | Wrong `clientSecret`, expired code, mismatched `redirectUri` |
 | `userinfo_fetch_failed`        | `/user` returned non-OK                  | Most often a 403 rate limit — check `X-RateLimit-Remaining`  |
+| `upstream_timeout`             | GitHub did not answer in time            | Upstream incident; raise `timeoutMs` if your network is slow |
 | `missing_id` / `missing_login` | Userinfo response malformed              | GitHub API contract violation; check service status          |
 
 ## License
