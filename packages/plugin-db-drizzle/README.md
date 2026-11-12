@@ -55,7 +55,8 @@ in a module your scripts can import.
 | Option           | Type                                | Default                          | Notes                                                      |
 | ---------------- | ----------------------------------- | -------------------------------- | ---------------------------------------------------------- |
 | `driver`         | `'sqlite' \| 'postgres' \| 'mysql'` | (required)                       | Mapped to drizzle-kit's `--dialect`                        |
-| `url`            | `string`                            | (none)                           | Connection URL; the package does not read `DATABASE_URL`   |
+| `url`            | `string`                            | (none)                           | Connection URL; never written to the config or an argv     |
+| `urlEnv`         | `string`                            | `'DATABASE_URL'`                 | Env var the generated config reads the URL from            |
 | `schemaPath`     | `string`                            | `'./db/schema.ts'`               | Your drizzle schema file                                   |
 | `migrationsPath` | `string`                            | `'./db/migrations'`              | Where `generate` writes migrations                         |
 | `configPath`     | `string`                            | `'./.theokit/drizzle.config.ts'` | Where your script writes `renderDrizzleConfig(...)`        |
@@ -71,9 +72,14 @@ Each command says how to run it in `kind`:
 
 - `drizzle-kit`: run `drizzle-kit` with `buildArgs()`.
 - `drizzle-kit-with-config`: write `renderDrizzleConfig(options)` to `options.configPath` first,
-  then run `drizzle-kit` with `buildArgs()`. `migrate` and `studio` accept only `--config`.
+  then run `drizzle-kit` with `buildArgs()`. `migrate`, `studio` and `push` run only through
+  `--config`.
 - `user-script`: `buildArgs()` returns your `seedScript` or `resetScript`; run that. It throws when
   the script is not configured.
+
+Every command also carries `env`: `{ [urlEnv]: url }` when you passed `url`. The generated config
+reads `process.env[urlEnv]` when drizzle-kit loads it, so the URL value is never written to the
+file or to an argv. Add `env` to the environment of the process you spawn.
 
 `reset` also sets `requiresForce`, so the script below refuses it without `--force`.
 
@@ -98,7 +104,7 @@ const [file, args] =
   cmd.kind === 'user-script'
     ? ['npx', ['tsx', ...cmd.buildArgs()]]
     : ['npx', ['drizzle-kit', ...cmd.buildArgs()]]
-const result = spawnSync(file, args, { stdio: 'inherit' })
+const result = spawnSync(file, args, { stdio: 'inherit', env: { ...process.env, ...cmd.env } })
 process.exit(result.status ?? 1)
 ```
 

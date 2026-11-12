@@ -83,12 +83,14 @@ function newProject(): string {
 function run(
   project: string,
   args: readonly string[],
+  env: Record<string, string>,
   timeout = 60_000,
 ): { out: string; refused: string | undefined } {
   let out: string
   try {
     out = execFileSync(DRIZZLE_KIT, [...args], {
       cwd: project,
+      env: { ...process.env, ...env },
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout,
@@ -114,10 +116,15 @@ function run(
 async function runUntil(
   project: string,
   args: readonly string[],
+  env: Record<string, string>,
   pattern: RegExp,
   ceiling = 45_000,
 ): Promise<{ out: string; refused: string | undefined }> {
-  const child = spawn(DRIZZLE_KIT, [...args], { cwd: project, stdio: ['ignore', 'pipe', 'pipe'] })
+  const child = spawn(DRIZZLE_KIT, [...args], {
+    cwd: project,
+    env: { ...process.env, ...env },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
   let out = ''
   const done = new Promise<void>((resolve) => {
     const finish = () => {
@@ -147,7 +154,7 @@ async function runUntil(
  * renders, at exactly the path it declares. Inventing either would make the
  * test prove something the runner does not do.
  */
-function argsFor(project: string, verb: string): string[] {
+function argsFor(project: string, verb: string): { args: string[]; env: Record<string, string> } {
   const resolved = resolveOptions(OPTIONS)
   const cmd = buildDbCommands(resolved).find((c) => c.verb === verb)
   if (cmd === undefined) throw new Error(`${verb} missing from buildDbCommands`)
@@ -156,7 +163,7 @@ function argsFor(project: string, verb: string): string[] {
     mkdirSync(dirname(target), { recursive: true })
     writeFileSync(target, renderDrizzleConfig(resolved))
   }
-  return cmd.buildArgs()
+  return { args: cmd.buildArgs(), env: { ...cmd.env } }
 }
 
 describe('the args we emit are a command line drizzle-kit accepts', () => {
@@ -170,10 +177,12 @@ describe('the args we emit are a command line drizzle-kit accepts', () => {
       )
 
       const project = newProject()
-      const args = argsFor(project, verb)
+      const { args, env } = argsFor(project, verb)
       // `studio` never exits; the rest complete on their own in well under a second.
       const { out, refused } =
-        verb === 'studio' ? await runUntil(project, args, /up and running/i) : run(project, args)
+        verb === 'studio'
+          ? await runUntil(project, args, env, /up and running/i)
+          : run(project, args, env)
       expect(refused, `drizzle-kit refused our ${verb} args — ${refused}`).toBeUndefined()
 
       // Absence of a refusal is weak evidence on its own: a binary that died
@@ -205,7 +214,8 @@ describe('the database actually changes', () => {
     { timeout: 60_000 },
     () => {
       const project = newProject()
-      const gen = run(project, argsFor(project, 'generate'))
+      const g = argsFor(project, 'generate')
+      const gen = run(project, g.args, g.env)
       expect(gen.refused, `generate refused — ${gen.refused}`).toBeUndefined()
 
       const migrationsDir = join(project, 'db/migrations')
@@ -215,7 +225,8 @@ describe('the database actually changes', () => {
         'generate produced no .sql migration',
       ).toBeGreaterThan(0)
 
-      const mig = run(project, argsFor(project, 'migrate'))
+      const m = argsFor(project, 'migrate')
+      const mig = run(project, m.args, m.env)
       expect(mig.refused, `migrate refused — ${mig.refused}`).toBeUndefined()
 
       // The claim under test is "applied to the database", so read the database.
