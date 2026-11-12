@@ -16,32 +16,6 @@ export const ttsInputSchema = z.object({
   speed: z.number().min(0.25).max(4).optional(),
 })
 
-/**
- * The voice endpoints as a class an application EXTENDS, rather than two handlers it mounts.
- *
- * `handleSttRequest` / `handleTtsRequest` still exist and still work; nothing here replaces them.
- * What this adds is the half a consumer previously wrote by hand and got to write wrong: reading a
- * multipart body into an {@link SttInput}, and rejecting a request with no audio in the shape the
- * rest of the plugin uses (a typed `code`, not a bare string) instead of letting `undefined` reach
- * the provider call.
- *
- * It deliberately carries NO `@Controller` prefix and NO access decoration. Both are the
- * application's to choose, and a base class that made either decision would force every consumer to
- * edit this package to vary it — the closed half of open/closed pointing the wrong way. What is
- * closed here is the behaviour behind the verbs; what is open is where they are mounted, which
- * provider config backs them, and who is allowed to call each one.
- *
- * @example
- * ```ts
- * \@Controller('api/voice')
- * export class VoiceController extends VoiceControllerBase {
- *   protected readonly config = resolveVoiceConfig()
- *
- *   \@UseGuards(AuthGuard)
- *   override tts(body: TtsInput) { return super.tts(body) }
- * }
- * ```
- */
 /** Multipart framing and text fields allowed on top of the audio limit. */
 const MULTIPART_OVERHEAD_BYTES = 64 * 1024
 const MAX_REQUEST_BYTES = MAX_BODY_BYTES + MULTIPART_OVERHEAD_BYTES
@@ -81,6 +55,32 @@ async function readCappedBody(
   return bytes
 }
 
+/**
+ * The voice endpoints as a class an application EXTENDS, rather than two handlers it mounts.
+ *
+ * `handleSttRequest` / `handleTtsRequest` still exist and still work; nothing here replaces them.
+ * What this adds is the half a consumer previously wrote by hand and got to write wrong: reading a
+ * multipart body into an {@link SttInput}, and rejecting a request with no audio in the shape the
+ * rest of the plugin uses (a typed `code`, not a bare string) instead of letting `undefined` reach
+ * the provider call.
+ *
+ * It deliberately carries NO `@Controller` prefix and NO access decoration. Both are the
+ * application's to choose, and a base class that made either decision would force every consumer to
+ * edit this package to vary it — the closed half of open/closed pointing the wrong way. What is
+ * closed here is the behaviour behind the verbs; what is open is where they are mounted, which
+ * provider config backs them, and who is allowed to call each one.
+ *
+ * @example
+ * ```ts
+ * \@Controller('api/voice')
+ * export class VoiceController extends VoiceControllerBase {
+ *   protected readonly config = resolveVoiceConfig()
+ *
+ *   \@UseGuards(AuthGuard)
+ *   override tts(body: TtsInput) { return super.tts(body) }
+ * }
+ * ```
+ */
 export abstract class VoiceControllerBase {
   /** Provider credentials and model choice. The application supplies them; the plugin never reads env. */
   protected abstract readonly config: VoiceConfig
