@@ -1,5 +1,16 @@
 # @theokit/plugin-voice
 
+## 0.12.0
+
+### Minor Changes
+
+- 1732d5d: Add an on-device wake-word detector: `enrollWakeWord`, `createWakeWordDetector` and `startWakeWordListener` spot an enrolled keyword in the microphone stream and start a recording, without sending audio to a provider before it fires.
+
+### Patch Changes
+
+- 442857a: Fix the wake-word README example so it declares `clips` and compiles as written.
+- 34ad42f: Document the wake-word detector and listener types so the published declarations carry their descriptions.
+
 ## 0.11.2
 
 ### Patch Changes
