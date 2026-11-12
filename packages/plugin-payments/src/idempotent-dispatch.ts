@@ -15,6 +15,7 @@
  */
 
 import type { IdempotencyStore } from './idempotency-store.js'
+import { PaymentProviderError } from './provider-types.js'
 
 /**
  * A sanitized error surfaced to the HTTP layer. NEVER carries the raw handler
@@ -70,6 +71,16 @@ export async function runIdempotently(opts: {
   logLabel?: string
 }): Promise<DispatchOutcome> {
   const label = opts.logLabel ?? '[plugin-payments]'
+
+  // An empty or suffix-less id (`abacatepay:`) would collide with every other
+  // such event and silently drop it as a duplicate.
+  if (opts.eventId === '' || opts.eventId.endsWith(':')) {
+    throw new PaymentProviderError(
+      'unknown',
+      'invalid_event_id',
+      'Webhook event has no usable id, so it cannot be deduplicated.',
+    )
+  }
 
   const isNew = await opts.store.markProcessed(opts.eventId)
   if (!isNew) {

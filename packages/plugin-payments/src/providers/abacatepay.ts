@@ -512,10 +512,25 @@ export function AbacatePayProvider(
         )
       }
 
+      // No usable id means no idempotency key: refuse rather than let the
+      // dispatcher dedupe this event against every other id-less one.
+      if (
+        parsed === null ||
+        typeof parsed !== 'object' ||
+        typeof parsed.id !== 'string' ||
+        parsed.id === ''
+      ) {
+        throw new PaymentProviderError(
+          PROVIDER,
+          'malformed_webhook_body',
+          'AbacatePay webhook body has no id, so it cannot be deduplicated.',
+        )
+      }
+
       const providerEventType = typeof parsed.event === 'string' ? parsed.event : ''
       return {
         type: EVENT_MAP[providerEventType] ?? 'unknown',
-        id: typeof parsed.id === 'string' ? parsed.id : '',
+        id: parsed.id,
         providerEventType,
         provider: PROVIDER,
         raw: parsed,
