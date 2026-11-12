@@ -71,6 +71,86 @@ describe('VoiceControllerBase', () => {
     expect(seen).toEqual([{ audioSize: 10, language: 'pt' }])
   })
 
+  it('answers 413 and cancels the stream when a chunked body passes the limit', async () => {
+    const chunk = new Uint8Array(1024 * 1024)
+    let produced = 0
+    let cancelled = false
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (produced >= 30) return controller.close()
+        produced++
+        controller.enqueue(chunk)
+      },
+      cancel() {
+        cancelled = true
+      },
+    })
+
+    const response = await new TestVoiceController().stt(
+      new Request('http://x/api/voice/stt', {
+        method: 'POST',
+        body,
+        headers: { 'content-type': 'multipart/form-data; boundary=x' },
+        duplex: 'half',
+      } as RequestInit),
+    )
+
+    expect(response.status).toBe(413)
+    await expect(response.json()).resolves.toMatchObject({ code: 'PAYLOAD_TOO_LARGE' })
+    expect(cancelled).toBe(true)
+    expect(produced).toBeLessThan(30)
+  })
+
+  it('answers 413 from Content-Length without reading the body', async () => {
+    let pulled = false
+    // highWaterMark 0: the stream must not pre-pull, so `pulled` only flips if someone reads.
+    const body = new ReadableStream<Uint8Array>(
+      {
+        pull(controller) {
+          pulled = true
+          controller.close()
+        },
+      },
+      { highWaterMark: 0 },
+    )
+
+    const response = await new TestVoiceController().stt(
+      new Request('http://x/api/voice/stt', {
+        method: 'POST',
+        body,
+        headers: {
+          'content-type': 'multipart/form-data; boundary=x',
+          'content-length': '104857600',
+        },
+        duplex: 'half',
+      } as RequestInit),
+    )
+
+    expect(response.status).toBe(413)
+    expect(pulled).toBe(false)
+  })
+
+  it('still passes a valid 1 MB upload to the transcriber', async () => {
+    const seen: number[] = []
+    class Spy extends VoiceControllerBase {
+      protected readonly config = config
+      protected override transcribe(input: SttInput) {
+        if (!(input.audio instanceof Blob)) throw new TypeError('expected a Blob')
+        seen.push(input.audio.size)
+        return Promise.resolve(new Response('ok'))
+      }
+    }
+    const form = new FormData()
+    form.set('audio', new Blob([new Uint8Array(1024 * 1024)], { type: 'audio/webm' }), 'a.webm')
+
+    const response = await new Spy().stt(
+      new Request('http://x/api/voice/stt', { method: 'POST', body: form }),
+    )
+
+    expect(response.status).toBe(200)
+    expect(seen).toEqual([1024 * 1024])
+  })
+
   it('answers 400 with a typed code when the multipart body carries no audio', async () => {
     const form = new FormData()
     form.set('language', 'pt')

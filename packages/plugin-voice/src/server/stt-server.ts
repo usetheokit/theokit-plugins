@@ -38,7 +38,7 @@ import { VoiceProviderError } from '../errors.js'
 import type { VoiceConfig } from '../options.js'
 
 /** Hard upper bound — Whisper REST refuses anything larger. */
-const MAX_BODY_BYTES = 25 * 1024 * 1024
+export const MAX_BODY_BYTES = 25 * 1024 * 1024
 
 const PROVIDER_URL: Record<VoiceConfig['stt']['provider'], string> = {
   openai: 'https://api.openai.com/v1/audio/transcriptions',
