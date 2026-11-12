@@ -283,6 +283,7 @@ export function enrollWakeWord(wakeWord: string, clips: AudioClip[]): WakeWordPr
 // Detection
 // ---------------------------------------------------------------------------
 
+/** Options for {@link createWakeWordDetector}. */
 export interface WakeWordDetectorOptions {
   profile: WakeWordProfile
   /** Called when the wake word is heard. */
@@ -291,12 +292,14 @@ export interface WakeWordDetectorOptions {
   cooldownMs?: number
 }
 
+/** Details of one wake-word detection, passed to `onWake`. */
 export interface WakeWordEvent {
   wakeWord: string
   /** DTW distance of the match; lower is closer. */
   score: number
 }
 
+/** A streaming wake-word detector returned by {@link createWakeWordDetector}. */
 export interface WakeWordDetector {
   /** Feed a chunk of mono microphone audio. Cheap to call on every audio callback. */
   feed(samples: Float32Array, sampleRate: number): void
@@ -370,6 +373,7 @@ export function createWakeWordDetector(opts: WakeWordDetectorOptions): WakeWordD
 // Browser helper
 // ---------------------------------------------------------------------------
 
+/** Options for {@link startWakeWordListener}. */
 export interface WakeWordListenerOptions {
   profile: WakeWordProfile
   /** Fired when the wake word is heard, before the recording starts. */
@@ -384,6 +388,7 @@ export interface WakeWordListenerOptions {
   cooldownMs?: number
 }
 
+/** Handle to a running microphone wake-word listener. */
 export interface WakeWordListener {
   /** Whether the microphone is currently being listened to. */
   listening(): boolean
