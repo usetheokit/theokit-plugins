@@ -14,6 +14,7 @@ import {
   processPaymentWebhook,
 } from '../src/dispatch.js'
 import { createMemoryStore } from '../src/idempotency-store.js'
+import { runIdempotently } from '../src/idempotent-dispatch.js'
 import {
   type PaymentEvent,
   type PaymentProvider,
@@ -241,5 +242,19 @@ describe('processPaymentWebhook', () => {
     expect(logged).toContain('***:***@')
     expect(logged).not.toContain('hunter2')
     consoleError.mockRestore()
+  })
+})
+
+describe('runIdempotently event id guard', () => {
+  it.each([['abacatepay:'], ['']])('refuses %j before touching the store', async (eventId) => {
+    const store = createMemoryStore()
+    const markProcessed = vi.spyOn(store, 'markProcessed')
+    const dispatch = vi.fn(() => Promise.resolve())
+    await expect(runIdempotently({ eventId, store, dispatch })).rejects.toMatchObject({
+      name: 'PaymentProviderError',
+      code: 'invalid_event_id',
+    })
+    expect(markProcessed).not.toHaveBeenCalled()
+    expect(dispatch).not.toHaveBeenCalled()
   })
 })
