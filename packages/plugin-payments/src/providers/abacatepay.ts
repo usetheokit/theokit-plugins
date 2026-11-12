@@ -58,6 +58,7 @@ import {
 
 const PROVIDER = 'abacatepay'
 const DEFAULT_BASE_URL = 'https://api.abacatepay.com/v2'
+const DEFAULT_TIMEOUT_MS = 10_000
 
 /**
  * The HMAC key AbacatePay signs with — and it is the constant their own
@@ -140,6 +141,12 @@ export interface AbacatePayProviderOptions {
   readonly methods?: readonly string[]
   /** Injection point for tests. Defaults to global `fetch`. */
   readonly fetchImpl?: FetchLike
+  /**
+   * Upper bound, in milliseconds, on each AbacatePay API call. A call that has not
+   * answered by then rejects with `PaymentProviderError` code `upstream_timeout`.
+   * Defaults to 10_000.
+   */
+  readonly timeoutMs?: number
 }
 
 /**
@@ -242,11 +249,19 @@ export function AbacatePayProvider(
   const baseUrl = (opts.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, '')
   const doFetch: FetchLike = opts.fetchImpl ?? ((input, init) => fetch(input, init))
 
+  const timeoutMs =
+    typeof opts.timeoutMs === 'number' && Number.isFinite(opts.timeoutMs) && opts.timeoutMs > 0
+      ? opts.timeoutMs
+      : DEFAULT_TIMEOUT_MS
+
   async function request<T>(path: string, init: RequestInit, code: string): Promise<T> {
     let res: Response
+    const timeoutSignal = AbortSignal.timeout(timeoutMs)
+    const signal = init.signal ? AbortSignal.any([timeoutSignal, init.signal]) : timeoutSignal
     try {
       res = await doFetch(`${baseUrl}${path}`, {
         ...init,
+        signal,
         headers: {
           authorization: `Bearer ${opts.apiKey}`,
           accept: 'application/json',
@@ -254,6 +269,14 @@ export function AbacatePayProvider(
         },
       })
     } catch (cause) {
+      if (timeoutSignal.aborted && !init.signal?.aborted) {
+        throw new PaymentProviderError(
+          PROVIDER,
+          'upstream_timeout',
+          `AbacatePay ${path} did not answer within ${timeoutMs} ms`,
+          cause,
+        )
+      }
       // A transport failure, not a refusal: the request never reached a decision.
       throw new PaymentProviderError(
         PROVIDER,

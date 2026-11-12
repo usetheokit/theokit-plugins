@@ -773,3 +773,39 @@ describe('AbacatePayProvider.verifyWebhook', () => {
     })
   })
 })
+
+describe('AbacatePayProvider timeout', () => {
+  const input = {
+    items: [{ name: 'x', quantity: 1, unitAmount: 100 }],
+    currency: 'BRL',
+    successUrl: 'https://shop.test/ok',
+    cancelUrl: 'https://shop.test/no',
+  } as unknown as Parameters<ReturnType<typeof AbacatePayProvider>['createCheckout']>[0]
+
+  it('rejects with upstream_timeout when the API never answers', async () => {
+    const fetchImpl: FetchLike = (_url, init) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new Error('aborted')))
+      })
+    const provider = AbacatePayProvider({ apiKey: API_KEY, fetchImpl, timeoutMs: 50 })
+    const err = await provider.createCheckout(input).catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(PaymentProviderError)
+    expect((err as PaymentProviderError).code).toBe('upstream_timeout')
+  })
+
+  it('passes an AbortSignal on every call', async () => {
+    const fetchImpl = makeFetch(() =>
+      jsonResponse({
+        data: { id: 'bill_1', url: 'https://pay.test/1', status: 'PENDING' },
+        error: null,
+      }),
+    )
+    const provider = AbacatePayProvider({ apiKey: API_KEY, fetchImpl })
+    await provider.createCheckout(input).catch(() => undefined)
+    await provider.retrieveCheckout('bill_1').catch(() => undefined)
+    expect(fetchImpl.mock.calls.length).toBeGreaterThan(0)
+    for (const call of fetchImpl.mock.calls) {
+      expect((call[1] as RequestInit).signal).toBeInstanceOf(AbortSignal)
+    }
+  })
+})
