@@ -43,6 +43,19 @@ export {
   type Recorder,
   type RecorderState,
 } from './recorder.js'
+export {
+  createWakeWordDetector,
+  enrollWakeWord,
+  startWakeWordListener,
+  type AudioClip,
+  type WakeWordDetector,
+  type WakeWordDetectorOptions,
+  type WakeWordEvent,
+  type WakeWordListener,
+  type WakeWordListenerOptions,
+  type WakeWordProfile,
+  type WakeWordTemplate,
+} from './wake-word.js'
 export type { VoiceConfig, VoiceOptions, ResolvedVoiceOptions } from './options.js'
 export {
   VoiceNoDeviceError,

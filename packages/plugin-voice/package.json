@@ -49,6 +49,7 @@
     }
   },
   "devDependencies": {
+    "@sparticuz/chromium": "^153.0.0",
     "@swc/core": "^1.7.0",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.0.0",
@@ -56,7 +57,9 @@
     "@theokit/http": "^2.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "esbuild": "^0.28.2",
     "jsdom": "^25.0.0",
+    "playwright-core": "^1.65.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "theokit": ">=0.50.1 || >=0.65.0-0 <0.66.0",
