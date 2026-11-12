@@ -43,6 +43,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `integration/`, which its seam tests hold at 0.48.x. Against 0.48.x the gate would have reported
   `parseRequestBody` missing from `theokit/server/http`, where 0.75.1 does export it.
 
+## 2026-11-12 (seventeenth cut)
+
+Two packages: `@theokit/plugin-email@0.3.1`, `@theokit/plugin-voice@0.12.0`.
+
+`@theokit/plugin-voice@0.12.0` adds an on-device wake-word detector: `enrollWakeWord`,
+`createWakeWordDetector` and `startWakeWordListener` spot an enrolled keyword in the microphone
+stream and start a recording, without sending audio to a provider before it fires. The README
+example now declares `clips` and compiles as written, and the detector and listener types carry
+their descriptions in the published declarations. `@theokit/plugin-email@0.3.1` changes only its
+test config: `@theokit/auth-magic-link` resolves to its source, so the magic-link seam test runs in
+coverage runs that do not build first. No runtime code changed in the email package.
+
 ## 2026-10-30 (sixteenth cut)
 
 Two packages: `@theokit/plugin-db-drizzle@0.6.2`, `@theokit/plugin-voice@0.11.2`.
