@@ -483,13 +483,6 @@ importers:
         version: 4.4.3
 
   packages/plugin-voice:
-    dependencies:
-      '@types/busboy':
-        specifier: ^1.5.4
-        version: 1.5.4
-      busboy:
-        specifier: ^1.6.0
-        version: 1.6.0
     devDependencies:
       '@sparticuz/chromium':
         specifier: ^153.0.0

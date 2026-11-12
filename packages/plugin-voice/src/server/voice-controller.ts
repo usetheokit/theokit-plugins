@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 import type { VoiceConfig } from '../options.js'
 
-import { handleSttRequest, type SttInput } from './stt-server.js'
+import { handleSttRequest, MAX_BODY_BYTES, type SttInput } from './stt-server.js'
 import { handleTtsRequest, type TtsInput } from './tts-server.js'
 
 /**
@@ -42,6 +42,45 @@ export const ttsInputSchema = z.object({
  * }
  * ```
  */
+/** Multipart framing and text fields allowed on top of the audio limit. */
+const MULTIPART_OVERHEAD_BYTES = 64 * 1024
+const MAX_REQUEST_BYTES = MAX_BODY_BYTES + MULTIPART_OVERHEAD_BYTES
+
+function tooLarge(): Response {
+  return Response.json(
+    { code: 'PAYLOAD_TOO_LARGE', message: 'request body exceeds the upload limit' },
+    { status: 413 },
+  )
+}
+
+/** Read the body up to `limit` bytes, cancelling the stream once it is passed. `null` means over. */
+async function readCappedBody(
+  request: Request,
+  limit: number,
+): Promise<Uint8Array<ArrayBuffer> | null> {
+  if (!request.body) return new Uint8Array(0)
+  const reader = request.body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > limit) {
+      await reader.cancel().catch(() => undefined)
+      return null
+    }
+    chunks.push(value)
+  }
+  const bytes = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return bytes
+}
+
 export abstract class VoiceControllerBase {
   /** Provider credentials and model choice. The application supplies them; the plugin never reads env. */
   protected abstract readonly config: VoiceConfig
@@ -55,9 +94,16 @@ export abstract class VoiceControllerBase {
    */
   @Post('stt')
   async stt(@Req() request: Request): Promise<Response> {
+    const declared = Number(request.headers.get('content-length'))
+    if (Number.isFinite(declared) && declared > MAX_REQUEST_BYTES) return tooLarge()
+
     let form: FormData
     try {
-      form = await request.formData()
+      const bytes = await readCappedBody(request, MAX_REQUEST_BYTES)
+      if (bytes === null) return tooLarge()
+      form = await new Response(bytes, {
+        headers: { 'content-type': request.headers.get('content-type') ?? '' },
+      }).formData()
     } catch {
       return Response.json(
         { code: 'INVALID_MULTIPART', message: 'expected a multipart/form-data body' },
