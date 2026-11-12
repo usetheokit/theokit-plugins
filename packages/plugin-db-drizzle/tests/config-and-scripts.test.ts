@@ -11,6 +11,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { buildDbCommands, renderDrizzleConfig } from '../src/cli/db.js'
+import { drizzleDb } from '../src/index.js'
 import { resolveOptions } from '../src/options.js'
 
 describe('renderDrizzleConfig', () => {
@@ -28,7 +29,24 @@ describe('renderDrizzleConfig', () => {
     expect(config).toContain('dialect: "postgresql"')
     expect(config).toContain('schema: "./src/db/schema.ts"')
     expect(config).toContain('out: "./src/db/migrations"')
-    expect(config).toContain('url: "postgres://user:pw@host:5432/app"') // trufflehog:ignore
+    expect(config).toContain('url: process.env["DATABASE_URL"]')
+  })
+
+  it('names the environment variable and never writes the url value (#259)', () => {
+    const config = renderDrizzleConfig(
+      drizzleDb({ driver: 'postgres', url: 'postgres://u:pw@h/db' }).options, // trufflehog:ignore
+    )
+    expect(config).toContain('process.env["DATABASE_URL"]')
+    expect(config).not.toContain('pw')
+    expect(config).not.toContain('postgres://u')
+  })
+
+  it('reads the variable named by urlEnv', () => {
+    const config = renderDrizzleConfig(
+      resolveOptions({ driver: 'postgres', url: 'postgres://u:pw@h/db', urlEnv: 'APP_DB_URL' }), // trufflehog:ignore
+    )
+    expect(config).toContain('process.env["APP_DB_URL"]')
+    expect(config).not.toContain('DATABASE_URL')
   })
 
   it('says it is generated, so nobody edits a file that is rewritten each run', () => {
@@ -41,16 +59,6 @@ describe('renderDrizzleConfig', () => {
     // A config missing `dbCredentials.url` fails deep inside drizzle-kit, where
     // the message names drizzle-kit rather than the setting the caller omitted.
     expect(() => renderDrizzleConfig(resolveOptions({ driver: 'sqlite' }))).toThrow(/url/i)
-  })
-
-  it('escapes a url that would otherwise break out of the string literal', () => {
-    // The config is generated source, so an unescaped quote in a password would
-    // produce a file that does not parse — or worse, one that runs.
-    const config = renderDrizzleConfig(
-      resolveOptions({ driver: 'postgres', url: 'postgres://u:a"b\\c@h/db' }),
-    )
-    expect(config).toContain(JSON.stringify('postgres://u:a"b\\c@h/db'))
-    expect(config).not.toMatch(/url: "postgres:\/\/u:a"b/)
   })
 })
 

@@ -22,8 +22,8 @@ export interface DbCommand {
    * How the runner executes this verb.
    *
    * - `"drizzle-kit"` — spawn `drizzle-kit` with `buildArgs()`.
-   * - `"drizzle-kit-with-config"` — `drizzle-kit` accepts ONLY `--config` for
-   *   this verb, measured against 0.31.10 (#48). The runner MUST write
+   * - `"drizzle-kit-with-config"` — the verb is driven ONLY through `--config`
+   *   (migrate/studio by drizzle-kit's grammar, #48; push so the URL stays off argv, #259). The runner MUST write
    *   `renderDrizzleConfig(opts)` to `opts.configPath` and then spawn. Skipping
    *   the write leaves `--config` pointing at nothing.
    * - `"user-script"` — run the user's script (`buildArgs()` returns its path);
@@ -48,6 +48,12 @@ export interface DbCommand {
    * has never had an effect, and a compile error is how a caller finds that out.
    */
   buildArgs(): string[]
+  /**
+   * Environment the caller MUST add to the spawned process: `{ [urlEnv]: url }`
+   * when a `url` was given, else `{}`. The generated config reads the URL from
+   * this variable, so the value never reaches a file or an argv.
+   */
+  readonly env: Readonly<Record<string, string>>
 }
 
 /** The canonical 7-verb set per plan ADR D3. */
@@ -75,6 +81,7 @@ export function buildDbCommands(opts: ResolvedDrizzleDbOptions): DbCommand[] {
     verb,
     summary: SUMMARIES[verb],
     kind: kindOf(verb),
+    env: opts.url === undefined ? {} : { [opts.urlEnv]: opts.url },
     // `reset` is destructive (drops the DB) — the runner must require --force.
     ...(verb === 'reset' ? { requiresForce: true } : {}),
     buildArgs: () => {
@@ -139,17 +146,16 @@ const DRIVER_TO_DIALECT: Record<DrizzleDriver, string> = {
  * a command line drizzle-kit refuses. `tests/integration/drizzle-kit-grammar.test.ts`
  * is what holds this table to the binary: it spawns the real one per verb.
  *
- * `migrate` and `studio` are deliberately absent — they accept `--config` ONLY,
+ * `migrate`, `studio` and `push` are deliberately absent — they run through `--config` ONLY (push so the URL never reaches an argv, #259),
  * so neither can be driven by flags at all. See § below.
  */
-const ACCEPTS: Partial<Record<DbVerb, ReadonlySet<'schema' | 'out' | 'dialect' | 'url'>>> = {
+const ACCEPTS: Partial<Record<DbVerb, ReadonlySet<'schema' | 'out' | 'dialect'>>> = {
   generate: new Set(['dialect', 'schema', 'out']),
-  push: new Set(['dialect', 'schema', 'url']),
   check: new Set(['dialect', 'out']),
 }
 
-/** Verbs drizzle-kit drives ONLY through `--config` — measured (#48). */
-const CONFIG_ONLY_VERBS: ReadonlySet<DbVerb> = new Set(['migrate', 'studio'])
+/** Verbs this plugin drives ONLY through `--config`: migrate/studio by drizzle-kit's grammar (#48), push to keep the URL off the argv (#259). */
+const CONFIG_ONLY_VERBS: ReadonlySet<DbVerb> = new Set(['migrate', 'studio', 'push'])
 
 /**
  * The `drizzle.config.ts` this plugin hands to the verbs that accept nothing
@@ -177,7 +183,7 @@ export function renderDrizzleConfig(opts: ResolvedDrizzleDbOptions): string {
     `  dialect: ${JSON.stringify(DRIVER_TO_DIALECT[opts.driver])},`,
     `  schema: ${JSON.stringify(opts.schemaPath)},`,
     `  out: ${JSON.stringify(opts.migrationsPath)},`,
-    `  dbCredentials: { url: ${JSON.stringify(opts.url)} },`,
+    `  dbCredentials: { url: process.env[${JSON.stringify(opts.urlEnv)}] },`,
     '})',
     '',
   ].join('\n')
@@ -203,8 +209,7 @@ function baseArgs(verb: DbVerb, opts: ResolvedDrizzleDbOptions): string[] {
     )
   }
   const args: string[] = [verb]
-  // Order follows drizzle-kit's own help output. Each flag is conditional on its
-  // source being set — pushing `--url undefined` would corrupt the arg vector.
+  // Order follows drizzle-kit's own help output.
   if (accepts.has('dialect') && opts.driver !== undefined) {
     args.push('--dialect', DRIVER_TO_DIALECT[opts.driver])
   }
@@ -213,9 +218,6 @@ function baseArgs(verb: DbVerb, opts: ResolvedDrizzleDbOptions): string[] {
   }
   if (accepts.has('out')) {
     args.push('--out', opts.migrationsPath)
-  }
-  if (accepts.has('url') && opts.url !== undefined) {
-    args.push('--url', opts.url)
   }
   return args
 }
