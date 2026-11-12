@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0
+
+### Minor Changes
+
+- b66481f: Bound the token, userinfo and email calls with a `timeoutMs` option (default 10000). A timeout rejects with the package's auth error and `code: 'upstream_timeout'`.
+
+### Patch Changes
+
+- 02a07b0: Mark the README `timeoutMs` example as a partial snippet so the documentation example check passes.
+
 ## 0.6.0
 
 ### Minor Changes

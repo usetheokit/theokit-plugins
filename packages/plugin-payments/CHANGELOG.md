@@ -1,5 +1,15 @@
 # @theokit/plugin-payments
 
+## 0.9.0
+
+### Minor Changes
+
+- 2ecfaa6: Bound AbacatePay API calls with a new `timeoutMs` option (default 10000 ms). A timeout rejects with `PaymentProviderError` code `upstream_timeout`.
+
+### Patch Changes
+
+- d9b01e5: Refuse an AbacatePay webhook without a usable `id` as `malformed_webhook_body` instead of deduplicating it against every other id-less event, and make `runIdempotently` reject an empty or suffix-less event id.
+
 ## 0.8.2
 
 ### Patch Changes
