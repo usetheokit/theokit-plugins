@@ -38,24 +38,15 @@ export class GoogleAuthError extends Error {
 
 const DEFAULT_TIMEOUT_MS = 10_000
 
-/** `fetch` bounded by `timeoutMs`; a timeout becomes `GoogleAuthError('upstream_timeout')`. */
-async function fetchWithTimeout(
-  what: string,
-  url: string,
-  init: RequestInit,
-  timeoutMs: number,
-): Promise<Response> {
-  try {
-    return await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) })
-  } catch (err) {
-    if (err instanceof Error && err.name === 'TimeoutError') {
-      throw new GoogleAuthError(
+/** Turns an aborted-by-deadline fetch into `GoogleAuthError('upstream_timeout')`; other errors pass through. */
+function asUpstreamError(err: unknown, endpoint: string, limitMs: number): unknown {
+  const timedOut = err instanceof Error && err.name === 'TimeoutError'
+  return timedOut
+    ? new GoogleAuthError(
         'upstream_timeout',
-        `Google ${what} did not answer within ${timeoutMs} ms`,
+        `Google ${endpoint} did not answer within ${limitMs} ms`,
       )
-    }
-    throw err
-  }
+    : err
 }
 
 interface TokenResponse {
@@ -270,16 +261,14 @@ export function google(opts: GoogleProviderOptions): Omit<
         code_verifier: tx.pkceVerifier,
       })
       const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
-      const tokenRes = await fetchWithTimeout(
-        'token endpoint',
-        metadata.token_endpoint,
-        {
-          method: 'POST',
-          headers: { 'content-type': 'application/x-www-form-urlencoded' },
-          body: tokenBody.toString(),
-        },
-        timeoutMs,
-      )
+      const tokenRes = await fetch(metadata.token_endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: tokenBody.toString(),
+        signal: AbortSignal.timeout(timeoutMs),
+      }).catch((err: unknown) => {
+        throw asUpstreamError(err, 'token endpoint', timeoutMs)
+      })
       if (!tokenRes.ok) {
         throw new GoogleAuthError(
           'token_exchange_failed',
@@ -304,12 +293,12 @@ export function google(opts: GoogleProviderOptions): Omit<
       // #192: validate the userinfo endpoint before sending the access token to
       // it — a poisoned http userinfo_endpoint would leak the bearer token.
       assertSafeOidcUrl(metadata.userinfo_endpoint, 'discovered userinfo_endpoint')
-      const userRes = await fetchWithTimeout(
-        'userinfo endpoint',
-        metadata.userinfo_endpoint,
-        { headers: { authorization: `Bearer ${tokens.access_token}` } },
-        timeoutMs,
-      )
+      const userRes = await fetch(metadata.userinfo_endpoint, {
+        headers: { authorization: `Bearer ${tokens.access_token}` },
+        signal: AbortSignal.timeout(timeoutMs),
+      }).catch((err: unknown) => {
+        throw asUpstreamError(err, 'userinfo endpoint', timeoutMs)
+      })
       if (!userRes.ok) {
         throw new GoogleAuthError(
           'userinfo_fetch_failed',
