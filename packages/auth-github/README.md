@@ -193,6 +193,8 @@ When `scopes` omits `user:email`, the second fetch is skipped entirely.
 
 Every call to GitHub's token and userinfo endpoints (and `/user/emails`) is bounded by `timeoutMs` (default `10000`). A call that does not answer in time rejects with a `GitHubAuthError` whose `code` is `upstream_timeout`. Other network errors propagate unchanged.
 
+<!-- doc-example: partial -->
+
 ```ts
 github({ /* ... */ timeoutMs: 5_000 })
 ```
