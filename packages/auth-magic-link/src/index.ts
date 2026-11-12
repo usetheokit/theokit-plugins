@@ -182,14 +182,14 @@ async function defaultResolveEmail(
 
 function validateEmail(email: string | null): string {
   if (!email || !email.trim()) {
-    throw new MagicLinkConfigError(
+    throw new MagicLinkAuthError(
       'invalid_email',
       'Magic-link sign-in requires an email field in the request',
     )
   }
   const normalized = email.toLowerCase().trim()
   if (!EMAIL_GUARD.test(normalized)) {
-    throw new MagicLinkConfigError(
+    throw new MagicLinkAuthError(
       'invalid_email',
       `Email "${normalized}" failed basic shape validation`,
     )
