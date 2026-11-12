@@ -210,6 +210,8 @@ The provider will route OIDC discovery to the local sidecar instead of `accounts
 
 Every call to Google's token and userinfo endpoints is bounded by `timeoutMs` (default `10000`). A call that does not answer in time rejects with a `GoogleAuthError` whose `code` is `upstream_timeout`. Other network errors propagate unchanged.
 
+<!-- doc-example: partial -->
+
 ```ts
 google({ /* ... */ timeoutMs: 5_000 })
 ```
