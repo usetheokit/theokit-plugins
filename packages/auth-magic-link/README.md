@@ -263,7 +263,7 @@ interface MagicLinkProfile {
 }
 ```
 
-Per plan v1.1 EC-12 (SHOULD TEST absorbed): email is validated at the start-sign-in boundary (regex + non-empty). Malformed emails throw `MagicLinkConfigError(code: 'invalid_email')` BEFORE any token is created or stored.
+Per plan v1.1 EC-12 (SHOULD TEST absorbed): email is validated at the start-sign-in boundary (regex + non-empty). Malformed emails throw `MagicLinkAuthError(code: 'invalid_email')` BEFORE any token is created or stored.
 
 ## Token lifecycle
 
@@ -276,7 +276,7 @@ Per plan v1.1 EC-12 (SHOULD TEST absorbed): email is validated at the start-sign
 
 | Error                  | Code                       | Likely cause                                                                                  |
 | ---------------------- | -------------------------- | --------------------------------------------------------------------------------------------- |
-| `MagicLinkConfigError` | `invalid_email`            | Empty / malformed email field in start-sign-in request                                        |
+| `MagicLinkAuthError`   | `invalid_email`            | Empty / malformed email field in start-sign-in request                                        |
 | `MagicLinkAuthError`   | `missing_token`            | Callback URL lacks `?token=`                                                                  |
 | `MagicLinkAuthError`   | `invalid_or_expired_token` | Token unknown, expired (>15min), or already consumed                                          |
 | `MagicLinkConfigError` | `use_start_sign_in`        | App accidentally called `provider.createAuthorizationURL` (magic-link doesn't use OAuth flow) |
