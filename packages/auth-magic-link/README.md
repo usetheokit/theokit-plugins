@@ -143,45 +143,47 @@ The default `resolveEmail` reads `?email=` from the URL OR the `email` field fro
 
 ## Production stores
 
-### `@theokit/orm` adapter
+### Drizzle adapter
 
-<!-- doc-example: needs="@theokit/orm" partial -->
+`createOrmStore` takes a small repository you write over your own database. `@theokit/orm`'s `Repository` has no atomic conditional update, so the consume step goes through your Drizzle `db`. This adapter is compiled and run against SQLite by `tests/fixtures/drizzle-adapter.ts`.
+
+<!-- doc-example: needs="drizzle-orm" partial -->
 
 ```ts
-import { defineEntity, BaseEntity } from '@theokit/orm'
+import { and, eq, isNull, lte } from 'drizzle-orm'
+import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { createOrmStore } from '@theokit/auth-magic-link'
 
-class MagicLinkRow extends BaseEntity {
-  static __entity__ = defineEntity({
-    name: 'magic_link_tokens',
-    columns: {
-      token: { type: 'string', primary: true, length: 64 },
-      email: { type: 'string', length: 320, index: true },
-      expiresAt: { type: 'datetime', index: true },
-      consumedAt: { type: 'datetime', nullable: true },
-    },
-  })
-}
+const magicLinkTokens = sqliteTable('magic_link_tokens', {
+  token: text('token').primaryKey(),
+  email: text('email').notNull(),
+  expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+  consumedAt: integer('consumed_at', { mode: 'timestamp_ms' }),
+})
 
-const repo = orm.getRepository(MagicLinkRow)
-
+// `db` is your Drizzle database.
 const store = createOrmStore({
   async insert(row) {
-    await repo.create(row)
+    await db.insert(magicLinkTokens).values(row)
   },
   async consumeAtomically(token, now) {
-    // Postgres UPDATE...RETURNING + WHERE consumed_at IS NULL guarantees single-use
-    const rows = await repo.query(
-      `UPDATE magic_link_tokens SET consumed_at = $2 WHERE token = $1 AND consumed_at IS NULL RETURNING email, expires_at`,
-      [token, now],
-    )
+    // One UPDATE ... WHERE consumed_at IS NULL RETURNING guarantees single use
+    const rows = await db
+      .update(magicLinkTokens)
+      .set({ consumedAt: now })
+      .where(and(eq(magicLinkTokens.token, token), isNull(magicLinkTokens.consumedAt)))
+      .returning({ email: magicLinkTokens.email, expiresAt: magicLinkTokens.expiresAt })
     return rows[0] ?? null
   },
   async delete(token) {
-    await repo.deleteOne({ token })
+    await db.delete(magicLinkTokens).where(eq(magicLinkTokens.token, token))
   },
   async deleteExpired(now) {
-    return repo.deleteWhere(`expires_at <= $1`, [now])
+    const rows = await db
+      .delete(magicLinkTokens)
+      .where(lte(magicLinkTokens.expiresAt, now))
+      .returning()
+    return rows.length
   },
 })
 ```
