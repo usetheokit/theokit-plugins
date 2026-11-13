@@ -8,7 +8,7 @@
  * Plugin ships:
  *   - `IdempotencyStore` interface (consumer-implementable)
  *   - `createMemoryStore()` — dev/test default (single-process; not multi-replica safe)
- *   - `createOrmStore(repo)` — production-grade via @theokit/orm Repository
+ *   - `createOrmStore(repo)` — production-grade over a repository you supply, for example over Drizzle
  *     (atomic UNIQUE event_id INSERT detects duplicates)
  */
 
@@ -82,10 +82,9 @@ export function createMemoryStore(): IdempotencyStore {
 
 /**
  * Minimal Repository surface needed by `createOrmStore`. Structural so the
- * plugin doesn't take a peerDep on a specific @theokit/orm version's exported
- * Repository<T> generic.
+ * plugin doesn't take a peerDep on any ORM.
  *
- * Consumer provides an object that wraps a drizzle Repository configured for
+ * Consumer provides an object that wraps your database (for example Drizzle) configured for
  * the `webhook_events` table with `event_id` UNIQUE.
  */
 export interface IdempotencyRepository {
@@ -104,7 +103,7 @@ export interface IdempotencyRepository {
 }
 
 /**
- * Production-grade idempotency store backed by an @theokit/orm Repository.
+ * Production-grade idempotency store backed by a repository you supply, for example over Drizzle.
  *
  * Schema recommendation for consumers (see README for migration SQL):
  *

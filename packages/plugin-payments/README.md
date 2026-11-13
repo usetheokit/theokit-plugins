@@ -151,8 +151,8 @@ pnpm add @theokit/plugin-payments
 # + Stripe
 pnpm add @theokit/plugin-payments stripe
 
-# production idempotency via @theokit/orm
-pnpm add @theokit/orm drizzle-orm reflect-metadata
+# production idempotency over Drizzle
+pnpm add drizzle-orm
 ```
 
 ## Multi-provider in practice
@@ -397,7 +397,7 @@ registry.register(
     // event is typed as Stripe.CheckoutSessionCompletedEvent
     const session = event.data.object
     console.log('Customer:', session.customer)
-    // ...persist to your DB via @theokit/orm Repository
+    // ...persist to your DB through your database layer
   }),
 )
 
@@ -464,14 +464,13 @@ export async function startCheckout() {
 
 ## Idempotency in production
 
-The memory store ships as default but is **not multi-replica safe**. For production, swap it for the orm-backed store:
+The memory store ships as default but is **not multi-replica safe**. For production, swap it for a database-backed store:
 
-<!-- doc-example: needs="@theokit/orm" partial -->
+<!-- doc-example: needs="drizzle-orm" partial -->
 
 ```ts
 import { createOrmStore } from '@theokit/plugin-payments'
 import { stripePayments } from '@theokit/plugin-payments/stripe'
-import { OrmModule, Repository } from '@theokit/orm'
 
 // Schema (drizzle):
 // CREATE TABLE webhook_events (

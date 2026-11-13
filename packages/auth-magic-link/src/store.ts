@@ -77,10 +77,10 @@ export function createMemoryStore(): MagicLinkStore {
 }
 
 /**
- * Minimal Repository interface that a @theokit/orm Repository satisfies.
- * Apps using @theokit/orm pass `orm.getRepository(MagicLinkRow)` directly.
- * The store does NOT depend on @theokit/orm at type level — any adapter
- * satisfying this surface works (Drizzle, Prisma, hand-rolled SQL).
+ * Minimal repository interface the store needs. The caller writes it over their
+ * own database (Drizzle, Prisma, hand-rolled SQL); the README shows a Drizzle
+ * adapter. `@theokit/orm`'s `Repository` has no atomic conditional update, so it
+ * cannot implement `consumeAtomically` by itself.
  */
 export interface MagicLinkRepository {
   insert(row: {
