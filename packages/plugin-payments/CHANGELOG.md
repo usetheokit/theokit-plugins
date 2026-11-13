@@ -1,5 +1,11 @@
 # @theokit/plugin-payments
 
+## 0.9.1
+
+### Patch Changes
+
+- e85f787: The production store example and docblocks no longer name `@theokit/orm` APIs that do not exist. The magic-link README now shows a Drizzle adapter that keeps the single-statement atomic consume, and it is covered by a test over a real SQLite database.
+
 ## 0.9.0
 
 ### Minor Changes
