@@ -1,5 +1,11 @@
 # @theokit/plugin-db-drizzle
 
+## 0.7.0
+
+### Minor Changes
+
+- 4b5038b: Stop writing the database URL into the generated config and the `push` argv. The generated `drizzle.config.ts` now reads `process.env[urlEnv]` (new option, default `DATABASE_URL`), `push` runs through `--config` like `migrate` and `studio`, and every command carries an `env` field the caller must pass to the spawned process.
+
 ## 0.6.2
 
 ### Patch Changes
