@@ -34,16 +34,12 @@
 import type { Buffer } from 'node:buffer'
 import { randomUUID } from 'node:crypto'
 
-import { VoiceProviderError } from '../errors.js'
+import { VoiceInputError, VoiceProviderError } from '../errors.js'
 import type { VoiceConfig } from '../options.js'
 
-/** Hard upper bound — Whisper REST refuses anything larger. */
-export const MAX_BODY_BYTES = 25 * 1024 * 1024
+import { MAX_BODY_BYTES, transcribeDetailed, truncate, type TranscribeAudio } from './transcribe.js'
 
-const PROVIDER_URL: Record<VoiceConfig['stt']['provider'], string> = {
-  openai: 'https://api.openai.com/v1/audio/transcriptions',
-  groq: 'https://api.groq.com/openai/v1/audio/transcriptions',
-}
+export { MAX_BODY_BYTES }
 
 export type SttAudio =
   | Blob
@@ -88,14 +84,6 @@ export interface SttHandlerOptions {
   signal?: AbortSignal
 }
 
-/** Default upstream timeout (#211, ADR D8). */
-const DEFAULT_TIMEOUT_MS = 30_000
-
-/** True when an error is an abort/timeout (vs a genuine network failure). */
-function isAbortLike(err: unknown): boolean {
-  return err instanceof DOMException && (err.name === 'AbortError' || err.name === 'TimeoutError')
-}
-
 /** A successful transcription: the text, the language actually used, and the audio's duration. */
 export interface SttResponseBody {
   transcript: string
@@ -116,37 +104,24 @@ export async function handleSttRequest(
   config: VoiceConfig['stt'],
   opts: SttHandlerOptions = {},
 ): Promise<Response> {
-  // #182/#188: behavior-preserving extraction into named helpers to keep this
-  // orchestrator's cyclomatic complexity low. Each helper owns one concern.
-  const fetchImpl = opts.fetchImpl ?? globalThis.fetch
-
-  const audioBlob = validateSttAudio(input.audio)
-  if (audioBlob instanceof Response) return audioBlob
-
-  const filename = pickFilename(input.audio) ?? 'audio.webm'
-  const upstreamForm = buildSttForm(audioBlob, filename, config.model, input)
-
+  const audio = toTranscribeAudio(input.audio)
   const startedAt = Date.now()
-  let upstream: Response
+  let detail
   try {
-    upstream = await fetchImpl(PROVIDER_URL[config.provider], {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${config.apiKey}` },
-      body: upstreamForm,
-      signal: composeUpstreamSignal(opts),
+    detail = await transcribeDetailed(audio, config, {
+      ...(input.language !== undefined ? { language: input.language } : {}),
+      ...(input.prompt !== undefined ? { prompt: input.prompt } : {}),
+      ...(opts.timeoutMs !== undefined ? { timeoutMs: opts.timeoutMs } : {}),
+      ...(opts.signal !== undefined ? { signal: opts.signal } : {}),
+      ...(opts.fetchImpl !== undefined ? { fetchImpl: opts.fetchImpl } : {}),
     })
   } catch (err) {
-    return mapSttFetchError(err, config.provider)
+    return errorToResponse(err, config.provider)
   }
   const durationMs = Date.now() - startedAt
 
-  if (!upstream.ok) return rejectSttUpstream(upstream, config.provider)
-
-  const parsed = await parseSttJson(upstream, config.provider)
-  if (parsed instanceof Response) return parsed
-
-  const body: SttResponseBody = { transcript: parsed.text ?? '', durationMs }
-  if (parsed.language !== undefined) body.language = parsed.language
+  const body: SttResponseBody = { transcript: detail.text, durationMs }
+  if (detail.language !== undefined) body.language = detail.language
 
   return new Response(JSON.stringify(body), {
     status: 200,
@@ -158,104 +133,45 @@ export async function handleSttRequest(
   })
 }
 
-/** Validate + normalize the audio to a Blob, or return a 400 Response (#182). */
-function validateSttAudio(audio: SttAudio): Blob | Response {
-  const audioBlob = toBlob(audio)
-  if (audioBlob === null) return jsonError(400, 'INVALID_AUDIO', 'Missing audio input.')
-  if (audioBlob.size === 0) return jsonError(400, 'INVALID_AUDIO', 'Audio payload is empty.')
-  if (audioBlob.size > MAX_BODY_BYTES) {
-    return jsonError(
-      400,
-      'INVALID_AUDIO',
-      `Audio payload (${audioBlob.size} bytes) exceeds the ${Math.floor(MAX_BODY_BYTES / 1024 / 1024)} MB Whisper limit. Chunk the recording client-side.`,
-    )
+/** Map a thrown voice error back to the status/body the handler has always answered with. */
+function errorToResponse(err: unknown, provider: string): Response {
+  if (err instanceof VoiceInputError) return jsonError(400, err.code, err.message)
+  if (err instanceof VoiceProviderError) {
+    switch (err.code) {
+      case 'UPSTREAM_TIMEOUT':
+        return jsonError(504, err.code, err.message)
+      case 'UPSTREAM_ERROR': {
+        // #214: log the raw upstream body server-side; return a generic client error.
+        const correlationId = randomUUID()
+        console.error(
+          `[voice:stt] upstream ${provider} returned ${err.status} [ref ${correlationId}]: ${truncate(err.upstreamBody ?? '', 500)}`,
+        )
+        return jsonError(
+          err.status >= 500 ? 502 : err.status,
+          'UPSTREAM_ERROR',
+          `Upstream ${provider} returned an error (status ${err.status}). Reference: ${correlationId}`,
+        )
+      }
+      default:
+        return jsonError(502, err.code ?? 'UPSTREAM_ERROR', err.message)
+    }
   }
-  return audioBlob
+  throw err
 }
 
-/** Assemble the Whisper multipart form. */
-function buildSttForm(audioBlob: Blob, filename: string, model: string, input: SttInput): FormData {
-  const form = new FormData()
-  form.append('file', audioBlob, filename)
-  form.append('model', model)
-  form.append('response_format', 'json')
-  if (input.language !== undefined && input.language.length > 0)
-    form.append('language', input.language)
-  if (input.prompt !== undefined && input.prompt.length > 0) form.append('prompt', input.prompt)
-  return form
-}
-
-/** #211: compose the per-request timeout with the caller's abort signal. */
-function composeUpstreamSignal(opts: { timeoutMs?: number; signal?: AbortSignal }): AbortSignal {
-  const timeoutSignal = AbortSignal.timeout(opts.timeoutMs ?? DEFAULT_TIMEOUT_MS)
-  return opts.signal !== undefined ? AbortSignal.any([opts.signal, timeoutSignal]) : timeoutSignal
-}
-
-/** #211: map an upstream fetch rejection to 504 (abort/timeout) or 502 (network). */
-function mapSttFetchError(err: unknown, provider: VoiceConfig['stt']['provider']): Response {
-  if (isAbortLike(err)) {
-    return jsonError(
-      504,
-      'UPSTREAM_TIMEOUT',
-      `Upstream ${provider} Whisper did not respond within the timeout.`,
-    )
+/** Normalise the handler's audio shapes to {@link TranscribeAudio}. */
+function toTranscribeAudio(audio: SttAudio): TranscribeAudio {
+  const filename = pickFilename(audio) ?? 'audio.webm'
+  if (audio === null || audio === undefined) {
+    return { data: undefined as unknown as Blob, mediaType: 'audio/webm', filename }
   }
-  const wrapped = new VoiceProviderError(
-    provider,
-    0,
-    `Network failure calling ${provider} Whisper: ${err instanceof Error ? err.message : 'unknown'}`,
-    { cause: err },
-  )
-  return jsonError(502, 'UPSTREAM_NETWORK', wrapped.message)
-}
-
-/** #214: log the raw upstream body server-side; return a generic client error. */
-async function rejectSttUpstream(
-  upstream: Response,
-  provider: VoiceConfig['stt']['provider'],
-): Promise<Response> {
-  const bodyText = await upstream.text().catch(() => '')
-  const correlationId = randomUUID()
-  console.error(
-    `[voice:stt] upstream ${provider} returned ${upstream.status} [ref ${correlationId}]: ${truncate(bodyText, 500)}`,
-  )
-  return jsonError(
-    upstream.status >= 500 ? 502 : upstream.status,
-    'UPSTREAM_ERROR',
-    `Upstream ${provider} returned an error (status ${upstream.status}). Reference: ${correlationId}`,
-  )
-}
-
-/** Parse the Whisper JSON body, or return a 502 Response on malformed JSON. */
-async function parseSttJson(
-  upstream: Response,
-  provider: VoiceConfig['stt']['provider'],
-): Promise<{ text?: string; language?: string } | Response> {
-  try {
-    return (await upstream.json()) as { text?: string; language?: string }
-  } catch (err) {
-    return jsonError(
-      502,
-      'UPSTREAM_PARSE',
-      `Upstream ${provider} returned invalid JSON: ${err instanceof Error ? err.message : 'unknown'}`,
-    )
+  if (audio instanceof Blob) return { data: audio, mediaType: audio.type, filename }
+  const obj = audio as { buffer?: Buffer | Uint8Array | ArrayBuffer; mimeType?: string }
+  return {
+    data: (obj.buffer ?? undefined) as unknown as Uint8Array,
+    mediaType: obj.mimeType ?? 'audio/webm',
+    filename,
   }
-}
-
-function toBlob(audio: SttAudio): Blob | null {
-  if (audio === null || audio === undefined) return null
-  if (audio instanceof Blob) return audio
-  const obj = audio as { buffer: Buffer | Uint8Array | ArrayBuffer; mimeType?: string }
-  if (obj.buffer === undefined || obj.buffer === null) return null
-  // Copy into a fresh ArrayBuffer-backed Uint8Array. The TS lib for
-  // Blob requires `BlobPart` (ArrayBuffer | TypedArray<ArrayBuffer>),
-  // and `Uint8Array<ArrayBufferLike>` (Node Buffer subtype) does not
-  // satisfy that constraint under TS 5.9. The slice() is cheap given
-  // the 25 MB hard cap enforced upstream.
-  const src: Uint8Array | ArrayBuffer = obj.buffer
-  const ab = new ArrayBuffer(src.byteLength)
-  new Uint8Array(ab).set(src instanceof ArrayBuffer ? new Uint8Array(src) : src)
-  return new Blob([ab], { type: obj.mimeType ?? 'audio/webm' })
 }
 
 function pickFilename(audio: SttAudio): string | undefined {
@@ -272,8 +188,4 @@ function jsonError(status: number, code: string, message: string): Response {
     status,
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
   })
-}
-
-function truncate(s: string, n: number): string {
-  return s.length <= n ? s : `${s.slice(0, n - 1)}…`
 }
