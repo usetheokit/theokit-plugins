@@ -17,8 +17,18 @@ export interface DrizzleDbOptions {
   /**
    * Connection URL. The package never reads `process.env.DATABASE_URL`; pass
    * it here. `renderDrizzleConfig` throws when it is missing.
+   *
+   * The value is never written: not into the generated config and not into any
+   * argv. It only proves a URL is available and is returned in each command's
+   * `env` under the name `urlEnv`, for the caller to export when spawning.
    */
   url?: string
+  /**
+   * Name of the environment variable the generated config reads the URL from
+   * (`process.env[urlEnv]`, evaluated when drizzle-kit loads the file).
+   * Default: `'DATABASE_URL'`.
+   */
+  urlEnv?: string
   /**
    * Path to the user's schema file (consumed by drizzle-kit).
    * Default: `./db/schema.ts`.
@@ -62,7 +72,8 @@ export interface DrizzleDbOptions {
    * options and points the verb at it. Default: `./.theokit/drizzle.config.ts`.
    *
    * The file is rewritten on every run and is not meant to be edited or
-   * committed — add `.theokit/` to `.gitignore`.
+   * committed — add `.theokit/` to `.gitignore`. It names `urlEnv`; it never
+   * holds the URL itself.
    */
   configPath?: string
 }
@@ -74,6 +85,7 @@ export interface DrizzleDbOptions {
 export interface ResolvedDrizzleDbOptions {
   readonly driver: DrizzleDriver | undefined
   readonly url: string | undefined
+  readonly urlEnv: string
   readonly schemaPath: string
   readonly migrationsPath: string
   readonly devtoolsTab: boolean
@@ -101,6 +113,7 @@ export function resolveOptions(opts: DrizzleDbOptions): ResolvedDrizzleDbOptions
   return {
     driver: opts.driver,
     url: opts.url,
+    urlEnv: opts.urlEnv ?? 'DATABASE_URL',
     schemaPath: opts.schemaPath ?? DEFAULT_SCHEMA_PATH,
     migrationsPath: opts.migrationsPath ?? DEFAULT_MIGRATIONS_PATH,
     devtoolsTab: opts.devtoolsTab ?? true,

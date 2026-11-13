@@ -55,7 +55,7 @@ describe('buildDbCommands (P#5 T2.1) — 7 verbs', () => {
       schemaPath: './custom/schema.ts',
     })
 
-    const takesSchema = new Set<DbVerb>(['generate', 'push'])
+    const takesSchema = new Set<DbVerb>(['generate'])
     for (const cmd of buildDbCommands(opts).filter((c) => c.kind !== 'user-script')) {
       const args = cmd.buildArgs()
       expect(args[0]).toBe(cmd.verb)
@@ -112,40 +112,42 @@ describe('buildDbCommands (P#5 T2.1) — 7 verbs', () => {
     const opts = resolveOptions({ driver: 'sqlite', url: 'file:app.db' })
     const kind = (v: DbVerb) => buildDbCommands(opts).find((c) => c.verb === v)?.kind
 
-    for (const verb of ['generate', 'push', 'check'] as DbVerb[]) {
+    for (const verb of ['generate', 'check'] as DbVerb[]) {
       expect(kind(verb), `${verb} is driven by flags`).toBe('drizzle-kit')
     }
-    for (const verb of ['migrate', 'studio'] as DbVerb[]) {
-      expect(kind(verb), `${verb} accepts only --config`).toBe('drizzle-kit-with-config')
+    for (const verb of ['migrate', 'studio', 'push'] as DbVerb[]) {
+      expect(kind(verb), `${verb} runs only through --config`).toBe('drizzle-kit-with-config')
     }
     for (const verb of ['seed', 'reset'] as DbVerb[]) {
       expect(kind(verb), `drizzle-kit has no ${verb} subcommand`).toBe('user-script')
     }
   })
 
-  it('forwards --url only to push, the one verb that accepts it (#48)', () => {
-    // `migrate`/`studio` reject --url and --dialect (config-only); `check` takes
-    // --dialect but not --url. Only `push` takes both.
-    const opts = resolveOptions({ driver: 'postgres', url: 'postgres://h/db' })
-    const argsOf = (v: DbVerb) =>
-      buildDbCommands(opts)
-        .find((c) => c.verb === v)!
-        .buildArgs()
+  it('never puts --url or the url value in any verb argv (#259)', () => {
+    const url = 'postgres://u:pw@h/db' // trufflehog:ignore
+    const opts = resolveOptions({ driver: 'postgres', url })
+    for (const cmd of buildDbCommands(opts)) {
+      if (cmd.kind === 'user-script') continue
+      const args = cmd.buildArgs()
+      expect(args, `${cmd.verb} argv`).not.toContain('--url')
+      expect(args.join(' '), `${cmd.verb} argv`).not.toContain('pw')
+    }
+    const push = buildDbCommands(opts)
+      .find((c) => c.verb === 'push')!
+      .buildArgs()
+    expect(push).toEqual(['push', '--config', opts.configPath])
+  })
 
-    const push = argsOf('push')
-    expect(push).toContain('--dialect')
-    expect(push).toContain('postgresql') // driver → dialect mapped (NOT --driver)
-    expect(push).toContain('--url')
-    expect(push).toContain('postgres://h/db')
-
-    // `check` takes the dialect, never the url.
-    expect(argsOf('check')).toContain('--dialect')
-    expect(argsOf('check')).not.toContain('--url')
-
-    // The connection reaches the config-only verbs through the rendered config.
-    for (const verb of ['migrate', 'studio'] as DbVerb[]) {
-      expect(argsOf(verb)).not.toContain('--url')
-      expect(argsOf(verb)).toContain('--config')
+  it('hands the url to the caller as env under urlEnv instead (#259)', () => {
+    const url = 'postgres://u:pw@h/db' // trufflehog:ignore
+    for (const cmd of buildDbCommands(resolveOptions({ driver: 'postgres', url }))) {
+      expect(cmd.env).toEqual({ DATABASE_URL: url })
+    }
+    for (const cmd of buildDbCommands(resolveOptions({ driver: 'postgres', url, urlEnv: 'X' }))) {
+      expect(cmd.env).toEqual({ X: url })
+    }
+    for (const cmd of buildDbCommands(resolveOptions({ driver: 'postgres' }))) {
+      expect(cmd.env).toEqual({})
     }
   })
 
@@ -164,13 +166,10 @@ describe('buildDbCommands (P#5 T2.1) — 7 verbs', () => {
 
   it('omits --url when url is undefined (no corrupt arg vector)', () => {
     const opts = resolveOptions({ driver: 'sqlite' }) // url omitted
-    // `push` is the verb that carries --url now; `migrate` is config-only (#48).
     const args = buildDbCommands(opts)
       .find((c) => c.verb === 'push')!
       .buildArgs()
     expect(args).not.toContain('--url')
-    expect(args).toContain('--dialect')
-    expect(args).toContain('sqlite')
   })
 
   it('test_reset_requires_force', () => {
