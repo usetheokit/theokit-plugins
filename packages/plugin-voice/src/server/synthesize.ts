@@ -29,6 +29,7 @@ const MEDIA_TYPES: Record<SynthesizeFormat, string> = {
   wav: 'audio/wav',
 }
 
+/** Per-call options for `synthesize()`: voice, speed, output format, timeout, abort signal and fetch seam. */
 export interface SynthesizeOptions {
   readonly voice?: string
   /** Playback speed multiplier, [0.25, 4.0]. */
