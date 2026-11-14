@@ -12,13 +12,12 @@
  *   - Allowed voices come from the OpenAI tts-1 closed enum → 400 INVALID_VOICE.
  */
 
-import { randomUUID } from 'node:crypto'
-
-import { VoiceInputError, VoiceProviderError } from '../errors.js'
+import { VoiceProviderError } from '../errors.js'
 import type { VoiceConfig } from '../options.js'
 
+import { errorToResponse } from './error-response.js'
 import { buildSpeechInit, TTS_PROVIDER_URL, validateSynthesisInput } from './synthesize.js'
-import { callProvider, truncate } from './transcribe.js'
+import { callProvider } from './transcribe.js'
 
 export interface TtsInput {
   text: string
@@ -96,39 +95,6 @@ export async function handleTtsRequest(
 
     return new Response(upstream.body, { status: 200, headers: responseHeaders })
   } catch (err) {
-    return errorToResponse(err, config.provider)
+    return errorToResponse(err, config.provider, 'tts')
   }
-}
-
-/** Map a thrown voice error to the status/body the handler has always answered with. */
-function errorToResponse(err: unknown, provider: string): Response {
-  if (err instanceof VoiceInputError) return jsonError(400, err.code, err.message)
-  if (err instanceof VoiceProviderError) {
-    switch (err.code) {
-      case 'UPSTREAM_TIMEOUT':
-        return jsonError(504, err.code, err.message)
-      case 'UPSTREAM_ERROR': {
-        // #214: log the raw upstream body server-side; return a generic client error.
-        const correlationId = randomUUID()
-        console.error(
-          `[voice:tts] upstream ${provider} returned ${err.status} [ref ${correlationId}]: ${truncate(err.upstreamBody ?? '', 500)}`,
-        )
-        return jsonError(
-          err.status >= 500 ? 502 : err.status,
-          'UPSTREAM_ERROR',
-          `Upstream ${provider} returned an error (status ${err.status}). Reference: ${correlationId}`,
-        )
-      }
-      default:
-        return jsonError(502, err.code ?? 'UPSTREAM_ERROR', err.message)
-    }
-  }
-  throw err
-}
-
-function jsonError(status: number, code: string, message: string): Response {
-  return new Response(JSON.stringify({ error: { code, message } }), {
-    status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-  })
 }

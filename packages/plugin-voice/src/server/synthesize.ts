@@ -96,7 +96,7 @@ export function validateSynthesisInput(
   if (!VOICE_SET.has(voice)) {
     throw new VoiceInputError(
       'INVALID_VOICE',
-      `"${voice}" is not an OpenAI tts-1 voice. Allowed: ${[...VALID_VOICES].sort().join(', ')}.`,
+      `"${voice}" is not an OpenAI tts-1 voice. Allowed: ${[...VALID_VOICES].sort((a, b) => a.localeCompare(b)).join(', ')}.`,
     )
   }
   if (speed !== undefined) {

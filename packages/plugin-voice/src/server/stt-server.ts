@@ -32,12 +32,11 @@
  */
 
 import type { Buffer } from 'node:buffer'
-import { randomUUID } from 'node:crypto'
 
-import { VoiceInputError, VoiceProviderError } from '../errors.js'
 import type { VoiceConfig } from '../options.js'
 
-import { MAX_BODY_BYTES, transcribeDetailed, truncate, type TranscribeAudio } from './transcribe.js'
+import { errorToResponse } from './error-response.js'
+import { MAX_BODY_BYTES, transcribeDetailed, type TranscribeAudio } from './transcribe.js'
 
 export { MAX_BODY_BYTES }
 
@@ -116,7 +115,7 @@ export async function handleSttRequest(
       ...(opts.fetchImpl !== undefined ? { fetchImpl: opts.fetchImpl } : {}),
     })
   } catch (err) {
-    return errorToResponse(err, config.provider)
+    return errorToResponse(err, config.provider, 'stt')
   }
   const durationMs = Date.now() - startedAt
 
@@ -131,32 +130,6 @@ export async function handleSttRequest(
       'X-Voice-Model': config.model,
     },
   })
-}
-
-/** Map a thrown voice error back to the status/body the handler has always answered with. */
-function errorToResponse(err: unknown, provider: string): Response {
-  if (err instanceof VoiceInputError) return jsonError(400, err.code, err.message)
-  if (err instanceof VoiceProviderError) {
-    switch (err.code) {
-      case 'UPSTREAM_TIMEOUT':
-        return jsonError(504, err.code, err.message)
-      case 'UPSTREAM_ERROR': {
-        // #214: log the raw upstream body server-side; return a generic client error.
-        const correlationId = randomUUID()
-        console.error(
-          `[voice:stt] upstream ${provider} returned ${err.status} [ref ${correlationId}]: ${truncate(err.upstreamBody ?? '', 500)}`,
-        )
-        return jsonError(
-          err.status >= 500 ? 502 : err.status,
-          'UPSTREAM_ERROR',
-          `Upstream ${provider} returned an error (status ${err.status}). Reference: ${correlationId}`,
-        )
-      }
-      default:
-        return jsonError(502, err.code ?? 'UPSTREAM_ERROR', err.message)
-    }
-  }
-  throw err
 }
 
 /** Normalise the handler's audio shapes to {@link TranscribeAudio}. */
@@ -181,11 +154,4 @@ function pickFilename(audio: SttAudio): string | undefined {
   }
   const obj = audio as { filename?: string }
   return typeof obj.filename === 'string' && obj.filename.length > 0 ? obj.filename : undefined
-}
-
-function jsonError(status: number, code: string, message: string): Response {
-  return new Response(JSON.stringify({ error: { code, message } }), {
-    status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-  })
 }
