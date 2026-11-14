@@ -1,5 +1,16 @@
 # @theokit/plugin-voice
 
+## 0.13.0
+
+### Minor Changes
+
+- 3fe2d6e: Export `transcribe()` and `synthesize()`, plain functions that return the transcript string and the audio bytes. They throw `VoiceInputError` (new) for invalid input and `VoiceProviderError` with a `code` for upstream failures. `handleSttRequest` and `handleTtsRequest` now wrap them with unchanged responses.
+
+### Patch Changes
+
+- bba9d0d: Document the `TranscribeAudio`, `TranscribeOptions` and `SynthesizeOptions` types so the published declarations carry their documentation.
+- c0f326f: Share the error-to-response mapping between the STT and TTS handlers and give the voice-list sort a compare function. Responses are unchanged.
+
 ## 0.12.1
 
 ### Patch Changes
