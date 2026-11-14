@@ -34,6 +34,10 @@ import { validateVoiceOptions, type VoiceConfig, type VoiceOptions } from './opt
 
 export { handleSttRequest } from './server/stt-server.js'
 export { handleTtsRequest } from './server/tts-server.js'
+export { transcribe } from './server/transcribe.js'
+export { synthesize } from './server/synthesize.js'
+export type { TranscribeAudio, TranscribeOptions } from './server/transcribe.js'
+export type { SynthesizeOptions } from './server/synthesize.js'
 export type { SttAudio, SttHandlerOptions, SttInput, SttResponseBody } from './server/stt-server.js'
 export type { TtsHandlerOptions, TtsInput } from './server/tts-server.js'
 
@@ -58,6 +62,7 @@ export {
 } from './wake-word.js'
 export type { VoiceConfig, VoiceOptions, ResolvedVoiceOptions } from './options.js'
 export {
+  VoiceInputError,
   VoiceNoDeviceError,
   VoicePermissionDeniedError,
   VoicePluginConfigError,

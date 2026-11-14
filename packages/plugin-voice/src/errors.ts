@@ -47,18 +47,44 @@ export class VoicePluginConfigError extends VoicePluginError {
 }
 
 /**
- * Upstream STT/TTS provider returned a non-2xx response.
+ * The caller handed `transcribe()` / `synthesize()` input the plugin refuses before any provider
+ * call. `code` is the same stable code the HTTP handlers answer with: `INVALID_AUDIO`,
+ * `INVALID_BODY`, `INPUT_TOO_LONG`, `INVALID_VOICE` or `INVALID_SPEED`.
+ */
+export class VoiceInputError extends VoicePluginError {
+  override readonly name = 'VoiceInputError'
+  readonly code: string
+  constructor(code: string, message: string, options?: { cause?: unknown }) {
+    super(message, options)
+    this.code = code
+  }
+}
+
+/**
+ * Upstream STT/TTS provider call failed.
  * Includes the provider name and HTTP status so the consumer can
  * differentiate quota errors (429) from auth (401) from server-side
- * faults (5xx).
+ * faults (5xx). `status` is 0 when no response arrived (timeout, network).
+ * `code` is one of `UPSTREAM_TIMEOUT`, `UPSTREAM_NETWORK`, `UPSTREAM_ERROR`,
+ * `UPSTREAM_PARSE`, `UPSTREAM_EMPTY`. `upstreamBody` holds a truncated copy of a
+ * non-2xx body for server-side logs; it is never part of `message`.
  */
 export class VoiceProviderError extends VoicePluginError {
   override readonly name = 'VoiceProviderError'
   readonly provider: string
   readonly status: number
-  constructor(provider: string, status: number, message: string, options?: { cause?: unknown }) {
+  readonly code: string | undefined
+  readonly upstreamBody: string | undefined
+  constructor(
+    provider: string,
+    status: number,
+    message: string,
+    options?: { cause?: unknown; code?: string; upstreamBody?: string },
+  ) {
     super(message, options)
     this.provider = provider
     this.status = status
+    this.code = options?.code
+    this.upstreamBody = options?.upstreamBody
   }
 }

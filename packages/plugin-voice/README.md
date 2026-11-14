@@ -87,6 +87,51 @@ export function ChatPage() {
 
 > **Browser requirements (EC-15):** `MediaRecorder` + `navigator.mediaDevices.getUserMedia` only work in **secure contexts** (HTTPS or `localhost`). The recorder will throw `VoicePermissionDeniedError` on plain `http://` even after user grants permission — wrap your dev server with `mkcert` or run on `localhost`.
 
+## Server-side functions
+
+When you need the transcript or the audio as a value (a chat gateway, a background job) rather than an HTTP `Response`, call `transcribe` and `synthesize`. They apply the same size limits (25 MB audio, 4096 characters), timeout (30 s default) and abort handling as the handlers, and throw typed errors instead of returning a status: `VoiceInputError` (`code`: `INVALID_AUDIO`, `INVALID_BODY`, `INPUT_TOO_LONG`, `INVALID_VOICE`, `INVALID_SPEED`) and `VoiceProviderError` (`code`: `UPSTREAM_TIMEOUT`, `UPSTREAM_NETWORK`, `UPSTREAM_ERROR`, `UPSTREAM_PARSE`, `UPSTREAM_EMPTY`, plus `status`).
+
+<!-- doc-example: partial -->
+
+```ts
+import { transcribe } from '@theokit/plugin-voice'
+
+const text = await transcribe(
+  { data: oggBytes, mediaType: 'audio/ogg' },
+  {
+    provider: 'openai',
+    apiKey: process.env.OPENAI_API_KEY!,
+    model: 'gpt-4o-mini-transcribe',
+    endpoint: '/api/voice/stt',
+  },
+  { language: 'en', timeoutMs: 20_000 },
+)
+```
+
+<!-- doc-example: partial -->
+
+```ts
+import { synthesize, VoiceInputError } from '@theokit/plugin-voice'
+
+try {
+  const { data, mediaType } = await synthesize(
+    'Your report is ready.',
+    {
+      provider: 'openai',
+      apiKey: process.env.OPENAI_API_KEY!,
+      model: 'tts-1',
+      voice: 'alloy',
+      endpoint: '/api/voice/tts',
+    },
+    { format: 'opus' }, // mediaType: 'audio/ogg'
+  )
+  await sendVoiceNote(data, mediaType)
+} catch (e) {
+  if (e instanceof VoiceInputError) console.error(e.code)
+  else throw e
+}
+```
+
 ## Error hierarchy
 
 All errors extend a base `VoicePluginError`. Catch the base class for generic handling, or the specific subclass for targeted UX:
@@ -100,6 +145,7 @@ import {
   VoiceNoDeviceError,
   VoicePluginConfigError,
   VoiceProviderError,
+  VoiceInputError,
 } from '@theokit/plugin-voice'
 
 try {
@@ -111,12 +157,13 @@ try {
 }
 ```
 
-| Class                        | When                              | Where it fires                           |
-| ---------------------------- | --------------------------------- | ---------------------------------------- |
-| `VoicePermissionDeniedError` | User denied mic                   | Browser, `recorder.start()`              |
-| `VoiceNoDeviceError`         | No mic device present             | Browser, `recorder.start()`              |
-| `VoicePluginConfigError`     | Missing API key                   | Server, `voicePlugin(opts)` construction |
-| `VoiceProviderError`         | STT/TTS provider returned non-2xx | Server, both endpoints                   |
+| Class                        | When                           | Where it fires                           |
+| ---------------------------- | ------------------------------ | ---------------------------------------- |
+| `VoicePermissionDeniedError` | User denied mic                | Browser, `recorder.start()`              |
+| `VoiceNoDeviceError`         | No mic device present          | Browser, `recorder.start()`              |
+| `VoicePluginConfigError`     | Missing API key                | Server, `voicePlugin(opts)` construction |
+| `VoiceInputError`            | Invalid audio/text/voice/speed | Server, `transcribe()` / `synthesize()`  |
+| `VoiceProviderError`         | STT/TTS provider call failed   | Server, endpoints and server functions   |
 
 ## License
 
