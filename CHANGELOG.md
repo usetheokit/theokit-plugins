@@ -43,6 +43,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `integration/`, which its seam tests hold at 0.48.x. Against 0.48.x the gate would have reported
   `parseRequestBody` missing from `theokit/server/http`, where 0.75.1 does export it.
 
+## 2026-11-13 (eighteenth cut)
+
+Three packages: `@theokit/auth-magic-link@0.7.1`, `@theokit/plugin-db-drizzle@0.7.0`,
+`@theokit/plugin-payments@0.9.1`.
+
+`@theokit/plugin-db-drizzle@0.7.0` stops writing the database URL into the generated
+`drizzle.config.ts` and the `push` argv: the config reads `process.env[urlEnv]` (new option, default
+`DATABASE_URL`) and `push` runs through `--config`, like `migrate` and `studio`. The other two are
+documentation releases: the production store example in the `@theokit/auth-magic-link` README and
+the docblocks in `@theokit/plugin-payments` no longer name `@theokit/orm` APIs that do not exist,
+and the magic-link README now shows a Drizzle adapter covered by a test over a real SQLite database.
+
 ## 2026-11-12 (seventeenth cut)
 
 Two packages: `@theokit/plugin-email@0.3.1`, `@theokit/plugin-voice@0.12.0`.
