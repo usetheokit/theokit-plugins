@@ -22,6 +22,7 @@ const PROVIDER_URL: Record<VoiceConfig['stt']['provider'], string> = {
 /** The fetch seam; `globalThis.fetch` is assignable to it. */
 export type FetchImpl = (url: string | URL, init: RequestInit) => Promise<Response>
 
+/** Audio handed to `transcribe()`: the bytes, their media type and an optional filename. */
 export interface TranscribeAudio {
   readonly data: Uint8Array | ArrayBuffer | Blob
   /** e.g. `'audio/ogg'` */
@@ -29,6 +30,7 @@ export interface TranscribeAudio {
   readonly filename?: string
 }
 
+/** Per-call options for `transcribe()`: language hint, prompt, timeout, abort signal and fetch seam. */
 export interface TranscribeOptions {
   readonly language?: string
   readonly prompt?: string
