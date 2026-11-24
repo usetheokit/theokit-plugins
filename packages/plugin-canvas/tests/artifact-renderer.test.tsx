@@ -21,11 +21,34 @@ const env = {
 }
 
 describe('ArtifactRenderer — dispatch by kind', () => {
-  it('renders markdown artifact via MarkdownArtifact', () => {
+  it('renders markdown artifact via MarkdownArtifact', async () => {
     const a: Artifact = { ...env, kind: 'markdown', content: '# Heading\n\nText' }
     render(<ArtifactRenderer artifact={a} />)
     expect(screen.getByTestId('markdown-artifact')).toBeInTheDocument()
-    expect(screen.getByText('Heading')).toBeInTheDocument()
+    expect(await screen.findByText('Heading')).toBeInTheDocument()
+  })
+
+  it('renders no javascript: href for a markdown link', async () => {
+    const a: Artifact = { ...env, kind: 'markdown', content: '[x](javascript:alert(1))\n\n# Done' }
+    render(<ArtifactRenderer artifact={a} />)
+    await screen.findByText('Done')
+    const hrefs = screen.getAllByTestId('markdown-artifact')[0]!.querySelectorAll('[href]')
+    for (const el of Array.from(hrefs))
+      expect(el.getAttribute('href')?.toLowerCase()).not.toMatch(/^javascript:/)
+  })
+
+  it('renders no script element for raw HTML in markdown', async () => {
+    const a: Artifact = { ...env, kind: 'markdown', content: '<script>alert(1)</script>\n\n# Done' }
+    const { container } = render(<ArtifactRenderer artifact={a} />)
+    await screen.findByText('Done')
+    expect(container.querySelector('script')).toBeNull()
+  })
+
+  it('renders a GFM table in a markdown artifact', async () => {
+    const a: Artifact = { ...env, kind: 'markdown', content: '| a | b |\n| - | - |\n| 1 | 2 |' }
+    const { container } = render(<ArtifactRenderer artifact={a} />)
+    await screen.findByText('a')
+    expect(container.querySelector('table')).not.toBeNull()
   })
 
   it('renders code artifact with language and content (delegates to CodeBlock)', () => {

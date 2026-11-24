@@ -12,13 +12,14 @@ pnpm add @theokit/plugin-canvas @usetheo/ui @theokit/ui
 
 ### Required peer dependencies
 
-| Package        | Version            | Why                                                                                                           |
-| -------------- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `@usetheo/ui`  | `>= 0.14.0`        | Generic UI primitives (`Button`, `Card`, `CopyButton`, `Tooltip`, `DropdownMenu`, `Alert`, `CodeBlock`, etc.) |
-| `@theokit/ui`  | `>= 1.0.0`         | AI surfaces + engines (`DiffViewer`, `@theokit/ui/whiteboard`, `@theokit/ui/slide-deck`)                      |
-| `@theokit/sdk` | `>= 1.0.0`         | Agent tool runtime / schema validation                                                                        |
-| `theokit`      | `>= 0.1.0-alpha.5` | `defineAgentTool`, `defineAgentEndpoint`, route handlers                                                      |
-| `react`        | `^18 \|\| ^19`     | UI components                                                                                                 |
+| Package                                                                                                                                         | Version            | Why                                                                                                           |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `@usetheo/ui`                                                                                                                                   | `>= 0.14.0`        | Generic UI primitives (`Button`, `Card`, `CopyButton`, `Tooltip`, `DropdownMenu`, `Alert`, `CodeBlock`, etc.) |
+| `@theokit/ui`                                                                                                                                   | `^1.15.0`          | AI surfaces + engines (`DiffViewer`, `@theokit/ui/whiteboard`, `@theokit/ui/slide-deck`)                      |
+| `mdast-util-from-markdown`, `mdast-util-gfm`, `micromark-extension-gfm`, `mdast-util-to-hast`, `hast-util-sanitize`, `hast-util-to-jsx-runtime` | see `package.json` | Needed by the `Markdown` component of `@theokit/ui`, which renders markdown artifacts                         |
+| `@theokit/sdk`                                                                                                                                  | `>= 1.0.0`         | Agent tool runtime / schema validation                                                                        |
+| `theokit`                                                                                                                                       | `>= 0.1.0-alpha.5` | `defineAgentTool`, `defineAgentEndpoint`, route handlers                                                      |
+| `react`                                                                                                                                         | `^18 \|\| ^19`     | UI components                                                                                                 |
 
 ### Optional peer dependencies
 
