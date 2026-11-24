@@ -16,10 +16,15 @@
 import Stripe from 'stripe'
 import { describe, expect, it } from 'vitest'
 
-import { definePaymentWebhook, PaymentEventRegistry } from '../src/dispatch.js'
+import {
+  definePaymentWebhook,
+  PaymentEventRegistry,
+  processPaymentWebhook,
+} from '../src/dispatch.js'
 import { createMemoryStore } from '../src/idempotency-store.js'
 import { payments } from '../src/plugin.js'
 import { StripeProvider } from '../src/providers/stripe.js'
+import { processWebhook, WebhookRegistry } from '../src/webhook.js'
 
 // Crypto only — no request is ever made, so the key just has to parse.
 const stripe = new Stripe('sk_test_offline_crypto_only')
@@ -116,5 +121,68 @@ describe('the plugin against real Stripe signature crypto', () => {
       headers: { 'stripe-signature': stale },
     })
     expect(result).toMatchObject({ status: 'signature_invalid' })
+  })
+})
+
+describe('the Stripe-typed and neutral paths share one verifier', () => {
+  const OTHER = 'whsec_some_other_secret'
+  const wrongSigned = stripe.webhooks.generateTestHeaderString({ payload: EVENT, secret: OTHER })
+
+  function stripeTyped(header: string, store = createMemoryStore()) {
+    return processWebhook({
+      stripe,
+      rawBody: EVENT,
+      signatureHeader: header,
+      webhookSecret: SECRET,
+      registry: new WebhookRegistry(),
+      store,
+    })
+  }
+  function neutral(header: string, store = createMemoryStore()) {
+    return processPaymentWebhook({
+      provider: StripeProvider({ client: stripe, webhookSecret: SECRET }),
+      request: { rawBody: EVENT, headers: { 'stripe-signature': header } },
+      registry: new PaymentEventRegistry(),
+      store,
+    })
+  }
+
+  it('both verify the same signed payload', async () => {
+    expect((await stripeTyped(signed(EVENT))).status).toBe('ok')
+    expect((await neutral(signed(EVENT))).status).toBe('ok')
+  })
+
+  it('both reject a payload signed with a different secret', async () => {
+    expect((await stripeTyped(wrongSigned)).status).toBe('signature_invalid')
+    expect((await neutral(wrongSigned)).status).toBe('signature_invalid')
+  })
+
+  it('keeps the two idempotency keys distinct on purpose', async () => {
+    const keys: string[] = []
+    const store = createMemoryStore()
+    const spy = {
+      ...store,
+      markProcessed: (id: string) => {
+        keys.push(id)
+        return store.markProcessed(id)
+      },
+    }
+    const payload = JSON.stringify({ ...JSON.parse(EVENT), id: 'evt_1' })
+    const header = stripe.webhooks.generateTestHeaderString({ payload, secret: SECRET })
+    await processWebhook({
+      stripe,
+      rawBody: payload,
+      signatureHeader: header,
+      webhookSecret: SECRET,
+      registry: new WebhookRegistry(),
+      store: spy,
+    })
+    await processPaymentWebhook({
+      provider: StripeProvider({ client: stripe, webhookSecret: SECRET }),
+      request: { rawBody: payload, headers: { 'stripe-signature': header } },
+      registry: new PaymentEventRegistry(),
+      store: spy,
+    })
+    expect(keys).toEqual(['evt_1', 'stripe:evt_1'])
   })
 })
