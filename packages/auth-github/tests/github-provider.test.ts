@@ -367,3 +367,26 @@ describe('github() — upstream timeout', () => {
     expect(init.signal).toBeInstanceOf(AbortSignal)
   })
 })
+
+describe('github() — callback state check', () => {
+  const reject = (query: string, tx = TX) =>
+    expect(github(OPTS).handleCallback(mockReq(query), tx)).rejects.toMatchObject({
+      code: 'state_mismatch',
+    })
+
+  it('rejects a state that differs by one character', async () => {
+    await reject(`?code=c&state=${TX.state.slice(0, -1)}X`)
+  })
+
+  it('rejects a missing state param', async () => {
+    await reject('?code=c')
+  })
+
+  it('rejects an empty state param', async () => {
+    await reject('?code=c&state=')
+  })
+
+  it('rejects an empty state even when the stored state is empty', async () => {
+    await reject('?code=c&state=', { ...TX, state: '' })
+  })
+})
