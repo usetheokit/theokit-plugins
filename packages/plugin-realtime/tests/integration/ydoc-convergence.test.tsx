@@ -41,9 +41,9 @@ import {
 import { defineRoom } from '../../src/define-room.js'
 import { createYjsRealtimeProvider } from '../../src/yjs-provider.js'
 import { RealtimeRuntime } from '../../src/internal/runtime.js'
+import type { SubscriptionCtx } from '@theokit/sdk/subscription'
 import {
   mountRealtime,
-  type MountedSubscriptionCtx,
   type RealtimeSubscriptionOutput,
 } from '../../src/internal/server-integration.js'
 
@@ -75,7 +75,7 @@ afterEach(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()))
 })
 
-function makeCtx(signal: AbortSignal, connectionId: string): MountedSubscriptionCtx {
+function makeCtx(signal: AbortSignal, connectionId: string): SubscriptionCtx {
   return {
     signal,
     connectionId,
@@ -109,7 +109,7 @@ function serveMany(handler: unknown, ids: readonly string[], controller: AbortCo
     const connectionId = ids[next] ?? `extra-${next}`
     next += 1
     void (async () => {
-      const gen = (handler as (i: unknown, c: MountedSubscriptionCtx) => AsyncGenerator<unknown>)(
+      const gen = (handler as (i: unknown, c: SubscriptionCtx) => AsyncGenerator<unknown>)(
         {},
         makeCtx(controller.signal, connectionId),
       )

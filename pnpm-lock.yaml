@@ -460,6 +460,9 @@ importers:
       '@testing-library/react':
         specifier: ^16.0.0
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@theokit/sdk':
+        specifier: '>=4.54.0'
+        version: 4.54.0(@types/ws@8.18.1)(better-sqlite3@11.10.0)(ws@8.21.0)(zod@4.4.3)
       '@types/node':
         specifier: ^22.10.5
         version: 22.19.19
