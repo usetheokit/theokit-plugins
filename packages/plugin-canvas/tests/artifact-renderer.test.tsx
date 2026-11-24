@@ -240,3 +240,49 @@ describe('ArtifactRenderer — root attrs', () => {
     expect(root.getAttribute('data-artifact-id')).toBe('art-42')
   })
 })
+
+describe('ArtifactRenderer — list, table, metric', () => {
+  it('renders ordered and unordered lists', () => {
+    const { container, rerender } = render(
+      <ArtifactRenderer artifact={{ ...env, kind: 'list', items: ['one', 'two'] }} />,
+    )
+    expect(container.querySelector('ul')).not.toBeNull()
+    expect(screen.getByText('two')).toBeInTheDocument()
+    rerender(
+      <ArtifactRenderer artifact={{ ...env, kind: 'list', items: ['one'], ordered: true }} />,
+    )
+    expect(container.querySelector('ol')).not.toBeNull()
+  })
+
+  it('renders a table with column headers', () => {
+    const { container } = render(
+      <ArtifactRenderer
+        artifact={{ ...env, kind: 'table', columns: ['Name', 'Qty'], rows: [['apple', '3']] }}
+      />,
+    )
+    expect(container.querySelector('table thead')).not.toBeNull()
+    expect(screen.getByRole('columnheader', { name: 'Qty' })).toBeInTheDocument()
+    expect(screen.getByText('apple')).toBeInTheDocument()
+  })
+
+  it('renders a metric with unit and delta', () => {
+    render(
+      <ArtifactRenderer
+        artifact={{ ...env, kind: 'metric', label: 'Users', value: '42', unit: 'k', delta: '+4%' }}
+      />,
+    )
+    expect(screen.getByText('Users')).toBeInTheDocument()
+    expect(screen.getByText('42')).toBeInTheDocument()
+    expect(screen.getByText('+4%')).toBeInTheDocument()
+  })
+
+  it('renders a cell containing <script> as literal text', () => {
+    const { container } = render(
+      <ArtifactRenderer
+        artifact={{ ...env, kind: 'table', columns: ['c'], rows: [['<script>alert(1)</script>']] }}
+      />,
+    )
+    expect(screen.getByText('<script>alert(1)</script>')).toBeInTheDocument()
+    expect(container.querySelector('script')).toBeNull()
+  })
+})

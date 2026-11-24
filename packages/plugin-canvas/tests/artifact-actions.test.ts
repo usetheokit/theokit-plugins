@@ -231,3 +231,22 @@ describe('filenameFor', () => {
     ).toBe('My-artifact-v3.ts')
   })
 })
+
+describe('list, table and metric artifacts', () => {
+  const list: Artifact = { ...env, kind: 'list', items: ['a', 'b'] }
+  const table: Artifact = { ...env, kind: 'table', columns: ['x', 'y'], rows: [['1', '2']] }
+  const metric: Artifact = { ...env, kind: 'metric', label: 'Users', value: '42', delta: '+4%' }
+
+  it('picks a download extension for each kind', () => {
+    expect(pickExtension(list)).toBe('txt')
+    expect(pickExtension(table)).toBe('tsv')
+    expect(pickExtension(metric)).toBe('txt')
+  })
+
+  it('serialises each kind for copy', () => {
+    expect(serializeArtifactForCopy(list)).toBe('- a\n- b')
+    expect(serializeArtifactForCopy({ ...list, ordered: true })).toBe('1. a\n2. b')
+    expect(serializeArtifactForCopy(table)).toBe('x\ty\n1\t2')
+    expect(serializeArtifactForCopy(metric)).toBe('Users: 42 (+4%)')
+  })
+})

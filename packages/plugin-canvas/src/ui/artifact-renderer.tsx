@@ -40,7 +40,7 @@ export interface ArtifactRendererProps {
  *   />
  *   ```
  *
- * Tree-shaking: imports are static so all 9 default renderers ship in
+ * Tree-shaking: imports are static so all 12 default renderers ship in
  * any consumer bundle that uses the dispatcher. Apps that need a tiny
  * surface can import the individual renderers directly:
  * `import { CodeArtifact } from '@theokit/plugin-canvas/ui'` and skip
