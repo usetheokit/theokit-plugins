@@ -9,8 +9,31 @@ your own `db` script runs.
 > and mounts no devtools tab. It never opens a connection or spawns a process itself. It also does
 > not depend on, wrap or re-export `@theokit/orm`.
 >
-> The `theokit db migrate | generate | seed` commands in the `theokit` CLI (0.75 and later) are
-> part of TheoKit and do not use this plugin.
+> The `theokit db` commands in the `theokit` CLI are part of TheoKit and do not use this plugin.
+
+## Use `theokit db` first
+
+`theokit` (0.80.0 and later) ships four database verbs:
+
+```bash
+theokit db migrate
+theokit db push
+theokit db generate
+theokit db seed
+```
+
+The two tools default to different layouts:
+
+|            | This package                                                    | `theokit db`                               |
+| ---------- | --------------------------------------------------------------- | ------------------------------------------ |
+| Schema     | `./db/schema.ts`                                                | the one your own `drizzle.config.ts` names |
+| Migrations | `./db/migrations`                                               | the one your own `drizzle.config.ts` names |
+| Config     | synthesized to `./.theokit/drizzle.config.ts` from your options | your project's own `drizzle.config.ts`     |
+| Seed       | a script you name with `seedScript`                             | `serverDir/db/seed.ts`                     |
+
+`buildDbCommands` is deprecated in favour of `theokit db`. What this package still offers is
+`renderDrizzleConfig`, `buildDevtoolsTab`, and the three verbs `theokit db` lacks: `studio`,
+`check` and `reset`. Those three are moving into `theokit db`.
 
 ## What you get
 
