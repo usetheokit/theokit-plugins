@@ -25,8 +25,8 @@ const env = (extras: Partial<{ id: string; title: string; sessionId: string }> =
 })
 
 describe('ARTIFACT_KINDS', () => {
-  it('lists all 12 kinds in stable order', () => {
-    expect(ARTIFACT_KINDS).toEqual([
+  it('lists all 9 v0.1.0 kinds in stable order', () => {
+    expect(ARTIFACT_KINDS.slice(0, 9)).toEqual([
       'markdown',
       'code',
       'diff',
@@ -36,10 +36,11 @@ describe('ARTIFACT_KINDS', () => {
       'mermaid',
       'html',
       'image',
-      'list',
-      'table',
-      'metric',
     ])
+  })
+
+  it('appends list, table and metric after the v0.1.0 kinds', () => {
+    expect(ARTIFACT_KINDS.slice(9)).toEqual(['list', 'table', 'metric'])
   })
 })
 
