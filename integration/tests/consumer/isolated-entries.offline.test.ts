@@ -171,3 +171,15 @@ describe('a published entry loads without the monorepo underneath it', () => {
     })
   }
 })
+
+describe('one @theokit/ui in the workspace', () => {
+  it('resolves a single @theokit/ui version in the lockfile', () => {
+    const lock = readFileSync(join(REPO_ROOT, 'pnpm-lock.yaml'), 'utf8')
+    const versions = new Set(
+      [...lock.matchAll(/'@theokit\/ui@(\d+\.\d+\.\d+)[(':]/g)].map((m) => m[1]),
+    )
+    // Two copies make the consumer layout link whichever sorts first, so an entry that needs the
+    // newer one (plugin-canvas/ui importing `Markdown`) fails to load.
+    expect([...versions]).toHaveLength(1)
+  })
+})
