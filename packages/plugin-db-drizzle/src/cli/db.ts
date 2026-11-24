@@ -75,6 +75,8 @@ const VERBS: readonly DbVerb[] = [
  * Pure factory — no spawn here. The runner inside theokit's plugin runtime
  * calls `cmd.buildArgs()` then spawns drizzle-kit. The options reach the argv through THIS call's
  * argument and nowhere else; `buildArgs` takes none (#170).
+ *
+ * @deprecated Use `theokit db migrate | push | generate | seed`. `studio`, `check` and `reset` are moving into `theokit db`.
  */
 export function buildDbCommands(opts: ResolvedDrizzleDbOptions): DbCommand[] {
   return VERBS.map((verb) => ({
