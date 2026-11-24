@@ -33,7 +33,7 @@ describe('ArtifactRenderer — dispatch by kind', () => {
     render(<ArtifactRenderer artifact={a} />)
     await screen.findByText('Done')
     const hrefs = screen.getAllByTestId('markdown-artifact')[0]!.querySelectorAll('[href]')
-    for (const el of hrefs)
+    for (const el of Array.from(hrefs))
       expect(el.getAttribute('href')?.toLowerCase()).not.toMatch(/^javascript:/)
   })
 
