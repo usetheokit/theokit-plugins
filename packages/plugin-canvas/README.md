@@ -2,7 +2,7 @@
 
 Canvas plugin for TheoKit — agent artifact protocol + side panel UI + agent custom tool.
 
-Render 9 artifact kinds (markdown, code, svg, diff, whiteboard-scene, slide-deck, mermaid, html, image) inside an auto-opening side panel. Agents publish via the `publish_artifact` tool; the panel reacts in real time via SSE.
+Render 12 artifact kinds (markdown, code, svg, diff, whiteboard-scene, slide-deck, mermaid, html, image, list, table, metric) inside an auto-opening side panel. Agents publish via the `publish_artifact` tool; the panel reacts in real time via SSE.
 
 ## Installation
 
