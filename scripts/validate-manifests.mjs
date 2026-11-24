@@ -98,6 +98,22 @@ const PEER_WITHOUT_USE_EXEMPT = {
     theokit:
       'Same shape as auth-github: token issue/verify helpers called from the consumer route.',
   },
+  // The six below are indirect: the `Markdown` component of @theokit/ui, which renders markdown
+  // artifacts, imports them from the CONSUMER's resolution (README.md:19). This package imports none.
+  'plugin-canvas': {
+    'hast-util-sanitize':
+      'Needed by the `Markdown` component of @theokit/ui that renders markdown artifacts; the consumer installs it, this package never imports it (README.md:19).',
+    'hast-util-to-jsx-runtime':
+      'Needed by the `Markdown` component of @theokit/ui that renders markdown artifacts; the consumer installs it, this package never imports it (README.md:19).',
+    'mdast-util-from-markdown':
+      'Needed by the `Markdown` component of @theokit/ui that renders markdown artifacts; the consumer installs it, this package never imports it (README.md:19).',
+    'mdast-util-gfm':
+      'Needed by the `Markdown` component of @theokit/ui that renders markdown artifacts; the consumer installs it, this package never imports it (README.md:19).',
+    'mdast-util-to-hast':
+      'Needed by the `Markdown` component of @theokit/ui that renders markdown artifacts; the consumer installs it, this package never imports it (README.md:19).',
+    'micromark-extension-gfm':
+      'Needed by the `Markdown` component of @theokit/ui that renders markdown artifacts; the consumer installs it, this package never imports it (README.md:19).',
+  },
   'plugin-email': {
     theokit:
       'Holds an EmailProvider — the closest analogue to what plugin-payments now publishes on ctx.payments.',
