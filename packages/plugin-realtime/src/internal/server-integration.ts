@@ -8,13 +8,11 @@
  * theokit/server (one per room id) — typically auto-mounted at
  * `/api/realtime/{roomId}`.
  *
- * The G8 SDK surface is referenced structurally (not imported) so this plugin
- * stays decoupled from the SDK version until @next publishes.
- *
  * @internal
  */
 
 import { randomUUID } from 'node:crypto'
+import type { SubscriptionCtx } from '@theokit/sdk/subscription'
 import {
   type BroadcastPayload,
   type ConnectionInfo,
@@ -82,19 +80,12 @@ function frameToOutput(frame: RealtimeFrame): RealtimeSubscriptionOutput {
 }
 
 /**
- * Structural ctx shape — mirrors G8's `SubscriptionCtx` (see @theokit/sdk
- * `subscription/types.ts:SubscriptionCtx`). Mocked here to avoid hard import
- * until @next publishes.
+ * Ctx passed to a mounted subscription handler.
  *
- * @internal
+ * @deprecated Use SubscriptionCtx from @theokit/sdk/subscription.
+ * @public
  */
-export interface MountedSubscriptionCtx {
-  readonly signal: AbortSignal
-  readonly connectionId: string
-  readonly lastEventId?: string
-  disconnect(code?: number, reason?: string): void
-  tracked<TPayload>(id: string, payload: TPayload): readonly [id: string, payload: TPayload]
-}
+export type MountedSubscriptionCtx = SubscriptionCtx
 
 /**
  * Handler signature consumed by G8 `defineSubscription`.
@@ -103,7 +94,7 @@ export interface MountedSubscriptionCtx {
  */
 export type RealtimeSubscriptionHandler = (
   input: RealtimeSubscriptionInput,
-  ctx: MountedSubscriptionCtx,
+  ctx: SubscriptionCtx,
 ) => AsyncGenerator<RealtimeSubscriptionOutput, void, void>
 
 /**
