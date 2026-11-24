@@ -34,7 +34,8 @@
  * delivery (#44).
  */
 
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createHmac } from 'node:crypto'
+import { timingSafeEqual } from 'theokit/server/webhook'
 
 import { definePaymentProvider } from '../provider.js'
 import {
@@ -497,7 +498,7 @@ export function AbacatePayProvider(
           'This request carries no per-merchant secret. AbacatePay sends it as the `x-webhook-secret` header and as a `?webhookSecret=` query parameter — pass the headers, or the request url, or both.',
         )
       }
-      if (!constantTimeEquals(received, opts.webhookSecret)) {
+      if (!secretsMatch(received, opts.webhookSecret)) {
         throw new WebhookSignatureError(
           PROVIDER,
           'The per-merchant secret does not match the configured webhookSecret.',
@@ -515,7 +516,7 @@ export function AbacatePayProvider(
         const expected = createHmac('sha256', opts.signatureKey)
           .update(Buffer.from(req.rawBody, 'utf8'))
           .digest('base64')
-        if (!constantTimeEquals(expected, header)) {
+        if (!secretsMatch(expected, header)) {
           throw new WebhookSignatureError(
             PROVIDER,
             'X-Webhook-Signature does not match an HMAC-SHA256 of the raw body under the configured signatureKey.',
@@ -679,17 +680,8 @@ export function AbacatePayProvider(
   })
 }
 
-/**
- * Compare two secrets without leaking their contents through timing.
- *
- * `timingSafeEqual` throws on a length mismatch, so the length is checked
- * first — that leak is unavoidable and harmless next to comparing byte by byte
- * with `===`, which leaks the position of the first difference and lets an
- * attacker recover a secret one character at a time.
- */
-function constantTimeEquals(a: string, b: string): boolean {
-  const bufA = Buffer.from(a, 'utf8')
-  const bufB = Buffer.from(b, 'utf8')
-  if (bufA.length !== bufB.length) return false
-  return timingSafeEqual(bufA, bufB)
+/** Constant-time string compare; theokit's helper returns false on a length mismatch. */
+function secretsMatch(a: string, b: string): boolean {
+  const enc = new TextEncoder()
+  return timingSafeEqual(enc.encode(a), enc.encode(b))
 }
