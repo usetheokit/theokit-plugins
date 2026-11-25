@@ -129,12 +129,16 @@ export class BudgetBridge {
    * — or one process re-registering after a reload — reach this with the same name, so
    * the registry is consulted first. `mode: 'block'` because `preflightCheck` must
    * refuse, not warn: the caller is an agent about to spend money on its own initiative.
+   *
+   * `scope: 'process'` is the only scope the SDK honours (it rejects `'agent'` as declared
+   * but unimplemented). Process scope is process-wide, so per-copilot and per-room
+   * isolation comes from the distinct budget names, not from the scope.
    */
   private handleFor(copilotId: string, roomId: string): BudgetHandle {
     const name = budgetNameFor(copilotId, roomId)
     return (
       Budget.get(name) ??
-      Budget.create({ name, scope: 'agent', mode: 'block', limits: limitsFrom(this.config) })
+      Budget.create({ name, scope: 'process', mode: 'block', limits: limitsFrom(this.config) })
     )
   }
 
