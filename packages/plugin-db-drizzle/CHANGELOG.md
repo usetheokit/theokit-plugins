@@ -1,5 +1,11 @@
 # @theokit/plugin-db-drizzle
 
+## 0.8.0
+
+### Minor Changes
+
+- 03893b2: Deprecate `buildDbCommands` in favour of `theokit db migrate | push | generate | seed`. It keeps working and returns the same seven descriptors. The README now leads with `theokit db`.
+
 ## 0.7.0
 
 ### Minor Changes

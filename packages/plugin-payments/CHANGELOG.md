@@ -1,5 +1,12 @@
 # @theokit/plugin-payments
 
+## 0.9.2
+
+### Patch Changes
+
+- c7efa64: Compare AbacatePay secrets and signatures with `timingSafeEqual` from `theokit/server/webhook` instead of a private helper.
+- a132dab: The Stripe and provider-neutral webhook paths now share one handler registry and one Stripe signature verifier. No public API or behaviour change; both idempotency keys are unchanged.
+
 ## 0.9.1
 
 ### Patch Changes

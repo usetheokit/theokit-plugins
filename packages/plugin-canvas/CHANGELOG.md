@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.0
+
+### Minor Changes
+
+- 8293185: Markdown artifacts now render through the sanitized GFM `Markdown` component of `@theokit/ui` (tables and task lists work; links are limited to http, https and mailto). The private regex renderer is gone. The `@theokit/ui` peer floor is now `^1.15.0`.
+- dc39647: Add `list`, `table` and `metric` artifact kinds with `ListArtifact`, `TableArtifact` and `MetricArtifact` renderers. A table row must have one cell per column, enforced in the schema.
+
 ## 0.8.1
 
 ### Patch Changes
