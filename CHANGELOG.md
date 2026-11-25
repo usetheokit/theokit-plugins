@@ -43,6 +43,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `integration/`, which its seam tests hold at 0.48.x. Against 0.48.x the gate would have reported
   `parseRequestBody` missing from `theokit/server/http`, where 0.75.1 does export it.
 
+## 2026-11-14 (nineteenth cut)
+
+One package: `@theokit/plugin-voice@0.13.0`.
+
+It exports `transcribe()` and `synthesize()`, plain functions that return the transcript string and
+the audio bytes. They throw `VoiceInputError` (new) for invalid input and `VoiceProviderError` with
+a `code` for upstream failures; `handleSttRequest` and `handleTtsRequest` now wrap them with
+unchanged responses. The `TranscribeAudio`, `TranscribeOptions` and `SynthesizeOptions` types are
+documented in the published declarations, and the STT and TTS handlers share one error-to-response
+mapping.
+
 ## 2026-11-13 (eighteenth cut)
 
 Three packages: `@theokit/auth-magic-link@0.7.1`, `@theokit/plugin-db-drizzle@0.7.0`,

@@ -21,11 +21,34 @@ const env = {
 }
 
 describe('ArtifactRenderer — dispatch by kind', () => {
-  it('renders markdown artifact via MarkdownArtifact', () => {
+  it('renders markdown artifact via MarkdownArtifact', async () => {
     const a: Artifact = { ...env, kind: 'markdown', content: '# Heading\n\nText' }
     render(<ArtifactRenderer artifact={a} />)
     expect(screen.getByTestId('markdown-artifact')).toBeInTheDocument()
-    expect(screen.getByText('Heading')).toBeInTheDocument()
+    expect(await screen.findByText('Heading')).toBeInTheDocument()
+  })
+
+  it('renders no javascript: href for a markdown link', async () => {
+    const a: Artifact = { ...env, kind: 'markdown', content: '[x](javascript:alert(1))\n\n# Done' }
+    render(<ArtifactRenderer artifact={a} />)
+    await screen.findByText('Done')
+    const hrefs = screen.getAllByTestId('markdown-artifact')[0]!.querySelectorAll('[href]')
+    for (const el of Array.from(hrefs))
+      expect(el.getAttribute('href')?.toLowerCase()).not.toMatch(/^javascript:/)
+  })
+
+  it('renders no script element for raw HTML in markdown', async () => {
+    const a: Artifact = { ...env, kind: 'markdown', content: '<script>alert(1)</script>\n\n# Done' }
+    const { container } = render(<ArtifactRenderer artifact={a} />)
+    await screen.findByText('Done')
+    expect(container.querySelector('script')).toBeNull()
+  })
+
+  it('renders a GFM table in a markdown artifact', async () => {
+    const a: Artifact = { ...env, kind: 'markdown', content: '| a | b |\n| - | - |\n| 1 | 2 |' }
+    const { container } = render(<ArtifactRenderer artifact={a} />)
+    await screen.findByText('a')
+    expect(container.querySelector('table')).not.toBeNull()
   })
 
   it('renders code artifact with language and content (delegates to CodeBlock)', () => {
@@ -215,5 +238,51 @@ describe('ArtifactRenderer — root attrs', () => {
     expect(root.getAttribute('data-kind')).toBe('markdown')
     expect(root.getAttribute('data-version')).toBe('3')
     expect(root.getAttribute('data-artifact-id')).toBe('art-42')
+  })
+})
+
+describe('ArtifactRenderer — list, table, metric', () => {
+  it('renders ordered and unordered lists', () => {
+    const { container, rerender } = render(
+      <ArtifactRenderer artifact={{ ...env, kind: 'list', items: ['one', 'two'] }} />,
+    )
+    expect(container.querySelector('ul')).not.toBeNull()
+    expect(screen.getByText('two')).toBeInTheDocument()
+    rerender(
+      <ArtifactRenderer artifact={{ ...env, kind: 'list', items: ['one'], ordered: true }} />,
+    )
+    expect(container.querySelector('ol')).not.toBeNull()
+  })
+
+  it('renders a table with column headers', () => {
+    const { container } = render(
+      <ArtifactRenderer
+        artifact={{ ...env, kind: 'table', columns: ['Name', 'Qty'], rows: [['apple', '3']] }}
+      />,
+    )
+    expect(container.querySelector('table thead')).not.toBeNull()
+    expect(screen.getByRole('columnheader', { name: 'Qty' })).toBeInTheDocument()
+    expect(screen.getByText('apple')).toBeInTheDocument()
+  })
+
+  it('renders a metric with unit and delta', () => {
+    render(
+      <ArtifactRenderer
+        artifact={{ ...env, kind: 'metric', label: 'Users', value: '42', unit: 'k', delta: '+4%' }}
+      />,
+    )
+    expect(screen.getByText('Users')).toBeInTheDocument()
+    expect(screen.getByText('42')).toBeInTheDocument()
+    expect(screen.getByText('+4%')).toBeInTheDocument()
+  })
+
+  it('renders a cell containing <script> as literal text', () => {
+    const { container } = render(
+      <ArtifactRenderer
+        artifact={{ ...env, kind: 'table', columns: ['c'], rows: [['<script>alert(1)</script>']] }}
+      />,
+    )
+    expect(screen.getByText('<script>alert(1)</script>')).toBeInTheDocument()
+    expect(container.querySelector('script')).toBeNull()
   })
 })

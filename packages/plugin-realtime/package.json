@@ -25,9 +25,11 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json"
   },
   "peerDependencies": {
+    "@theokit/sdk": ">=5.12.1",
     "theokit": ">=0.50.1 || >=0.65.0-0 <0.66.0",
     "zod": "^3.25.0 || ^4.0.0",
     "yjs": "^13",
@@ -36,6 +38,9 @@
     "@types/react": ">=18 || >=19"
   },
   "peerDependenciesMeta": {
+    "@theokit/sdk": {
+      "optional": true
+    },
     "yjs": {
       "optional": true
     },
@@ -50,6 +55,7 @@
     }
   },
   "devDependencies": {
+    "@theokit/sdk": "5.12.1",
     "@testing-library/dom": "^10.0.0",
     "@testing-library/react": "^16.0.0",
     "@types/node": "^22.10.5",

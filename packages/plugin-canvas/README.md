@@ -2,7 +2,7 @@
 
 Canvas plugin for TheoKit — agent artifact protocol + side panel UI + agent custom tool.
 
-Render 9 artifact kinds (markdown, code, svg, diff, whiteboard-scene, slide-deck, mermaid, html, image) inside an auto-opening side panel. Agents publish via the `publish_artifact` tool; the panel reacts in real time via SSE.
+Render 12 artifact kinds (markdown, code, svg, diff, whiteboard-scene, slide-deck, mermaid, html, image, list, table, metric) inside an auto-opening side panel. Agents publish via the `publish_artifact` tool; the panel reacts in real time via SSE.
 
 ## Installation
 
@@ -12,13 +12,14 @@ pnpm add @theokit/plugin-canvas @usetheo/ui @theokit/ui
 
 ### Required peer dependencies
 
-| Package        | Version            | Why                                                                                                           |
-| -------------- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `@usetheo/ui`  | `>= 0.14.0`        | Generic UI primitives (`Button`, `Card`, `CopyButton`, `Tooltip`, `DropdownMenu`, `Alert`, `CodeBlock`, etc.) |
-| `@theokit/ui`  | `>= 1.0.0`         | AI surfaces + engines (`DiffViewer`, `@theokit/ui/whiteboard`, `@theokit/ui/slide-deck`)                      |
-| `@theokit/sdk` | `>= 1.0.0`         | Agent tool runtime / schema validation                                                                        |
-| `theokit`      | `>= 0.1.0-alpha.5` | `defineAgentTool`, `defineAgentEndpoint`, route handlers                                                      |
-| `react`        | `^18 \|\| ^19`     | UI components                                                                                                 |
+| Package                                                                                                                                         | Version            | Why                                                                                                           |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `@usetheo/ui`                                                                                                                                   | `>= 0.14.0`        | Generic UI primitives (`Button`, `Card`, `CopyButton`, `Tooltip`, `DropdownMenu`, `Alert`, `CodeBlock`, etc.) |
+| `@theokit/ui`                                                                                                                                   | `^1.15.0`          | AI surfaces + engines (`DiffViewer`, `@theokit/ui/whiteboard`, `@theokit/ui/slide-deck`)                      |
+| `mdast-util-from-markdown`, `mdast-util-gfm`, `micromark-extension-gfm`, `mdast-util-to-hast`, `hast-util-sanitize`, `hast-util-to-jsx-runtime` | see `package.json` | Needed by the `Markdown` component of `@theokit/ui`, which renders markdown artifacts                         |
+| `@theokit/sdk`                                                                                                                                  | `>= 1.0.0`         | Agent tool runtime / schema validation                                                                        |
+| `theokit`                                                                                                                                       | `>= 0.1.0-alpha.5` | `defineAgentTool`, `defineAgentEndpoint`, route handlers                                                      |
+| `react`                                                                                                                                         | `^18 \|\| ^19`     | UI components                                                                                                 |
 
 ### Optional peer dependencies
 
@@ -140,6 +141,36 @@ bus.emit('conversation-123', artifact)
 | `whiteboard-scene` | n/a       | Lazy-loads `@theokit/ui/whiteboard`                                           |
 | `slide-deck`       | n/a       | Lazy-loads `@theokit/ui/slide-deck`                                           |
 | `image`            | 5 MB      | `data:` URL with MIME prefix OR `https://` URL                                |
+
+### Structured data kinds: `list`, `table`, `metric`
+
+For lists, small tables and a single number with a label. Every string is plain text: renderers print it as a text node, never as HTML or markdown, so these kinds need no security pass. Like every artifact they also carry the envelope fields (`id`, `title`, and so on).
+
+| Kind     | Field               | Rule                                                                    |
+| -------- | ------------------- | ----------------------------------------------------------------------- |
+| `list`   | `items: string[]`   | 1 to 200 items, each at most 500 characters                             |
+| `list`   | `ordered?: boolean` | `true` renders an `<ol>`, otherwise a `<ul>`                            |
+| `table`  | `columns: string[]` | 1 to 20 headers, each at most 500 characters                            |
+| `table`  | `rows: string[][]`  | At most 200 rows, each cell at most 500 characters, one cell per column |
+| `metric` | `label`, `value`    | Each at most 500 characters                                             |
+| `metric` | `unit?`, `delta?`   | Each at most 32 characters, for example `'%'` and `'+4%'`               |
+
+A table row with more or fewer cells than `columns` is rejected by `validateArtifact` and `isArtifact` with the message `every table row needs one cell per column`.
+
+<!-- doc-example: partial -->
+
+```ts
+const artifact = {
+  id: 'sales-q3',
+  title: 'Sales by region',
+  kind: 'table',
+  columns: ['Region', 'Revenue'],
+  rows: [
+    ['EMEA', '1.2M'],
+    ['APAC', '0.9M'],
+  ],
+}
+```
 
 ## License
 

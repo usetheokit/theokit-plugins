@@ -55,6 +55,9 @@ const EXT_BY_KIND: Record<ArtifactKind, string> = {
   mermaid: 'mmd',
   html: 'html',
   image: 'bin', // overridden by data-url MIME
+  list: 'txt',
+  table: 'tsv',
+  metric: 'txt',
 }
 
 /**
@@ -118,6 +121,16 @@ export function serializeArtifactForCopy(artifact: Artifact): string {
       return artifact.source === 'data' ? artifact.dataUrl : artifact.url
     case 'diff':
       return formatDiffArtifact(artifact)
+    case 'list':
+      return artifact.items
+        .map((item, i) => (artifact.ordered === true ? `${i + 1}. ${item}` : `- ${item}`))
+        .join('\n')
+    case 'table':
+      return [artifact.columns, ...artifact.rows].map((r) => r.join('\t')).join('\n')
+    case 'metric':
+      return `${artifact.label}: ${artifact.value}${artifact.unit ?? ''}${
+        artifact.delta !== undefined ? ` (${artifact.delta})` : ''
+      }`
     default: {
       const exhaustive: never = artifact
       throw new Error(`Unhandled artifact kind: ${(exhaustive as { kind: string }).kind}`)

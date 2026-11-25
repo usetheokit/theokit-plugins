@@ -75,4 +75,8 @@ describe('plugin-db-drizzle README against the shipped package', () => {
     // `reflect-metadata` was declared for `@theokit/orm` entities this package never touches.
     expect(Object.keys(manifest.peerDependencies)).not.toContain('reflect-metadata')
   })
+
+  it('names theokit db push, one of the four verbs theokit db ships', () => {
+    expect(readme).toContain('theokit db push')
+  })
 })

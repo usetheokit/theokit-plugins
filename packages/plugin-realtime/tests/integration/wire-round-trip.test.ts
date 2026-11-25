@@ -37,13 +37,13 @@ import { z } from 'zod'
 import { defineRoom } from '../../src/define-room.js'
 import { createYjsRealtimeProvider } from '../../src/yjs-provider.js'
 import { RealtimeRuntime } from '../../src/internal/runtime.js'
+import type { SubscriptionCtx } from '@theokit/sdk/subscription'
 import {
   mountRealtime,
-  type MountedSubscriptionCtx,
   type RealtimeSubscriptionOutput,
 } from '../../src/internal/server-integration.js'
 
-function makeCtx(signal: AbortSignal, connectionId: string): MountedSubscriptionCtx {
+function makeCtx(signal: AbortSignal, connectionId: string): SubscriptionCtx {
   return {
     signal,
     connectionId,
@@ -91,7 +91,7 @@ function serve(
   const controller = new AbortController()
   server.on('connection', (socket) => {
     void (async () => {
-      const gen = (handler as (i: unknown, c: MountedSubscriptionCtx) => AsyncGenerator<unknown>)(
+      const gen = (handler as (i: unknown, c: SubscriptionCtx) => AsyncGenerator<unknown>)(
         {},
         makeCtx(controller.signal, connectionId),
       )

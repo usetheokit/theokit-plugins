@@ -82,7 +82,7 @@ export interface ArtifactToolResult {
  */
 export interface DefineArtifactToolOptions {
   /**
-   * Closed allow-list of kinds. When omitted, all 9 kinds are
+   * Closed allow-list of kinds. When omitted, all 12 kinds are
    * accepted. Apps that restrict this should also update their agent
    * prompt so the model knows which kinds are usable.
    */

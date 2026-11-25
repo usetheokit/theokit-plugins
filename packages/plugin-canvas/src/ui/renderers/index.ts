@@ -20,10 +20,13 @@ import { CodeArtifact } from './code-artifact.js'
 import { DiffArtifact } from './diff-artifact.js'
 import { HtmlArtifact } from './html-artifact.js'
 import { ImageArtifact } from './image-artifact.js'
+import { ListArtifact } from './list-artifact.js'
 import { MarkdownArtifact } from './markdown-artifact.js'
 import { MermaidArtifact } from './mermaid-artifact.js'
+import { MetricArtifact } from './metric-artifact.js'
 import { SlideDeckArtifact } from './slide-deck-artifact.js'
 import { SvgArtifact } from './svg-artifact.js'
+import { TableArtifact } from './table-artifact.js'
 import { WhiteboardArtifact } from './whiteboard-artifact.js'
 
 import type { ArtifactRendererRegistry } from './types.js'
@@ -44,16 +47,22 @@ export const DEFAULT_RENDERERS: Required<ArtifactRendererRegistry> = {
   mermaid: MermaidArtifact,
   html: HtmlArtifact,
   image: ImageArtifact,
+  list: ListArtifact,
+  table: TableArtifact,
+  metric: MetricArtifact,
 }
 
 export { CodeArtifact } from './code-artifact.js'
 export { DiffArtifact } from './diff-artifact.js'
 export { HtmlArtifact } from './html-artifact.js'
 export { ImageArtifact } from './image-artifact.js'
+export { ListArtifact } from './list-artifact.js'
 export { MarkdownArtifact } from './markdown-artifact.js'
 export { MermaidArtifact } from './mermaid-artifact.js'
+export { MetricArtifact } from './metric-artifact.js'
 export { SlideDeckArtifact } from './slide-deck-artifact.js'
 export { SvgArtifact } from './svg-artifact.js'
+export { TableArtifact } from './table-artifact.js'
 export { WhiteboardArtifact } from './whiteboard-artifact.js'
 export type {
   ArtifactRendererProps,

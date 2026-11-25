@@ -5,12 +5,13 @@
  * kind, security checks for svg + html + image, and the helper APIs
  * (validateArtifact, isArtifact, enforceArtifactSecurity).
  */
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   ARTIFACT_KINDS,
   CanvasArtifactSecurityError,
   CanvasArtifactValidationError,
+  defineArtifactTool,
   enforceArtifactSecurity,
   isArtifact,
   validateArtifact,
@@ -25,7 +26,7 @@ const env = (extras: Partial<{ id: string; title: string; sessionId: string }> =
 
 describe('ARTIFACT_KINDS', () => {
   it('lists all 9 v0.1.0 kinds in stable order', () => {
-    expect(ARTIFACT_KINDS).toEqual([
+    expect(ARTIFACT_KINDS.slice(0, 9)).toEqual([
       'markdown',
       'code',
       'diff',
@@ -36,6 +37,10 @@ describe('ARTIFACT_KINDS', () => {
       'html',
       'image',
     ])
+  })
+
+  it('appends list, table and metric after the v0.1.0 kinds', () => {
+    expect(ARTIFACT_KINDS.slice(9)).toEqual(['list', 'table', 'metric'])
   })
 })
 
@@ -509,5 +514,44 @@ describe('enforceArtifactSecurity', () => {
       ...baseEnv,
     } as Artifact
     expect(() => enforceArtifactSecurity(artifact)).not.toThrow()
+  })
+})
+
+describe('list, table and metric kinds', () => {
+  const list = { kind: 'list', items: ['a', 'b'], ...env() }
+  const table = { kind: 'table', columns: ['x', 'y'], rows: [['1', '2']], ...env() }
+  const metric = { kind: 'metric', label: 'Users', value: '42', unit: 'k', delta: '+4%', ...env() }
+
+  it('accepts a valid artifact of each kind', () => {
+    for (const a of [list, table, metric]) expect(validateArtifact(a).ok).toBe(true)
+    expect(isArtifact(table)).toBe(true)
+  })
+
+  it('rejects a ragged table row with the exact message', () => {
+    const bad = { ...table, rows: [['1', '2', '3']] }
+    const r = validateArtifact(bad)
+    expect(r.ok).toBe(false)
+    if (!r.ok) {
+      expect(r.error.issues.map((i) => i.message)).toContain(
+        'every table row needs one cell per column',
+      )
+    }
+    expect(isArtifact(bad)).toBe(false)
+  })
+
+  it('rejects an empty list, an oversize cell and too many columns', () => {
+    expect(validateArtifact({ ...list, items: [] }).ok).toBe(false)
+    expect(validateArtifact({ ...list, items: ['x'.repeat(500)] }).ok).toBe(true)
+    expect(validateArtifact({ ...list, items: ['x'.repeat(501)] }).ok).toBe(false)
+    const cols = Array.from({ length: 21 }, () => 'c')
+    expect(validateArtifact({ ...table, columns: cols, rows: [] }).ok).toBe(false)
+  })
+
+  it('defineArtifactTool with allowedKinds [table] publishes a table and refuses a list', async () => {
+    const onPublish = vi.fn((a: Artifact) => Promise.resolve(a))
+    const tool = defineArtifactTool({ allowedKinds: ['table'], onPublish })
+    await tool.handler(table)
+    expect(onPublish).toHaveBeenCalledOnce()
+    await expect(tool.handler(list)).rejects.toBeInstanceOf(CanvasArtifactSecurityError)
   })
 })

@@ -14,45 +14,8 @@
  * @internal
  */
 
-import { computeCost as sdkComputeCost } from '@theokit/sdk'
-
-/**
- * What `computeCost` returns, annotated here because the SDK's own declaration does not
- * resolve.
- *
- * `@theokit/sdk@2.18.0` ships a broken `.d.ts`: `dist/cron-*.d.ts` references
- * `MemoryProviderFactory`, a name defined nowhere in the package. `tsc` hides it behind
- * `skipLibCheck`, but typescript-eslint degrades every type reached through that graph to
- * `error`, so `computeCost(...)` reads as unresolvable and every field access on it is an
- * unsafe-member-access.
- *
- * This is NOT the hand-maintained mirror that #62 removed, and the difference matters: that
- * one copied a type the SDK exports correctly and could have imported. Here there is
- * nothing to import until upstream fixes the declaration — reported separately. The shape
- * below is only the three fields this module reads, so a change to the rest of
- * `CostBreakdown` cannot silently invalidate it, and `settleCost`'s own tests price a real
- * call end to end.
- */
-interface CostBreakdownShape {
-  readonly amountUsd: number | undefined
-  readonly status: string
-  readonly source: string | undefined
-  readonly pricingVersion: string | undefined
-}
-
-/**
- * The unresolvable type is crossed here, once, and never again below.
- *
- * A cast at each field read would put four unchecked assumptions in the module and let
- * them drift apart. One typed binding at the import means the call site is ordinary
- * checked code, and there is a single line to delete when upstream ships a working
- * declaration.
- */
-const computeCost = sdkComputeCost as (args: {
-  usage: { inputTokens: number; outputTokens: number; totalTokens: number }
-  provider: string
-  model: string
-}) => CostBreakdownShape
+import { computeCost, type CostBreakdown } from '@theokit/sdk'
+import { parseModelId } from '@theokit/sdk/models'
 
 import type { CopilotUsage } from '../types.js'
 
@@ -84,23 +47,19 @@ const NO_USAGE: SettledCost = {
 /**
  * Split a model id into the provider and the model the pricing table knows.
  *
- * TheoKit model ids are `provider/rest`, and `rest` may itself contain slashes —
- * `openrouter/openai/gpt-4o-mini` is provider `openrouter`, model `openai/gpt-4o-mini`.
- * Splitting on every slash would ask the table for `openai`, which is a provider name,
- * not a model, and quietly return no price.
+ * Delegates to the SDK's `parseModelId`: split at the first `/`, provider lowercased and
+ * aliased (`LM-Studio` -> `lmstudio`), so `openrouter/openai/gpt-4o-mini` is provider
+ * `openrouter`, model `openai/gpt-4o-mini`. No provider prefix yields `provider: ''`.
+ *
+ * @deprecated Use `parseModelId` from `@theokit/sdk/models`.
  */
 export function splitModelId(model: string | { readonly id: string }): {
   provider: string
   model: string
 } {
   const id = typeof model === 'string' ? model : model.id
-  const slash = id.indexOf('/')
-  if (slash <= 0 || slash === id.length - 1) {
-    // No provider prefix. Hand the whole thing over and let the table decide; a wrong
-    // guess here would be a fabricated provider, which is worse than an unpriced call.
-    return { provider: '', model: id }
-  }
-  return { provider: id.slice(0, slash), model: id.slice(slash + 1) }
+  const parsed = parseModelId(id)
+  return { provider: parsed.provider ?? '', model: parsed.name }
 }
 
 /**
@@ -132,7 +91,7 @@ export function settleCost(
 
   const { provider, model: modelName } = splitModelId(model)
   try {
-    const breakdown = computeCost({
+    const breakdown: CostBreakdown = computeCost({
       usage: { inputTokens, outputTokens, totalTokens: inputTokens + outputTokens },
       provider,
       model: modelName,

@@ -195,6 +195,19 @@ describe('the SDK enforces the windows, and does it for us', () => {
   })
 })
 
+describe('process-scoped budgets stay isolated by name', () => {
+  it('a breach in one room or copilot does not block another', async () => {
+    const bridge = new BudgetBridge({ perRoom: { dailyUsd: 1 } })
+
+    await bridge.reconcile(bridge.reserve('a', 'r1', 0.9), 0.9)
+
+    expect(() => bridge.reserve('a', 'r1', 0.5)).toThrow()
+    expect(() => bridge.reserve('a', 'r2', 0.5)).not.toThrow()
+    expect(() => bridge.reserve('b', 'r1', 0.5)).not.toThrow()
+    expect(bridge.getUsage('a', 'r2').dailyUsedUsd).toBe(0)
+  })
+})
+
 describe('budget names', () => {
   it('are isolated per copilot and per room', () => {
     expect(budgetNameFor('a', 'r1')).not.toBe(budgetNameFor('a', 'r2'))
