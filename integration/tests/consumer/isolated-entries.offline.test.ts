@@ -30,6 +30,7 @@ import {
   mkdtempSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -64,15 +65,30 @@ function manifests(): { dir: string; pkg: Manifest }[] {
     .sort((a, b) => a.dir.localeCompare(b.dir))
 }
 
-/** Resolve an installed package out of the pnpm store, so the fixture links real installs. */
-function storePath(name: string): string | undefined {
-  const store = join(REPO_ROOT, 'node_modules', '.pnpm')
+/** Compare two store directory names by the numeric parts of their version, so 1.15.0 > 1.3.2. */
+function byVersion(a: string, b: string): number {
+  return a.localeCompare(b, 'en', { numeric: true })
+}
+
+/** The newest store directory for a package name, by version rather than by string order. */
+function newestStoreDir(dirs: string[], name: string): string | undefined {
   const prefix = `${name.replace('/', '+')}@`
-  const dir = readdirSync(store)
+  return dirs
     .filter((d) => d.startsWith(prefix))
-    .sort()
+    .sort(byVersion)
     .at(-1)
-  return dir === undefined ? undefined : join(store, dir, 'node_modules', name)
+}
+
+/**
+ * Resolve an installed package so the fixture links a real install: the one the declaring package
+ * itself resolves (its own `node_modules` link), else the newest version in the pnpm store.
+ */
+function storePath(name: string, dir: string): string | undefined {
+  const own = join(PACKAGES, dir, 'node_modules', ...name.split('/'))
+  if (existsSync(own)) return realpathSync(own)
+  const store = join(REPO_ROOT, 'node_modules', '.pnpm')
+  const found = newestStoreDir(readdirSync(store), name)
+  return found === undefined ? undefined : join(store, found, 'node_modules', name)
 }
 
 /**
@@ -99,7 +115,7 @@ function consumerFor(dir: string, pkg: Manifest): { root: string; unavailable: s
     ...Object.keys(pkg.peerDependencies ?? {}),
   ]
   for (const name of declared) {
-    const from = storePath(name)
+    const from = storePath(name, dir)
     if (from === undefined) {
       // Reported, never passed over: a peer absent from the store would otherwise look exactly
       // like a peer the entry does not need.
@@ -170,6 +186,13 @@ describe('a published entry loads without the monorepo underneath it', () => {
       }
     })
   }
+})
+
+describe('store resolution', () => {
+  it('picks the highest version, not the last string', () => {
+    const dirs = ['@theokit+ui@1.3.2_x', '@theokit+ui@1.15.0_y', '@theokit+uix@9.0.0']
+    expect(newestStoreDir(dirs, '@theokit/ui')).toBe('@theokit+ui@1.15.0_y')
+  })
 })
 
 describe('one @theokit/ui in the workspace', () => {
