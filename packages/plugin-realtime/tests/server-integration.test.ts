@@ -127,3 +127,10 @@ describe('MountedSubscriptionCtx', () => {
     expectTypeOf<MountedSubscriptionCtx>().toEqualTypeOf<SubscriptionCtx>()
   })
 })
+
+describe('sdk floor', () => {
+  it('the resolved @theokit/sdk/subscription exports defineSubscription (README, server-integration)', async () => {
+    const mod = (await import('@theokit/sdk/subscription')) as Record<string, unknown>
+    expect(typeof mod.defineSubscription).toBe('function')
+  })
+})
