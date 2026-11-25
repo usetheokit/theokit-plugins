@@ -10,7 +10,7 @@ const pkg = JSON.parse(
     fileURLToPath(new URL('../../../packages/plugin-realtime/package.json', import.meta.url)),
     'utf8',
   ),
-)
+) as { devDependencies: Record<string, string>; peerDependencies: Record<string, string> }
 
 describe('plugin-realtime sdk peer', () => {
   it('floors the peer at the version it builds against', () => {
