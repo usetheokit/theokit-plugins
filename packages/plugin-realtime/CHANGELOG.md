@@ -1,5 +1,16 @@
 # @theokit/plugin-realtime
 
+## 0.3.0
+
+### Minor Changes
+
+- bc6fe2d: Import `SubscriptionCtx` from `@theokit/sdk/subscription` instead of mirroring it. `MountedSubscriptionCtx` is now a deprecated alias of it. `@theokit/sdk` (`>=4.54.0`) is a new optional peer; the import is type-only.
+
+### Patch Changes
+
+- ee83b88: The `@theokit/sdk` peer floor is now `>=5.12.1`, the version the package builds against. A floor below it admits sdk releases that were never compiled against.
+- bffdebf: The `@theokit/sdk` peer floor is now `>=5.12.1`. Earlier sdk releases (such as 4.54.0) have no `defineSubscription` in `@theokit/sdk/subscription`, which the plugin and its README use.
+
 ## 0.2.2
 
 ### Patch Changes

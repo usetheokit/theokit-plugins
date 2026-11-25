@@ -1,5 +1,12 @@
 # @theokit/plugin-copilot
 
+## 0.5.1
+
+### Patch Changes
+
+- 02e127a: Parse model ids with the SDK's `parseModelId` and drop the hand-written `computeCost` cast. `splitModelId` (now deprecated) normalizes the provider: it is lowercased and aliased, so `LM-Studio/x` becomes `lmstudio`.
+- 8fb1a1b: Create SDK budgets with the supported `process` scope instead of `agent`, which the SDK rejects as unimplemented. Per-room isolation still comes from distinct budget names.
+
 ## 0.5.0
 
 ### Minor Changes

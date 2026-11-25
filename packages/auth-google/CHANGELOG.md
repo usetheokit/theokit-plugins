@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1
+
+### Patch Changes
+
+- 121af77: Check the OAuth callback `state` with theokit's constant-time `verifyOAuthState`. An empty `state` or an empty stored state is now rejected with `state_mismatch`.
+
 ## 0.6.0
 
 ### Minor Changes
