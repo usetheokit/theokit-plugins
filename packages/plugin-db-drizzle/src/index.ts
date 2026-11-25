@@ -60,17 +60,10 @@ export function drizzleDb(opts: DrizzleDbOptions): DrizzleDbPlugin {
     kind: 'db',
     options: resolved,
     register(_app: TheoApp): void {
-      // Deliberately empty, and the reason is worth stating because the previous
-      // body was not.
-      //
-      // It called `app.registerCliCommand('db', …)` and
-      // `app.registerDevtoolsTab(…)` behind `if (app.registerCliCommand)`
-      // guards. Neither method exists on `TheoApp` — the framework passes
-      // `addHook` and `decorateRequest`, nothing more — so the guards were
-      // always false and seven documented CLI verbs plus a devtools tab were a
-      // silent no-op (#43). The `theokit` CLI itself knows build / dev / doctor
-      // / start and has no plugin extension point, so there was nowhere for the
-      // verbs to go even had the call landed.
+      // Deliberately empty. Neither `registerCliCommand` nor `registerDevtoolsTab`
+      // exists on `TheoApp` (#43), so the old calls were silent no-ops. The CLI
+      // for database work is `theokit db migrate | push | generate | seed`,
+      // which ships with `theokit` and does not use this plugin.
       //
       // Nothing replaces it here because this plugin has no runtime surface to
       // publish: `DrizzleDbPlugin` carries name/kind/options and no client. It

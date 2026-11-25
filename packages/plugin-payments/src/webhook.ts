@@ -8,12 +8,14 @@
 
 import type Stripe from 'stripe'
 
+import { HandlerRegistry } from './handler-registry.js'
 import type { IdempotencyStore } from './idempotency-store.js'
 import {
   type DispatchOutcome,
   runIdempotently,
   type SanitizedWebhookError,
 } from './idempotent-dispatch.js'
+import { verifyStripeSignature } from './stripe-webhook-verifier.js'
 import type { StripeWebhookHandler } from './types.js'
 
 /**
@@ -61,70 +63,25 @@ export function defineStripeWebhook<T extends Stripe.Event['type']>(
 }
 
 /**
- * Internal type-erased handler shape stored in the registry. The variance
- * of `StripeWebhookHandler<T>` over `T` (handle accepts narrowed events)
- * makes the public typed shape incompatible with a `[]` storage layout —
- * the registry stores erased handlers + casts on dispatch (safe because
- * dispatcher guarantees event.type matches eventType before calling handle).
- */
-interface ErasedHandler {
-  readonly eventType: string
-  readonly handle: (event: Stripe.Event) => Promise<void>
-}
-
-/**
  * Registry for Stripe webhook handlers. Routes incoming `Stripe.Event`
  * objects to matching `defineStripeWebhook` descriptors.
  *
  * Multiple handlers may be registered for the same event type — they run
  * in LIFO order (last registered runs first). Errors in any handler
- * propagate to the caller (consumer chooses 500 vs 200).
+ * are collected into one `AggregateError` (consumer chooses 500 vs 200).
  *
  * Unhandled event types are NO-OP (no error). This matches Stripe's
  * recommended behavior — respond 200 to acknowledge receipt even when
  * the event type isn't relevant to the consumer's domain.
  */
-export class WebhookRegistry {
-  private readonly handlers = new Map<string, ErasedHandler[]>()
-
-  register<T extends Stripe.Event['type']>(handler: StripeWebhookHandler<T>): void {
-    const bucket = this.handlers.get(handler.eventType) ?? []
-    const erased: ErasedHandler = {
+export class WebhookRegistry extends HandlerRegistry<Stripe.Event> {
+  // The public typed shape is variant over `T` (handle accepts narrowed events); the shared
+  // registry stores it erased. Safe because dispatch only calls handlers whose eventType matches.
+  override register<T extends Stripe.Event['type']>(handler: StripeWebhookHandler<T>): void {
+    super.register({
       eventType: handler.eventType,
       handle: handler.handle as (event: Stripe.Event) => Promise<void>,
-    }
-    bucket.push(erased)
-    this.handlers.set(handler.eventType, bucket)
-  }
-
-  async dispatch(event: Stripe.Event): Promise<void> {
-    const bucket = this.handlers.get(event.type)
-    if (!bucket || bucket.length === 0) return
-    // LIFO: most-recently-registered handler runs first. ALL handlers run even
-    // if some throw; every error is collected and surfaced together as an
-    // AggregateError (#208) — no failure is reduced to a lost console.error.
-    const errors: unknown[] = []
-    for (let i = bucket.length - 1; i >= 0; i--) {
-      const handler = bucket[i]
-      if (!handler) continue
-      try {
-        await handler.handle(event)
-      } catch (err) {
-        errors.push(err)
-      }
-    }
-    if (errors.length > 0) {
-      throw new AggregateError(
-        errors,
-        `${errors.length} webhook handler(s) failed for event "${event.type}".`,
-      )
-    }
-  }
-
-  /** Test-only introspection. */
-  hasHandlersFor(eventType: Stripe.Event['type']): boolean {
-    const bucket = this.handlers.get(eventType)
-    return bucket !== undefined && bucket.length > 0
+    })
   }
 }
 
@@ -143,17 +100,15 @@ export function verifyAndParseWebhook(
   signatureHeader: string | undefined,
   webhookSecret: string,
 ): Stripe.Event {
-  if (!signatureHeader) {
+  const result = verifyStripeSignature(stripe, rawBody, signatureHeader, webhookSecret)
+  if (result.ok) return result.event
+  if (result.reason === 'missing_header') {
     throw new StripeSignatureError(
       'Missing stripe-signature header. Webhook MUST include the signature in the request headers.',
     )
   }
-  try {
-    return stripe.webhooks.constructEvent(rawBody, signatureHeader, webhookSecret)
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown signature error'
-    throw new StripeSignatureError(`Webhook signature verification failed: ${message}`)
-  }
+  const message = result.cause instanceof Error ? result.cause.message : 'Unknown signature error'
+  throw new StripeSignatureError(`Webhook signature verification failed: ${message}`)
 }
 
 // `SanitizedWebhookError` now lives in ./idempotent-dispatch.js, shared with the
@@ -204,6 +159,9 @@ export async function processWebhook(opts: {
     throw err
   }
   return runIdempotently({
+    // The bare event id on purpose: the neutral path stores `${namespace}:${event.id}`. Keys
+    // already recorded by apps on either path must keep matching, or an upgrade mid-retry would
+    // re-run an event under the other key. Do not unify without migrating stored keys.
     eventId: event.id,
     store: opts.store,
     dispatch: () => opts.registry.dispatch(event),

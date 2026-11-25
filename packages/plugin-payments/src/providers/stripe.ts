@@ -38,6 +38,7 @@ import {
   type WebhookRequest,
   WebhookSignatureError,
 } from '../provider-types.js'
+import { verifyStripeSignature } from '../stripe-webhook-verifier.js'
 
 const PROVIDER = 'stripe'
 
@@ -238,22 +239,20 @@ export function StripeProvider(
       // Header lookup is case-insensitive: Node lowercases incoming headers, but
       // a consumer forwarding a map from another framework may not have.
       const signature = req.headers['stripe-signature'] ?? req.headers['Stripe-Signature']
-      if (signature === undefined || signature.length === 0) {
+      const result = verifyStripeSignature(opts.client, req.rawBody, signature, opts.webhookSecret)
+      if (!result.ok) {
+        if (result.reason === 'missing_header') {
+          throw new WebhookSignatureError(
+            PROVIDER,
+            'Missing stripe-signature header — Stripe always sends one, so its absence means the request did not come from Stripe (or a proxy stripped it).',
+          )
+        }
         throw new WebhookSignatureError(
           PROVIDER,
-          'Missing stripe-signature header — Stripe always sends one, so its absence means the request did not come from Stripe (or a proxy stripped it).',
+          `Webhook signature verification failed: ${result.cause instanceof Error ? result.cause.message : String(result.cause)}`,
         )
       }
-
-      let event: Stripe.Event
-      try {
-        event = opts.client.webhooks.constructEvent(req.rawBody, signature, opts.webhookSecret)
-      } catch (cause) {
-        throw new WebhookSignatureError(
-          PROVIDER,
-          `Webhook signature verification failed: ${cause instanceof Error ? cause.message : String(cause)}`,
-        )
-      }
+      const event = result.event
 
       return {
         type: EVENT_MAP[event.type] ?? 'unknown',

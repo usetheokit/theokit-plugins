@@ -11,6 +11,7 @@
  * that needs the untouched payload reads `event.raw`; neither is discarded.
  */
 
+import { HandlerRegistry } from './handler-registry.js'
 import type { IdempotencyStore } from './idempotency-store.js'
 import {
   type DispatchOutcome,
@@ -57,39 +58,13 @@ export function definePaymentWebhook<T extends PaymentEventType>(
  * cannot silently cancel the rest. All errors surface together as an
  * `AggregateError`.
  */
-export class PaymentEventRegistry {
-  private readonly handlers = new Map<string, PaymentEventHandler[]>()
-
-  register<T extends PaymentEventType>(handler: PaymentEventHandler<T>): void {
-    const bucket = this.handlers.get(handler.eventType) ?? []
-    bucket.push(handler)
-    this.handlers.set(handler.eventType, bucket)
+export class PaymentEventRegistry extends HandlerRegistry<PaymentEvent> {
+  override register<T extends PaymentEventType>(handler: PaymentEventHandler<T>): void {
+    super.register(handler)
   }
 
-  async dispatch(event: PaymentEvent): Promise<void> {
-    const bucket = this.handlers.get(event.type)
-    if (bucket === undefined || bucket.length === 0) return
-    const errors: unknown[] = []
-    for (let i = bucket.length - 1; i >= 0; i--) {
-      const handler = bucket[i]
-      if (handler === undefined) continue
-      try {
-        await handler.handle(event)
-      } catch (err) {
-        errors.push(err)
-      }
-    }
-    if (errors.length > 0) {
-      throw new AggregateError(
-        errors,
-        `${errors.length} webhook handler(s) failed for event "${event.type}".`,
-      )
-    }
-  }
-
-  hasHandlersFor(eventType: PaymentEventType): boolean {
-    const bucket = this.handlers.get(eventType)
-    return bucket !== undefined && bucket.length > 0
+  override hasHandlersFor(eventType: PaymentEventType): boolean {
+    return super.hasHandlersFor(eventType)
   }
 }
 
@@ -144,6 +119,9 @@ export async function processPaymentWebhook(opts: {
   // ACROSS providers, and one store may serve several. Namespacing here costs
   // one string concat and removes a collision that would look like a duplicate
   // and silently drop a real payment.
+  // Namespaced on purpose: the Stripe-typed `processWebhook` stores the bare `event.id`. Keys
+  // already recorded by apps on either path must keep matching, or an upgrade mid-retry would
+  // re-run an event under the other key. Do not unify without migrating stored keys.
   const namespace = opts.namespace ?? event.provider
   return runIdempotently({
     eventId: `${namespace}:${event.id}`,

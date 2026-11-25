@@ -193,11 +193,45 @@ const imageUrlSchema = artifactEnvelopeSchema.extend({
   height: z.number().int().positive().optional(),
 })
 
+// ───── Structured data kinds (list, table, metric) ─────
+// Cells are plain text: renderers print them as text nodes, never as HTML
+// or markdown, so these kinds need no entry in `enforceArtifactSecurity`.
+
+const MAX_CELL_LENGTH = 500
+const MAX_ROWS = 200
+const MAX_COLUMNS = 20
+const cell = z.string().max(MAX_CELL_LENGTH)
+
+const listArtifactSchema = artifactEnvelopeSchema.extend({
+  kind: z.literal('list'),
+  items: z.array(cell).min(1).max(MAX_ROWS),
+  ordered: z.boolean().optional(),
+})
+
+const tableArtifactSchema = artifactEnvelopeSchema
+  .extend({
+    kind: z.literal('table'),
+    columns: z.array(cell).min(1).max(MAX_COLUMNS),
+    rows: z.array(z.array(cell)).max(MAX_ROWS),
+  })
+  .refine((t) => t.rows.every((r) => r.length === t.columns.length), {
+    message: 'every table row needs one cell per column',
+    path: ['rows'],
+  })
+
+const metricArtifactSchema = artifactEnvelopeSchema.extend({
+  kind: z.literal('metric'),
+  label: cell,
+  value: cell,
+  unit: z.string().max(32).optional(),
+  delta: z.string().max(32).optional(),
+})
+
 // ───── Union ─────
 // Outer schema uses `z.union` (not `z.discriminatedUnion`) so the image
 // variant can carry a NESTED discriminator on `source` without
 // colliding with the outer `kind` literal. The cost of the looser
-// dispatch is a `safeParse` fan-out across 10 variants, which is
+// dispatch is a `safeParse` fan-out across 13 variants, which is
 // negligible — agent emits at most a handful per turn.
 
 /**
@@ -217,6 +251,9 @@ export const artifactSchema = z.union([
   slideDeckArtifactSchema,
   mermaidArtifactSchema,
   htmlArtifactSchema,
+  listArtifactSchema,
+  tableArtifactSchema,
+  metricArtifactSchema,
   imageDataSchema,
   imageUrlSchema,
 ])
@@ -242,6 +279,9 @@ export const ARTIFACT_KINDS: readonly ArtifactKind[] = [
   'mermaid',
   'html',
   'image',
+  'list',
+  'table',
+  'metric',
 ] as const
 
 // ───── Validation helpers ─────

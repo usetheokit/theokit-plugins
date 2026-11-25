@@ -10,11 +10,12 @@
  *   #198 — `onFrame` enqueued frames even after abort (stopped), amplifying the
  *          unbounded-queue growth.
  */
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { z } from 'zod'
 import { defineRoom } from '../src/define-room.js'
 import { createMemoryRealtimeProvider } from '../src/memory-provider.js'
 import { RealtimeRuntime } from '../src/internal/runtime.js'
+import type { SubscriptionCtx } from '@theokit/sdk/subscription'
 import { mountRealtime, type MountedSubscriptionCtx } from '../src/internal/server-integration.js'
 
 function makeCtx(
@@ -23,7 +24,7 @@ function makeCtx(
   disconnect: (code?: number, reason?: string) => void = () => {
     /* noop default */
   },
-): MountedSubscriptionCtx {
+): SubscriptionCtx {
   return {
     signal,
     connectionId,
@@ -118,5 +119,18 @@ describe('mountRealtime handler — abort + bounded queue (#195, #198)', () => {
     expect(disconnect).not.toHaveBeenCalled() // post-abort frames dropped, no overflow
     const r = await gen.next()
     expect(r.done).toBe(true)
+  })
+})
+
+describe('MountedSubscriptionCtx', () => {
+  it('is the SDK SubscriptionCtx', () => {
+    expectTypeOf<MountedSubscriptionCtx>().toEqualTypeOf<SubscriptionCtx>()
+  })
+})
+
+describe('sdk floor', () => {
+  it('the resolved @theokit/sdk/subscription exports defineSubscription (README, server-integration)', async () => {
+    const mod = (await import('@theokit/sdk/subscription')) as Record<string, unknown>
+    expect(typeof mod.defineSubscription).toBe('function')
   })
 })

@@ -397,6 +397,20 @@ describe('AbacatePayProvider.verifyWebhook', () => {
     ).rejects.toBeInstanceOf(WebhookSignatureError)
   })
 
+  it.each([
+    ['differs in the last character', `${SECRET.slice(0, -1)}X`],
+    ['has a different length', `${SECRET}extra`],
+  ])('rejects a per-merchant secret that %s', async (_name, wrong) => {
+    const provider = AbacatePayProvider({ apiKey: API_KEY, webhookSecret: SECRET })
+    await expect(
+      provider.verifyWebhook({
+        rawBody: body,
+        headers: {},
+        url: `https://loja.example/webhook?webhookSecret=${wrong}`,
+      }),
+    ).rejects.toBeInstanceOf(WebhookSignatureError)
+  })
+
   it('rejects a delivery with no query secret at all', async () => {
     const provider = AbacatePayProvider({ apiKey: API_KEY, webhookSecret: SECRET })
     await expect(

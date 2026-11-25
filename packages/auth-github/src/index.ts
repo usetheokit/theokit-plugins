@@ -16,7 +16,7 @@
 
 import type { IncomingMessage } from 'node:http'
 import type { AuthProvider, AuthResult, OAuthTransaction } from '@theokit/sdk/server/auth'
-import { pkceChallengeFromVerifier } from 'theokit/server/auth'
+import { pkceChallengeFromVerifier, verifyOAuthState } from 'theokit/server/auth'
 import type { GitHubProfile, GitHubProviderOptions } from './types.js'
 
 export type { GitHubProfile, GitHubProviderOptions } from './types.js'
@@ -190,7 +190,7 @@ export function github(opts: GitHubProviderOptions): Omit<
       if (!code) {
         throw new GitHubAuthError('missing_code', 'OAuth callback missing code query param')
       }
-      if (state !== tx.state) {
+      if (!state || !verifyOAuthState(state, tx.state)) {
         throw new GitHubAuthError(
           'state_mismatch',
           'OAuth state query param does not match transaction state (CSRF guard)',

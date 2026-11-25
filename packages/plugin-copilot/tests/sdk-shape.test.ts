@@ -21,7 +21,7 @@ import type { StreamObjectEvent } from '@theokit/sdk'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
-import { settleCost } from '../src/internal/cost.js'
+import { settleCost, splitModelId } from '../src/internal/cost.js'
 import type { CopilotAgentLike, CopilotUsage } from '../src/types.js'
 
 const _answerSchema = z.object({ text: z.string() })
@@ -102,5 +102,20 @@ describe('CopilotAgentLike accepts what @theokit/sdk actually emits', () => {
     const settled = settleCost(undefined, 'openrouter/openai/gpt-4o-mini')
     expect(settled.amountUsd).toBeUndefined()
     expect(settled.status).toBe('no_usage')
+  })
+})
+
+describe('splitModelId', () => {
+  it('normalizes the provider through the SDK parser', () => {
+    expect(splitModelId('LM-Studio/qwen')).toEqual({ provider: 'lmstudio', model: 'qwen' })
+    expect(splitModelId('openrouter/openai/gpt-4o-mini')).toEqual({
+      provider: 'openrouter',
+      model: 'openai/gpt-4o-mini',
+    })
+  })
+
+  it('leaves an id without a provider unprefixed', () => {
+    expect(splitModelId('gpt-4o')).toEqual({ provider: '', model: 'gpt-4o' })
+    expect(splitModelId({ id: 'gpt-4o' })).toEqual({ provider: '', model: 'gpt-4o' })
   })
 })
