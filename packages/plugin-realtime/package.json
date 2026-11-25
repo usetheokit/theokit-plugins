@@ -29,7 +29,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "peerDependencies": {
-    "@theokit/sdk": ">=5.12.1",
+    "@theokit/sdk": ">=5.12.1 <14",
     "theokit": ">=0.50.1 || >=0.65.0-0 <0.66.0",
     "zod": "^3.25.0 || ^4.0.0",
     "yjs": "^13",
