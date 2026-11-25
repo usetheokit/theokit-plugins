@@ -73,7 +73,10 @@ function byVersion(a: string, b: string): number {
 /** The newest store directory for a package name, by version rather than by string order. */
 function newestStoreDir(dirs: string[], name: string): string | undefined {
   const prefix = `${name.replace('/', '+')}@`
-  return dirs.filter((d) => d.startsWith(prefix)).sort(byVersion).at(-1)
+  return dirs
+    .filter((d) => d.startsWith(prefix))
+    .sort(byVersion)
+    .at(-1)
 }
 
 /**
